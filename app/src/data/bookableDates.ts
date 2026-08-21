@@ -7,13 +7,13 @@ export function toDateKey(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-export function startOfDay(date: Date): Date {
+function startOfDay(date: Date): Date {
   const next = new Date(date);
   next.setHours(0, 0, 0, 0);
   return next;
 }
 
-export function addOneMonth(date: Date): Date {
+function addOneMonth(date: Date): Date {
   const next = new Date(date);
   const day = next.getDate();
   next.setMonth(next.getMonth() + 1);
@@ -41,25 +41,11 @@ export function getBookableDays(from = new Date()): Date[] {
   return days;
 }
 
-export function getUpcomingDays(count = 7): Date[] {
-  const today = startOfDay(new Date());
-
-  return Array.from({length: count}, (_, index) => {
-    const date = new Date(today);
-    date.setDate(today.getDate() + index);
-    return date;
-  });
-}
-
 export function getWeekdayLabel(date: Date): string {
   return WEEKDAYS[date.getDay()];
 }
 
-export function formatMonthLabel(date: Date): string {
-  return date.toLocaleDateString('sv-SE', {month: 'short'});
-}
-
-export function formatMonthHeading(date: Date): string {
+function formatMonthHeading(date: Date): string {
   const now = new Date();
   const includeYear = date.getFullYear() !== now.getFullYear();
 

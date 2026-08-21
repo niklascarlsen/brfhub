@@ -1,17 +1,34 @@
 import {useState} from 'react';
-import {Alert, ScrollView, Text, View} from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
 
 import {DatePicker} from '@/components/DatePicker';
 import {DateTimeSlots} from '@/components/DateTimeSlots';
 import {useBookings} from '@/context/BookingsContext';
 import {formatLongDate, getBookableDays, toDateKey} from '@/data/bookableDates';
-import {LAUNDRY_TIME_SLOTS} from '@/data/laundryTimeSlots';
 
 const BOOKABLE_DAYS = getBookableDays();
 
 export function BookingScreen() {
-  const [selectedDate, setSelectedDate] = useState(BOOKABLE_DAYS[0]);
-  const {getSlotStatus, getBooking, bookSlot, cancelBooking} = useBookings();
+  const [selectedDate, setSelectedDate] = useState(
+    () => BOOKABLE_DAYS[0] ?? new Date(),
+  );
+  const {
+    slots,
+    loading,
+    error,
+    refresh,
+    getSlotStatus,
+    getBooking,
+    bookSlot,
+    cancelBooking,
+  } = useBookings();
   const dateKey = toDateKey(selectedDate);
 
   function handlePress(slotId: string, start: string, end: string) {
@@ -32,7 +49,9 @@ export function BookingScreen() {
         {
           text: 'Avboka',
           style: 'destructive',
-          onPress: () => cancelBooking(booking.id),
+          onPress: () => {
+            void cancelBooking(booking.id);
+          },
         },
       ]);
       return;
@@ -40,7 +59,12 @@ export function BookingScreen() {
 
     Alert.alert('Boka tid', `Vill du boka ${start}–${end}?`, [
       {text: 'Avbryt', style: 'cancel'},
-      {text: 'Boka', onPress: () => bookSlot(dateKey, slotId)},
+      {
+        text: 'Boka',
+        onPress: () => {
+          void bookSlot(dateKey, slotId);
+        },
+      },
     ]);
   }
 
@@ -61,14 +85,34 @@ export function BookingScreen() {
         <Text className='mb-5 text-sm text-theme-muted'>
           Välj en ledig lucka
         </Text>
-        {LAUNDRY_TIME_SLOTS.map((slot) => (
-          <DateTimeSlots
-            key={slot.id}
-            slot={slot}
-            status={getSlotStatus(dateKey, slot.id)}
-            onPress={() => handlePress(slot.id, slot.start, slot.end)}
-          />
-        ))}
+        {loading ? (
+          <View className='items-center py-12'>
+            <ActivityIndicator />
+          </View>
+        ) : error ? (
+          <View className='items-center py-12'>
+            <Text className='mb-3 text-center text-sm text-theme-muted'>
+              {error}
+            </Text>
+            <Pressable
+              onPress={() => void refresh()}
+              className='active:opacity-60'
+            >
+              <Text className='text-base font-semibold text-theme-accent'>
+                Försök igen
+              </Text>
+            </Pressable>
+          </View>
+        ) : (
+          slots.map((slot) => (
+            <DateTimeSlots
+              key={slot.id}
+              slot={slot}
+              status={getSlotStatus(dateKey, slot.id)}
+              onPress={() => handlePress(slot.id, slot.start, slot.end)}
+            />
+          ))
+        )}
       </ScrollView>
     </View>
   );

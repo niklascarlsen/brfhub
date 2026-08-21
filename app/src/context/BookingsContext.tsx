@@ -2,64 +2,86 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react';
+import {Alert} from 'react-native';
 
-import {getUpcomingDays, toDateKey} from '@/data/bookableDates';
-import type {Booking, TimeSlotStatus} from '@/booking';
-
-export const CURRENT_USER_ID = 'me';
-const OTHER_USER_ID = 'neighbour';
+import {api, readResult} from '@/api/client';
+import {
+  CURRENT_USER_ID,
+  type Booking,
+  type TimeSlot,
+  type TimeSlotStatus,
+} from '@/booking';
 
 type BookingsContextValue = {
   bookings: Booking[];
+  slots: TimeSlot[];
   currentUserId: string;
+  loading: boolean;
+  error: string | null;
+  refresh: () => Promise<void>;
   getSlotStatus: (date: string, slotId: string) => TimeSlotStatus;
   getBooking: (date: string, slotId: string) => Booking | undefined;
-  bookSlot: (date: string, slotId: string) => void;
-  cancelBooking: (id: string) => void;
+  bookSlot: (date: string, slotId: string) => Promise<void>;
+  cancelBooking: (id: string) => Promise<void>;
 };
 
 const BookingsContext = createContext<BookingsContextValue | null>(null);
 
-function createInitialBookings(): Booking[] {
-  const days = getUpcomingDays(4);
-  const today = days[0];
-  const tomorrow = days[1];
-  const inThreeDays = days[3];
-
-  return [
-    {
-      id: 'seed-mine-today',
-      date: toDateKey(today),
-      slotId: '07-10',
-      userId: CURRENT_USER_ID,
-    },
-    {
-      id: 'seed-other-today',
-      date: toDateKey(today),
-      slotId: '16-19',
-      userId: OTHER_USER_ID,
-    },
-    {
-      id: 'seed-other-tomorrow',
-      date: toDateKey(tomorrow),
-      slotId: '10-13',
-      userId: OTHER_USER_ID,
-    },
-    {
-      id: 'seed-mine-later',
-      date: toDateKey(inThreeDays),
-      slotId: '19-22',
-      userId: CURRENT_USER_ID,
-    },
-  ];
-}
-
 export function BookingsProvider({children}: {children: ReactNode}) {
-  const [bookings, setBookings] = useState<Booking[]>(createInitialBookings);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [slots, setSlots] = useState<TimeSlot[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    try {
+      const [slotsRes, bookingsRes] = await Promise.all([
+        readResult<TimeSlot[]>(api.GET('/slots'), 'Kunde inte hämta tider'),
+        readResult<Booking[]>(
+          api.GET('/bookings'),
+          'Kunde inte hämta bokningar',
+        ),
+      ]);
+
+      if (!slotsRes.ok) {
+        setError(slotsRes.message);
+        return;
+      }
+
+      if (!bookingsRes.ok) {
+        setError(bookingsRes.message);
+        return;
+      }
+
+      setSlots(slotsRes.data);
+      setBookings(bookingsRes.data);
+      setError(null);
+    } catch {
+      setError('Kunde inte nå servern');
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      await refresh();
+      if (!cancelled) {
+        setLoading(false);
+      }
+    }
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [refresh]);
 
   const getBooking = useCallback(
     (date: string, slotId: string) =>
@@ -80,45 +102,77 @@ export function BookingsProvider({children}: {children: ReactNode}) {
     [getBooking],
   );
 
-  const bookSlot = useCallback((date: string, slotId: string) => {
-    setBookings((current) => {
-      const taken = current.some(
-        (booking) => booking.date === date && booking.slotId === slotId,
-      );
-      if (taken) {
-        return current;
+  const bookSlot = useCallback(
+    async (date: string, slotId: string) => {
+      try {
+        const {
+          data,
+          error: apiError,
+          response,
+        } = await api.POST('/bookings', {
+          body: {date, slotId},
+        });
+
+        if (response.status === 409) {
+          Alert.alert('Tiden är redan bokad');
+          await refresh();
+          return;
+        }
+
+        if (apiError || !data) {
+          Alert.alert('Kunde inte boka', apiError?.message ?? 'Försök igen.');
+          return;
+        }
+
+        setBookings((current) => [...current, data]);
+      } catch {
+        Alert.alert('Kunde inte nå servern');
+      }
+    },
+    [refresh],
+  );
+
+  const cancelBooking = useCallback(async (id: string) => {
+    try {
+      const {error: apiError} = await api.DELETE('/bookings/{id}', {
+        params: {path: {id}},
+      });
+
+      if (apiError) {
+        Alert.alert('Kunde inte avboka', apiError.message ?? 'Försök igen.');
+        return;
       }
 
-      return [
-        ...current,
-        {
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          date,
-          slotId,
-          userId: CURRENT_USER_ID,
-        },
-      ];
-    });
-  }, []);
-
-  const cancelBooking = useCallback((id: string) => {
-    setBookings((current) =>
-      current.filter(
-        (booking) => !(booking.id === id && booking.userId === CURRENT_USER_ID),
-      ),
-    );
+      setBookings((current) => current.filter((booking) => booking.id !== id));
+    } catch {
+      Alert.alert('Kunde inte nå servern');
+    }
   }, []);
 
   const value = useMemo(
     () => ({
       bookings,
+      slots,
       currentUserId: CURRENT_USER_ID,
+      loading,
+      error,
+      refresh,
       getSlotStatus,
       getBooking,
       bookSlot,
       cancelBooking,
     }),
-    [bookings, getSlotStatus, getBooking, bookSlot, cancelBooking],
+    [
+      bookings,
+      slots,
+      loading,
+      error,
+      refresh,
+      getSlotStatus,
+      getBooking,
+      bookSlot,
+      cancelBooking,
+    ],
   );
 
   return (

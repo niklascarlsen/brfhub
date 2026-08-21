@@ -1,11 +1,25 @@
-import {Alert, ScrollView, Text, View} from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
 
 import {ReservationCard} from '@/components/ReservationCard';
 import {useBookings} from '@/context/BookingsContext';
-import {LAUNDRY_TIME_SLOTS} from '@/data/laundryTimeSlots';
 
 export function ReservationScreen() {
-  const {bookings, currentUserId, cancelBooking} = useBookings();
+  const {
+    bookings,
+    slots,
+    currentUserId,
+    loading,
+    error,
+    refresh,
+    cancelBooking,
+  } = useBookings();
 
   const mine = bookings
     .filter((booking) => booking.userId === currentUserId)
@@ -20,9 +34,35 @@ export function ReservationScreen() {
       {
         text: 'Avboka',
         style: 'destructive',
-        onPress: () => cancelBooking(id),
+        onPress: () => {
+          void cancelBooking(id);
+        },
       },
     ]);
+  }
+
+  if (loading) {
+    return (
+      <View className='flex-1 items-center justify-center bg-theme-bg'>
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View className='flex-1 items-center justify-center bg-theme-bg px-8'>
+        <Text className='text-center text-sm text-theme-muted'>{error}</Text>
+        <Pressable
+          onPress={() => void refresh()}
+          className='mt-3 active:opacity-60'
+        >
+          <Text className='text-base font-semibold text-theme-accent'>
+            Försök igen
+          </Text>
+        </Pressable>
+      </View>
+    );
   }
 
   if (mine.length === 0) {
@@ -47,9 +87,7 @@ export function ReservationScreen() {
         {mine.length === 1 ? '1 bokning' : `${mine.length} bokningar`}
       </Text>
       {mine.map((booking) => {
-        const slot = LAUNDRY_TIME_SLOTS.find(
-          (item) => item.id === booking.slotId,
-        );
+        const slot = slots.find((item) => item.id === booking.slotId);
         const label = slot ? `${slot.start}–${slot.end}` : booking.slotId;
 
         return (

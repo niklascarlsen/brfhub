@@ -1,14 +1,7 @@
-export type TimeSlot = {
-  id: string;
-  start: string;
-  end: string;
-};
+import type {components} from '@/generated/api';
 
-export type Booking = {
-  id: string;
-  date: string;
-  slotId: string;
-  userId: string;
-};
-
+export type TimeSlot = components['schemas']['TimeSlot'];
+export type Booking = components['schemas']['Booking'];
 export type TimeSlotStatus = 'available' | 'booked' | 'mine';
+
+export const CURRENT_USER_ID = 'me';
