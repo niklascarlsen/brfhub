@@ -12,32 +12,12 @@ export function fromIsoDate(isoDate: string): Date {
   return new Date(year, month - 1, day);
 }
 
-function startOfDay(date: Date): Date {
-  const next = new Date(date);
-  next.setHours(0, 0, 0, 0);
-  return next;
-}
-
-function addOneMonth(date: Date): Date {
-  const next = new Date(date);
-  const day = next.getDate();
-  next.setMonth(next.getMonth() + 1);
-
-  if (next.getDate() !== day) {
-    next.setDate(0);
-  }
-
-  return next;
-}
-
-export function getBookableDays(from = new Date()): Date[] {
-  const start = startOfDay(from);
-  const end = addOneMonth(start);
+export function daysBetween(from: string, to: string): Date[] {
   const days: Date[] = [];
 
   for (
-    const cursor = new Date(start);
-    cursor <= end;
+    const cursor = fromIsoDate(from);
+    toIsoDate(cursor) <= to;
     cursor.setDate(cursor.getDate() + 1)
   ) {
     days.push(new Date(cursor));

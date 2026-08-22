@@ -50,6 +50,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/booking-window": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BookingWindow"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/bookings": {
         parameters: {
             query?: never;
@@ -206,7 +241,7 @@ export interface components {
             error: string;
             message: string;
             /** @enum {string} */
-            code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "NOT_FOUND" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
+            code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "OUTSIDE_BOOKING_WINDOW" | "NOT_FOUND" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
         };
         BookingInput: {
             /** Format: uuid */
@@ -258,12 +293,20 @@ export interface components {
             /** Format: uuid */
             bookingId: string;
         };
+        BookingWindowInput: {
+            /** Format: date */
+            today: string;
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+        };
         Error: {
             statusCode: number;
             error: string;
             message: string;
             /** @enum {string} */
-            code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "NOT_FOUND" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
+            code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "OUTSIDE_BOOKING_WINDOW" | "NOT_FOUND" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
         };
         Booking: {
             /** Format: uuid */
@@ -314,6 +357,14 @@ export interface components {
             status: "mine";
             /** Format: uuid */
             bookingId: string;
+        };
+        BookingWindow: {
+            /** Format: date */
+            today: string;
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
         };
     };
     responses: never;

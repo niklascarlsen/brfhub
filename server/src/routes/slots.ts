@@ -3,10 +3,15 @@ import {and, asc, eq, sql} from 'drizzle-orm';
 
 import {db} from '../db/index.js';
 import {bookings, timeSlots} from '../db/schema.js';
-import {errorSchema} from '../lib/errors.js';
+import {errorSchema, sendError} from '../lib/errors.js';
 import {slotEndsAt} from '../lib/time.js';
 import {getUserId} from '../lib/user.js';
-import {slotSchema, slotsQuerySchema} from '../schemas/slot.js';
+import {
+  bookingWindowSchema,
+  slotSchema,
+  slotsQuerySchema,
+} from '../schemas/slot.js';
+import {getBookingWindow, isWithinBookingWindow} from '../services/window.js';
 
 type SlotRow = {
   id: string;
@@ -56,9 +61,13 @@ export const slotRoutes: FastifyPluginAsyncZod = async (app) => {
         },
       },
     },
-    async (request) => {
+    async (request, reply) => {
       const userId = getUserId(request);
       const {date} = request.query;
+
+      if (!isWithinBookingWindow(date, await getBookingWindow())) {
+        return sendError(reply, 'OUTSIDE_BOOKING_WINDOW');
+      }
 
       const rows = await db
         .select({
@@ -78,5 +87,17 @@ export const slotRoutes: FastifyPluginAsyncZod = async (app) => {
 
       return rows.map((row) => toSlot(row, userId));
     },
+  );
+
+  app.get(
+    '/booking-window',
+    {
+      schema: {
+        response: {
+          200: bookingWindowSchema,
+        },
+      },
+    },
+    async () => getBookingWindow(),
   );
 };

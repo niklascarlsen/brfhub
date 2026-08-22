@@ -4,6 +4,7 @@ import {db} from '../db/index.js';
 import {bookings, timeSlots} from '../db/schema.js';
 import {isUniqueViolation, type ErrorCode} from '../lib/errors.js';
 import {asIsoText, slotEndsAt, slotHasEnded} from '../lib/time.js';
+import {getBookingWindow, isWithinBookingWindow} from './window.js';
 
 const BOOKING_LOCK_NAMESPACE = 881001;
 
@@ -43,7 +44,11 @@ export type CreateBookingResult =
       ok: false;
       code: Extract<
         ErrorCode,
-        'NOT_FOUND' | 'SLOT_IN_PAST' | 'HAS_ACTIVE_BOOKING' | 'SLOT_TAKEN'
+        | 'NOT_FOUND'
+        | 'SLOT_IN_PAST'
+        | 'OUTSIDE_BOOKING_WINDOW'
+        | 'HAS_ACTIVE_BOOKING'
+        | 'SLOT_TAKEN'
       >;
     };
 
@@ -78,6 +83,10 @@ export async function createBooking({
 
   if (slot.ended) {
     return {ok: false, code: 'SLOT_IN_PAST'};
+  }
+
+  if (!isWithinBookingWindow(date, await getBookingWindow())) {
+    return {ok: false, code: 'OUTSIDE_BOOKING_WINDOW'};
   }
 
   try {

@@ -11,6 +11,7 @@ import {getWeekdayLabel, groupDaysByMonth, toIsoDate} from '@/lib/dates';
 type DatePickerProps = {
   days: Date[];
   selectedDate: Date;
+  todayIso: string;
   onSelect: (date: Date) => void;
 };
 
@@ -18,9 +19,13 @@ const DAYS_VISIBLE = 7;
 const HORIZONTAL_PADDING = 20;
 const DAY_GAP = 4;
 
-export function DatePicker({days, selectedDate, onSelect}: DatePickerProps) {
+export function DatePicker({
+  days,
+  selectedDate,
+  todayIso,
+  onSelect,
+}: DatePickerProps) {
   const {width} = useWindowDimensions();
-  const todayIso = toIsoDate(new Date());
   const selectedIso = toIsoDate(selectedDate);
   const months = groupDaysByMonth(days);
   const dayWidth =

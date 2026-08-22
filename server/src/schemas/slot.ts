@@ -4,6 +4,12 @@ export const slotsQuerySchema = z.object({
   date: z.iso.date(),
 });
 
+export const bookingWindowSchema = z.object({
+  today: z.iso.date(),
+  from: z.iso.date(),
+  to: z.iso.date(),
+});
+
 const slotTimes = {
   id: z.string(),
   start: z.string(),
@@ -27,3 +33,4 @@ export const slotSchema = z.discriminatedUnion('status', [
 ]);
 
 z.globalRegistry.add(slotSchema, {id: 'Slot'});
+z.globalRegistry.add(bookingWindowSchema, {id: 'BookingWindow'});

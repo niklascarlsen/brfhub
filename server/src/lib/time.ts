@@ -27,3 +27,14 @@ export function slotHasEnded(
 export function asIsoText(column: PgColumn): SQL<string> {
   return sql`to_char(${column} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`;
 }
+
+export function bookingWindowSql() {
+  const today = sql`(now() at time zone ${STOCKHOLM})::date`;
+  const asDate = (value: SQL) => sql`to_char(${value}, 'YYYY-MM-DD')`;
+
+  return {
+    today: asDate(today),
+    from: asDate(today),
+    to: asDate(sql`${today} + interval '1 month'`),
+  };
+}
