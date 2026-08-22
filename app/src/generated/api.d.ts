@@ -13,7 +13,9 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query: {
+                    date: string;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -26,7 +28,16 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["TimeSlot"][];
+                        "application/json": components["schemas"]["Slot"][];
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
                     };
                 };
             };
@@ -86,7 +97,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Booking"];
+                        "application/json": components["schemas"]["CreatedBooking"];
                     };
                 };
                 /** @description Default Response */
@@ -194,43 +205,115 @@ export interface components {
             statusCode: number;
             error: string;
             message: string;
+            /** @enum {string} */
+            code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "NOT_FOUND" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
         };
         BookingInput: {
             /** Format: uuid */
             id: string;
+            /** Format: date */
             date: string;
             slotId: string;
-            userId: string;
+            start: string;
+            end: string;
+            /** Format: date-time */
+            endsAt: string;
+        };
+        CreatedBookingInput: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date */
+            date: string;
+            slotId: string;
+            start: string;
+            end: string;
+            /** Format: date-time */
+            endsAt: string;
+            replacedId: string | null;
         };
         CreateBookingBodyInput: {
+            /** Format: date */
             date: string;
             slotId: string;
+            replaceExisting?: boolean;
         };
-        TimeSlotInput: {
+        SlotInput: {
             id: string;
             start: string;
             end: string;
+            /** @constant */
+            status: "available";
+        } | {
+            id: string;
+            start: string;
+            end: string;
+            /** @constant */
+            status: "booked";
+        } | {
+            id: string;
+            start: string;
+            end: string;
+            /** @constant */
+            status: "mine";
+            /** Format: uuid */
+            bookingId: string;
         };
         Error: {
             statusCode: number;
             error: string;
             message: string;
+            /** @enum {string} */
+            code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "NOT_FOUND" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
         };
         Booking: {
             /** Format: uuid */
             id: string;
+            /** Format: date */
             date: string;
             slotId: string;
-            userId: string;
+            start: string;
+            end: string;
+            /** Format: date-time */
+            endsAt: string;
+        };
+        CreatedBooking: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date */
+            date: string;
+            slotId: string;
+            start: string;
+            end: string;
+            /** Format: date-time */
+            endsAt: string;
+            replacedId: string | null;
         };
         CreateBookingBody: {
+            /** Format: date */
             date: string;
             slotId: string;
+            replaceExisting?: boolean;
         };
-        TimeSlot: {
+        Slot: {
             id: string;
             start: string;
             end: string;
+            /** @constant */
+            status: "available";
+        } | {
+            id: string;
+            start: string;
+            end: string;
+            /** @constant */
+            status: "booked";
+        } | {
+            id: string;
+            start: string;
+            end: string;
+            /** @constant */
+            status: "mine";
+            /** Format: uuid */
+            bookingId: string;
         };
     };
     responses: never;

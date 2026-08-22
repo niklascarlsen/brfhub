@@ -1,25 +1,20 @@
 import {Pressable, Text, View} from 'react-native';
 
-import type {Booking, TimeSlot} from '@/booking';
-import {formatLongDate} from '@/data/bookableDates';
+import type {Booking} from '@/api/client';
+import {formatLongDate, timeRange} from '@/lib/dates';
 
 type ReservationCardProps = {
   booking: Booking;
-  slot: TimeSlot | undefined;
   onCancel: () => void;
 };
 
-export function ReservationCard({
-  booking,
-  slot,
-  onCancel,
-}: ReservationCardProps) {
+export function ReservationCard({booking, onCancel}: ReservationCardProps) {
   return (
     <View className='mb-3 rounded-2xl bg-theme-surface px-5 py-4'>
       <View className='flex-row items-center justify-between'>
         <View className='flex-1 pr-3'>
           <Text className='text-2xl font-semibold tracking-tight text-theme-ink'>
-            {slot ? `${slot.start}–${slot.end}` : booking.slotId}
+            {timeRange(booking.start, booking.end)}
           </Text>
           <Text className='mt-1 text-sm font-medium capitalize text-theme-muted'>
             {formatLongDate(booking.date)}

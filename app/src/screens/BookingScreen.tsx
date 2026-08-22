@@ -1,77 +1,72 @@
-import {useState} from 'react';
+import {useFocusEffect} from '@react-navigation/native';
+import {useCallback, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   Text,
   View,
 } from 'react-native';
 
+import {api, unwrap, type Booking, type Slot} from '@/api/client';
+import {ApiError} from '@/api/errors';
 import {DatePicker} from '@/components/DatePicker';
-import {DateTimeSlots} from '@/components/DateTimeSlots';
-import {useBookings} from '@/context/BookingsContext';
-import {formatLongDate, getBookableDays, toDateKey} from '@/data/bookableDates';
+import {TimeSlotRow} from '@/components/TimeSlotRow';
+import {useBookingActions} from '@/hooks/useBookingActions';
+import {formatLongDate, getBookableDays, toIsoDate} from '@/lib/dates';
 
-const BOOKABLE_DAYS = getBookableDays();
+type SlotsFetch = {
+  date: string;
+  slots: Slot[];
+  active: Booking | null;
+  error: string | null;
+};
 
 export function BookingScreen() {
+  const bookableDays = useMemo(() => getBookableDays(), []);
   const [selectedDate, setSelectedDate] = useState(
-    () => BOOKABLE_DAYS[0] ?? new Date(),
+    () => bookableDays[0] ?? new Date(),
   );
-  const {
-    slots,
-    loading,
-    error,
-    refresh,
-    getSlotStatus,
-    getBooking,
-    bookSlot,
-    cancelBooking,
-  } = useBookings();
-  const dateKey = toDateKey(selectedDate);
+  const [fetched, setFetched] = useState<SlotsFetch | null>(null);
+  const isoDate = toIsoDate(selectedDate);
 
-  function handlePress(slotId: string, start: string, end: string) {
-    const status = getSlotStatus(dateKey, slotId);
-
-    if (status === 'booked') {
-      return;
-    }
-
-    if (status === 'mine') {
-      const booking = getBooking(dateKey, slotId);
-      if (!booking) {
-        return;
-      }
-
-      Alert.alert('Avboka tid', `Vill du avboka ${start}–${end}?`, [
-        {text: 'Behåll', style: 'cancel'},
-        {
-          text: 'Avboka',
-          style: 'destructive',
-          onPress: () => {
-            void cancelBooking(booking.id);
-          },
-        },
+  const load = useCallback(async (date: string) => {
+    try {
+      const [slots, bookings] = await Promise.all([
+        unwrap(api.GET('/slots', {params: {query: {date}}})),
+        unwrap(api.GET('/bookings')),
       ]);
-      return;
+      setFetched({date, slots, active: bookings[0] ?? null, error: null});
+    } catch (err) {
+      setFetched({
+        date,
+        slots: [],
+        active: null,
+        error: err instanceof ApiError ? err.message : 'Försök igen.',
+      });
     }
+  }, []);
 
-    Alert.alert('Boka tid', `Vill du boka ${start}–${end}?`, [
-      {text: 'Avbryt', style: 'cancel'},
-      {
-        text: 'Boka',
-        onPress: () => {
-          void bookSlot(dateKey, slotId);
-        },
-      },
-    ]);
-  }
+  useFocusEffect(
+    useCallback(() => {
+      void load(isoDate);
+    }, [load, isoDate]),
+  );
+
+  const reload = () => {
+    void load(isoDate);
+  };
+  const {confirmBook} = useBookingActions(reload);
+
+  const ready = fetched?.date === isoDate;
+  const error = ready ? fetched.error : null;
+  const slots = ready ? fetched.slots : [];
+  const active = ready ? fetched.active : null;
 
   return (
     <View className='flex-1 bg-theme-bg'>
       <DatePicker
-        days={BOOKABLE_DAYS}
+        days={bookableDays}
         selectedDate={selectedDate}
         onSelect={setSelectedDate}
       />
@@ -80,12 +75,12 @@ export function BookingScreen() {
         contentContainerClassName='w-full grow pb-8'
       >
         <Text className='mb-1 mt-2 text-2xl font-semibold capitalize tracking-tight text-theme-ink'>
-          {formatLongDate(dateKey)}
+          {formatLongDate(isoDate)}
         </Text>
         <Text className='mb-5 text-sm text-theme-muted'>
           Välj en ledig lucka
         </Text>
-        {loading ? (
+        {!ready ? (
           <View className='items-center py-12'>
             <ActivityIndicator />
           </View>
@@ -94,22 +89,24 @@ export function BookingScreen() {
             <Text className='mb-3 text-center text-sm text-theme-muted'>
               {error}
             </Text>
-            <Pressable
-              onPress={() => void refresh()}
-              className='active:opacity-60'
-            >
+            <Pressable onPress={reload} className='active:opacity-60'>
               <Text className='text-base font-semibold text-theme-accent'>
                 Försök igen
               </Text>
             </Pressable>
           </View>
+        ) : slots.length === 0 ? (
+          <View className='items-center py-12'>
+            <Text className='text-center text-sm text-theme-muted'>
+              Inga tider kvar den här dagen
+            </Text>
+          </View>
         ) : (
           slots.map((slot) => (
-            <DateTimeSlots
+            <TimeSlotRow
               key={slot.id}
               slot={slot}
-              status={getSlotStatus(dateKey, slot.id)}
-              onPress={() => handlePress(slot.id, slot.start, slot.end)}
+              onPress={() => confirmBook(slot, isoDate, active)}
             />
           ))
         )}

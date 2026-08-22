@@ -1,7 +1,12 @@
 import createClient from 'openapi-fetch';
 
-import {CURRENT_USER_ID} from '@/booking';
-import type {paths} from '@/generated/api';
+import {ApiError, type ClientErrorCode} from '@/api/errors';
+import type {components, paths} from '@/generated/api';
+
+export type Booking = components['schemas']['Booking'];
+export type Slot = components['schemas']['Slot'];
+
+const CURRENT_USER_ID = 'me';
 
 export const api = createClient<paths>({
   baseUrl: process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000',
@@ -10,25 +15,22 @@ export const api = createClient<paths>({
   },
 });
 
-type FetchResult<T> = {
-  data?: T;
-  error?: {message?: string};
-  response: Response;
-};
+type ParsedError = {code?: ClientErrorCode};
 
-export async function readResult<T>(
-  request: Promise<unknown>,
-  fallback: string,
-): Promise<{ok: true; data: T} | {ok: false; message: string; status: number}> {
-  const result = (await request) as FetchResult<T>;
+export async function unwrap<T>(
+  request: Promise<{
+    data?: T;
+    error?: ParsedError;
+    response: Response;
+  }>,
+): Promise<T> {
+  const result = await request.catch(() => {
+    throw new ApiError('NETWORK');
+  });
 
-  if (!result.response.ok || result.data === undefined) {
-    return {
-      ok: false,
-      message: result.error?.message ?? fallback,
-      status: result.response.status,
-    };
+  if (!result.response.ok || result.error !== undefined) {
+    throw new ApiError(result.error?.code ?? 'UNKNOWN');
   }
 
-  return {ok: true, data: result.data};
+  return result.data as T;
 }

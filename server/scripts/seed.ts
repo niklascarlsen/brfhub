@@ -2,6 +2,7 @@ import 'dotenv/config';
 
 import {db, pool} from '../src/db/index.js';
 import {bookings, timeSlots} from '../src/db/schema.js';
+import {slotEndsAt, toIsoDate} from '../src/lib/time.js';
 
 const CURRENT_USER_ID = 'me';
 const OTHER_USER_ID = 'neighbour';
@@ -14,15 +15,25 @@ const LAUNDRY_TIME_SLOTS = [
   {id: '19-22', start: '19:00', end: '22:00'},
 ];
 
-function dateKeyDaysFromToday(days: number): string {
+const SEEDED_BOOKINGS = [
+  {days: -1, slotId: '19-22', userId: CURRENT_USER_ID},
+  {days: 0, slotId: '16-19', userId: OTHER_USER_ID},
+  {days: 1, slotId: '10-13', userId: OTHER_USER_ID},
+];
+
+function dateDaysFromToday(days: number): string {
   const date = new Date();
   date.setHours(0, 0, 0, 0);
   date.setDate(date.getDate() + days);
+  return toIsoDate(date);
+}
 
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-
-  return `${date.getFullYear()}-${month}-${day}`;
+function slotEnd(slotId: string): string {
+  const slot = LAUNDRY_TIME_SLOTS.find((item) => item.id === slotId);
+  if (!slot) {
+    throw new Error(`Unknown slot ${slotId}`);
+  }
+  return slot.end;
 }
 
 try {
@@ -33,12 +44,12 @@ try {
 
   await db
     .insert(bookings)
-    .values([
-      {date: dateKeyDaysFromToday(0), slotId: '07-10', userId: CURRENT_USER_ID},
-      {date: dateKeyDaysFromToday(0), slotId: '16-19', userId: OTHER_USER_ID},
-      {date: dateKeyDaysFromToday(1), slotId: '10-13', userId: OTHER_USER_ID},
-      {date: dateKeyDaysFromToday(3), slotId: '19-22', userId: CURRENT_USER_ID},
-    ])
+    .values(
+      SEEDED_BOOKINGS.map(({days, slotId, userId}) => {
+        const date = dateDaysFromToday(days);
+        return {date, slotId, userId, endsAt: slotEndsAt(date, slotEnd(slotId))};
+      }),
+    )
     .onConflictDoNothing();
 
   console.log('Seed complete');

@@ -19,12 +19,25 @@
           },
           "message": {
             "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "HAS_ACTIVE_BOOKING",
+              "SLOT_TAKEN",
+              "SLOT_IN_PAST",
+              "NOT_FOUND",
+              "FORBIDDEN",
+              "VALIDATION",
+              "UNKNOWN"
+            ]
           }
         },
         "required": [
           "statusCode",
           "error",
-          "message"
+          "message",
+          "code"
         ]
       },
       "BookingInput": {
@@ -37,42 +50,10 @@
           },
           "date": {
             "type": "string",
-            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
           },
           "slotId": {
-            "type": "string"
-          },
-          "userId": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "date",
-          "slotId",
-          "userId"
-        ]
-      },
-      "CreateBookingBodyInput": {
-        "type": "object",
-        "properties": {
-          "date": {
-            "type": "string",
-            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
-          },
-          "slotId": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "date",
-          "slotId"
-        ]
-      },
-      "TimeSlotInput": {
-        "type": "object",
-        "properties": {
-          "id": {
             "type": "string"
           },
           "start": {
@@ -80,12 +61,173 @@
           },
           "end": {
             "type": "string"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
           }
         },
         "required": [
           "id",
+          "date",
+          "slotId",
           "start",
-          "end"
+          "end",
+          "endsAt"
+        ]
+      },
+      "CreatedBookingInput": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "slotId": {
+            "type": "string"
+          },
+          "start": {
+            "type": "string"
+          },
+          "end": {
+            "type": "string"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "replacedId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "date",
+          "slotId",
+          "start",
+          "end",
+          "endsAt",
+          "replacedId"
+        ]
+      },
+      "CreateBookingBodyInput": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "slotId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "replaceExisting": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "date",
+          "slotId"
+        ]
+      },
+      "SlotInput": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "start": {
+                "type": "string"
+              },
+              "end": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "const": "available"
+              }
+            },
+            "required": [
+              "id",
+              "start",
+              "end",
+              "status"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "start": {
+                "type": "string"
+              },
+              "end": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "const": "booked"
+              }
+            },
+            "required": [
+              "id",
+              "start",
+              "end",
+              "status"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "start": {
+                "type": "string"
+              },
+              "end": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "const": "mine"
+              },
+              "bookingId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              }
+            },
+            "required": [
+              "id",
+              "start",
+              "end",
+              "status",
+              "bookingId"
+            ]
+          }
         ]
       },
       "Error": {
@@ -101,12 +243,25 @@
           },
           "message": {
             "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "HAS_ACTIVE_BOOKING",
+              "SLOT_TAKEN",
+              "SLOT_IN_PAST",
+              "NOT_FOUND",
+              "FORBIDDEN",
+              "VALIDATION",
+              "UNKNOWN"
+            ]
           }
         },
         "required": [
           "statusCode",
           "error",
-          "message"
+          "message",
+          "code"
         ],
         "additionalProperties": false
       },
@@ -120,20 +275,82 @@
           },
           "date": {
             "type": "string",
-            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
           },
           "slotId": {
             "type": "string"
           },
-          "userId": {
+          "start": {
             "type": "string"
+          },
+          "end": {
+            "type": "string"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
           }
         },
         "required": [
           "id",
           "date",
           "slotId",
-          "userId"
+          "start",
+          "end",
+          "endsAt"
+        ],
+        "additionalProperties": false
+      },
+      "CreatedBooking": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "slotId": {
+            "type": "string"
+          },
+          "start": {
+            "type": "string"
+          },
+          "end": {
+            "type": "string"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "replacedId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "date",
+          "slotId",
+          "start",
+          "end",
+          "endsAt",
+          "replacedId"
         ],
         "additionalProperties": false
       },
@@ -142,10 +359,15 @@
         "properties": {
           "date": {
             "type": "string",
-            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
           },
           "slotId": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
+          },
+          "replaceExisting": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -154,31 +376,108 @@
         ],
         "additionalProperties": false
       },
-      "TimeSlot": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
+      "Slot": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "start": {
+                "type": "string"
+              },
+              "end": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "const": "available"
+              }
+            },
+            "required": [
+              "id",
+              "start",
+              "end",
+              "status"
+            ],
+            "additionalProperties": false
           },
-          "start": {
-            "type": "string"
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "start": {
+                "type": "string"
+              },
+              "end": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "const": "booked"
+              }
+            },
+            "required": [
+              "id",
+              "start",
+              "end",
+              "status"
+            ],
+            "additionalProperties": false
           },
-          "end": {
-            "type": "string"
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "start": {
+                "type": "string"
+              },
+              "end": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "const": "mine"
+              },
+              "bookingId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              }
+            },
+            "required": [
+              "id",
+              "start",
+              "end",
+              "status",
+              "bookingId"
+            ],
+            "additionalProperties": false
           }
-        },
-        "required": [
-          "id",
-          "start",
-          "end"
-        ],
-        "additionalProperties": false
+        ]
       }
     }
   },
   "paths": {
     "/slots": {
       "get": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+            },
+            "in": "query",
+            "name": "date",
+            "required": true
+          }
+        ],
         "responses": {
           "200": {
             "description": "Default Response",
@@ -187,8 +486,18 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/TimeSlot"
+                    "$ref": "#/components/schemas/Slot"
                   }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -231,7 +540,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Booking"
+                  "$ref": "#/components/schemas/CreatedBooking"
                 }
               }
             }

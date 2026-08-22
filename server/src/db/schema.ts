@@ -1,4 +1,12 @@
-import {date, pgTable, text, unique, uuid} from 'drizzle-orm/pg-core';
+import {
+  date,
+  index,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 export const timeSlots = pgTable('time_slots', {
   id: text('id').primaryKey(),
@@ -15,7 +23,10 @@ export const bookings = pgTable(
       .notNull()
       .references(() => timeSlots.id),
     userId: text('user_id').notNull(),
+    endsAt: timestamp('ends_at', {withTimezone: true}).notNull(),
   },
-  (table) => [unique('bookings_date_slot_unique').on(table.date, table.slotId)],
+  (table) => [
+    unique('bookings_date_slot_unique').on(table.date, table.slotId),
+    index('bookings_user_ends_at_idx').on(table.userId, table.endsAt),
+  ],
 );
-

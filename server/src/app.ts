@@ -12,7 +12,7 @@ import {
 } from '@fastify/type-provider-zod';
 import Fastify, {type FastifyServerOptions} from 'fastify';
 
-import {describeError, httpError} from './lib/errors.js';
+import {describeError, errorCodeFromStatus, sendError} from './lib/errors.js';
 import {bookingRoutes} from './routes/bookings.js';
 import {slotRoutes} from './routes/slots.js';
 
@@ -28,58 +28,39 @@ export async function buildApp(options: FastifyServerOptions = {}) {
         .map((issue) => `${issue.instancePath || '/'} ${issue.message}`)
         .join(', ');
 
-      return reply
-        .code(400)
-        .send(
-          httpError(
-            400,
-            'Bad Request',
-            `Request does not match schema: ${details}`,
-          ),
-        );
+      return sendError(
+        reply,
+        'VALIDATION',
+        `Request does not match schema: ${details}`,
+      );
     }
 
     if (isResponseSerializationError(error)) {
       request.log.error({err: error}, 'response failed its schema');
-      return reply
-        .code(500)
-        .send(
-          httpError(
-            500,
-            'Internal Server Error',
-            'Response did not match schema',
-          ),
-        );
+      return sendError(reply, 'UNKNOWN', 'Response did not match schema');
     }
 
-    const {statusCode, name, message} = describeError(error);
+    const {statusCode, message} = describeError(error);
 
     if (statusCode >= 500) {
       request.log.error({err: error}, 'request failed');
-      return reply
-        .code(statusCode)
-        .send(
-          httpError(
-            statusCode,
-            'Internal Server Error',
-            'Something went wrong',
-          ),
-        );
+      return sendError(reply, 'UNKNOWN');
     }
 
-    return reply.code(statusCode).send(httpError(statusCode, name, message));
+    return sendError(
+      reply,
+      errorCodeFromStatus(statusCode),
+      message,
+      statusCode,
+    );
   });
 
   server.setNotFoundHandler((request, reply) =>
-    reply
-      .code(404)
-      .send(
-        httpError(
-          404,
-          'Not Found',
-          `Route ${request.method} ${request.url} not found`,
-        ),
-      ),
+    sendError(
+      reply,
+      'NOT_FOUND',
+      `Route ${request.method} ${request.url} not found`,
+    ),
   );
 
   await server.register(cors, {origin: true});
@@ -104,5 +85,3 @@ export async function buildApp(options: FastifyServerOptions = {}) {
 
   return server;
 }
-
-export type App = Awaited<ReturnType<typeof buildApp>>;

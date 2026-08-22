@@ -1,47 +1,50 @@
+import {useFocusEffect} from '@react-navigation/native';
+import {useCallback, useState} from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   Text,
   View,
 } from 'react-native';
 
+import {api, unwrap, type Booking} from '@/api/client';
+import {ApiError} from '@/api/errors';
 import {ReservationCard} from '@/components/ReservationCard';
-import {useBookings} from '@/context/BookingsContext';
+import {useBookingActions} from '@/hooks/useBookingActions';
+import {formatWhen, timeRange} from '@/lib/dates';
+
+type BookingsFetch = {
+  bookings: Booking[];
+  error: string | null;
+};
 
 export function ReservationScreen() {
-  const {
-    bookings,
-    slots,
-    currentUserId,
-    loading,
-    error,
-    refresh,
-    cancelBooking,
-  } = useBookings();
+  const [fetched, setFetched] = useState<BookingsFetch | null>(null);
 
-  const mine = bookings
-    .filter((booking) => booking.userId === currentUserId)
-    .sort(
-      (a, b) =>
-        a.date.localeCompare(b.date) || a.slotId.localeCompare(b.slotId),
-    );
+  const load = useCallback(async () => {
+    try {
+      const bookings = await unwrap(api.GET('/bookings'));
+      setFetched({bookings, error: null});
+    } catch (err) {
+      setFetched({
+        bookings: [],
+        error: err instanceof ApiError ? err.message : 'Försök igen.',
+      });
+    }
+  }, []);
 
-  function handleCancel(id: string, label: string) {
-    Alert.alert('Avboka tid', `Vill du avboka ${label}?`, [
-      {text: 'Behåll', style: 'cancel'},
-      {
-        text: 'Avboka',
-        style: 'destructive',
-        onPress: () => {
-          void cancelBooking(id);
-        },
-      },
-    ]);
-  }
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
-  if (loading) {
+  const {confirmCancel} = useBookingActions(() => {
+    void load();
+  });
+
+  if (!fetched) {
     return (
       <View className='flex-1 items-center justify-center bg-theme-bg'>
         <ActivityIndicator />
@@ -49,12 +52,17 @@ export function ReservationScreen() {
     );
   }
 
-  if (error) {
+  if (fetched.error) {
     return (
       <View className='flex-1 items-center justify-center bg-theme-bg px-8'>
-        <Text className='text-center text-sm text-theme-muted'>{error}</Text>
+        <Text className='text-center text-sm text-theme-muted'>
+          {fetched.error}
+        </Text>
         <Pressable
-          onPress={() => void refresh()}
+          onPress={() => {
+            setFetched(null);
+            void load();
+          }}
           className='mt-3 active:opacity-60'
         >
           <Text className='text-base font-semibold text-theme-accent'>
@@ -65,7 +73,11 @@ export function ReservationScreen() {
     );
   }
 
-  if (mine.length === 0) {
+  const sorted = [...fetched.bookings].sort(
+    (a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start),
+  );
+
+  if (sorted.length === 0) {
     return (
       <View className='flex-1 items-center justify-center bg-theme-bg px-8'>
         <Text className='text-center text-xl font-semibold text-theme-ink'>
@@ -84,18 +96,19 @@ export function ReservationScreen() {
       contentContainerClassName='px-5 py-4 pb-8'
     >
       <Text className='mb-3 text-base font-medium text-theme-muted'>
-        {mine.length === 1 ? '1 bokning' : `${mine.length} bokningar`}
+        {sorted.length === 1 ? '1 bokning' : `${sorted.length} bokningar`}
       </Text>
-      {mine.map((booking) => {
-        const slot = slots.find((item) => item.id === booking.slotId);
-        const label = slot ? `${slot.start}–${slot.end}` : booking.slotId;
+      {sorted.map((booking) => {
+        const when = formatWhen(
+          booking.date,
+          timeRange(booking.start, booking.end),
+        );
 
         return (
           <ReservationCard
             key={booking.id}
             booking={booking}
-            slot={slot}
-            onCancel={() => handleCancel(booking.id, label)}
+            onCancel={() => confirmCancel({id: booking.id, when})}
           />
         );
       })}

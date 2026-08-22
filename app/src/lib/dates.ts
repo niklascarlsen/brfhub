@@ -1,10 +1,15 @@
 const WEEKDAYS = ['sön', 'mån', 'tis', 'ons', 'tor', 'fre', 'lör'];
 
-export function toDateKey(date: Date): string {
+export function toIsoDate(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+export function fromIsoDate(isoDate: string): Date {
+  const [year, month, day] = isoDate.split('-').map(Number);
+  return new Date(year, month - 1, day);
 }
 
 function startOfDay(date: Date): Date {
@@ -41,10 +46,6 @@ export function getBookableDays(from = new Date()): Date[] {
   return days;
 }
 
-export function getWeekdayLabel(date: Date): string {
-  return WEEKDAYS[date.getDay()];
-}
-
 function formatMonthHeading(date: Date): string {
   const now = new Date();
   const includeYear = date.getFullYear() !== now.getFullYear();
@@ -74,15 +75,22 @@ export function groupDaysByMonth(
   return groups;
 }
 
-export function formatLongDate(dateKey: string): string {
-  return fromDateKey(dateKey).toLocaleDateString('sv-SE', {
+export function getWeekdayLabel(date: Date): string {
+  return WEEKDAYS[date.getDay()];
+}
+
+export function formatLongDate(isoDate: string): string {
+  return fromIsoDate(isoDate).toLocaleDateString('sv-SE', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
   });
 }
 
-function fromDateKey(dateKey: string): Date {
-  const [year, month, day] = dateKey.split('-').map(Number);
-  return new Date(year, month - 1, day);
+export function timeRange(start: string, end: string): string {
+  return `${start}–${end}`;
+}
+
+export function formatWhen(date: string, time: string): string {
+  return `${formatLongDate(date)}, ${time}`;
 }

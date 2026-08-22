@@ -1,20 +1,21 @@
 import {Pressable, Text, View} from 'react-native';
 
-import type {TimeSlot, TimeSlotStatus} from '@/booking';
+import type {Slot} from '@/api/client';
+import {timeRange} from '@/lib/dates';
 
-type DateTimeSlotsProps = {
-  slot: TimeSlot;
-  status: TimeSlotStatus;
+type TimeSlotRowProps = {
+  slot: Slot;
   onPress: () => void;
 };
 
-const STATUS_LABEL: Record<TimeSlotStatus, string> = {
+const STATUS_LABEL = {
   available: 'Ledig',
   booked: 'Upptagen',
   mine: 'Din tid',
-};
+} as const;
 
-export function DateTimeSlots({slot, status, onPress}: DateTimeSlotsProps) {
+export function TimeSlotRow({slot, onPress}: TimeSlotRowProps) {
+  const {status} = slot;
   const disabled = status === 'booked';
 
   return (
@@ -23,7 +24,7 @@ export function DateTimeSlots({slot, status, onPress}: DateTimeSlotsProps) {
       onPress={onPress}
       className={`mb-2.5 w-full flex-row items-center justify-between rounded-2xl px-4 py-4 ${
         status === 'mine'
-          ? 'border border-theme-line bg-theme-mist'
+          ? 'bg-theme-mist'
           : status === 'booked'
             ? 'bg-theme-surface/50'
             : 'bg-theme-surface active:opacity-80'
@@ -35,7 +36,7 @@ export function DateTimeSlots({slot, status, onPress}: DateTimeSlotsProps) {
             status === 'booked' ? 'text-theme-muted' : 'text-theme-ink'
           }`}
         >
-          {slot.start}–{slot.end}
+          {timeRange(slot.start, slot.end)}
         </Text>
       </View>
       <Text

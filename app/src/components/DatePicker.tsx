@@ -6,11 +6,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 
-import {
-  getWeekdayLabel,
-  groupDaysByMonth,
-  toDateKey,
-} from '@/data/bookableDates';
+import {getWeekdayLabel, groupDaysByMonth, toIsoDate} from '@/lib/dates';
 
 type DatePickerProps = {
   days: Date[];
@@ -18,14 +14,14 @@ type DatePickerProps = {
   onSelect: (date: Date) => void;
 };
 
-const todayKey = toDateKey(new Date());
 const DAYS_VISIBLE = 7;
 const HORIZONTAL_PADDING = 20;
 const DAY_GAP = 4;
 
 export function DatePicker({days, selectedDate, onSelect}: DatePickerProps) {
   const {width} = useWindowDimensions();
-  const selectedKey = toDateKey(selectedDate);
+  const todayIso = toIsoDate(new Date());
+  const selectedIso = toIsoDate(selectedDate);
   const months = groupDaysByMonth(days);
   const dayWidth =
     (width - HORIZONTAL_PADDING * 2 - DAY_GAP * (DAYS_VISIBLE - 1)) /
@@ -51,13 +47,13 @@ export function DatePicker({days, selectedDate, onSelect}: DatePickerProps) {
           </Text>
           <View className='flex-row' style={{gap: DAY_GAP}}>
             {month.days.map((day) => {
-              const key = toDateKey(day);
-              const selected = key === selectedKey;
-              const isToday = key === todayKey;
+              const isoDate = toIsoDate(day);
+              const selected = isoDate === selectedIso;
+              const isToday = isoDate === todayIso;
 
               return (
                 <Pressable
-                  key={key}
+                  key={isoDate}
                   onPress={() => onSelect(day)}
                   style={{width: dayWidth}}
                   className='items-center active:opacity-70'
