@@ -14,7 +14,9 @@ import Fastify, {type FastifyServerOptions} from 'fastify';
 
 import {describeError, errorCodeFromStatus, sendError} from './lib/errors.js';
 import {bookingRoutes} from './routes/bookings.js';
+import {pushTokenRoutes} from './routes/pushTokens.js';
 import {slotRoutes} from './routes/slots.js';
+import {subscriptionRoutes} from './routes/subscriptions.js';
 
 export async function buildApp(options: FastifyServerOptions = {}) {
   const server = Fastify(options).withTypeProvider<ZodTypeProvider>();
@@ -82,6 +84,8 @@ export async function buildApp(options: FastifyServerOptions = {}) {
 
   await server.register(slotRoutes);
   await server.register(bookingRoutes);
+  await server.register(subscriptionRoutes);
+  await server.register(pushTokenRoutes);
 
   return server;
 }

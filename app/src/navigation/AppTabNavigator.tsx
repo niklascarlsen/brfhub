@@ -5,7 +5,7 @@ import {ReservationScreen} from '@/screens/ReservationScreen';
 import {theme} from '../../theme';
 
 export type AppTabParamList = {
-  Booking: undefined;
+  Booking: {date?: string} | undefined;
   Reservation: undefined;
 };
 
@@ -36,7 +36,7 @@ export default function AppTabNavigator() {
       <Tab.Screen
         name='Reservation'
         component={ReservationScreen}
-        options={{title: 'Mina bokningar'}}
+        options={{title: 'Mina tider'}}
       />
     </Tab.Navigator>
   );

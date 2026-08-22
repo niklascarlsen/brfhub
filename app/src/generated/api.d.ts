@@ -232,6 +232,208 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Subscription"][];
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreateSubscriptionBodyInput"];
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Subscription"];
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/subscriptions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/push-tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PushTokenBodyInput"];
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -241,7 +443,7 @@ export interface components {
             error: string;
             message: string;
             /** @enum {string} */
-            code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "OUTSIDE_BOOKING_WINDOW" | "NOT_FOUND" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
+            code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "OUTSIDE_BOOKING_WINDOW" | "SLOT_AVAILABLE" | "SLOT_IS_MINE" | "ALREADY_SUBSCRIBED" | "NOT_FOUND" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
         };
         BookingInput: {
             /** Format: uuid */
@@ -272,6 +474,9 @@ export interface components {
             slotId: string;
             replaceExisting?: boolean;
         };
+        PushTokenBodyInput: {
+            token: string;
+        };
         SlotInput: {
             id: string;
             start: string;
@@ -284,6 +489,7 @@ export interface components {
             end: string;
             /** @constant */
             status: "booked";
+            subscriptionId: string | null;
         } | {
             id: string;
             start: string;
@@ -301,12 +507,29 @@ export interface components {
             /** Format: date */
             to: string;
         };
+        SubscriptionInput: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date */
+            date: string;
+            slotId: string;
+            start: string;
+            end: string;
+            /** Format: date-time */
+            endsAt: string;
+            available: boolean;
+        };
+        CreateSubscriptionBodyInput: {
+            /** Format: date */
+            date: string;
+            slotId: string;
+        };
         Error: {
             statusCode: number;
             error: string;
             message: string;
             /** @enum {string} */
-            code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "OUTSIDE_BOOKING_WINDOW" | "NOT_FOUND" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
+            code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "OUTSIDE_BOOKING_WINDOW" | "SLOT_AVAILABLE" | "SLOT_IS_MINE" | "ALREADY_SUBSCRIBED" | "NOT_FOUND" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
         };
         Booking: {
             /** Format: uuid */
@@ -337,6 +560,9 @@ export interface components {
             slotId: string;
             replaceExisting?: boolean;
         };
+        PushTokenBody: {
+            token: string;
+        };
         Slot: {
             id: string;
             start: string;
@@ -349,6 +575,7 @@ export interface components {
             end: string;
             /** @constant */
             status: "booked";
+            subscriptionId: string | null;
         } | {
             id: string;
             start: string;
@@ -365,6 +592,23 @@ export interface components {
             from: string;
             /** Format: date */
             to: string;
+        };
+        Subscription: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date */
+            date: string;
+            slotId: string;
+            start: string;
+            end: string;
+            /** Format: date-time */
+            endsAt: string;
+            available: boolean;
+        };
+        CreateSubscriptionBody: {
+            /** Format: date */
+            date: string;
+            slotId: string;
         };
     };
     responses: never;

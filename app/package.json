@@ -6,6 +6,8 @@
     "@react-navigation/bottom-tabs": "^7.18.16",
     "@react-navigation/native": "^7.3.16",
     "expo": "~57.0.12",
+    "expo-constants": "~57.0.13",
+    "expo-notifications": "~57.0.13",
     "expo-status-bar": "~57.0.1",
     "nativewind": "^4.2.6",
     "openapi-fetch": "^0.17.0",

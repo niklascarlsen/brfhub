@@ -38,3 +38,7 @@ export function bookingWindowSql() {
     to: asDate(sql`${today} + interval '1 month'`),
   };
 }
+
+export function formatWhen(date: string, start: string, end: string): string {
+  return `${date} ${start}–${end}`;
+}

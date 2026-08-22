@@ -2,7 +2,7 @@ import type {FastifyPluginAsyncZod} from '@fastify/type-provider-zod';
 import {and, asc, eq, sql} from 'drizzle-orm';
 
 import {db} from '../db/index.js';
-import {bookings, timeSlots} from '../db/schema.js';
+import {bookings, subscriptions, timeSlots} from '../db/schema.js';
 import {errorSchema, sendError} from '../lib/errors.js';
 import {slotEndsAt} from '../lib/time.js';
 import {getUserId} from '../lib/user.js';
@@ -19,6 +19,7 @@ type SlotRow = {
   end: string;
   bookingId: string | null;
   bookingUserId: string | null;
+  subscriptionId: string | null;
 };
 
 function toSlot(row: SlotRow, userId: string) {
@@ -46,6 +47,7 @@ function toSlot(row: SlotRow, userId: string) {
     start: row.start,
     end: row.end,
     status: 'booked' as const,
+    subscriptionId: row.subscriptionId,
   };
 }
 
@@ -76,11 +78,20 @@ export const slotRoutes: FastifyPluginAsyncZod = async (app) => {
           end: timeSlots.end,
           bookingId: bookings.id,
           bookingUserId: bookings.userId,
+          subscriptionId: subscriptions.id,
         })
         .from(timeSlots)
         .leftJoin(
           bookings,
           and(eq(bookings.slotId, timeSlots.id), eq(bookings.date, date)),
+        )
+        .leftJoin(
+          subscriptions,
+          and(
+            eq(subscriptions.slotId, timeSlots.id),
+            eq(subscriptions.date, date),
+            eq(subscriptions.userId, userId),
+          ),
         )
         .where(sql`${slotEndsAt(date, timeSlots.end)} > now()`)
         .orderBy(asc(timeSlots.start));

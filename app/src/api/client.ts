@@ -6,6 +6,7 @@ import type {components, paths} from '@/generated/api';
 export type Booking = components['schemas']['Booking'];
 export type Slot = components['schemas']['Slot'];
 export type BookingWindow = components['schemas']['BookingWindow'];
+export type Subscription = components['schemas']['Subscription'];
 
 const CURRENT_USER_ID = 'me';
 

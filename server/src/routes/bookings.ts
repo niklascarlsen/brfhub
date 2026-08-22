@@ -12,7 +12,11 @@ import {
   createBookingBodySchema,
   createdBookingSchema,
 } from '../schemas/booking.js';
-import {createBooking, listBookings} from '../services/bookings.js';
+import {
+  createBooking,
+  listBookings,
+  releaseBooking,
+} from '../services/bookings.js';
 
 export const bookingRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get(
@@ -47,6 +51,7 @@ export const bookingRoutes: FastifyPluginAsyncZod = async (app) => {
         date,
         slotId,
         replaceExisting,
+        log: request.log,
       });
 
       if (!result.ok) {
@@ -92,7 +97,7 @@ export const bookingRoutes: FastifyPluginAsyncZod = async (app) => {
         return sendError(reply, 'FORBIDDEN', 'Not your booking');
       }
 
-      await db.delete(bookings).where(eq(bookings.id, id));
+      await releaseBooking(id, userId, request.log);
       return reply.code(204).send();
     },
   );

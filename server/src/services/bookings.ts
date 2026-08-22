@@ -1,9 +1,13 @@
 import {and, asc, eq, gt, sql} from 'drizzle-orm';
+import type {FastifyBaseLogger} from 'fastify';
+import type {z} from 'zod';
 
 import {db} from '../db/index.js';
-import {bookings, timeSlots} from '../db/schema.js';
+import {bookings, subscriptions, timeSlots} from '../db/schema.js';
 import {isUniqueViolation, type ErrorCode} from '../lib/errors.js';
 import {asIsoText, slotEndsAt, slotHasEnded} from '../lib/time.js';
+import type {createdBookingSchema} from '../schemas/booking.js';
+import {notifySlotReleased} from './notifications.js';
 import {getBookingWindow, isWithinBookingWindow} from './window.js';
 
 const BOOKING_LOCK_NAMESPACE = 881001;
@@ -21,36 +25,40 @@ function stillActive(userId: string) {
   return and(eq(bookings.userId, userId), gt(bookings.endsAt, sql`now()`));
 }
 
-export type CreateBookingInput = {
-  userId: string;
-  date: string;
-  slotId: string;
-  replaceExisting: boolean;
-};
+type CreatedBooking = z.infer<typeof createdBookingSchema>;
 
-export type CreatedBooking = {
-  id: string;
-  date: string;
-  slotId: string;
-  start: string;
-  end: string;
-  endsAt: string;
-  replacedId: string | null;
-};
+export async function releaseBooking(
+  id: string,
+  releasedBy: string,
+  log: FastifyBaseLogger,
+): Promise<void> {
+  const [released] = await db
+    .delete(bookings)
+    .where(eq(bookings.id, id))
+    .returning({
+      date: bookings.date,
+      slotId: bookings.slotId,
+    });
 
-export type CreateBookingResult =
-  | {ok: true; booking: CreatedBooking}
-  | {
-      ok: false;
-      code: Extract<
-        ErrorCode,
-        | 'NOT_FOUND'
-        | 'SLOT_IN_PAST'
-        | 'OUTSIDE_BOOKING_WINDOW'
-        | 'HAS_ACTIVE_BOOKING'
-        | 'SLOT_TAKEN'
-      >;
-    };
+  if (!released) {
+    return;
+  }
+
+  const slot = await db
+    .select({start: timeSlots.start, end: timeSlots.end})
+    .from(timeSlots)
+    .where(eq(timeSlots.id, released.slotId))
+    .then((rows) => rows[0]);
+
+  if (!slot) {
+    return;
+  }
+
+  await notifySlotReleased({...released, ...slot}, releasedBy, log);
+}
+
+type CreateBookingResult =
+  {ok: true; booking: CreatedBooking} | {ok: false; code: ErrorCode};
 
 export function listBookings(userId: string) {
   return db
@@ -66,7 +74,14 @@ export async function createBooking({
   date,
   slotId,
   replaceExisting,
-}: CreateBookingInput): Promise<CreateBookingResult> {
+  log,
+}: {
+  userId: string;
+  date: string;
+  slotId: string;
+  replaceExisting: boolean;
+  log: FastifyBaseLogger;
+}): Promise<CreateBookingResult> {
   const slot = await db
     .select({
       start: timeSlots.start,
@@ -96,8 +111,15 @@ export async function createBooking({
       );
 
       const [active] = await tx
-        .select({id: bookings.id})
+        .select({
+          id: bookings.id,
+          date: bookings.date,
+          slotId: bookings.slotId,
+          start: timeSlots.start,
+          end: timeSlots.end,
+        })
         .from(bookings)
+        .innerJoin(timeSlots, eq(bookings.slotId, timeSlots.id))
         .where(stillActive(userId))
         .limit(1);
 
@@ -106,7 +128,7 @@ export async function createBooking({
       }
 
       if (active) {
-        await tx.delete(bookings).where(stillActive(userId));
+        await tx.delete(bookings).where(eq(bookings.id, active.id));
       }
 
       const [row] = await tx
@@ -123,11 +145,31 @@ export async function createBooking({
         throw new Error('Insert returned no row');
       }
 
+      await tx
+        .delete(subscriptions)
+        .where(
+          and(
+            eq(subscriptions.userId, userId),
+            eq(subscriptions.date, date),
+            eq(subscriptions.slotId, slotId),
+          ),
+        );
+
       return {
-        ...row,
-        start: slot.start,
-        end: slot.end,
-        replacedId: active?.id ?? null,
+        booking: {
+          ...row,
+          start: slot.start,
+          end: slot.end,
+          replacedId: active?.id ?? null,
+        },
+        released: active
+          ? {
+              date: active.date,
+              slotId: active.slotId,
+              start: active.start,
+              end: active.end,
+            }
+          : null,
       };
     });
 
@@ -135,7 +177,11 @@ export async function createBooking({
       return {ok: false, code: 'HAS_ACTIVE_BOOKING'};
     }
 
-    return {ok: true, booking: created};
+    if (created.released) {
+      await notifySlotReleased(created.released, userId, log);
+    }
+
+    return {ok: true, booking: created.booking};
   } catch (error) {
     if (isUniqueViolation(error)) {
       return {ok: false, code: 'SLOT_TAKEN'};

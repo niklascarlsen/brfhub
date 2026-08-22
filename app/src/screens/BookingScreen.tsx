@@ -1,4 +1,8 @@
-import {useFocusEffect} from '@react-navigation/native';
+import {
+  useFocusEffect,
+  useRoute,
+  type RouteProp,
+} from '@react-navigation/native';
 import {useCallback, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
@@ -20,6 +24,7 @@ import {ApiError} from '@/api/errors';
 import {DatePicker} from '@/components/DatePicker';
 import {TimeSlotRow} from '@/components/TimeSlotRow';
 import {useBookingActions} from '@/hooks/useBookingActions';
+import type {AppTabParamList} from '@/navigation/AppTabNavigator';
 import {daysBetween, formatLongDate, fromIsoDate, toIsoDate} from '@/lib/dates';
 
 type SlotsFetch = {
@@ -30,7 +35,18 @@ type SlotsFetch = {
 };
 
 export function BookingScreen() {
-  const [selectedIso, setSelectedIso] = useState<string | null>(null);
+  const route = useRoute<RouteProp<AppTabParamList, 'Booking'>>();
+  const routeDate = route.params?.date;
+  const [selectedIso, setSelectedIso] = useState<string | null>(
+    routeDate ?? null,
+  );
+  const [lastRouteDate, setLastRouteDate] = useState(routeDate);
+
+  if (routeDate !== lastRouteDate) {
+    setLastRouteDate(routeDate);
+    setSelectedIso(routeDate ?? null);
+  }
+
   const [window, setWindow] = useState<BookingWindow | null>(null);
   const [fetched, setFetched] = useState<SlotsFetch | null>(null);
 

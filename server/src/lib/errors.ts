@@ -6,6 +6,9 @@ export const errorCodeSchema = z.enum([
   'SLOT_TAKEN',
   'SLOT_IN_PAST',
   'OUTSIDE_BOOKING_WINDOW',
+  'SLOT_AVAILABLE',
+  'SLOT_IS_MINE',
+  'ALREADY_SUBSCRIBED',
   'NOT_FOUND',
   'FORBIDDEN',
   'VALIDATION',
@@ -37,6 +40,21 @@ const ERRORS: Record<
     status: 400,
     error: 'Bad Request',
     message: 'Date is outside the booking window',
+  },
+  SLOT_AVAILABLE: {
+    status: 409,
+    error: 'Conflict',
+    message: 'Slot is free, book it instead',
+  },
+  SLOT_IS_MINE: {
+    status: 409,
+    error: 'Conflict',
+    message: 'Slot is already yours',
+  },
+  ALREADY_SUBSCRIBED: {
+    status: 409,
+    error: 'Conflict',
+    message: 'Already on the waiting list for this slot',
   },
   NOT_FOUND: {
     status: 404,

@@ -8,25 +8,30 @@ type TimeSlotRowProps = {
   onPress: () => void;
 };
 
-const STATUS_LABEL = {
-  available: 'Ledig',
-  booked: 'Upptagen',
-  mine: 'Din tid',
-} as const;
+function statusLabel(slot: Slot): string {
+  if (slot.status === 'mine') {
+    return 'Din tid';
+  }
+
+  if (slot.status === 'available') {
+    return 'Ledig';
+  }
+
+  return slot.subscriptionId ? 'I kö' : 'Upptagen';
+}
 
 export function TimeSlotRow({slot, onPress}: TimeSlotRowProps) {
   const {status} = slot;
-  const disabled = status === 'booked';
+  const queued = status === 'booked' && slot.subscriptionId !== null;
 
   return (
     <Pressable
-      disabled={disabled}
       onPress={onPress}
       className={`mb-2.5 w-full flex-row items-center justify-between rounded-2xl px-4 py-4 ${
         status === 'mine'
           ? 'bg-theme-mist'
           : status === 'booked'
-            ? 'bg-theme-surface/50'
+            ? 'bg-theme-surface/50 active:opacity-80'
             : 'bg-theme-surface active:opacity-80'
       }`}
     >
@@ -43,12 +48,14 @@ export function TimeSlotRow({slot, onPress}: TimeSlotRowProps) {
         className={`font-medium ${
           status === 'mine'
             ? ' text-lg text-theme-accent'
-            : status === 'booked'
-              ? 'text-theme-muted text-sm'
-              : 'text-theme-ink text-sm'
+            : queued
+              ? 'text-theme-accent text-sm'
+              : status === 'booked'
+                ? 'text-theme-muted text-sm'
+                : 'text-theme-ink text-sm'
         }`}
       >
-        {STATUS_LABEL[status]}
+        {statusLabel(slot)}
       </Text>
     </Pressable>
   );

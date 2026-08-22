@@ -52,8 +52,72 @@ export function useBookingActions(onChange?: () => void) {
     );
   }
 
+  async function subscribe(slot: Slot, date: string) {
+    try {
+      await unwrap(api.POST('/subscriptions', {body: {date, slotId: slot.id}}));
+      onChange?.();
+    } catch (error) {
+      if (error instanceof ApiError && error.code === 'SLOT_AVAILABLE') {
+        onChange?.();
+      }
+
+      Alert.alert('Kunde inte köa', errorMessage(codeOf(error)));
+    }
+  }
+
+  async function unsubscribe(id: string) {
+    try {
+      await unwrap(api.DELETE('/subscriptions/{id}', {params: {path: {id}}}));
+      onChange?.();
+    } catch (error) {
+      Alert.alert('Kunde inte lämna kön', errorMessage(codeOf(error)));
+    }
+  }
+
+  function confirmSubscribe(slot: Slot, date: string) {
+    if (slot.status !== 'booked') {
+      return;
+    }
+
+    const when = formatWhen(date, timeRange(slot.start, slot.end));
+
+    if (slot.subscriptionId) {
+      confirmUnsubscribe({id: slot.subscriptionId, when});
+      return;
+    }
+
+    Alert.alert(
+      'Ställ dig i kö',
+      `Vi meddelar dig om ${when} blir ledig. Först till kvarn gäller.`,
+      [
+        {text: 'Avbryt', style: 'cancel'},
+        {
+          text: 'Ställ mig i kö',
+          isPreferred: true,
+          onPress: () => {
+            void subscribe(slot, date);
+          },
+        },
+      ],
+    );
+  }
+
+  function confirmUnsubscribe({id, when}: {id: string; when: string}) {
+    Alert.alert('Lämna kön', `Vill du lämna kön för ${when}?`, [
+      {text: 'Avbryt', style: 'cancel'},
+      {
+        text: 'Lämna kön',
+        style: 'destructive',
+        onPress: () => {
+          void unsubscribe(id);
+        },
+      },
+    ]);
+  }
+
   function confirmBook(slot: Slot, date: string, active: Booking | null) {
     if (slot.status === 'booked') {
+      confirmSubscribe(slot, date);
       return;
     }
 
@@ -108,5 +172,5 @@ export function useBookingActions(onChange?: () => void) {
     ]);
   }
 
-  return {confirmBook, confirmCancel};
+  return {confirmBook, confirmCancel, confirmUnsubscribe};
 }

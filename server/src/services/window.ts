@@ -1,9 +1,11 @@
 import {sql} from 'drizzle-orm';
+import type {z} from 'zod';
 
 import {db} from '../db/index.js';
 import {bookingWindowSql} from '../lib/time.js';
+import type {bookingWindowSchema} from '../schemas/slot.js';
 
-export type BookingWindow = {today: string; from: string; to: string};
+type BookingWindow = z.infer<typeof bookingWindowSchema>;
 
 export async function getBookingWindow(): Promise<BookingWindow> {
   const {today, from, to} = bookingWindowSql();

@@ -8,27 +8,52 @@ import {
   View,
 } from 'react-native';
 
-import {api, unwrap, type Booking} from '@/api/client';
+import {api, unwrap, type Booking, type Subscription} from '@/api/client';
 import {ApiError} from '@/api/errors';
-import {ReservationCard} from '@/components/ReservationCard';
+import {TimeCard} from '@/components/TimeCard';
 import {useBookingActions} from '@/hooks/useBookingActions';
 import {formatWhen, timeRange} from '@/lib/dates';
 
-type BookingsFetch = {
-  bookings: Booking[];
+type MyTime =
+  | {kind: 'booking'; entry: Booking}
+  | {kind: 'subscription'; entry: Subscription};
+
+type TimesFetch = {
+  times: MyTime[];
   error: string | null;
 };
 
+function sortByWhen(times: MyTime[]): MyTime[] {
+  return [...times].sort(
+    (a, b) =>
+      a.entry.date.localeCompare(b.entry.date) ||
+      a.entry.start.localeCompare(b.entry.start),
+  );
+}
+
 export function ReservationScreen() {
-  const [fetched, setFetched] = useState<BookingsFetch | null>(null);
+  const [fetched, setFetched] = useState<TimesFetch | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const bookings = await unwrap(api.GET('/bookings'));
-      setFetched({bookings, error: null});
+      const [bookings, subscriptions] = await Promise.all([
+        unwrap(api.GET('/bookings')),
+        unwrap(api.GET('/subscriptions')),
+      ]);
+
+      setFetched({
+        times: sortByWhen([
+          ...bookings.map((entry) => ({kind: 'booking' as const, entry})),
+          ...subscriptions.map((entry) => ({
+            kind: 'subscription' as const,
+            entry,
+          })),
+        ]),
+        error: null,
+      });
     } catch (err) {
       setFetched({
-        bookings: [],
+        times: [],
         error: err instanceof ApiError ? err.message : 'Försök igen.',
       });
     }
@@ -40,7 +65,7 @@ export function ReservationScreen() {
     }, [load]),
   );
 
-  const {confirmCancel} = useBookingActions(() => {
+  const {confirmCancel, confirmUnsubscribe} = useBookingActions(() => {
     void load();
   });
 
@@ -73,18 +98,14 @@ export function ReservationScreen() {
     );
   }
 
-  const sorted = [...fetched.bookings].sort(
-    (a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start),
-  );
-
-  if (sorted.length === 0) {
+  if (fetched.times.length === 0) {
     return (
       <View className='flex-1 items-center justify-center bg-theme-bg px-8'>
         <Text className='text-center text-xl font-semibold text-theme-ink'>
-          Inga tider bokade
+          Inga tider
         </Text>
         <Text className='mt-2 text-center text-sm leading-5 text-theme-muted'>
-          När du tar en lucka dyker den upp här.
+          När du tar en lucka eller ställer dig i kö dyker den upp här.
         </Text>
       </View>
     );
@@ -96,19 +117,34 @@ export function ReservationScreen() {
       contentContainerClassName='px-5 py-4 pb-8'
     >
       <Text className='mb-3 text-base font-medium text-theme-muted'>
-        {sorted.length === 1 ? '1 bokning' : `${sorted.length} bokningar`}
+        {fetched.times.length === 1 ? '1 tid' : `${fetched.times.length} tider`}
       </Text>
-      {sorted.map((booking) => {
-        const when = formatWhen(
-          booking.date,
-          timeRange(booking.start, booking.end),
-        );
+      {fetched.times.map(({kind, entry}) => {
+        const when = formatWhen(entry.date, timeRange(entry.start, entry.end));
+
+        if (kind === 'booking') {
+          return (
+            <TimeCard
+              key={entry.id}
+              date={entry.date}
+              start={entry.start}
+              end={entry.end}
+              badge={null}
+              actionLabel='Avboka'
+              onAction={() => confirmCancel({id: entry.id, when})}
+            />
+          );
+        }
 
         return (
-          <ReservationCard
-            key={booking.id}
-            booking={booking}
-            onCancel={() => confirmCancel({id: booking.id, when})}
+          <TimeCard
+            key={entry.id}
+            date={entry.date}
+            start={entry.start}
+            end={entry.end}
+            badge={entry.available ? 'Ledig nu' : 'Reserv'}
+            actionLabel='Lämna kön'
+            onAction={() => confirmUnsubscribe({id: entry.id, when})}
           />
         );
       })}
