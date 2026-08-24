@@ -1,22 +1,19 @@
 import type {FastifyPluginAsyncZod} from '@fastify/type-provider-zod';
-import {eq} from 'drizzle-orm';
 import {z} from 'zod';
 
-import {db} from '../db/index.js';
-import {bookings} from '../db/schema.js';
 import {errorSchema, sendError} from '../lib/errors.js';
 import {getUserId} from '../lib/user.js';
 import {
-  bookingIdParamsSchema,
+  bookingParamsSchema,
   bookingSchema,
   createBookingBodySchema,
   createdBookingSchema,
-} from '../schemas/booking.js';
+} from './booking.dto.js';
 import {
   createBooking,
+  deleteBooking,
   listBookings,
-  releaseBooking,
-} from '../services/bookings.js';
+} from './booking.service.js';
 
 export const bookingRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get(
@@ -70,7 +67,7 @@ export const bookingRoutes: FastifyPluginAsyncZod = async (app) => {
     '/bookings/:id',
     {
       schema: {
-        params: bookingIdParamsSchema,
+        params: bookingParamsSchema,
         response: {
           204: z.undefined(),
           400: errorSchema,
@@ -80,24 +77,20 @@ export const bookingRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request, reply) => {
-      const userId = getUserId(request);
-      const {id} = request.params;
+      const outcome = await deleteBooking(
+        request.params.id,
+        getUserId(request),
+        request.log,
+      );
 
-      const existing = await db
-        .select({userId: bookings.userId})
-        .from(bookings)
-        .where(eq(bookings.id, id))
-        .then((rows) => rows[0]);
-
-      if (!existing) {
+      if (outcome === 'NOT_FOUND') {
         return sendError(reply, 'NOT_FOUND', 'Booking not found');
       }
 
-      if (existing.userId !== userId) {
+      if (outcome === 'FORBIDDEN') {
         return sendError(reply, 'FORBIDDEN', 'Not your booking');
       }
 
-      await releaseBooking(id, userId, request.log);
       return reply.code(204).send();
     },
   );

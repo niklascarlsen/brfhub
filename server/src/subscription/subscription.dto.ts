@@ -15,9 +15,11 @@ export const createSubscriptionBodySchema = z.object({
   slotId: z.string().min(1),
 });
 
-export const subscriptionIdParamsSchema = z.object({
+export const subscriptionParamsSchema = z.object({
   id: z.uuid(),
 });
+
+export type Subscription = z.infer<typeof subscriptionSchema>;
 
 z.globalRegistry.add(subscriptionSchema, {id: 'Subscription'});
 z.globalRegistry.add(createSubscriptionBodySchema, {

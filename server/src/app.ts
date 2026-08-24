@@ -13,10 +13,10 @@ import {
 import Fastify, {type FastifyServerOptions} from 'fastify';
 
 import {describeError, errorCodeFromStatus, sendError} from './lib/errors.js';
-import {bookingRoutes} from './routes/bookings.js';
-import {pushTokenRoutes} from './routes/pushTokens.js';
-import {slotRoutes} from './routes/slots.js';
-import {subscriptionRoutes} from './routes/subscriptions.js';
+import {bookingRoutes} from './booking/booking.route.js';
+import {pushTokenRoutes} from './pushToken/pushToken.route.js';
+import {slotRoutes} from './slot/slot.route.js';
+import {subscriptionRoutes} from './subscription/subscription.route.js';
 
 export async function buildApp(options: FastifyServerOptions = {}) {
   const server = Fastify(options).withTypeProvider<ZodTypeProvider>();

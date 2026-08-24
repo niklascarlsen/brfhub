@@ -19,9 +19,12 @@ export const createBookingBodySchema = z.object({
   replaceExisting: z.boolean().optional(),
 });
 
-export const bookingIdParamsSchema = z.object({
+export const bookingParamsSchema = z.object({
   id: z.uuid(),
 });
+
+export type Booking = z.infer<typeof bookingSchema>;
+export type CreatedBooking = z.infer<typeof createdBookingSchema>;
 
 z.globalRegistry.add(bookingSchema, {id: 'Booking'});
 z.globalRegistry.add(createdBookingSchema, {id: 'CreatedBooking'});

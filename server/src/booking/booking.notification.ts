@@ -6,7 +6,7 @@ import {db} from '../db/index.js';
 import {pushTokens} from '../db/schema.js';
 import {sendPush} from '../lib/push.js';
 import {formatWhen, slotHasStarted} from '../lib/time.js';
-import {subscribersOf} from './subscriptions.js';
+import {listSubscribers} from '../subscription/subscription.service.js';
 
 type ReleasedSlot = {
   date: string;
@@ -30,7 +30,7 @@ export async function notifySlotReleased(
     return;
   }
 
-  const subscribers = await subscribersOf(slot.date, slot.slotId);
+  const subscribers = await listSubscribers(slot.date, slot.slotId);
   const userIds = subscribers
     .map((row) => row.userId)
     .filter((userId) => userId !== releasedBy);

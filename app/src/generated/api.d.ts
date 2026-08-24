@@ -495,6 +495,7 @@ export interface components {
             end: string;
             /** @constant */
             status: "booked";
+            started: boolean;
             subscriptionId: string | null;
         } | {
             id: string;
@@ -587,6 +588,7 @@ export interface components {
             end: string;
             /** @constant */
             status: "booked";
+            started: boolean;
             subscriptionId: string | null;
         } | {
             id: string;

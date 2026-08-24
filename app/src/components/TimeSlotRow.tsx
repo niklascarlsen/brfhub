@@ -27,17 +27,19 @@ function statusLabel(slot: Slot): string {
 export function TimeSlotRow({slot, onPress}: TimeSlotRowProps) {
   const {status} = slot;
   const queued = status === 'booked' && slot.subscriptionId !== null;
+  const locked = status === 'booked' && slot.started;
 
   return (
     <Pressable
       onPress={onPress}
+      disabled={locked}
       className={`mb-2.5 w-full flex-row items-center justify-between rounded-2xl px-4 py-4 ${
         status === 'mine'
           ? 'bg-theme-mist'
           : status === 'booked' || status === 'walkin'
-            ? 'bg-theme-surface/50 active:opacity-80'
-            : 'bg-theme-surface active:opacity-80'
-      }`}
+            ? 'bg-theme-surface/50'
+            : 'bg-theme-surface'
+      } ${locked ? '' : 'active:opacity-80'}`}
     >
       <View>
         <Text

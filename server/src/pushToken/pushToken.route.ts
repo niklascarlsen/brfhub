@@ -1,16 +1,10 @@
 import type {FastifyPluginAsyncZod} from '@fastify/type-provider-zod';
 import {z} from 'zod';
 
-import {db} from '../db/index.js';
-import {pushTokens} from '../db/schema.js';
 import {errorSchema} from '../lib/errors.js';
 import {getUserId} from '../lib/user.js';
-
-const pushTokenBodySchema = z.object({
-  token: z.string().min(1),
-});
-
-z.globalRegistry.add(pushTokenBodySchema, {id: 'PushTokenBody'});
+import {pushTokenBodySchema} from './pushToken.dto.js';
+import {savePushToken} from './pushToken.service.js';
 
 export const pushTokenRoutes: FastifyPluginAsyncZod = async (app) => {
   app.post(
@@ -25,14 +19,7 @@ export const pushTokenRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request, reply) => {
-      await db
-        .insert(pushTokens)
-        .values({token: request.body.token, userId: getUserId(request)})
-        .onConflictDoUpdate({
-          target: pushTokens.token,
-          set: {userId: getUserId(request)},
-        });
-
+      await savePushToken(getUserId(request), request.body.token);
       return reply.code(204).send();
     },
   );

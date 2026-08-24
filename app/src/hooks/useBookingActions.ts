@@ -129,6 +129,10 @@ export function useBookingActions(onChange?: () => void) {
     }
 
     if (slot.status === 'booked') {
+      if (slot.started) {
+        return;
+      }
+
       confirmSubscribe(slot, date);
       return;
     }

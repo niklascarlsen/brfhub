@@ -1,19 +1,18 @@
 import {and, asc, eq, gt, sql} from 'drizzle-orm';
 import type {FastifyBaseLogger} from 'fastify';
-import type {z} from 'zod';
 
 import {db} from '../db/index.js';
 import {bookings, subscriptions, timeSlots} from '../db/schema.js';
-import {isUniqueViolation, type ErrorCode} from '../lib/errors.js';
+import {isUniqueViolation, type DeleteResult} from '../lib/errors.js';
 import {
   asIsoText,
   slotEndsAt,
   slotHasEnded,
   slotHasStarted,
 } from '../lib/time.js';
-import type {createdBookingSchema} from '../schemas/booking.js';
-import {notifySlotReleased} from './notifications.js';
-import {getBookingWindow, isWithinBookingWindow} from './window.js';
+import {getBookingWindow, isWithinBookingWindow} from '../slot/slot.service.js';
+import type {Booking, CreatedBooking} from './booking.dto.js';
+import {notifySlotReleased} from './booking.notification.js';
 
 const BOOKING_LOCK_NAMESPACE = 881001;
 
@@ -21,13 +20,25 @@ function stillActive(userId: string) {
   return and(eq(bookings.userId, userId), gt(bookings.endsAt, sql`now()`));
 }
 
-type CreatedBooking = z.infer<typeof createdBookingSchema>;
-
-export async function releaseBooking(
+export async function deleteBooking(
   id: string,
-  releasedBy: string,
+  userId: string,
   log: FastifyBaseLogger,
-): Promise<void> {
+): Promise<DeleteResult> {
+  const existing = await db
+    .select({userId: bookings.userId})
+    .from(bookings)
+    .where(eq(bookings.id, id))
+    .then((rows) => rows[0]);
+
+  if (!existing) {
+    return 'NOT_FOUND';
+  }
+
+  if (existing.userId !== userId) {
+    return 'FORBIDDEN';
+  }
+
   const [released] = await db
     .delete(bookings)
     .where(eq(bookings.id, id))
@@ -37,7 +48,7 @@ export async function releaseBooking(
     });
 
   if (!released) {
-    return;
+    return 'NOT_FOUND';
   }
 
   const slot = await db
@@ -46,18 +57,26 @@ export async function releaseBooking(
     .where(eq(timeSlots.id, released.slotId))
     .then((rows) => rows[0]);
 
-  if (!slot) {
-    return;
+  if (slot) {
+    await notifySlotReleased({...released, ...slot}, userId, log);
   }
 
-  await notifySlotReleased({...released, ...slot}, releasedBy, log);
+  return 'DELETED';
 }
+
+type CreateBookingError =
+  | 'NOT_FOUND'
+  | 'SLOT_IN_PAST'
+  | 'SLOT_STARTED'
+  | 'OUTSIDE_BOOKING_WINDOW'
+  | 'HAS_ACTIVE_BOOKING'
+  | 'SLOT_TAKEN';
 
 type CreateBookingResult =
   | {ok: true; booking: CreatedBooking}
-  | {ok: false; code: ErrorCode};
+  | {ok: false; code: CreateBookingError};
 
-export function listBookings(userId: string) {
+export function listBookings(userId: string): Promise<Booking[]> {
   return db
     .select({
       id: bookings.id,

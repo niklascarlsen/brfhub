@@ -5,14 +5,14 @@ import {errorSchema, sendError} from '../lib/errors.js';
 import {getUserId} from '../lib/user.js';
 import {
   createSubscriptionBodySchema,
-  subscriptionIdParamsSchema,
+  subscriptionParamsSchema,
   subscriptionSchema,
-} from '../schemas/subscription.js';
+} from './subscription.dto.js';
 import {
   createSubscription,
   deleteSubscription,
   listSubscriptions,
-} from '../services/subscriptions.js';
+} from './subscription.service.js';
 
 export const subscriptionRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get(
@@ -63,7 +63,7 @@ export const subscriptionRoutes: FastifyPluginAsyncZod = async (app) => {
     '/subscriptions/:id',
     {
       schema: {
-        params: subscriptionIdParamsSchema,
+        params: subscriptionParamsSchema,
         response: {
           204: z.undefined(),
           400: errorSchema,

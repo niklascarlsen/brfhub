@@ -231,6 +231,9 @@
                 "type": "string",
                 "const": "booked"
               },
+              "started": {
+                "type": "boolean"
+              },
               "subscriptionId": {
                 "anyOf": [
                   {
@@ -249,6 +252,7 @@
               "start",
               "end",
               "status",
+              "started",
               "subscriptionId"
             ]
           },
@@ -600,6 +604,9 @@
                 "type": "string",
                 "const": "booked"
               },
+              "started": {
+                "type": "boolean"
+              },
               "subscriptionId": {
                 "anyOf": [
                   {
@@ -618,6 +625,7 @@
               "start",
               "end",
               "status",
+              "started",
               "subscriptionId"
             ],
             "additionalProperties": false

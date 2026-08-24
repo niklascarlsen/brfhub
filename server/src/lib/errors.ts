@@ -18,6 +18,8 @@ export const errorCodeSchema = z.enum([
 
 export type ErrorCode = z.infer<typeof errorCodeSchema>;
 
+export type DeleteResult = 'NOT_FOUND' | 'FORBIDDEN' | 'DELETED';
+
 const ERRORS: Record<
   ErrorCode,
   {status: number; error: string; message: string}

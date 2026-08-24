@@ -1,13 +1,7 @@
 import {z} from 'zod';
 
-export const slotsQuerySchema = z.object({
+export const listSlotsQuerySchema = z.object({
   date: z.iso.date(),
-});
-
-export const bookingWindowSchema = z.object({
-  today: z.iso.date(),
-  from: z.iso.date(),
-  to: z.iso.date(),
 });
 
 const slotTimes = {
@@ -28,6 +22,7 @@ export const slotSchema = z.discriminatedUnion('status', [
   z.object({
     ...slotTimes,
     status: z.literal('booked'),
+    started: z.boolean(),
     subscriptionId: z.uuid().nullable(),
   }),
   z.object({
@@ -36,6 +31,15 @@ export const slotSchema = z.discriminatedUnion('status', [
     bookingId: z.uuid(),
   }),
 ]);
+
+export const bookingWindowSchema = z.object({
+  today: z.iso.date(),
+  from: z.iso.date(),
+  to: z.iso.date(),
+});
+
+export type Slot = z.infer<typeof slotSchema>;
+export type BookingWindow = z.infer<typeof bookingWindowSchema>;
 
 z.globalRegistry.add(slotSchema, {id: 'Slot'});
 z.globalRegistry.add(bookingWindowSchema, {id: 'BookingWindow'});

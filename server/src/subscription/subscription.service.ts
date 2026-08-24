@@ -1,23 +1,29 @@
 import {and, asc, eq, gt, sql} from 'drizzle-orm';
-import type {z} from 'zod';
 
 import {db} from '../db/index.js';
 import {bookings, subscriptions, timeSlots} from '../db/schema.js';
-import {isUniqueViolation, type ErrorCode} from '../lib/errors.js';
+import {isUniqueViolation, type DeleteResult} from '../lib/errors.js';
 import {
   asIsoText,
   slotEndsAt,
   slotHasEnded,
   slotHasStarted,
 } from '../lib/time.js';
-import type {subscriptionSchema} from '../schemas/subscription.js';
-import {getBookingWindow, isWithinBookingWindow} from './window.js';
+import {getBookingWindow, isWithinBookingWindow} from '../slot/slot.service.js';
+import type {Subscription} from './subscription.dto.js';
 
-type Subscription = z.infer<typeof subscriptionSchema>;
+type CreateSubscriptionError =
+  | 'NOT_FOUND'
+  | 'SLOT_IN_PAST'
+  | 'OUTSIDE_BOOKING_WINDOW'
+  | 'SLOT_STARTED'
+  | 'SLOT_AVAILABLE'
+  | 'SLOT_IS_MINE'
+  | 'ALREADY_SUBSCRIBED';
 
 type CreateSubscriptionResult =
   | {ok: true; subscription: Subscription}
-  | {ok: false; code: ErrorCode};
+  | {ok: false; code: CreateSubscriptionError};
 
 function stillActive(userId: string) {
   return and(
@@ -87,8 +93,12 @@ export async function createSubscription({
     return {ok: false, code: 'OUTSIDE_BOOKING_WINDOW'};
   }
 
+  if (slot.started) {
+    return {ok: false, code: 'SLOT_STARTED'};
+  }
+
   if (!slot.bookedBy) {
-    return {ok: false, code: slot.started ? 'SLOT_STARTED' : 'SLOT_AVAILABLE'};
+    return {ok: false, code: 'SLOT_AVAILABLE'};
   }
 
   if (slot.bookedBy === userId) {
@@ -127,7 +137,10 @@ export async function createSubscription({
   }
 }
 
-export async function deleteSubscription(id: string, userId: string) {
+export async function deleteSubscription(
+  id: string,
+  userId: string,
+): Promise<DeleteResult> {
   const existing = await db
     .select({userId: subscriptions.userId})
     .from(subscriptions)
@@ -135,18 +148,18 @@ export async function deleteSubscription(id: string, userId: string) {
     .then((rows) => rows[0]);
 
   if (!existing) {
-    return 'NOT_FOUND' as const;
+    return 'NOT_FOUND';
   }
 
   if (existing.userId !== userId) {
-    return 'FORBIDDEN' as const;
+    return 'FORBIDDEN';
   }
 
   await db.delete(subscriptions).where(eq(subscriptions.id, id));
-  return 'DELETED' as const;
+  return 'DELETED';
 }
 
-export function subscribersOf(date: string, slotId: string) {
+export function listSubscribers(date: string, slotId: string) {
   return db
     .select({userId: subscriptions.userId})
     .from(subscriptions)
