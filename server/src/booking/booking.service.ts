@@ -1,9 +1,10 @@
 import {and, asc, eq, gt, sql} from 'drizzle-orm';
 import type {FastifyBaseLogger} from 'fastify';
 
+import {isUniqueViolation} from '../db/errors.js';
 import {db} from '../db/index.js';
 import {bookings, subscriptions, timeSlots} from '../db/schema.js';
-import {isUniqueViolation, type DeleteResult} from '../lib/errors.js';
+import {appError} from '../lib/errors.js';
 import {
   asIsoText,
   slotEndsAt,
@@ -24,7 +25,7 @@ export async function deleteBooking(
   id: string,
   userId: string,
   log: FastifyBaseLogger,
-): Promise<DeleteResult> {
+): Promise<void> {
   const existing = await db
     .select({userId: bookings.userId})
     .from(bookings)
@@ -32,11 +33,11 @@ export async function deleteBooking(
     .then((rows) => rows[0]);
 
   if (!existing) {
-    return 'NOT_FOUND';
+    throw appError('NOT_FOUND', 'Booking not found');
   }
 
   if (existing.userId !== userId) {
-    return 'FORBIDDEN';
+    throw appError('FORBIDDEN', 'Not your booking');
   }
 
   const [released] = await db
@@ -48,7 +49,7 @@ export async function deleteBooking(
     });
 
   if (!released) {
-    return 'NOT_FOUND';
+    throw appError('NOT_FOUND', 'Booking not found');
   }
 
   const slot = await db
@@ -60,21 +61,7 @@ export async function deleteBooking(
   if (slot) {
     await notifySlotReleased({...released, ...slot}, userId, log);
   }
-
-  return 'DELETED';
 }
-
-type CreateBookingError =
-  | 'NOT_FOUND'
-  | 'SLOT_IN_PAST'
-  | 'SLOT_STARTED'
-  | 'OUTSIDE_BOOKING_WINDOW'
-  | 'HAS_ACTIVE_BOOKING'
-  | 'SLOT_TAKEN';
-
-type CreateBookingResult =
-  | {ok: true; booking: CreatedBooking}
-  | {ok: false; code: CreateBookingError};
 
 export function listBookings(userId: string): Promise<Booking[]> {
   return db
@@ -104,7 +91,7 @@ export async function createBooking({
   slotId: string;
   replaceExisting: boolean;
   log: FastifyBaseLogger;
-}): Promise<CreateBookingResult> {
+}): Promise<CreatedBooking> {
   const slot = await db
     .select({
       start: timeSlots.start,
@@ -117,23 +104,23 @@ export async function createBooking({
     .then((rows) => rows[0]);
 
   if (!slot) {
-    return {ok: false, code: 'NOT_FOUND'};
+    throw appError('NOT_FOUND', 'Unknown time slot');
   }
 
   if (slot.ended) {
-    return {ok: false, code: 'SLOT_IN_PAST'};
+    throw appError('SLOT_IN_PAST');
   }
 
   if (slot.started) {
-    return {ok: false, code: 'SLOT_STARTED'};
+    throw appError('SLOT_STARTED');
   }
 
   if (!isWithinBookingWindow(date, await getBookingWindow())) {
-    return {ok: false, code: 'OUTSIDE_BOOKING_WINDOW'};
+    throw appError('OUTSIDE_BOOKING_WINDOW');
   }
 
-  try {
-    const created = await db.transaction(async (tx) => {
+  const created = await db
+    .transaction(async (tx) => {
       await tx.execute(
         sql`select pg_advisory_xact_lock(${BOOKING_LOCK_NAMESPACE}, hashtext(${userId}))`,
       );
@@ -199,21 +186,21 @@ export async function createBooking({
             }
           : null,
       };
+    })
+    .catch((error: unknown) => {
+      if (isUniqueViolation(error)) {
+        throw appError('SLOT_TAKEN');
+      }
+      throw error;
     });
 
-    if (!created) {
-      return {ok: false, code: 'HAS_ACTIVE_BOOKING'};
-    }
-
-    if (created.released) {
-      await notifySlotReleased(created.released, userId, log);
-    }
-
-    return {ok: true, booking: created.booking};
-  } catch (error) {
-    if (isUniqueViolation(error)) {
-      return {ok: false, code: 'SLOT_TAKEN'};
-    }
-    throw error;
+  if (!created) {
+    throw appError('HAS_ACTIVE_BOOKING');
   }
+
+  if (created.released) {
+    await notifySlotReleased(created.released, userId, log);
+  }
+
+  return created.booking;
 }

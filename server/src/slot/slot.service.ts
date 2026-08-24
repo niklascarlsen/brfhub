@@ -2,14 +2,9 @@ import {and, asc, eq, sql} from 'drizzle-orm';
 
 import {db} from '../db/index.js';
 import {bookings, subscriptions, timeSlots} from '../db/schema.js';
+import {appError} from '../lib/errors.js';
 import {bookingWindowSql, slotEndsAt, slotHasStarted} from '../lib/time.js';
 import type {BookingWindow, Slot} from './slot.dto.js';
-
-type ListSlotsError = 'OUTSIDE_BOOKING_WINDOW';
-
-type ListSlotsResult =
-  | {ok: true; slots: Slot[]}
-  | {ok: false; code: ListSlotsError};
 
 export async function getBookingWindow(): Promise<BookingWindow> {
   const {today, from, to} = bookingWindowSql();
@@ -98,12 +93,12 @@ export async function listSlots({
 }: {
   userId: string;
   date: string;
-}): Promise<ListSlotsResult> {
+}): Promise<Slot[]> {
   if (!isWithinBookingWindow(date, await getBookingWindow())) {
-    return {ok: false, code: 'OUTSIDE_BOOKING_WINDOW'};
+    throw appError('OUTSIDE_BOOKING_WINDOW');
   }
 
   const rows = await selectSlotRows(userId, date);
 
-  return {ok: true, slots: rows.map((row) => toSlot(row, userId))};
+  return rows.map((row) => toSlot(row, userId));
 }

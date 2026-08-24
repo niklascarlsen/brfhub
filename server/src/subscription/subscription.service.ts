@@ -2,7 +2,7 @@ import {and, asc, eq, gt, sql} from 'drizzle-orm';
 
 import {db} from '../db/index.js';
 import {bookings, subscriptions, timeSlots} from '../db/schema.js';
-import {isUniqueViolation, type DeleteResult} from '../lib/errors.js';
+import {appError} from '../lib/errors.js';
 import {
   asIsoText,
   slotEndsAt,
@@ -11,19 +11,6 @@ import {
 } from '../lib/time.js';
 import {getBookingWindow, isWithinBookingWindow} from '../slot/slot.service.js';
 import type {Subscription} from './subscription.dto.js';
-
-type CreateSubscriptionError =
-  | 'NOT_FOUND'
-  | 'SLOT_IN_PAST'
-  | 'OUTSIDE_BOOKING_WINDOW'
-  | 'SLOT_STARTED'
-  | 'SLOT_AVAILABLE'
-  | 'SLOT_IS_MINE'
-  | 'ALREADY_SUBSCRIBED';
-
-type CreateSubscriptionResult =
-  | {ok: true; subscription: Subscription}
-  | {ok: false; code: CreateSubscriptionError};
 
 function stillActive(userId: string) {
   return and(
@@ -64,7 +51,7 @@ export async function createSubscription({
   userId: string;
   date: string;
   slotId: string;
-}): Promise<CreateSubscriptionResult> {
+}): Promise<Subscription> {
   const slot = await db
     .select({
       start: timeSlots.start,
@@ -82,65 +69,51 @@ export async function createSubscription({
     .then((rows) => rows[0]);
 
   if (!slot) {
-    return {ok: false, code: 'NOT_FOUND'};
+    throw appError('NOT_FOUND', 'Unknown time slot');
   }
 
   if (slot.ended) {
-    return {ok: false, code: 'SLOT_IN_PAST'};
+    throw appError('SLOT_IN_PAST');
   }
 
   if (!isWithinBookingWindow(date, await getBookingWindow())) {
-    return {ok: false, code: 'OUTSIDE_BOOKING_WINDOW'};
+    throw appError('OUTSIDE_BOOKING_WINDOW');
   }
 
   if (slot.started) {
-    return {ok: false, code: 'SLOT_STARTED'};
+    throw appError('SLOT_STARTED');
   }
 
   if (!slot.bookedBy) {
-    return {ok: false, code: 'SLOT_AVAILABLE'};
+    throw appError('SLOT_AVAILABLE');
   }
 
-  if (slot.bookedBy === userId) {
-    return {ok: false, code: 'SLOT_IS_MINE'};
+  const [row] = await db
+    .insert(subscriptions)
+    .values({date, slotId, userId, endsAt: slotEndsAt(date, slot.end)})
+    .returning({
+      id: subscriptions.id,
+      date: subscriptions.date,
+      slotId: subscriptions.slotId,
+      endsAt: asIsoText(subscriptions.endsAt),
+    });
+
+  if (!row) {
+    throw new Error('Insert returned no row');
   }
 
-  try {
-    const [row] = await db
-      .insert(subscriptions)
-      .values({date, slotId, userId, endsAt: slotEndsAt(date, slot.end)})
-      .returning({
-        id: subscriptions.id,
-        date: subscriptions.date,
-        slotId: subscriptions.slotId,
-        endsAt: asIsoText(subscriptions.endsAt),
-      });
-
-    if (!row) {
-      throw new Error('Insert returned no row');
-    }
-
-    return {
-      ok: true,
-      subscription: {
-        ...row,
-        start: slot.start,
-        end: slot.end,
-        available: false,
-      },
-    };
-  } catch (error) {
-    if (isUniqueViolation(error)) {
-      return {ok: false, code: 'ALREADY_SUBSCRIBED'};
-    }
-    throw error;
-  }
+  return {
+    ...row,
+    start: slot.start,
+    end: slot.end,
+    available: false,
+  };
 }
 
 export async function deleteSubscription(
   id: string,
   userId: string,
-): Promise<DeleteResult> {
+): Promise<void> {
   const existing = await db
     .select({userId: subscriptions.userId})
     .from(subscriptions)
@@ -148,15 +121,14 @@ export async function deleteSubscription(
     .then((rows) => rows[0]);
 
   if (!existing) {
-    return 'NOT_FOUND';
+    throw appError('NOT_FOUND', 'Subscription not found');
   }
 
   if (existing.userId !== userId) {
-    return 'FORBIDDEN';
+    throw appError('FORBIDDEN', 'Not your subscription');
   }
 
   await db.delete(subscriptions).where(eq(subscriptions.id, id));
-  return 'DELETED';
 }
 
 export function listSubscribers(date: string, slotId: string) {

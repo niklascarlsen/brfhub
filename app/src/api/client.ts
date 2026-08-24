@@ -1,6 +1,6 @@
 import createClient from 'openapi-fetch';
 
-import {ApiError, type ClientErrorCode} from '@/api/errors';
+import {apiError, type ClientErrorCode} from '@/api/errors';
 import type {components, paths} from '@/generated/api';
 
 export type Booking = components['schemas']['Booking'];
@@ -27,11 +27,11 @@ export async function unwrap<T>(
   }>,
 ): Promise<T> {
   const result = await request.catch(() => {
-    throw new ApiError('NETWORK');
+    throw apiError('NETWORK');
   });
 
   if (!result.response.ok || result.error !== undefined) {
-    throw new ApiError(result.error?.code ?? 'UNKNOWN');
+    throw apiError(result.error?.code ?? 'UNKNOWN');
   }
 
   return result.data as T;

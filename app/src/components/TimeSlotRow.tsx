@@ -27,7 +27,7 @@ function statusLabel(slot: Slot): string {
 export function TimeSlotRow({slot, onPress}: TimeSlotRowProps) {
   const {status} = slot;
   const queued = status === 'booked' && slot.subscriptionId !== null;
-  const locked = status === 'booked' && slot.started;
+  const locked = status === 'walkin' || (status === 'booked' && slot.started);
 
   return (
     <Pressable

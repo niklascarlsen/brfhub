@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 
 import {api, unwrap, type Booking, type Subscription} from '@/api/client';
-import {ApiError} from '@/api/errors';
+import {codeOf, errorMessage} from '@/api/errors';
 import {TimeCard} from '@/components/TimeCard';
 import {useBookingActions} from '@/hooks/useBookingActions';
 import {formatWhen, timeRange} from '@/lib/dates';
@@ -54,7 +54,7 @@ export function ReservationScreen() {
     } catch (err) {
       setFetched({
         times: [],
-        error: err instanceof ApiError ? err.message : 'Försök igen.',
+        error: errorMessage(codeOf(err)),
       });
     }
   }, []);

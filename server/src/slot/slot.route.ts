@@ -1,6 +1,6 @@
 import type {FastifyPluginAsyncZod} from '@fastify/type-provider-zod';
 
-import {errorSchema, sendError} from '../lib/errors.js';
+import {errorResponses} from '../lib/errors.js';
 import {getUserId} from '../lib/user.js';
 import {
   bookingWindowSchema,
@@ -17,22 +17,15 @@ export const slotRoutes: FastifyPluginAsyncZod = async (app) => {
         querystring: listSlotsQuerySchema,
         response: {
           200: slotSchema.array(),
-          400: errorSchema,
+          ...errorResponses,
         },
       },
     },
-    async (request, reply) => {
-      const result = await listSlots({
+    async (request) =>
+      listSlots({
         userId: getUserId(request),
         date: request.query.date,
-      });
-
-      if (!result.ok) {
-        return sendError(reply, result.code);
-      }
-
-      return result.slots;
-    },
+      }),
   );
 
   app.get(
@@ -41,6 +34,7 @@ export const slotRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         response: {
           200: bookingWindowSchema,
+          ...errorResponses,
         },
       },
     },

@@ -20,7 +20,7 @@ import {
   type BookingWindow,
   type Slot,
 } from '@/api/client';
-import {ApiError} from '@/api/errors';
+import {codeOf, errorMessage} from '@/api/errors';
 import {DatePicker} from '@/components/DatePicker';
 import {TimeSlotRow} from '@/components/TimeSlotRow';
 import {useBookingActions} from '@/hooks/useBookingActions';
@@ -70,7 +70,7 @@ export function BookingScreen() {
         date: date ?? '',
         slots: [],
         active: null,
-        error: err instanceof ApiError ? err.message : 'Försök igen.',
+        error: errorMessage(codeOf(err)),
       });
     }
   }, []);

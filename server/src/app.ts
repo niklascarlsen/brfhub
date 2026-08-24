@@ -12,7 +12,7 @@ import {
 } from '@fastify/type-provider-zod';
 import Fastify, {type FastifyServerOptions} from 'fastify';
 
-import {describeError, errorCodeFromStatus, sendError} from './lib/errors.js';
+import {isAppError, sendError} from './lib/errors.js';
 import {bookingRoutes} from './booking/booking.route.js';
 import {pushTokenRoutes} from './pushToken/pushToken.route.js';
 import {slotRoutes} from './slot/slot.route.js';
@@ -42,19 +42,21 @@ export async function buildApp(options: FastifyServerOptions = {}) {
       return sendError(reply, 'UNKNOWN', 'Response did not match schema');
     }
 
-    const {statusCode, message} = describeError(error);
-
-    if (statusCode >= 500) {
-      request.log.error({err: error}, 'request failed');
-      return sendError(reply, 'UNKNOWN');
+    if (isAppError(error)) {
+      return sendError(reply, error.code, error.message);
     }
 
-    return sendError(
-      reply,
-      errorCodeFromStatus(statusCode),
-      message,
-      statusCode,
-    );
+    if (
+      error instanceof Error &&
+      'statusCode' in error &&
+      typeof error.statusCode === 'number' &&
+      error.statusCode < 500
+    ) {
+      return sendError(reply, 'VALIDATION', error.message);
+    }
+
+    request.log.error({err: error}, 'request failed');
+    return sendError(reply, 'UNKNOWN');
   });
 
   server.setNotFoundHandler((request, reply) =>

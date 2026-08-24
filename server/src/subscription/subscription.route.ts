@@ -1,7 +1,7 @@
 import type {FastifyPluginAsyncZod} from '@fastify/type-provider-zod';
 import {z} from 'zod';
 
-import {errorSchema, sendError} from '../lib/errors.js';
+import {errorResponses} from '../lib/errors.js';
 import {getUserId} from '../lib/user.js';
 import {
   createSubscriptionBodySchema,
@@ -21,7 +21,7 @@ export const subscriptionRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         response: {
           200: subscriptionSchema.array(),
-          500: errorSchema,
+          ...errorResponses,
         },
       },
     },
@@ -35,27 +35,17 @@ export const subscriptionRoutes: FastifyPluginAsyncZod = async (app) => {
         body: createSubscriptionBodySchema,
         response: {
           201: subscriptionSchema,
-          400: errorSchema,
-          404: errorSchema,
-          409: errorSchema,
+          ...errorResponses,
         },
       },
     },
     async (request, reply) => {
-      const result = await createSubscription({
+      const subscription = await createSubscription({
         userId: getUserId(request),
         ...request.body,
       });
 
-      if (!result.ok) {
-        return sendError(
-          reply,
-          result.code,
-          result.code === 'NOT_FOUND' ? 'Unknown time slot' : undefined,
-        );
-      }
-
-      return reply.code(201).send(result.subscription);
+      return reply.code(201).send(subscription);
     },
   );
 
@@ -66,26 +56,12 @@ export const subscriptionRoutes: FastifyPluginAsyncZod = async (app) => {
         params: subscriptionParamsSchema,
         response: {
           204: z.undefined(),
-          400: errorSchema,
-          403: errorSchema,
-          404: errorSchema,
+          ...errorResponses,
         },
       },
     },
     async (request, reply) => {
-      const outcome = await deleteSubscription(
-        request.params.id,
-        getUserId(request),
-      );
-
-      if (outcome === 'NOT_FOUND') {
-        return sendError(reply, 'NOT_FOUND', 'Subscription not found');
-      }
-
-      if (outcome === 'FORBIDDEN') {
-        return sendError(reply, 'FORBIDDEN', 'Not your subscription');
-      }
-
+      await deleteSubscription(request.params.id, getUserId(request));
       return reply.code(204).send();
     },
   );

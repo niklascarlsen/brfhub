@@ -1,12 +1,8 @@
 import {Alert} from 'react-native';
 
 import {api, unwrap, type Booking, type Slot} from '@/api/client';
-import {ApiError, errorMessage} from '@/api/errors';
+import {codeOf, errorMessage} from '@/api/errors';
 import {formatWhen, timeRange} from '@/lib/dates';
-
-function codeOf(error: unknown) {
-  return error instanceof ApiError ? error.code : 'UNKNOWN';
-}
 
 export function useBookingActions(onChange?: () => void) {
   async function book(slot: Slot, date: string, replaceExisting = false) {
@@ -22,20 +18,18 @@ export function useBookingActions(onChange?: () => void) {
       );
       onChange?.();
     } catch (error) {
-      if (error instanceof ApiError && error.code === 'HAS_ACTIVE_BOOKING') {
+      const code = codeOf(error);
+
+      if (code === 'HAS_ACTIVE_BOOKING') {
         confirmSwap(slot, date);
         return;
       }
 
-      if (error instanceof ApiError && error.code === 'SLOT_TAKEN') {
+      if (code === 'SLOT_TAKEN' || code === 'SLOT_STARTED') {
         onChange?.();
       }
 
-      if (error instanceof ApiError && error.code === 'SLOT_STARTED') {
-        onChange?.();
-      }
-
-      Alert.alert('Kunde inte boka', errorMessage(codeOf(error)));
+      Alert.alert('Kunde inte boka', errorMessage(code));
     }
   }
 
@@ -61,11 +55,13 @@ export function useBookingActions(onChange?: () => void) {
       await unwrap(api.POST('/subscriptions', {body: {date, slotId: slot.id}}));
       onChange?.();
     } catch (error) {
-      if (error instanceof ApiError && error.code === 'SLOT_AVAILABLE') {
+      const code = codeOf(error);
+
+      if (code === 'SLOT_AVAILABLE') {
         onChange?.();
       }
 
-      Alert.alert('Kunde inte köa', errorMessage(codeOf(error)));
+      Alert.alert('Kunde inte köa', errorMessage(code));
     }
   }
 
@@ -120,14 +116,6 @@ export function useBookingActions(onChange?: () => void) {
   }
 
   function confirmBook(slot: Slot, date: string, active: Booking | null) {
-    if (slot.status === 'walkin') {
-      Alert.alert(
-        'Drop-in',
-        'Tiden har börjat. Gå ner och kolla om rummet är ledigt.',
-      );
-      return;
-    }
-
     if (slot.status === 'booked') {
       if (slot.started) {
         return;
