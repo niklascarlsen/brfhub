@@ -17,6 +17,10 @@ function statusLabel(slot: Slot): string {
     return 'Ledig';
   }
 
+  if (slot.status === 'walkin') {
+    return 'Drop-in';
+  }
+
   return slot.subscriptionId ? 'I kö' : 'Upptagen';
 }
 
@@ -30,7 +34,7 @@ export function TimeSlotRow({slot, onPress}: TimeSlotRowProps) {
       className={`mb-2.5 w-full flex-row items-center justify-between rounded-2xl px-4 py-4 ${
         status === 'mine'
           ? 'bg-theme-mist'
-          : status === 'booked'
+          : status === 'booked' || status === 'walkin'
             ? 'bg-theme-surface/50 active:opacity-80'
             : 'bg-theme-surface active:opacity-80'
       }`}
@@ -38,7 +42,9 @@ export function TimeSlotRow({slot, onPress}: TimeSlotRowProps) {
       <View>
         <Text
           className={`text-lg font-semibold tracking-tight ${
-            status === 'booked' ? 'text-theme-muted' : 'text-theme-ink'
+            status === 'booked' || status === 'walkin'
+              ? 'text-theme-muted'
+              : 'text-theme-ink'
           }`}
         >
           {timeRange(slot.start, slot.end)}
@@ -50,7 +56,7 @@ export function TimeSlotRow({slot, onPress}: TimeSlotRowProps) {
             ? ' text-lg text-theme-accent'
             : queued
               ? 'text-theme-accent text-sm'
-              : status === 'booked'
+              : status === 'booked' || status === 'walkin'
                 ? 'text-theme-muted text-sm'
                 : 'text-theme-ink text-sm'
         }`}

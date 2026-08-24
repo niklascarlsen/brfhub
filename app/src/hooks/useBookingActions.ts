@@ -31,6 +31,10 @@ export function useBookingActions(onChange?: () => void) {
         onChange?.();
       }
 
+      if (error instanceof ApiError && error.code === 'SLOT_STARTED') {
+        onChange?.();
+      }
+
       Alert.alert('Kunde inte boka', errorMessage(codeOf(error)));
     }
   }
@@ -116,6 +120,14 @@ export function useBookingActions(onChange?: () => void) {
   }
 
   function confirmBook(slot: Slot, date: string, active: Booking | null) {
+    if (slot.status === 'walkin') {
+      Alert.alert(
+        'Drop-in',
+        'Tiden har börjat. Gå ner och kolla om rummet är ledigt.',
+      );
+      return;
+    }
+
     if (slot.status === 'booked') {
       confirmSubscribe(slot, date);
       return;

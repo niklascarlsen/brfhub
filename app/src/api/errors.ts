@@ -7,6 +7,7 @@ const MESSAGES: Record<ClientErrorCode, string> = {
   HAS_ACTIVE_BOOKING: 'Du har redan en bokning',
   SLOT_TAKEN: 'Tiden är redan bokad',
   SLOT_IN_PAST: 'Tiden har redan passerat',
+  SLOT_STARTED: 'Tiden har börjat - drop-in gäller',
   OUTSIDE_BOOKING_WINDOW: 'Den dagen går inte att boka än',
   SLOT_AVAILABLE: 'Tiden är ledig — boka den i stället',
   SLOT_IS_MINE: 'Det är redan din tid',

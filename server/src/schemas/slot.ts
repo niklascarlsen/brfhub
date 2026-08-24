@@ -23,6 +23,10 @@ export const slotSchema = z.discriminatedUnion('status', [
   }),
   z.object({
     ...slotTimes,
+    status: z.literal('walkin'),
+  }),
+  z.object({
+    ...slotTimes,
     status: z.literal('booked'),
     subscriptionId: z.uuid().nullable(),
   }),

@@ -8,12 +8,12 @@ export type Slot = components['schemas']['Slot'];
 export type BookingWindow = components['schemas']['BookingWindow'];
 export type Subscription = components['schemas']['Subscription'];
 
-const CURRENT_USER_ID = 'me';
+const CURRENT_APARTMENT_NUMBER = '12';
 
 export const api = createClient<paths>({
   baseUrl: process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000',
   headers: {
-    'x-user-id': CURRENT_USER_ID,
+    'x-apartment-number': CURRENT_APARTMENT_NUMBER,
   },
 });
 

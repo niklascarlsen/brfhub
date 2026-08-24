@@ -5,6 +5,7 @@ export const errorCodeSchema = z.enum([
   'HAS_ACTIVE_BOOKING',
   'SLOT_TAKEN',
   'SLOT_IN_PAST',
+  'SLOT_STARTED',
   'OUTSIDE_BOOKING_WINDOW',
   'SLOT_AVAILABLE',
   'SLOT_IS_MINE',
@@ -35,6 +36,11 @@ const ERRORS: Record<
     status: 400,
     error: 'Bad Request',
     message: 'Slot has already ended',
+  },
+  SLOT_STARTED: {
+    status: 400,
+    error: 'Bad Request',
+    message: 'Slot has already started',
   },
   OUTSIDE_BOOKING_WINDOW: {
     status: 400,

@@ -5,21 +5,17 @@ import type {z} from 'zod';
 import {db} from '../db/index.js';
 import {bookings, subscriptions, timeSlots} from '../db/schema.js';
 import {isUniqueViolation, type ErrorCode} from '../lib/errors.js';
-import {asIsoText, slotEndsAt, slotHasEnded} from '../lib/time.js';
+import {
+  asIsoText,
+  slotEndsAt,
+  slotHasEnded,
+  slotHasStarted,
+} from '../lib/time.js';
 import type {createdBookingSchema} from '../schemas/booking.js';
 import {notifySlotReleased} from './notifications.js';
 import {getBookingWindow, isWithinBookingWindow} from './window.js';
 
 const BOOKING_LOCK_NAMESPACE = 881001;
-
-const bookingColumns = {
-  id: bookings.id,
-  date: bookings.date,
-  slotId: bookings.slotId,
-  start: timeSlots.start,
-  end: timeSlots.end,
-  endsAt: asIsoText(bookings.endsAt),
-};
 
 function stillActive(userId: string) {
   return and(eq(bookings.userId, userId), gt(bookings.endsAt, sql`now()`));
@@ -58,11 +54,19 @@ export async function releaseBooking(
 }
 
 type CreateBookingResult =
-  {ok: true; booking: CreatedBooking} | {ok: false; code: ErrorCode};
+  | {ok: true; booking: CreatedBooking}
+  | {ok: false; code: ErrorCode};
 
 export function listBookings(userId: string) {
   return db
-    .select(bookingColumns)
+    .select({
+      id: bookings.id,
+      date: bookings.date,
+      slotId: bookings.slotId,
+      start: timeSlots.start,
+      end: timeSlots.end,
+      endsAt: asIsoText(bookings.endsAt),
+    })
     .from(bookings)
     .innerJoin(timeSlots, eq(bookings.slotId, timeSlots.id))
     .where(stillActive(userId))
@@ -87,6 +91,7 @@ export async function createBooking({
       start: timeSlots.start,
       end: timeSlots.end,
       ended: slotHasEnded(date, timeSlots.end),
+      started: slotHasStarted(date, timeSlots.start),
     })
     .from(timeSlots)
     .where(eq(timeSlots.id, slotId))
@@ -98,6 +103,10 @@ export async function createBooking({
 
   if (slot.ended) {
     return {ok: false, code: 'SLOT_IN_PAST'};
+  }
+
+  if (slot.started) {
+    return {ok: false, code: 'SLOT_STARTED'};
   }
 
   if (!isWithinBookingWindow(date, await getBookingWindow())) {

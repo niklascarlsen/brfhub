@@ -443,7 +443,7 @@ export interface components {
             error: string;
             message: string;
             /** @enum {string} */
-            code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "OUTSIDE_BOOKING_WINDOW" | "SLOT_AVAILABLE" | "SLOT_IS_MINE" | "ALREADY_SUBSCRIBED" | "NOT_FOUND" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
+            code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "SLOT_STARTED" | "OUTSIDE_BOOKING_WINDOW" | "SLOT_AVAILABLE" | "SLOT_IS_MINE" | "ALREADY_SUBSCRIBED" | "NOT_FOUND" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
         };
         BookingInput: {
             /** Format: uuid */
@@ -483,6 +483,12 @@ export interface components {
             end: string;
             /** @constant */
             status: "available";
+        } | {
+            id: string;
+            start: string;
+            end: string;
+            /** @constant */
+            status: "walkin";
         } | {
             id: string;
             start: string;
@@ -529,7 +535,7 @@ export interface components {
             error: string;
             message: string;
             /** @enum {string} */
-            code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "OUTSIDE_BOOKING_WINDOW" | "SLOT_AVAILABLE" | "SLOT_IS_MINE" | "ALREADY_SUBSCRIBED" | "NOT_FOUND" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
+            code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "SLOT_STARTED" | "OUTSIDE_BOOKING_WINDOW" | "SLOT_AVAILABLE" | "SLOT_IS_MINE" | "ALREADY_SUBSCRIBED" | "NOT_FOUND" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
         };
         Booking: {
             /** Format: uuid */
@@ -569,6 +575,12 @@ export interface components {
             end: string;
             /** @constant */
             status: "available";
+        } | {
+            id: string;
+            start: string;
+            end: string;
+            /** @constant */
+            status: "walkin";
         } | {
             id: string;
             start: string;

@@ -26,6 +26,7 @@
               "HAS_ACTIVE_BOOKING",
               "SLOT_TAKEN",
               "SLOT_IN_PAST",
+              "SLOT_STARTED",
               "OUTSIDE_BOOKING_WINDOW",
               "SLOT_AVAILABLE",
               "SLOT_IS_MINE",
@@ -181,6 +182,30 @@
               "status": {
                 "type": "string",
                 "const": "available"
+              }
+            },
+            "required": [
+              "id",
+              "start",
+              "end",
+              "status"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "start": {
+                "type": "string"
+              },
+              "end": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "const": "walkin"
               }
             },
             "required": [
@@ -363,6 +388,7 @@
               "HAS_ACTIVE_BOOKING",
               "SLOT_TAKEN",
               "SLOT_IN_PAST",
+              "SLOT_STARTED",
               "OUTSIDE_BOOKING_WINDOW",
               "SLOT_AVAILABLE",
               "SLOT_IS_MINE",
@@ -523,6 +549,31 @@
               "status": {
                 "type": "string",
                 "const": "available"
+              }
+            },
+            "required": [
+              "id",
+              "start",
+              "end",
+              "status"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "start": {
+                "type": "string"
+              },
+              "end": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "const": "walkin"
               }
             },
             "required": [

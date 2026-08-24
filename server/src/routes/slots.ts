@@ -4,7 +4,7 @@ import {and, asc, eq, sql} from 'drizzle-orm';
 import {db} from '../db/index.js';
 import {bookings, subscriptions, timeSlots} from '../db/schema.js';
 import {errorSchema, sendError} from '../lib/errors.js';
-import {slotEndsAt} from '../lib/time.js';
+import {slotEndsAt, slotHasStarted} from '../lib/time.js';
 import {getUserId} from '../lib/user.js';
 import {
   bookingWindowSchema,
@@ -17,6 +17,7 @@ type SlotRow = {
   id: string;
   start: string;
   end: string;
+  started: boolean;
   bookingId: string | null;
   bookingUserId: string | null;
   subscriptionId: string | null;
@@ -28,7 +29,7 @@ function toSlot(row: SlotRow, userId: string) {
       id: row.id,
       start: row.start,
       end: row.end,
-      status: 'available' as const,
+      status: row.started ? ('walkin' as const) : ('available' as const),
     };
   }
 
@@ -76,6 +77,7 @@ export const slotRoutes: FastifyPluginAsyncZod = async (app) => {
           id: timeSlots.id,
           start: timeSlots.start,
           end: timeSlots.end,
+          started: slotHasStarted(date, timeSlots.start),
           bookingId: bookings.id,
           bookingUserId: bookings.userId,
           subscriptionId: subscriptions.id,

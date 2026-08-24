@@ -4,14 +4,20 @@ import type {z} from 'zod';
 import {db} from '../db/index.js';
 import {bookings, subscriptions, timeSlots} from '../db/schema.js';
 import {isUniqueViolation, type ErrorCode} from '../lib/errors.js';
-import {asIsoText, slotEndsAt, slotHasEnded} from '../lib/time.js';
+import {
+  asIsoText,
+  slotEndsAt,
+  slotHasEnded,
+  slotHasStarted,
+} from '../lib/time.js';
 import type {subscriptionSchema} from '../schemas/subscription.js';
 import {getBookingWindow, isWithinBookingWindow} from './window.js';
 
 type Subscription = z.infer<typeof subscriptionSchema>;
 
 type CreateSubscriptionResult =
-  {ok: true; subscription: Subscription} | {ok: false; code: ErrorCode};
+  | {ok: true; subscription: Subscription}
+  | {ok: false; code: ErrorCode};
 
 function stillActive(userId: string) {
   return and(
@@ -58,6 +64,7 @@ export async function createSubscription({
       start: timeSlots.start,
       end: timeSlots.end,
       ended: slotHasEnded(date, timeSlots.end),
+      started: slotHasStarted(date, timeSlots.start),
       bookedBy: bookings.userId,
     })
     .from(timeSlots)
@@ -81,7 +88,7 @@ export async function createSubscription({
   }
 
   if (!slot.bookedBy) {
-    return {ok: false, code: 'SLOT_AVAILABLE'};
+    return {ok: false, code: slot.started ? 'SLOT_STARTED' : 'SLOT_AVAILABLE'};
   }
 
   if (slot.bookedBy === userId) {

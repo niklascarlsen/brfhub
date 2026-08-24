@@ -22,7 +22,7 @@ export const bookings = pgTable(
     slotId: text('slot_id')
       .notNull()
       .references(() => timeSlots.id),
-    userId: text('user_id').notNull(),
+    userId: text('apartment_number').notNull(),
     endsAt: timestamp('ends_at', {withTimezone: true}).notNull(),
   },
   (table) => [
@@ -39,7 +39,7 @@ export const subscriptions = pgTable(
     slotId: text('slot_id')
       .notNull()
       .references(() => timeSlots.id),
-    userId: text('user_id').notNull(),
+    userId: text('apartment_number').notNull(),
     endsAt: timestamp('ends_at', {withTimezone: true}).notNull(),
     createdAt: timestamp('created_at', {withTimezone: true})
       .notNull()
@@ -58,7 +58,7 @@ export const subscriptions = pgTable(
 
 export const pushTokens = pgTable('push_tokens', {
   token: text('token').primaryKey(),
-  userId: text('user_id').notNull(),
+  userId: text('apartment_number').notNull(),
   createdAt: timestamp('created_at', {withTimezone: true})
     .notNull()
     .defaultNow(),

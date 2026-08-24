@@ -10,11 +10,25 @@ export function toIsoDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+export function slotStartsAt(
+  date: string,
+  slotStart: string | PgColumn,
+): SQL<Date> {
+  return sql`(${date}::date + ${slotStart}::time) at time zone ${STOCKHOLM}`;
+}
+
 export function slotEndsAt(
   date: string,
   slotEnd: string | PgColumn,
 ): SQL<Date> {
   return sql`(${date}::date + ${slotEnd}::time) at time zone ${STOCKHOLM}`;
+}
+
+export function slotHasStarted(
+  date: string,
+  slotStart: string | PgColumn,
+): SQL<boolean> {
+  return sql`${slotStartsAt(date, slotStart)} <= now()`;
 }
 
 export function slotHasEnded(
