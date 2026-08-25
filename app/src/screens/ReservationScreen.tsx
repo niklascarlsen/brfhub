@@ -12,7 +12,6 @@ import {api, unwrap, type Booking, type Subscription} from '@/api/client';
 import {codeOf, errorMessage} from '@/api/errors';
 import {TimeCard} from '@/components/TimeCard';
 import {useBookingActions} from '@/hooks/useBookingActions';
-import {formatWhen, timeRange} from '@/lib/dates';
 
 type MyTime =
   | {kind: 'booking'; entry: Booking}
@@ -65,9 +64,10 @@ export function ReservationScreen() {
     }, [load]),
   );
 
-  const {confirmCancel, confirmUnsubscribe} = useBookingActions(() => {
-    void load();
-  });
+  const {confirmBookable, confirmCancel, confirmUnsubscribe} =
+    useBookingActions(() => {
+      void load();
+    });
 
   if (!fetched) {
     return (
@@ -111,6 +111,12 @@ export function ReservationScreen() {
     );
   }
 
+  const active =
+    fetched.times.find(
+      (time): time is {kind: 'booking'; entry: Booking} =>
+        time.kind === 'booking',
+    )?.entry ?? null;
+
   return (
     <ScrollView
       className='flex-1 bg-theme-bg'
@@ -120,8 +126,6 @@ export function ReservationScreen() {
         {fetched.times.length === 1 ? '1 tid' : `${fetched.times.length} tider`}
       </Text>
       {fetched.times.map(({kind, entry}) => {
-        const when = formatWhen(entry.date, timeRange(entry.start, entry.end));
-
         if (kind === 'booking') {
           return (
             <TimeCard
@@ -131,7 +135,7 @@ export function ReservationScreen() {
               end={entry.end}
               badge={null}
               actionLabel='Avboka'
-              onAction={() => confirmCancel({id: entry.id, when})}
+              onAction={() => confirmCancel(entry)}
             />
           );
         }
@@ -143,8 +147,12 @@ export function ReservationScreen() {
             start={entry.start}
             end={entry.end}
             badge={entry.available ? 'Ledig nu' : 'Reserv'}
-            actionLabel='Lämna kön'
-            onAction={() => confirmUnsubscribe({id: entry.id, when})}
+            actionLabel={entry.available ? 'Boka' : 'Lämna kön'}
+            onAction={() =>
+              entry.available
+                ? confirmBookable(entry, active)
+                : confirmUnsubscribe(entry)
+            }
           />
         );
       })}

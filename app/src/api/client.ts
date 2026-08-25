@@ -1,6 +1,6 @@
 import createClient from 'openapi-fetch';
 
-import {apiError, type ClientErrorCode} from '@/api/errors';
+import {apiError} from '@/api/errors';
 import type {components, paths} from '@/generated/api';
 
 export type Booking = components['schemas']['Booking'];
@@ -17,7 +17,7 @@ export const api = createClient<paths>({
   },
 });
 
-type ParsedError = {code?: ClientErrorCode};
+type ParsedError = Partial<components['schemas']['Error']>;
 
 export async function unwrap<T>(
   request: Promise<{

@@ -18,15 +18,18 @@ const MESSAGES: Record<ClientErrorCode, string> = {
 };
 
 export function errorMessage(code: ClientErrorCode): string {
-  return MESSAGES[code] ?? MESSAGES.UNKNOWN;
+  return MESSAGES[code];
 }
 
 type ApiError = Error & {code: ClientErrorCode};
 
-export function apiError(code: ClientErrorCode): ApiError {
-  return Object.assign(new Error(errorMessage(code)), {
+export function apiError(code: string): ApiError {
+  const known: ClientErrorCode =
+    code in MESSAGES ? (code as ClientErrorCode) : 'UNKNOWN';
+
+  return Object.assign(new Error(known), {
     name: 'ApiError',
-    code,
+    code: known,
   });
 }
 

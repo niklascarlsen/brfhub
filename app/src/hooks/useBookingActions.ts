@@ -1,180 +1,184 @@
 import {Alert} from 'react-native';
 
 import {api, unwrap, type Booking, type Slot} from '@/api/client';
-import {codeOf, errorMessage} from '@/api/errors';
+import {codeOf, errorMessage, type ClientErrorCode} from '@/api/errors';
 import {formatWhen, timeRange} from '@/lib/dates';
 
+type Times = Pick<Booking, 'date' | 'start' | 'end'>;
+type Bookable = Times & Pick<Booking, 'slotId'>;
+type Identified = Times & Pick<Booking, 'id'>;
+
+type Recovery = Partial<Record<ClientErrorCode, () => void>>;
+
+const REFRESH_ON: ClientErrorCode[] = [
+  'SLOT_TAKEN',
+  'SLOT_STARTED',
+  'SLOT_AVAILABLE',
+];
+
+function whenOf({date, start, end}: Times) {
+  return formatWhen(date, timeRange(start, end));
+}
+
+function confirm(
+  title: string,
+  message: string,
+  action: {label: string; destructive?: boolean; onPress: () => void},
+) {
+  Alert.alert(title, message, [
+    {text: 'Avbryt', style: 'cancel'},
+    action.destructive
+      ? {text: action.label, style: 'destructive', onPress: action.onPress}
+      : {text: action.label, isPreferred: true, onPress: action.onPress},
+  ]);
+}
+
 export function useBookingActions(onChange?: () => void) {
-  async function book(slot: Slot, date: string, replaceExisting = false) {
+  async function mutate(
+    failTitle: string,
+    request: () => Promise<unknown>,
+    recover: Recovery = {},
+  ) {
     try {
-      await unwrap(
-        api.POST('/bookings', {
-          body: {
-            date,
-            slotId: slot.id,
-            ...(replaceExisting ? {replaceExisting: true} : {}),
-          },
-        }),
-      );
+      await request();
       onChange?.();
     } catch (error) {
       const code = codeOf(error);
+      const recovery = recover[code];
 
-      if (code === 'HAS_ACTIVE_BOOKING') {
-        confirmSwap(slot, date);
+      if (recovery) {
+        recovery();
         return;
       }
 
-      if (code === 'SLOT_TAKEN' || code === 'SLOT_STARTED') {
+      if (REFRESH_ON.includes(code)) {
         onChange?.();
       }
 
-      Alert.alert('Kunde inte boka', errorMessage(code));
+      Alert.alert(failTitle, errorMessage(code));
     }
   }
 
-  function confirmSwap(slot: Slot, date: string) {
-    Alert.alert(
-      'Du har redan en bokning',
-      `Vill du byta till ${formatWhen(date, timeRange(slot.start, slot.end))}?`,
-      [
-        {text: 'Avbryt', style: 'cancel'},
-        {
-          text: 'Byt',
-          isPreferred: true,
-          onPress: () => {
-            void book(slot, date, true);
-          },
-        },
-      ],
+  async function book(target: Bookable, replaceExisting = false) {
+    await mutate(
+      'Kunde inte boka',
+      () =>
+        unwrap(
+          api.POST('/bookings', {
+            body: {
+              date: target.date,
+              slotId: target.slotId,
+              ...(replaceExisting ? {replaceExisting: true} : {}),
+            },
+          }),
+        ),
+      replaceExisting ? {} : {HAS_ACTIVE_BOOKING: () => confirmSwap(target)},
     );
   }
 
-  async function subscribe(slot: Slot, date: string) {
-    try {
-      await unwrap(api.POST('/subscriptions', {body: {date, slotId: slot.id}}));
-      onChange?.();
-    } catch (error) {
-      const code = codeOf(error);
-
-      if (code === 'SLOT_AVAILABLE') {
-        onChange?.();
-      }
-
-      Alert.alert('Kunde inte köa', errorMessage(code));
-    }
+  async function subscribe(target: Bookable) {
+    await mutate('Kunde inte köa', () =>
+      unwrap(
+        api.POST('/subscriptions', {
+          body: {date: target.date, slotId: target.slotId},
+        }),
+      ),
+    );
   }
 
   async function unsubscribe(id: string) {
-    try {
-      await unwrap(api.DELETE('/subscriptions/{id}', {params: {path: {id}}}));
-      onChange?.();
-    } catch (error) {
-      Alert.alert('Kunde inte lämna kön', errorMessage(codeOf(error)));
-    }
-  }
-
-  function confirmSubscribe(slot: Slot, date: string) {
-    if (slot.status !== 'booked') {
-      return;
-    }
-
-    const when = formatWhen(date, timeRange(slot.start, slot.end));
-
-    if (slot.subscriptionId) {
-      confirmUnsubscribe({id: slot.subscriptionId, when});
-      return;
-    }
-
-    Alert.alert(
-      'Ställ dig i kö',
-      `Vi meddelar dig om ${when} blir ledig. Först till kvarn gäller.`,
-      [
-        {text: 'Avbryt', style: 'cancel'},
-        {
-          text: 'Ställ mig i kö',
-          isPreferred: true,
-          onPress: () => {
-            void subscribe(slot, date);
-          },
-        },
-      ],
-    );
-  }
-
-  function confirmUnsubscribe({id, when}: {id: string; when: string}) {
-    Alert.alert('Lämna kön', `Vill du lämna kön för ${when}?`, [
-      {text: 'Avbryt', style: 'cancel'},
-      {
-        text: 'Lämna kön',
-        style: 'destructive',
-        onPress: () => {
-          void unsubscribe(id);
-        },
-      },
-    ]);
-  }
-
-  function confirmBook(slot: Slot, date: string, active: Booking | null) {
-    if (slot.status === 'booked') {
-      if (slot.started) {
-        return;
-      }
-
-      confirmSubscribe(slot, date);
-      return;
-    }
-
-    if (slot.status === 'mine') {
-      confirmCancel({
-        id: slot.bookingId,
-        when: formatWhen(date, timeRange(slot.start, slot.end)),
-      });
-      return;
-    }
-
-    if (active) {
-      confirmSwap(slot, date);
-      return;
-    }
-
-    Alert.alert(
-      'Boka tid',
-      `Vill du boka ${formatWhen(date, timeRange(slot.start, slot.end))}?`,
-      [
-        {text: 'Avbryt', style: 'cancel'},
-        {
-          text: 'Boka',
-          isPreferred: true,
-          onPress: () => {
-            void book(slot, date);
-          },
-        },
-      ],
+    await mutate('Kunde inte lämna kön', () =>
+      unwrap(api.DELETE('/subscriptions/{id}', {params: {path: {id}}})),
     );
   }
 
   async function cancel(id: string) {
-    try {
-      await unwrap(api.DELETE('/bookings/{id}', {params: {path: {id}}}));
-      onChange?.();
-    } catch (error) {
-      Alert.alert('Kunde inte avboka', errorMessage(codeOf(error)));
+    await mutate('Kunde inte avboka', () =>
+      unwrap(api.DELETE('/bookings/{id}', {params: {path: {id}}})),
+    );
+  }
+
+  function confirmSwap(target: Bookable) {
+    confirm('Du har redan en bokning', `Vill du byta till ${whenOf(target)}?`, {
+      label: 'Byt',
+      onPress: () => {
+        void book(target, true);
+      },
+    });
+  }
+
+  function confirmSubscribe(target: Bookable) {
+    confirm(
+      'Ställ dig i kö',
+      `Vi meddelar dig om ${whenOf(target)} blir ledig. Först till kvarn gäller.`,
+      {
+        label: 'Ställ mig i kö',
+        onPress: () => {
+          void subscribe(target);
+        },
+      },
+    );
+  }
+
+  function confirmUnsubscribe(subscription: Identified) {
+    confirm('Lämna kön', `Vill du lämna kön för ${whenOf(subscription)}?`, {
+      label: 'Lämna kön',
+      destructive: true,
+      onPress: () => {
+        void unsubscribe(subscription.id);
+      },
+    });
+  }
+
+  function confirmCancel(booking: Identified) {
+    confirm('Avboka tid', `Vill du avboka ${whenOf(booking)}?`, {
+      label: 'Avboka',
+      destructive: true,
+      onPress: () => {
+        void cancel(booking.id);
+      },
+    });
+  }
+
+  function confirmBookable(target: Bookable, active: Booking | null) {
+    if (active) {
+      confirmSwap(target);
+      return;
+    }
+
+    confirm('Boka tid', `Vill du boka ${whenOf(target)}?`, {
+      label: 'Boka',
+      onPress: () => {
+        void book(target);
+      },
+    });
+  }
+
+  function confirmBook(slot: Slot, date: string, active: Booking | null) {
+    const times = {date, start: slot.start, end: slot.end};
+
+    switch (slot.status) {
+      case 'available':
+        confirmBookable({...times, slotId: slot.id}, active);
+        return;
+      case 'walkin':
+        return;
+      case 'booked':
+        if (slot.started) {
+          return;
+        }
+
+        if (slot.subscriptionId) {
+          confirmUnsubscribe({...times, id: slot.subscriptionId});
+          return;
+        }
+
+        confirmSubscribe({...times, slotId: slot.id});
+        return;
+      case 'mine':
+        confirmCancel({...times, id: slot.bookingId});
     }
   }
 
-  function confirmCancel({id, when}: {id: string; when: string}) {
-    Alert.alert('Avboka tid', `Vill du avboka ${when}?`, [
-      {text: 'Avbryt', style: 'cancel'},
-      {
-        text: 'Avboka',
-        style: 'destructive',
-        onPress: () => {
-          void cancel(id);
-        },
-      },
-    ]);
-  }
-
-  return {confirmBook, confirmCancel, confirmUnsubscribe};
+  return {confirmBook, confirmBookable, confirmCancel, confirmUnsubscribe};
 }
