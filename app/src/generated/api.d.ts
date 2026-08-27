@@ -41,6 +41,15 @@ export interface paths {
                     };
                 };
                 /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -113,6 +122,15 @@ export interface paths {
                 };
                 /** @description Default Response */
                 400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
+                401: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -201,6 +219,15 @@ export interface paths {
                     };
                 };
                 /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -263,6 +290,15 @@ export interface paths {
                 };
                 /** @description Default Response */
                 400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
+                401: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -352,6 +388,15 @@ export interface paths {
                     };
                 };
                 /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -429,6 +474,15 @@ export interface paths {
                     };
                 };
                 /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -491,6 +545,15 @@ export interface paths {
                 };
                 /** @description Default Response */
                 400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
+                401: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -580,6 +643,15 @@ export interface paths {
                     };
                 };
                 /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -661,6 +733,15 @@ export interface paths {
                     };
                 };
                 /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -712,7 +793,7 @@ export interface components {
             statusCode: number;
             message: string;
             /** @enum {string} */
-            code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "SLOT_STARTED" | "OUTSIDE_BOOKING_WINDOW" | "SLOT_AVAILABLE" | "NOT_FOUND" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
+            code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "SLOT_STARTED" | "OUTSIDE_BOOKING_WINDOW" | "SLOT_AVAILABLE" | "NOT_FOUND" | "UNAUTHORIZED" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
         };
         BookingInput: {
             /** Format: uuid */
@@ -804,7 +885,7 @@ export interface components {
             statusCode: number;
             message: string;
             /** @enum {string} */
-            code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "SLOT_STARTED" | "OUTSIDE_BOOKING_WINDOW" | "SLOT_AVAILABLE" | "NOT_FOUND" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
+            code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "SLOT_STARTED" | "OUTSIDE_BOOKING_WINDOW" | "SLOT_AVAILABLE" | "NOT_FOUND" | "UNAUTHORIZED" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
         };
         Booking: {
             /** Format: uuid */

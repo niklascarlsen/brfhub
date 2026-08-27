@@ -9,6 +9,7 @@ export const errorCodeSchema = z.enum([
   'OUTSIDE_BOOKING_WINDOW',
   'SLOT_AVAILABLE',
   'NOT_FOUND',
+  'UNAUTHORIZED',
   'FORBIDDEN',
   'VALIDATION',
   'UNKNOWN',
@@ -45,6 +46,10 @@ const ERRORS: Record<ErrorCode, {status: number; message: string}> = {
     status: 404,
     message: 'Not found',
   },
+  UNAUTHORIZED: {
+    status: 401,
+    message: 'Not authenticated',
+  },
   FORBIDDEN: {
     status: 403,
     message: 'Forbidden',
@@ -69,6 +74,7 @@ z.globalRegistry.add(errorSchema, {id: 'Error'});
 
 export const errorResponses = {
   400: errorSchema,
+  401: errorSchema,
   403: errorSchema,
   404: errorSchema,
   409: errorSchema,

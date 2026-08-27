@@ -7,11 +7,28 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: booking
     ports:
-      - '5432:5432'
+      - '5433:5432'
     volumes:
       - booking_pg_data:/var/lib/postgresql/data
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U postgres -d booking']
+      interval: 2s
+      timeout: 5s
+      retries: 10
+
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: booking-postgres-test
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: booking_test
+    ports:
+      - '5434:5432'
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d booking_test']
       interval: 2s
       timeout: 5s
       retries: 10

@@ -11,6 +11,7 @@ const MESSAGES: Record<ClientErrorCode, string> = {
   OUTSIDE_BOOKING_WINDOW: 'Den dagen går inte att boka än',
   SLOT_AVAILABLE: 'Tiden är ledig, boka den istället',
   NOT_FOUND: 'Hittades inte',
+  UNAUTHORIZED: 'Du är inte inloggad',
   FORBIDDEN: 'Det där är inte din bokning',
   VALIDATION: 'Ogiltig förfrågan',
   NETWORK: 'Kunde inte nå servern',

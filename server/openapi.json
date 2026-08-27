@@ -27,6 +27,7 @@
               "OUTSIDE_BOOKING_WINDOW",
               "SLOT_AVAILABLE",
               "NOT_FOUND",
+              "UNAUTHORIZED",
               "FORBIDDEN",
               "VALIDATION",
               "UNKNOWN"
@@ -387,6 +388,7 @@
               "OUTSIDE_BOOKING_WINDOW",
               "SLOT_AVAILABLE",
               "NOT_FOUND",
+              "UNAUTHORIZED",
               "FORBIDDEN",
               "VALIDATION",
               "UNKNOWN"
@@ -779,6 +781,16 @@
               }
             }
           },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "403": {
             "description": "Default Response",
             "content": {
@@ -836,6 +848,16 @@
             }
           },
           "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
             "description": "Default Response",
             "content": {
               "application/json": {
@@ -905,6 +927,16 @@
             }
           },
           "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
             "description": "Default Response",
             "content": {
               "application/json": {
@@ -988,6 +1020,16 @@
               }
             }
           },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "403": {
             "description": "Default Response",
             "content": {
@@ -1059,6 +1101,16 @@
               }
             }
           },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "403": {
             "description": "Default Response",
             "content": {
@@ -1119,6 +1171,16 @@
             }
           },
           "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
             "description": "Default Response",
             "content": {
               "application/json": {
@@ -1202,6 +1264,16 @@
               }
             }
           },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "403": {
             "description": "Default Response",
             "content": {
@@ -1273,6 +1345,16 @@
               }
             }
           },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "403": {
             "description": "Default Response",
             "content": {
@@ -1333,6 +1415,16 @@
             "description": "Default Response"
           },
           "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
             "description": "Default Response",
             "content": {
               "application/json": {

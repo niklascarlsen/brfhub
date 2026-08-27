@@ -26,3 +26,4 @@ node_modules
 .env
 dist
 drizzle
+.env.test
