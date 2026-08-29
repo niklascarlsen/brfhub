@@ -3,6 +3,7 @@ import {Alert} from 'react-native';
 import {api, unwrap, type Booking, type Slot} from '@/api/client';
 import {codeOf, errorMessage, type ClientErrorCode} from '@/api/errors';
 import {formatWhen, timeRange} from '@/lib/dates';
+import {exhaustive} from '@/lib/exhaustive';
 
 type Times = Pick<Booking, 'date' | 'start' | 'end'>;
 type Bookable = Times & Pick<Booking, 'slotId'>;
@@ -166,6 +167,9 @@ export function useBookingActions(onChange?: () => void) {
         return;
       case 'mine':
         confirmCancel({...times, id: slot.bookingId});
+        return;
+      default:
+        exhaustive(slot);
     }
   }
 

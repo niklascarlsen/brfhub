@@ -2,6 +2,7 @@ import {Pressable, Text, View} from 'react-native';
 
 import type {Slot} from '@/api/client';
 import {timeRange} from '@/lib/dates';
+import {exhaustive} from '@/lib/exhaustive';
 
 type TimeSlotRowProps = {
   slot: Slot;
@@ -9,19 +10,18 @@ type TimeSlotRowProps = {
 };
 
 function statusLabel(slot: Slot): string {
-  if (slot.status === 'mine') {
-    return 'Din tid';
+  switch (slot.status) {
+    case 'mine':
+      return 'Din tid';
+    case 'available':
+      return slot.subscriptionId ? 'Ledig nu' : 'Ledig';
+    case 'walkin':
+      return 'Drop-in';
+    case 'booked':
+      return slot.subscriptionId ? 'I kö' : 'Upptagen';
+    default:
+      return exhaustive(slot);
   }
-
-  if (slot.status === 'available') {
-    return slot.subscriptionId ? 'Ledig nu' : 'Ledig';
-  }
-
-  if (slot.status === 'walkin') {
-    return 'Drop-in';
-  }
-
-  return slot.subscriptionId ? 'I kö' : 'Upptagen';
 }
 
 export function TimeSlotRow({slot, onPress}: TimeSlotRowProps) {
