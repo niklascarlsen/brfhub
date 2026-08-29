@@ -8,13 +8,17 @@ type Times = Pick<Booking, 'date' | 'start' | 'end'>;
 type Bookable = Times & Pick<Booking, 'slotId'>;
 type Identified = Times & Pick<Booking, 'id'>;
 
-type Recovery = Partial<Record<ClientErrorCode, () => void>>;
-
-const REFRESH_ON: ClientErrorCode[] = [
-  'SLOT_TAKEN',
-  'SLOT_STARTED',
-  'SLOT_AVAILABLE',
-];
+function shouldReload(code: ClientErrorCode) {
+  switch (code) {
+    case 'SLOT_TAKEN':
+    case 'SLOT_STARTED':
+    case 'SLOT_AVAILABLE':
+    case 'HAS_ACTIVE_BOOKING':
+      return true;
+    default:
+      return false;
+  }
+}
 
 function whenOf({date, start, end}: Times) {
   return formatWhen(date, timeRange(start, end));
@@ -34,45 +38,30 @@ function confirm(
 }
 
 export function useBookingActions(onChange?: () => void) {
-  async function mutate(
-    failTitle: string,
-    request: () => Promise<unknown>,
-    recover: Recovery = {},
-  ) {
+  async function mutate(failTitle: string, request: () => Promise<unknown>) {
     try {
       await request();
       onChange?.();
     } catch (error) {
       const code = codeOf(error);
-      const recovery = recover[code];
-
-      if (recovery) {
-        recovery();
-        return;
-      }
-
-      if (REFRESH_ON.includes(code)) {
+      if (shouldReload(code)) {
         onChange?.();
       }
-
       Alert.alert(failTitle, errorMessage(code));
     }
   }
 
   async function book(target: Bookable, replaceExisting = false) {
-    await mutate(
-      'Kunde inte boka',
-      () =>
-        unwrap(
-          api.POST('/bookings', {
-            body: {
-              date: target.date,
-              slotId: target.slotId,
-              ...(replaceExisting ? {replaceExisting: true} : {}),
-            },
-          }),
-        ),
-      replaceExisting ? {} : {HAS_ACTIVE_BOOKING: () => confirmSwap(target)},
+    await mutate('Kunde inte boka', () =>
+      unwrap(
+        api.POST('/bookings', {
+          body: {
+            date: target.date,
+            slotId: target.slotId,
+            ...(replaceExisting ? {replaceExisting: true} : {}),
+          },
+        }),
+      ),
     );
   }
 
