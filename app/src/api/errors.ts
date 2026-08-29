@@ -1,7 +1,10 @@
 import type {components} from '@/generated/api';
 
 export type ClientErrorCode =
-  components['schemas']['Error']['code'] | 'NETWORK';
+  | components['schemas']['Error']['code']
+  | 'NETWORK'
+  | 'TIMEOUT'
+  | 'SERVER_ERROR';
 
 const MESSAGES: Record<ClientErrorCode, string> = {
   HAS_ACTIVE_BOOKING: 'Du har redan en bokning',
@@ -14,7 +17,9 @@ const MESSAGES: Record<ClientErrorCode, string> = {
   UNAUTHORIZED: 'Du är inte inloggad',
   FORBIDDEN: 'Det där är inte din bokning',
   VALIDATION: 'Ogiltig förfrågan',
-  NETWORK: 'Kunde inte nå servern',
+  NETWORK: 'Kunde inte nå servern, kolla din uppkoppling',
+  TIMEOUT: 'Servern svarade inte i tid, försök igen',
+  SERVER_ERROR: 'Något gick fel på servern, försök om en stund',
   UNKNOWN: 'Försök igen.',
 };
 
