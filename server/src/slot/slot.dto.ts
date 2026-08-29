@@ -14,6 +14,7 @@ export const slotSchema = z.discriminatedUnion('status', [
   z.object({
     ...slotTimes,
     status: z.literal('available'),
+    subscriptionId: z.uuid().nullable(),
   }),
   z.object({
     ...slotTimes,

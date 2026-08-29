@@ -833,6 +833,7 @@ export interface components {
             end: string;
             /** @constant */
             status: "available";
+            subscriptionId: string | null;
         } | {
             id: string;
             start: string;
@@ -925,6 +926,7 @@ export interface components {
             end: string;
             /** @constant */
             status: "available";
+            subscriptionId: string | null;
         } | {
             id: string;
             start: string;

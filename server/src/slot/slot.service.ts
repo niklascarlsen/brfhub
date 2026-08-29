@@ -59,11 +59,21 @@ type SlotRow = Awaited<ReturnType<typeof selectSlotRows>>[number];
 
 function toSlot(row: SlotRow, userId: string): Slot {
   if (!row.bookingId) {
+    if (row.started) {
+      return {
+        id: row.id,
+        start: row.start,
+        end: row.end,
+        status: 'walkin',
+      };
+    }
+
     return {
       id: row.id,
       start: row.start,
       end: row.end,
-      status: row.started ? 'walkin' : 'available',
+      status: 'available',
+      subscriptionId: row.subscriptionId,
     };
   }
 
