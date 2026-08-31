@@ -88,6 +88,12 @@ export function useBookingActions(onChange?: () => void) {
     );
   }
 
+  async function release(id: string) {
+    await mutate('Kunde inte öppna tiden', () =>
+      unwrap(api.DELETE('/bookings/{id}', {params: {path: {id}}})),
+    );
+  }
+
   function confirmSwap(target: Bookable) {
     confirm('Du har redan en bokning', `Vill du byta till ${whenOf(target)}?`, {
       label: 'Byt',
@@ -130,8 +136,21 @@ export function useBookingActions(onChange?: () => void) {
     });
   }
 
+  function confirmRelease(booking: Identified) {
+    confirm(
+      'Öppna för drop-in',
+      `Andra kan ta ${whenOf(booking)} som drop-in. Du kan inte boka en ny tid förrän luckan är slut.`,
+      {
+        label: 'Jag är klar',
+        onPress: () => {
+          void release(booking.id);
+        },
+      },
+    );
+  }
+
   function confirmBookable(target: Bookable, active: Booking | null) {
-    if (active) {
+    if (active && !active.released) {
       confirmSwap(target);
       return;
     }
@@ -166,6 +185,11 @@ export function useBookingActions(onChange?: () => void) {
         confirmSubscribe({...times, slotId: slot.id});
         return;
       case 'mine':
+        if (slot.started) {
+          confirmRelease({...times, id: slot.bookingId});
+          return;
+        }
+
         confirmCancel({...times, id: slot.bookingId});
         return;
       default:
@@ -173,5 +197,11 @@ export function useBookingActions(onChange?: () => void) {
     }
   }
 
-  return {confirmBook, confirmBookable, confirmCancel, confirmUnsubscribe};
+  return {
+    confirmBook,
+    confirmBookable,
+    confirmCancel,
+    confirmRelease,
+    confirmUnsubscribe,
+  };
 }

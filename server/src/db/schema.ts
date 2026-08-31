@@ -24,6 +24,7 @@ export const bookings = pgTable(
       .references(() => timeSlots.id),
     userId: text('apartment_number').notNull(),
     endsAt: timestamp('ends_at', {withTimezone: true}).notNull(),
+    releasedAt: timestamp('released_at', {withTimezone: true}),
   },
   (table) => [
     unique('bookings_date_slot_unique').on(table.date, table.slotId),

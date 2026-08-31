@@ -64,7 +64,7 @@ export function ReservationScreen() {
     }, [load]),
   );
 
-  const {confirmBookable, confirmCancel, confirmUnsubscribe} =
+  const {confirmBookable, confirmCancel, confirmRelease, confirmUnsubscribe} =
     useBookingActions(() => {
       void load();
     });
@@ -127,6 +127,18 @@ export function ReservationScreen() {
       </Text>
       {fetched.times.map(({kind, entry}) => {
         if (kind === 'booking') {
+          if (entry.released) {
+            return (
+              <TimeCard
+                key={entry.id}
+                date={entry.date}
+                start={entry.start}
+                end={entry.end}
+                badge='Avslutad'
+              />
+            );
+          }
+
           return (
             <TimeCard
               key={entry.id}
@@ -134,11 +146,15 @@ export function ReservationScreen() {
               start={entry.start}
               end={entry.end}
               badge={null}
-              actionLabel='Avboka'
-              onAction={() => confirmCancel(entry)}
+              actionLabel={entry.started ? 'Jag är klar' : 'Avboka'}
+              onAction={() =>
+                entry.started ? confirmRelease(entry) : confirmCancel(entry)
+              }
             />
           );
         }
+
+        const bookable = entry.available && !entry.started;
 
         return (
           <TimeCard
@@ -146,13 +162,21 @@ export function ReservationScreen() {
             date={entry.date}
             start={entry.start}
             end={entry.end}
-            badge={entry.available ? 'Ledig nu' : 'Reserv'}
-            actionLabel={entry.available ? 'Boka' : 'Lämna kön'}
+            badge={
+              entry.available && entry.started
+                ? 'Drop-in'
+                : entry.available
+                  ? 'Ledig nu'
+                  : 'Reserv'
+            }
+            actionLabel={bookable ? 'Boka' : 'Lämna kön'}
             onAction={() =>
-              entry.available
+              bookable
                 ? confirmBookable(entry, active)
                 : confirmUnsubscribe(entry)
             }
+            secondaryLabel={bookable ? 'Lämna kön' : undefined}
+            onSecondary={bookable ? () => confirmUnsubscribe(entry) : undefined}
           />
         );
       })}

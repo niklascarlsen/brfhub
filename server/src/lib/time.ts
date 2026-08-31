@@ -11,28 +11,28 @@ export function toIsoDate(date: Date): string {
 }
 
 export function slotStartsAt(
-  date: string,
+  date: string | PgColumn,
   slotStart: string | PgColumn,
 ): SQL<Date> {
   return sql`(${date}::date + ${slotStart}::time) at time zone ${STOCKHOLM}`;
 }
 
 export function slotEndsAt(
-  date: string,
+  date: string | PgColumn,
   slotEnd: string | PgColumn,
 ): SQL<Date> {
   return sql`(${date}::date + ${slotEnd}::time) at time zone ${STOCKHOLM}`;
 }
 
 export function slotHasStarted(
-  date: string,
+  date: string | PgColumn,
   slotStart: string | PgColumn,
 ): SQL<boolean> {
   return sql`${slotStartsAt(date, slotStart)} <= now()`;
 }
 
 export function slotHasEnded(
-  date: string,
+  date: string | PgColumn,
   slotEnd: string | PgColumn,
 ): SQL<boolean> {
   return sql`${slotEndsAt(date, slotEnd)} <= now()`;

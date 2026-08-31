@@ -5,8 +5,9 @@ import {sql} from 'drizzle-orm';
 
 import {buildApp} from '../app.js';
 import {db, pool} from '../db/index.js';
-import {timeSlots} from '../db/schema.js';
-import {toIsoDate} from '../lib/time.js';
+import {bookings, subscriptions, timeSlots} from '../db/schema.js';
+import {slotEndsAt, toIsoDate} from '../lib/time.js';
+import type {Slot} from '../slot/slot.dto.js';
 import type {Subscription} from '../subscription/subscription.dto.js';
 import type {Booking, CreatedBooking} from './booking.dto.js';
 
@@ -85,6 +86,32 @@ function cancel(userId: string, id: string) {
   });
 }
 
+function slotsFor(userId: string, date: string) {
+  return server.inject({
+    method: 'GET',
+    url: `/slots?date=${date}`,
+    headers: {'x-apartment-number': userId},
+  });
+}
+
+async function insertStartedBooking(userId: string) {
+  const [row] = await db
+    .insert(bookings)
+    .values({
+      date: today,
+      slotId: 'all-day',
+      userId,
+      endsAt: slotEndsAt(today, '23:59:59'),
+    })
+    .returning({id: bookings.id});
+
+  if (!row) {
+    throw new Error('Insert returned no row');
+  }
+
+  return row;
+}
+
 function subscribe(userId: string, payload: Record<string, unknown>) {
   return server.inject({
     method: 'POST',
@@ -98,6 +125,14 @@ function mySubscriptions(userId: string) {
   return server.inject({
     method: 'GET',
     url: '/subscriptions',
+    headers: {'x-apartment-number': userId},
+  });
+}
+
+function unsubscribe(userId: string, id: string) {
+  return server.inject({
+    method: 'DELETE',
+    url: `/subscriptions/${id}`,
     headers: {'x-apartment-number': userId},
   });
 }
@@ -116,6 +151,8 @@ test('books a free slot', async () => {
   assert.equal(created.start, '07:00');
   assert.equal(created.end, '10:00');
   assert.equal(created.replacedId, null);
+  assert.equal(created.started, false);
+  assert.equal(created.released, false);
 });
 
 test('rejects a slot another apartment already took', async () => {
@@ -210,6 +247,98 @@ test('cancels its own booking', async () => {
 
   const mine = await myBookings(TENANT);
   assert.deepEqual(mine.json<Booking[]>(), []);
+
+  const again = await book(TENANT, {date: bookableDate, slotId: '10-13'});
+  assert.equal(again.statusCode, 201);
+});
+
+test('opens a started booking for walk-in without freeing the apartment', async () => {
+  const {id} = await insertStartedBooking(TENANT);
+
+  const response = await cancel(TENANT, id);
+
+  assert.equal(response.statusCode, 204);
+
+  const mine = await myBookings(TENANT);
+  const [kept] = mine.json<Booking[]>();
+  assert.equal(kept?.id, id);
+  assert.equal(kept?.started, true);
+  assert.equal(kept?.released, true);
+
+  const listed = await slotsFor(NEIGHBOUR, today);
+  assert.equal(
+    listed.json<Slot[]>().find((slot) => slot.id === 'all-day')?.status,
+    'walkin',
+  );
+
+  const own = await slotsFor(TENANT, today);
+  assert.equal(
+    own.json<Slot[]>().find((slot) => slot.id === 'all-day')?.status,
+    'walkin',
+  );
+});
+
+test('rejects a new booking after the apartment opens a started slot', async () => {
+  const {id} = await insertStartedBooking(TENANT);
+  await cancel(TENANT, id);
+
+  const again = await book(TENANT, {date: bookableDate, slotId: '07-10'});
+  assert.equal(again.statusCode, 409);
+  assert.equal(codeOf(again), 'HAS_ACTIVE_BOOKING');
+
+  const replace = await book(TENANT, {
+    date: bookableDate,
+    slotId: '07-10',
+    replaceExisting: true,
+  });
+  assert.equal(replace.statusCode, 409);
+  assert.equal(codeOf(replace), 'HAS_ACTIVE_BOOKING');
+
+  const mine = await myBookings(TENANT);
+  assert.deepEqual(
+    mine.json<Booking[]>().map((booking) => booking.id),
+    [id],
+  );
+});
+
+test('keeps the queue after a drop-in so the subscriber can leave', async () => {
+  const {id} = await insertStartedBooking(TENANT);
+  await db.insert(subscriptions).values({
+    date: today,
+    slotId: 'all-day',
+    userId: NEIGHBOUR,
+    endsAt: slotEndsAt(today, '23:59:59'),
+  });
+
+  await cancel(TENANT, id);
+
+  const queued = await mySubscriptions(NEIGHBOUR);
+  const [held] = queued.json<Subscription[]>();
+  assert.equal(held?.available, true);
+  assert.equal(held?.started, true);
+
+  const take = await book(NEIGHBOUR, {date: today, slotId: 'all-day'});
+  assert.equal(take.statusCode, 400);
+  assert.equal(codeOf(take), 'SLOT_STARTED');
+
+  const left = await unsubscribe(NEIGHBOUR, held.id);
+  assert.equal(left.statusCode, 204);
+  assert.deepEqual(
+    (await mySubscriptions(NEIGHBOUR)).json<Subscription[]>(),
+    [],
+  );
+});
+
+test('opening an already released booking is a no-op', async () => {
+  const {id} = await insertStartedBooking(TENANT);
+
+  assert.equal((await cancel(TENANT, id)).statusCode, 204);
+  assert.equal((await cancel(TENANT, id)).statusCode, 204);
+
+  const mine = await myBookings(TENANT);
+  const [kept] = mine.json<Booking[]>();
+  assert.equal(kept?.id, id);
+  assert.equal(kept?.released, true);
 });
 
 test('rejects cancelling another apartment booking', async () => {

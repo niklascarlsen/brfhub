@@ -30,6 +30,7 @@ export const slotSchema = z.discriminatedUnion('status', [
     ...slotTimes,
     status: z.literal('mine'),
     bookingId: z.uuid(),
+    started: z.boolean(),
   }),
 ]);
 

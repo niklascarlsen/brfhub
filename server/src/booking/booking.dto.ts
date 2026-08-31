@@ -7,6 +7,8 @@ export const bookingSchema = z.object({
   start: z.string(),
   end: z.string(),
   endsAt: z.iso.datetime(),
+  started: z.boolean(),
+  released: z.boolean(),
 });
 
 export const createdBookingSchema = bookingSchema.extend({

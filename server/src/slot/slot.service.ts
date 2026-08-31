@@ -1,4 +1,4 @@
-import {and, asc, eq, sql} from 'drizzle-orm';
+import {and, asc, eq, isNull, sql} from 'drizzle-orm';
 
 import {db} from '../db/index.js';
 import {bookings, subscriptions, timeSlots} from '../db/schema.js';
@@ -41,7 +41,11 @@ function selectSlotRows(userId: string, date: string) {
     .from(timeSlots)
     .leftJoin(
       bookings,
-      and(eq(bookings.slotId, timeSlots.id), eq(bookings.date, date)),
+      and(
+        eq(bookings.slotId, timeSlots.id),
+        eq(bookings.date, date),
+        isNull(bookings.releasedAt),
+      ),
     )
     .leftJoin(
       subscriptions,
@@ -84,6 +88,7 @@ function toSlot(row: SlotRow, userId: string): Slot {
       end: row.end,
       status: 'mine',
       bookingId: row.bookingId,
+      started: row.started,
     };
   }
 

@@ -7,8 +7,10 @@ type TimeCardProps = {
   start: string;
   end: string;
   badge: string | null;
-  actionLabel: string;
-  onAction: () => void;
+  actionLabel?: string;
+  onAction?: () => void;
+  secondaryLabel?: string;
+  onSecondary?: () => void;
 };
 
 export function TimeCard({
@@ -18,6 +20,8 @@ export function TimeCard({
   badge,
   actionLabel,
   onAction,
+  secondaryLabel,
+  onSecondary,
 }: TimeCardProps) {
   return (
     <View className='mb-3 rounded-2xl bg-theme-surface px-5 py-4'>
@@ -35,11 +39,25 @@ export function TimeCard({
             </Text>
           ) : null}
         </View>
-        <Pressable onPress={onAction} className='pt-1 active:opacity-60'>
-          <Text className='rounded-2xl border border-theme-accent/20 px-4 py-2 text-base font-semibold text-theme-accent'>
-            {actionLabel}
-          </Text>
-        </Pressable>
+        {actionLabel && onAction ? (
+          <View className='items-end'>
+            <Pressable onPress={onAction} className='pt-1 active:opacity-60'>
+              <Text className='rounded-2xl border border-theme-accent/20 px-4 py-2 text-base font-semibold text-theme-accent'>
+                {actionLabel}
+              </Text>
+            </Pressable>
+            {secondaryLabel && onSecondary ? (
+              <Pressable
+                onPress={onSecondary}
+                className='mt-2 px-1 py-1 active:opacity-60'
+              >
+                <Text className='text-sm font-semibold text-theme-muted'>
+                  {secondaryLabel}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
       </View>
     </View>
   );

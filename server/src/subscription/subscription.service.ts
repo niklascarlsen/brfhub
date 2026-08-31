@@ -1,4 +1,4 @@
-import {and, asc, eq, gt, sql} from 'drizzle-orm';
+import {and, asc, eq, gt, isNull, sql} from 'drizzle-orm';
 
 import {db} from '../db/index.js';
 import {bookings, subscriptions, timeSlots} from '../db/schema.js';
@@ -29,6 +29,7 @@ export function listSubscriptions(userId: string): Promise<Subscription[]> {
       end: timeSlots.end,
       endsAt: asIsoText(subscriptions.endsAt),
       available: sql<boolean>`${bookings.id} is null`,
+      started: slotHasStarted(subscriptions.date, timeSlots.start),
     })
     .from(subscriptions)
     .innerJoin(timeSlots, eq(subscriptions.slotId, timeSlots.id))
@@ -37,6 +38,7 @@ export function listSubscriptions(userId: string): Promise<Subscription[]> {
       and(
         eq(bookings.slotId, subscriptions.slotId),
         eq(bookings.date, subscriptions.date),
+        isNull(bookings.releasedAt),
       ),
     )
     .where(stillActive(userId))
@@ -63,7 +65,11 @@ export async function createSubscription({
     .from(timeSlots)
     .leftJoin(
       bookings,
-      and(eq(bookings.slotId, timeSlots.id), eq(bookings.date, date)),
+      and(
+        eq(bookings.slotId, timeSlots.id),
+        eq(bookings.date, date),
+        isNull(bookings.releasedAt),
+      ),
     )
     .where(eq(timeSlots.id, slotId))
     .then((rows) => rows[0]);
@@ -107,6 +113,7 @@ export async function createSubscription({
     start: slot.start,
     end: slot.end,
     available: false,
+    started: false,
   };
 }
 

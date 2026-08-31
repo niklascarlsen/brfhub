@@ -8,6 +8,7 @@ export const subscriptionSchema = z.object({
   end: z.string(),
   endsAt: z.iso.datetime(),
   available: z.boolean(),
+  started: z.boolean(),
 });
 
 export const createSubscriptionBodySchema = z.object({

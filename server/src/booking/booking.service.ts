@@ -26,11 +26,19 @@ export async function deleteBooking(
   userId: string,
   log: FastifyBaseLogger,
 ): Promise<void> {
-  const existing = await db
-    .select({userId: bookings.userId})
+  const [existing] = await db
+    .select({
+      userId: bookings.userId,
+      date: bookings.date,
+      slotId: bookings.slotId,
+      releasedAt: bookings.releasedAt,
+      started: slotHasStarted(bookings.date, timeSlots.start),
+      start: timeSlots.start,
+      end: timeSlots.end,
+    })
     .from(bookings)
-    .where(eq(bookings.id, id))
-    .then((rows) => rows[0]);
+    .innerJoin(timeSlots, eq(bookings.slotId, timeSlots.id))
+    .where(eq(bookings.id, id));
 
   if (!existing) {
     throw appError('NOT_FOUND', 'Booking not found');
@@ -40,7 +48,20 @@ export async function deleteBooking(
     throw appError('FORBIDDEN', 'Not your booking');
   }
 
-  const [released] = await db
+  if (existing.releasedAt) {
+    return;
+  }
+
+  if (existing.started) {
+    await db
+      .update(bookings)
+      .set({releasedAt: sql`now()`})
+      .where(eq(bookings.id, id));
+
+    return;
+  }
+
+  const [removed] = await db
     .delete(bookings)
     .where(eq(bookings.id, id))
     .returning({
@@ -48,19 +69,15 @@ export async function deleteBooking(
       slotId: bookings.slotId,
     });
 
-  if (!released) {
+  if (!removed) {
     throw appError('NOT_FOUND', 'Booking not found');
   }
 
-  const slot = await db
-    .select({start: timeSlots.start, end: timeSlots.end})
-    .from(timeSlots)
-    .where(eq(timeSlots.id, released.slotId))
-    .then((rows) => rows[0]);
-
-  if (slot) {
-    await notifySlotReleased({...released, ...slot}, userId, log);
-  }
+  await notifySlotReleased(
+    {...removed, start: existing.start, end: existing.end},
+    userId,
+    log,
+  );
 }
 
 export function listBookings(userId: string): Promise<Booking[]> {
@@ -72,6 +89,8 @@ export function listBookings(userId: string): Promise<Booking[]> {
       start: timeSlots.start,
       end: timeSlots.end,
       endsAt: asIsoText(bookings.endsAt),
+      started: slotHasStarted(bookings.date, timeSlots.start),
+      released: sql<boolean>`${bookings.releasedAt} is not null`,
     })
     .from(bookings)
     .innerJoin(timeSlots, eq(bookings.slotId, timeSlots.id))
@@ -92,7 +111,7 @@ export async function createBooking({
   replaceExisting: boolean;
   log: FastifyBaseLogger;
 }): Promise<CreatedBooking> {
-  const slot = await db
+  const [slot] = await db
     .select({
       start: timeSlots.start,
       end: timeSlots.end,
@@ -100,8 +119,7 @@ export async function createBooking({
       started: slotHasStarted(date, timeSlots.start),
     })
     .from(timeSlots)
-    .where(eq(timeSlots.id, slotId))
-    .then((rows) => rows[0]);
+    .where(eq(timeSlots.id, slotId));
 
   if (!slot) {
     throw appError('NOT_FOUND', 'Unknown time slot');
@@ -132,13 +150,14 @@ export async function createBooking({
           slotId: bookings.slotId,
           start: timeSlots.start,
           end: timeSlots.end,
+          releasedAt: bookings.releasedAt,
         })
         .from(bookings)
         .innerJoin(timeSlots, eq(bookings.slotId, timeSlots.id))
         .where(stillActive(userId))
         .limit(1);
 
-      if (active && !replaceExisting) {
+      if (active && (active.releasedAt || !replaceExisting)) {
         return undefined;
       }
 
@@ -175,9 +194,11 @@ export async function createBooking({
           ...row,
           start: slot.start,
           end: slot.end,
+          started: false,
+          released: false,
           replacedId: active?.id ?? null,
         },
-        released: active
+        replaced: active
           ? {
               date: active.date,
               slotId: active.slotId,
@@ -198,8 +219,8 @@ export async function createBooking({
     throw appError('HAS_ACTIVE_BOOKING');
   }
 
-  if (created.released) {
-    await notifySlotReleased(created.released, userId, log);
+  if (created.replaced) {
+    await notifySlotReleased(created.replaced, userId, log);
   }
 
   return created.booking;

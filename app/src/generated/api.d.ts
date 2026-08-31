@@ -805,6 +805,8 @@ export interface components {
             end: string;
             /** Format: date-time */
             endsAt: string;
+            started: boolean;
+            released: boolean;
         };
         CreatedBookingInput: {
             /** Format: uuid */
@@ -816,6 +818,8 @@ export interface components {
             end: string;
             /** Format: date-time */
             endsAt: string;
+            started: boolean;
+            released: boolean;
             replacedId: string | null;
         };
         CreateBookingBodyInput: {
@@ -856,6 +860,7 @@ export interface components {
             status: "mine";
             /** Format: uuid */
             bookingId: string;
+            started: boolean;
         };
         BookingWindowInput: {
             /** Format: date */
@@ -876,6 +881,7 @@ export interface components {
             /** Format: date-time */
             endsAt: string;
             available: boolean;
+            started: boolean;
         };
         CreateSubscriptionBodyInput: {
             /** Format: date */
@@ -898,6 +904,8 @@ export interface components {
             end: string;
             /** Format: date-time */
             endsAt: string;
+            started: boolean;
+            released: boolean;
         };
         CreatedBooking: {
             /** Format: uuid */
@@ -909,6 +917,8 @@ export interface components {
             end: string;
             /** Format: date-time */
             endsAt: string;
+            started: boolean;
+            released: boolean;
             replacedId: string | null;
         };
         CreateBookingBody: {
@@ -949,6 +959,7 @@ export interface components {
             status: "mine";
             /** Format: uuid */
             bookingId: string;
+            started: boolean;
         };
         BookingWindow: {
             /** Format: date */
@@ -969,6 +980,7 @@ export interface components {
             /** Format: date-time */
             endsAt: string;
             available: boolean;
+            started: boolean;
         };
         CreateSubscriptionBody: {
             /** Format: date */
