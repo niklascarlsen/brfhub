@@ -15,6 +15,7 @@
     "db:seed": "tsx scripts/seed.ts",
     "types:gen": "tsx scripts/generate-types.ts",
     "types:check": "tsx scripts/generate-types.ts && git diff --exit-code -- openapi.json ../app/src/generated/api.d.ts",
+    "format": "prettier --write .",
     "test": "export DATABASE_URL=postgresql://postgres:postgres@localhost:5434/booking_test; drizzle-kit push --force && node --import tsx --test --test-concurrency=1 \"src/**/*.test.ts\""
   },
   "dependencies": {
@@ -36,6 +37,7 @@
     "@types/pg": "^8.23.1",
     "drizzle-kit": "^0.31.10",
     "openapi-typescript": "^7.13.0",
+    "prettier": "^3.9.6",
     "tsx": "^4.23.12",
     "typescript": "^5.9.3"
   }

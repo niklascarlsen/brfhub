@@ -1,12 +1,25 @@
 import {
+  boolean,
   date,
   index,
+  integer,
   pgTable,
   text,
   timestamp,
   unique,
   uuid,
 } from 'drizzle-orm/pg-core';
+
+export const RESOURCE_KINDS = ['laundry', 'drying'] as const;
+type ResourceKind = (typeof RESOURCE_KINDS)[number];
+
+export const resources = pgTable('resources', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  kind: text('kind').$type<ResourceKind>().notNull(),
+  hasDryer: boolean('has_dryer').notNull(),
+  sortOrder: integer('sort_order').notNull(),
+});
 
 export const timeSlots = pgTable('time_slots', {
   id: text('id').primaryKey(),
@@ -18,6 +31,9 @@ export const bookings = pgTable(
   'bookings',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+    resourceId: text('resource_id')
+      .notNull()
+      .references(() => resources.id),
     date: date('date', {mode: 'string'}).notNull(),
     slotId: text('slot_id')
       .notNull()
@@ -27,7 +43,11 @@ export const bookings = pgTable(
     releasedAt: timestamp('released_at', {withTimezone: true}),
   },
   (table) => [
-    unique('bookings_date_slot_unique').on(table.date, table.slotId),
+    unique('bookings_resource_date_slot_unique').on(
+      table.resourceId,
+      table.date,
+      table.slotId,
+    ),
     index('bookings_user_ends_at_idx').on(table.userId, table.endsAt),
   ],
 );
@@ -36,6 +56,9 @@ export const subscriptions = pgTable(
   'subscriptions',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+    resourceId: text('resource_id')
+      .notNull()
+      .references(() => resources.id),
     date: date('date', {mode: 'string'}).notNull(),
     slotId: text('slot_id')
       .notNull()
@@ -47,12 +70,17 @@ export const subscriptions = pgTable(
       .defaultNow(),
   },
   (table) => [
-    unique('subscriptions_user_date_slot_unique').on(
+    unique('subscriptions_user_resource_date_slot_unique').on(
       table.userId,
+      table.resourceId,
       table.date,
       table.slotId,
     ),
-    index('subscriptions_date_slot_idx').on(table.date, table.slotId),
+    index('subscriptions_resource_date_slot_idx').on(
+      table.resourceId,
+      table.date,
+      table.slotId,
+    ),
     index('subscriptions_user_ends_at_idx').on(table.userId, table.endsAt),
   ],
 );

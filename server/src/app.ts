@@ -15,6 +15,7 @@ import Fastify, {type FastifyServerOptions} from 'fastify';
 import {isAppError, sendError} from './lib/errors.js';
 import {bookingRoutes} from './booking/booking.route.js';
 import {pushTokenRoutes} from './pushToken/pushToken.route.js';
+import {resourceRoutes} from './resource/resource.route.js';
 import {slotRoutes} from './slot/slot.route.js';
 import {subscriptionRoutes} from './subscription/subscription.route.js';
 
@@ -84,6 +85,7 @@ export async function buildApp(options: FastifyServerOptions = {}) {
 
   await server.register(swaggerUi, {routePrefix: '/docs'});
 
+  await server.register(resourceRoutes);
   await server.register(slotRoutes);
   await server.register(bookingRoutes);
   await server.register(subscriptionRoutes);

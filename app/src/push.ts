@@ -12,9 +12,9 @@ Notifications.setNotificationHandler({
   }),
 });
 
-export type ReleasedSlotData = {
+type ReleasedSlotData = {
   date: string;
-  slotId: string;
+  resourceId: string;
 };
 
 export async function registerPushToken(): Promise<void> {
@@ -47,8 +47,11 @@ export function onNotificationTap(
     (response) => {
       const data = response.notification.request.content.data ?? {};
 
-      if (typeof data.date === 'string' && typeof data.slotId === 'string') {
-        handler({date: data.date, slotId: data.slotId});
+      if (
+        typeof data.date === 'string' &&
+        typeof data.resourceId === 'string'
+      ) {
+        handler({date: data.date, resourceId: data.resourceId});
       }
     },
   );

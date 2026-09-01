@@ -5,7 +5,7 @@ import {ReservationScreen} from '@/screens/ReservationScreen';
 import {theme} from '../../theme';
 
 export type AppTabParamList = {
-  Booking: {date?: string} | undefined;
+  Booking: {date?: string; resourceId?: string} | undefined;
   Reservation: undefined;
 };
 

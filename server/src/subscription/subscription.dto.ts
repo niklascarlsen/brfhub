@@ -1,6 +1,8 @@
 import {z} from 'zod';
 
-export const subscriptionSchema = z.object({
+import {resourceRefSchema} from '../resource/resource.dto.js';
+
+export const subscriptionSchema = resourceRefSchema.extend({
   id: z.uuid(),
   date: z.iso.date(),
   slotId: z.string(),
@@ -14,6 +16,7 @@ export const subscriptionSchema = z.object({
 export const createSubscriptionBodySchema = z.object({
   date: z.iso.date(),
   slotId: z.string().min(1),
+  resourceId: z.string().min(1),
 });
 
 export const subscriptionParamsSchema = z.object({

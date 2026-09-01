@@ -111,12 +111,6 @@ export function ReservationScreen() {
     );
   }
 
-  const active =
-    fetched.times.find(
-      (time): time is {kind: 'booking'; entry: Booking} =>
-        time.kind === 'booking',
-    )?.entry ?? null;
-
   return (
     <ScrollView
       className='flex-1 bg-theme-bg'
@@ -134,6 +128,7 @@ export function ReservationScreen() {
                 date={entry.date}
                 start={entry.start}
                 end={entry.end}
+                resourceName={entry.resourceName}
                 badge='Avslutad'
               />
             );
@@ -145,6 +140,7 @@ export function ReservationScreen() {
               date={entry.date}
               start={entry.start}
               end={entry.end}
+              resourceName={entry.resourceName}
               badge={null}
               actionLabel={entry.started ? 'Jag är klar' : 'Avboka'}
               onAction={() =>
@@ -155,6 +151,12 @@ export function ReservationScreen() {
         }
 
         const bookable = entry.available && !entry.started;
+        const activeSameKind =
+          fetched.times.find(
+            (time): time is {kind: 'booking'; entry: Booking} =>
+              time.kind === 'booking' &&
+              time.entry.resourceKind === entry.resourceKind,
+          )?.entry ?? null;
 
         return (
           <TimeCard
@@ -162,6 +164,7 @@ export function ReservationScreen() {
             date={entry.date}
             start={entry.start}
             end={entry.end}
+            resourceName={entry.resourceName}
             badge={
               entry.available && entry.started
                 ? 'Drop-in'
@@ -172,7 +175,7 @@ export function ReservationScreen() {
             actionLabel={bookable ? 'Boka' : 'Lämna kön'}
             onAction={() =>
               bookable
-                ? confirmBookable(entry, active)
+                ? confirmBookable(entry, activeSameKind)
                 : confirmUnsubscribe(entry)
             }
             secondaryLabel={bookable ? 'Lämna kön' : undefined}

@@ -1,6 +1,8 @@
 import {z} from 'zod';
 
-export const bookingSchema = z.object({
+import {resourceRefSchema} from '../resource/resource.dto.js';
+
+export const bookingSchema = resourceRefSchema.extend({
   id: z.uuid(),
   date: z.iso.date(),
   slotId: z.string(),
@@ -18,6 +20,7 @@ export const createdBookingSchema = bookingSchema.extend({
 export const createBookingBodySchema = z.object({
   date: z.iso.date(),
   slotId: z.string().min(1),
+  resourceId: z.string().min(1),
   replaceExisting: z.boolean().optional(),
 });
 

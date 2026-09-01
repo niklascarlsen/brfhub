@@ -40,9 +40,49 @@
           "code"
         ]
       },
+      "ResourceInput": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "laundry",
+              "drying"
+            ]
+          },
+          "hasDryer": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "hasDryer"
+        ]
+      },
       "BookingInput": {
         "type": "object",
         "properties": {
+          "resourceId": {
+            "type": "string"
+          },
+          "resourceName": {
+            "type": "string"
+          },
+          "resourceKind": {
+            "type": "string",
+            "enum": [
+              "laundry",
+              "drying"
+            ]
+          },
           "id": {
             "type": "string",
             "format": "uuid",
@@ -75,6 +115,9 @@
           }
         },
         "required": [
+          "resourceId",
+          "resourceName",
+          "resourceKind",
           "id",
           "date",
           "slotId",
@@ -88,6 +131,19 @@
       "CreatedBookingInput": {
         "type": "object",
         "properties": {
+          "resourceId": {
+            "type": "string"
+          },
+          "resourceName": {
+            "type": "string"
+          },
+          "resourceKind": {
+            "type": "string",
+            "enum": [
+              "laundry",
+              "drying"
+            ]
+          },
           "id": {
             "type": "string",
             "format": "uuid",
@@ -132,6 +188,9 @@
           }
         },
         "required": [
+          "resourceId",
+          "resourceName",
+          "resourceKind",
           "id",
           "date",
           "slotId",
@@ -155,13 +214,18 @@
             "type": "string",
             "minLength": 1
           },
+          "resourceId": {
+            "type": "string",
+            "minLength": 1
+          },
           "replaceExisting": {
             "type": "boolean"
           }
         },
         "required": [
           "date",
-          "slotId"
+          "slotId",
+          "resourceId"
         ]
       },
       "PushTokenBodyInput": {
@@ -344,6 +408,19 @@
       "SubscriptionInput": {
         "type": "object",
         "properties": {
+          "resourceId": {
+            "type": "string"
+          },
+          "resourceName": {
+            "type": "string"
+          },
+          "resourceKind": {
+            "type": "string",
+            "enum": [
+              "laundry",
+              "drying"
+            ]
+          },
           "id": {
             "type": "string",
             "format": "uuid",
@@ -376,6 +453,9 @@
           }
         },
         "required": [
+          "resourceId",
+          "resourceName",
+          "resourceKind",
           "id",
           "date",
           "slotId",
@@ -397,11 +477,16 @@
           "slotId": {
             "type": "string",
             "minLength": 1
+          },
+          "resourceId": {
+            "type": "string",
+            "minLength": 1
           }
         },
         "required": [
           "date",
-          "slotId"
+          "slotId",
+          "resourceId"
         ]
       },
       "Error": {
@@ -439,9 +524,50 @@
         ],
         "additionalProperties": false
       },
+      "Resource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "laundry",
+              "drying"
+            ]
+          },
+          "hasDryer": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "hasDryer"
+        ],
+        "additionalProperties": false
+      },
       "Booking": {
         "type": "object",
         "properties": {
+          "resourceId": {
+            "type": "string"
+          },
+          "resourceName": {
+            "type": "string"
+          },
+          "resourceKind": {
+            "type": "string",
+            "enum": [
+              "laundry",
+              "drying"
+            ]
+          },
           "id": {
             "type": "string",
             "format": "uuid",
@@ -474,6 +600,9 @@
           }
         },
         "required": [
+          "resourceId",
+          "resourceName",
+          "resourceKind",
           "id",
           "date",
           "slotId",
@@ -488,6 +617,19 @@
       "CreatedBooking": {
         "type": "object",
         "properties": {
+          "resourceId": {
+            "type": "string"
+          },
+          "resourceName": {
+            "type": "string"
+          },
+          "resourceKind": {
+            "type": "string",
+            "enum": [
+              "laundry",
+              "drying"
+            ]
+          },
           "id": {
             "type": "string",
             "format": "uuid",
@@ -532,6 +674,9 @@
           }
         },
         "required": [
+          "resourceId",
+          "resourceName",
+          "resourceKind",
           "id",
           "date",
           "slotId",
@@ -556,13 +701,18 @@
             "type": "string",
             "minLength": 1
           },
+          "resourceId": {
+            "type": "string",
+            "minLength": 1
+          },
           "replaceExisting": {
             "type": "boolean"
           }
         },
         "required": [
           "date",
-          "slotId"
+          "slotId",
+          "resourceId"
         ],
         "additionalProperties": false
       },
@@ -752,6 +902,19 @@
       "Subscription": {
         "type": "object",
         "properties": {
+          "resourceId": {
+            "type": "string"
+          },
+          "resourceName": {
+            "type": "string"
+          },
+          "resourceKind": {
+            "type": "string",
+            "enum": [
+              "laundry",
+              "drying"
+            ]
+          },
           "id": {
             "type": "string",
             "format": "uuid",
@@ -784,6 +947,9 @@
           }
         },
         "required": [
+          "resourceId",
+          "resourceName",
+          "resourceKind",
           "id",
           "date",
           "slotId",
@@ -806,17 +972,101 @@
           "slotId": {
             "type": "string",
             "minLength": 1
+          },
+          "resourceId": {
+            "type": "string",
+            "minLength": 1
           }
         },
         "required": [
           "date",
-          "slotId"
+          "slotId",
+          "resourceId"
         ],
         "additionalProperties": false
       }
     }
   },
   "paths": {
+    "/resources": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Resource"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/slots": {
       "get": {
         "parameters": [
@@ -828,6 +1078,15 @@
             },
             "in": "query",
             "name": "date",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "in": "query",
+            "name": "resourceId",
             "required": true
           }
         ],

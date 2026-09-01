@@ -10,7 +10,12 @@ const host = process.env.HOST ?? '0.0.0.0';
 
 const server = await buildApp({
   logger: process.stdout.isTTY
-    ? {transport: {target: 'pino-pretty', options: {translateTime: 'HH:MM:ss', ignore: 'pid,hostname'}}}
+    ? {
+        transport: {
+          target: 'pino-pretty',
+          options: {translateTime: 'HH:MM:ss', ignore: 'pid,hostname'},
+        },
+      }
     : true,
 });
 

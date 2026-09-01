@@ -9,11 +9,7 @@ import {
   createBookingBodySchema,
   createdBookingSchema,
 } from './booking.dto.js';
-import {
-  createBooking,
-  deleteBooking,
-  listBookings,
-} from './booking.service.js';
+import {createBooking, deleteBooking, listBookings} from './booking.service.js';
 
 export const bookingRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get(
@@ -41,12 +37,13 @@ export const bookingRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request, reply) => {
-      const {date, slotId, replaceExisting = false} = request.body;
+      const {date, slotId, resourceId, replaceExisting = false} = request.body;
 
       const booking = await createBooking({
         userId: getUserId(request),
         date,
         slotId,
+        resourceId,
         replaceExisting,
         log: request.log,
       });

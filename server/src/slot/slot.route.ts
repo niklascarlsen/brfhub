@@ -25,6 +25,7 @@ export const slotRoutes: FastifyPluginAsyncZod = async (app) => {
       listSlots({
         userId: getUserId(request),
         date: request.query.date,
+        resourceId: request.query.resourceId,
       }),
   );
 

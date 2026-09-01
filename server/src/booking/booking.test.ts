@@ -5,11 +5,41 @@ import {sql} from 'drizzle-orm';
 
 import {buildApp} from '../app.js';
 import {db, pool} from '../db/index.js';
-import {bookings, subscriptions, timeSlots} from '../db/schema.js';
+import {bookings, resources, subscriptions, timeSlots} from '../db/schema.js';
 import {slotEndsAt, toIsoDate} from '../lib/time.js';
+import type {Resource} from '../resource/resource.dto.js';
 import type {Slot} from '../slot/slot.dto.js';
 import type {Subscription} from '../subscription/subscription.dto.js';
+import {listSubscribers} from '../subscription/subscription.service.js';
 import type {Booking, CreatedBooking} from './booking.dto.js';
+
+const LAUNDRY_1 = 'laundry-1';
+const LAUNDRY_2 = 'laundry-2';
+const DRYING = 'drying-room';
+
+const RESOURCES = [
+  {
+    id: LAUNDRY_1,
+    name: 'Tvättstuga 1',
+    kind: 'laundry' as const,
+    hasDryer: true,
+    sortOrder: 1,
+  },
+  {
+    id: LAUNDRY_2,
+    name: 'Tvättstuga 2',
+    kind: 'laundry' as const,
+    hasDryer: false,
+    sortOrder: 2,
+  },
+  {
+    id: DRYING,
+    name: 'Torkrum',
+    kind: 'drying' as const,
+    hasDryer: false,
+    sortOrder: 3,
+  },
+];
 
 const TIME_SLOTS = [
   {id: '07-10', start: '07:00', end: '10:00'},
@@ -48,7 +78,10 @@ before(async () => {
   }
 
   server = await buildApp({logger: false});
-  await db.execute(sql`truncate time_slots, bookings, subscriptions cascade`);
+  await db.execute(
+    sql`truncate resources, time_slots, bookings, subscriptions cascade`,
+  );
+  await db.insert(resources).values([...RESOURCES]);
   await db.insert(timeSlots).values([...TIME_SLOTS]);
 });
 
@@ -66,7 +99,7 @@ function book(userId: string, payload: Record<string, unknown>) {
     method: 'POST',
     url: '/bookings',
     headers: {'x-apartment-number': userId},
-    payload,
+    payload: {resourceId: LAUNDRY_1, ...payload},
   });
 }
 
@@ -86,20 +119,24 @@ function cancel(userId: string, id: string) {
   });
 }
 
-function slotsFor(userId: string, date: string) {
+function slotsFor(userId: string, date: string, resourceId = LAUNDRY_1) {
   return server.inject({
     method: 'GET',
-    url: `/slots?date=${date}`,
+    url: `/slots?date=${date}&resourceId=${resourceId}`,
     headers: {'x-apartment-number': userId},
   });
 }
 
-async function insertStartedBooking(userId: string) {
+async function insertStartedBooking(
+  userId: string,
+  resourceId: string = LAUNDRY_1,
+) {
   const [row] = await db
     .insert(bookings)
     .values({
       date: today,
       slotId: 'all-day',
+      resourceId,
       userId,
       endsAt: slotEndsAt(today, '23:59:59'),
     })
@@ -117,7 +154,7 @@ function subscribe(userId: string, payload: Record<string, unknown>) {
     method: 'POST',
     url: '/subscriptions',
     headers: {'x-apartment-number': userId},
-    payload,
+    payload: {resourceId: LAUNDRY_1, ...payload},
   });
 }
 
@@ -148,6 +185,9 @@ test('books a free slot', async () => {
   assert.equal(response.statusCode, 201);
   assert.equal(created.date, bookableDate);
   assert.equal(created.slotId, '07-10');
+  assert.equal(created.resourceId, LAUNDRY_1);
+  assert.equal(created.resourceKind, 'laundry');
+  assert.equal(created.resourceName, 'Tvättstuga 1');
   assert.equal(created.start, '07:00');
   assert.equal(created.end, '10:00');
   assert.equal(created.replacedId, null);
@@ -306,6 +346,7 @@ test('keeps the queue after a drop-in so the subscriber can leave', async () => 
   await db.insert(subscriptions).values({
     date: today,
     slotId: 'all-day',
+    resourceId: LAUNDRY_1,
     userId: NEIGHBOUR,
     endsAt: slotEndsAt(today, '23:59:59'),
   });
@@ -426,4 +467,273 @@ test('drops the subscription when the subscriber books the freed slot', async ()
     mine.json<Booking[]>().map((booking) => booking.slotId),
     ['07-10'],
   );
+});
+
+test('lists bookable resources', async () => {
+  const response = await server.inject({
+    method: 'GET',
+    url: '/resources',
+    headers: {'x-apartment-number': TENANT},
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(
+    response.json<Resource[]>().map((resource) => ({
+      id: resource.id,
+      kind: resource.kind,
+      hasDryer: resource.hasDryer,
+    })),
+    [
+      {id: LAUNDRY_1, kind: 'laundry', hasDryer: true},
+      {id: LAUNDRY_2, kind: 'laundry', hasDryer: false},
+      {id: DRYING, kind: 'drying', hasDryer: false},
+    ],
+  );
+});
+
+test('rejects slots for an unknown resource', async () => {
+  const response = await slotsFor(TENANT, bookableDate, 'nope');
+
+  assert.equal(response.statusCode, 404);
+  assert.equal(codeOf(response), 'NOT_FOUND');
+});
+
+test('rejects a booking for an unknown resource', async () => {
+  const response = await book(TENANT, {
+    date: bookableDate,
+    slotId: '07-10',
+    resourceId: 'nope',
+  });
+
+  assert.equal(response.statusCode, 404);
+  assert.equal(codeOf(response), 'NOT_FOUND');
+});
+
+test('lets two apartments book the same slot in different laundry rooms', async () => {
+  const first = await book(TENANT, {
+    date: bookableDate,
+    slotId: '07-10',
+    resourceId: LAUNDRY_1,
+  });
+  const second = await book(NEIGHBOUR, {
+    date: bookableDate,
+    slotId: '07-10',
+    resourceId: LAUNDRY_2,
+  });
+
+  assert.equal(first.statusCode, 201);
+  assert.equal(second.statusCode, 201);
+
+  const laundry1 = await slotsFor(TENANT, bookableDate, LAUNDRY_1);
+  const laundry2 = await slotsFor(NEIGHBOUR, bookableDate, LAUNDRY_2);
+
+  assert.equal(
+    laundry1.json<Slot[]>().find((slot) => slot.id === '07-10')?.status,
+    'mine',
+  );
+  assert.equal(
+    laundry2.json<Slot[]>().find((slot) => slot.id === '07-10')?.status,
+    'mine',
+  );
+});
+
+test('rejects a second laundry booking even in the other room', async () => {
+  await book(TENANT, {
+    date: bookableDate,
+    slotId: '07-10',
+    resourceId: LAUNDRY_1,
+  });
+
+  const response = await book(TENANT, {
+    date: bookableDate,
+    slotId: '13-16',
+    resourceId: LAUNDRY_2,
+  });
+
+  assert.equal(response.statusCode, 409);
+  assert.equal(codeOf(response), 'HAS_ACTIVE_BOOKING');
+});
+
+test('lets an apartment book laundry and drying at the same time', async () => {
+  const laundry = await book(TENANT, {
+    date: bookableDate,
+    slotId: '07-10',
+    resourceId: LAUNDRY_1,
+  });
+  const drying = await book(TENANT, {
+    date: bookableDate,
+    slotId: '10-13',
+    resourceId: DRYING,
+  });
+
+  assert.equal(laundry.statusCode, 201);
+  assert.equal(drying.statusCode, 201);
+
+  const mine = await myBookings(TENANT);
+  assert.deepEqual(
+    mine
+      .json<Booking[]>()
+      .map((booking) => booking.resourceId)
+      .sort(),
+    [DRYING, LAUNDRY_1].sort(),
+  );
+});
+
+test('replaces only the laundry booking when switching rooms', async () => {
+  const first = await book(TENANT, {
+    date: bookableDate,
+    slotId: '07-10',
+    resourceId: LAUNDRY_1,
+  });
+  await book(TENANT, {
+    date: bookableDate,
+    slotId: '10-13',
+    resourceId: DRYING,
+  });
+
+  const swapped = await book(TENANT, {
+    date: bookableDate,
+    slotId: '13-16',
+    resourceId: LAUNDRY_2,
+    replaceExisting: true,
+  });
+
+  assert.equal(swapped.statusCode, 201);
+  assert.equal(
+    swapped.json<CreatedBooking>().replacedId,
+    first.json<CreatedBooking>().id,
+  );
+
+  const mine = await myBookings(TENANT);
+  assert.deepEqual(
+    mine
+      .json<Booking[]>()
+      .map((booking) => `${booking.resourceId}:${booking.slotId}`)
+      .sort(),
+    [`${DRYING}:10-13`, `${LAUNDRY_2}:13-16`].sort(),
+  );
+});
+
+test('rejects a second drying booking', async () => {
+  await book(TENANT, {
+    date: bookableDate,
+    slotId: '07-10',
+    resourceId: DRYING,
+  });
+
+  const response = await book(TENANT, {
+    date: bookableDate,
+    slotId: '13-16',
+    resourceId: DRYING,
+  });
+
+  assert.equal(response.statusCode, 409);
+  assert.equal(codeOf(response), 'HAS_ACTIVE_BOOKING');
+});
+
+test('keeps the laundry queue off the other room', async () => {
+  await book(NEIGHBOUR, {
+    date: bookableDate,
+    slotId: '07-10',
+    resourceId: LAUNDRY_1,
+  });
+  await subscribe(TENANT, {
+    date: bookableDate,
+    slotId: '07-10',
+    resourceId: LAUNDRY_1,
+  });
+
+  const otherRoom = await slotsFor(TENANT, bookableDate, LAUNDRY_2);
+  assert.equal(
+    otherRoom.json<Slot[]>().find((slot) => slot.id === '07-10')?.status,
+    'available',
+  );
+
+  const queued = await slotsFor(TENANT, bookableDate, LAUNDRY_1);
+  const slot = queued.json<Slot[]>().find((item) => item.id === '07-10');
+  assert.equal(slot?.status, 'booked');
+  assert.ok(slot?.status === 'booked' && slot.subscriptionId);
+});
+
+test('a started booking in one room does not occupy the other', async () => {
+  await insertStartedBooking(TENANT, LAUNDRY_1);
+
+  const other = await slotsFor(NEIGHBOUR, today, LAUNDRY_2);
+  assert.equal(
+    other.json<Slot[]>().find((slot) => slot.id === 'all-day')?.status,
+    'walkin',
+  );
+
+  const ownOther = await slotsFor(TENANT, today, LAUNDRY_2);
+  assert.equal(
+    ownOther.json<Slot[]>().find((slot) => slot.id === 'all-day')?.status,
+    'walkin',
+  );
+});
+
+test('cancelling one room does not free a queue on the other', async () => {
+  const first = await book(NEIGHBOUR, {
+    date: bookableDate,
+    slotId: '07-10',
+    resourceId: LAUNDRY_1,
+  });
+  await book('14', {
+    date: bookableDate,
+    slotId: '07-10',
+    resourceId: LAUNDRY_2,
+  });
+  await subscribe(TENANT, {
+    date: bookableDate,
+    slotId: '07-10',
+    resourceId: LAUNDRY_2,
+  });
+
+  await cancel(NEIGHBOUR, first.json<CreatedBooking>().id);
+
+  const queued = await mySubscriptions(TENANT);
+  assert.deepEqual(
+    queued.json<Subscription[]>().map((item) => item.available),
+    [false],
+  );
+});
+
+test('lists queue members only for that resource', async () => {
+  await book(NEIGHBOUR, {
+    date: bookableDate,
+    slotId: '07-10',
+    resourceId: LAUNDRY_1,
+  });
+  await book('14', {
+    date: bookableDate,
+    slotId: '07-10',
+    resourceId: LAUNDRY_2,
+  });
+  await subscribe(TENANT, {
+    date: bookableDate,
+    slotId: '07-10',
+    resourceId: LAUNDRY_1,
+  });
+
+  const laundry1 = await listSubscribers(LAUNDRY_1, bookableDate, '07-10');
+  const laundry2 = await listSubscribers(LAUNDRY_2, bookableDate, '07-10');
+
+  assert.deepEqual(
+    laundry1.map((row) => row.userId),
+    [TENANT],
+  );
+  assert.deepEqual(laundry2, []);
+});
+
+test('releasing a started laundry booking still blocks the other laundry room', async () => {
+  const {id} = await insertStartedBooking(TENANT, LAUNDRY_1);
+  await cancel(TENANT, id);
+
+  const response = await book(TENANT, {
+    date: bookableDate,
+    slotId: '07-10',
+    resourceId: LAUNDRY_2,
+  });
+
+  assert.equal(response.statusCode, 409);
+  assert.equal(codeOf(response), 'HAS_ACTIVE_BOOKING');
 });

@@ -47,9 +47,9 @@ export function DatePicker({
             monthIndex > 0 ? 'border-l border-theme-line pl-3' : 'pr-3'
           }
         >
-          <Text className='mb-2 px-3 text-lg font-semibold capitalize text-theme-ink'>
+          {/* <Text className='mb-2 px-3 text-lg font-semibold capitalize text-theme-ink'>
             {month.label}
-          </Text>
+          </Text> */}
           <View className='flex-row' style={{gap: DAY_GAP}}>
             {month.days.map((day) => {
               const isoDate = toIsoDate(day);

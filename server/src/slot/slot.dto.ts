@@ -2,6 +2,7 @@ import {z} from 'zod';
 
 export const listSlotsQuerySchema = z.object({
   date: z.iso.date(),
+  resourceId: z.string().min(1),
 });
 
 const slotTimes = {

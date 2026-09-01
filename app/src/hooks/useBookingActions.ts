@@ -1,12 +1,18 @@
 import {Alert} from 'react-native';
 
-import {api, unwrap, type Booking, type Slot} from '@/api/client';
+import {
+  api,
+  unwrap,
+  type Booking,
+  type Resource,
+  type Slot,
+} from '@/api/client';
 import {codeOf, errorMessage, type ClientErrorCode} from '@/api/errors';
 import {formatWhen, timeRange} from '@/lib/dates';
 import {exhaustive} from '@/lib/exhaustive';
 
-type Times = Pick<Booking, 'date' | 'start' | 'end'>;
-type Bookable = Times & Pick<Booking, 'slotId'>;
+type Times = Pick<Booking, 'date' | 'start' | 'end' | 'resourceName'>;
+type Bookable = Times & Pick<Booking, 'slotId' | 'resourceId'>;
 type Identified = Times & Pick<Booking, 'id'>;
 
 function shouldReload(code: ClientErrorCode) {
@@ -21,8 +27,8 @@ function shouldReload(code: ClientErrorCode) {
   }
 }
 
-function whenOf({date, start, end}: Times) {
-  return formatWhen(date, timeRange(start, end));
+function whenOf({date, start, end, resourceName}: Times) {
+  return `${resourceName}, ${formatWhen(date, timeRange(start, end))}`;
 }
 
 function confirm(
@@ -59,6 +65,7 @@ export function useBookingActions(onChange?: () => void) {
           body: {
             date: target.date,
             slotId: target.slotId,
+            resourceId: target.resourceId,
             ...(replaceExisting ? {replaceExisting: true} : {}),
           },
         }),
@@ -70,7 +77,11 @@ export function useBookingActions(onChange?: () => void) {
     await mutate('Kunde inte köa', () =>
       unwrap(
         api.POST('/subscriptions', {
-          body: {date: target.date, slotId: target.slotId},
+          body: {
+            date: target.date,
+            slotId: target.slotId,
+            resourceId: target.resourceId,
+          },
         }),
       ),
     );
@@ -150,7 +161,15 @@ export function useBookingActions(onChange?: () => void) {
   }
 
   function confirmBookable(target: Bookable, active: Booking | null) {
-    if (active && !active.released) {
+    if (active?.released) {
+      Alert.alert(
+        'Du har redan en bokning',
+        'Du kan inte boka en ny tid förrän luckan är slut.',
+      );
+      return;
+    }
+
+    if (active) {
       confirmSwap(target);
       return;
     }
@@ -163,12 +182,25 @@ export function useBookingActions(onChange?: () => void) {
     });
   }
 
-  function confirmBook(slot: Slot, date: string, active: Booking | null) {
-    const times = {date, start: slot.start, end: slot.end};
+  function confirmBook(
+    slot: Slot,
+    date: string,
+    resource: Resource,
+    active: Booking | null,
+  ) {
+    const times = {
+      date,
+      start: slot.start,
+      end: slot.end,
+      resourceName: resource.name,
+    };
 
     switch (slot.status) {
       case 'available':
-        confirmBookable({...times, slotId: slot.id}, active);
+        confirmBookable(
+          {...times, slotId: slot.id, resourceId: resource.id},
+          active,
+        );
         return;
       case 'walkin':
         return;
@@ -182,7 +214,7 @@ export function useBookingActions(onChange?: () => void) {
           return;
         }
 
-        confirmSubscribe({...times, slotId: slot.id});
+        confirmSubscribe({...times, slotId: slot.id, resourceId: resource.id});
         return;
       case 'mine':
         if (slot.started) {

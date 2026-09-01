@@ -11,6 +11,8 @@ import {listSubscribers} from '../subscription/subscription.service.js';
 type ReleasedSlot = {
   date: string;
   slotId: string;
+  resourceId: string;
+  resourceName: string;
   start: string;
   end: string;
 };
@@ -30,7 +32,11 @@ export async function notifySlotReleased(
     return;
   }
 
-  const subscribers = await listSubscribers(slot.date, slot.slotId);
+  const subscribers = await listSubscribers(
+    slot.resourceId,
+    slot.date,
+    slot.slotId,
+  );
   const userIds = subscribers
     .map((row) => row.userId)
     .filter((userId) => userId !== releasedBy);
@@ -49,8 +55,12 @@ export async function notifySlotReleased(
       tokens.map(({token}) => ({
         to: token,
         title: 'En tid blev ledig',
-        body: `${formatWhen(slot.date, slot.start, slot.end)} är ledig – först till kvarn.`,
-        data: {date: slot.date, slotId: slot.slotId},
+        body: `${slot.resourceName} ${formatWhen(slot.date, slot.start, slot.end)} är ledig – först till kvarn.`,
+        data: {
+          date: slot.date,
+          slotId: slot.slotId,
+          resourceId: slot.resourceId,
+        },
       })),
     );
   } catch (error) {

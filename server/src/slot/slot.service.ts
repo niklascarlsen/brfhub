@@ -4,6 +4,7 @@ import {db} from '../db/index.js';
 import {bookings, subscriptions, timeSlots} from '../db/schema.js';
 import {appError} from '../lib/errors.js';
 import {bookingWindowSql, slotEndsAt, slotHasStarted} from '../lib/time.js';
+import {getResource} from '../resource/resource.service.js';
 import type {BookingWindow, Slot} from './slot.dto.js';
 
 export async function getBookingWindow(): Promise<BookingWindow> {
@@ -27,7 +28,7 @@ export function isWithinBookingWindow(
   return date >= window.from && date <= window.to;
 }
 
-function selectSlotRows(userId: string, date: string) {
+function selectSlotRows(userId: string, date: string, resourceId: string) {
   return db
     .select({
       id: timeSlots.id,
@@ -43,6 +44,7 @@ function selectSlotRows(userId: string, date: string) {
       bookings,
       and(
         eq(bookings.slotId, timeSlots.id),
+        eq(bookings.resourceId, resourceId),
         eq(bookings.date, date),
         isNull(bookings.releasedAt),
       ),
@@ -51,6 +53,7 @@ function selectSlotRows(userId: string, date: string) {
       subscriptions,
       and(
         eq(subscriptions.slotId, timeSlots.id),
+        eq(subscriptions.resourceId, resourceId),
         eq(subscriptions.date, date),
         eq(subscriptions.userId, userId),
       ),
@@ -105,15 +108,21 @@ function toSlot(row: SlotRow, userId: string): Slot {
 export async function listSlots({
   userId,
   date,
+  resourceId,
 }: {
   userId: string;
   date: string;
+  resourceId: string;
 }): Promise<Slot[]> {
+  if (!(await getResource(resourceId))) {
+    throw appError('NOT_FOUND', 'Unknown resource');
+  }
+
   if (!isWithinBookingWindow(date, await getBookingWindow())) {
     throw appError('OUTSIDE_BOOKING_WINDOW');
   }
 
-  const rows = await selectSlotRows(userId, date);
+  const rows = await selectSlotRows(userId, date, resourceId);
 
   return rows.map((row) => toSlot(row, userId));
 }

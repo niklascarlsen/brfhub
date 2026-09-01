@@ -6,6 +6,7 @@ type TimeCardProps = {
   date: string;
   start: string;
   end: string;
+  resourceName?: string;
   badge: string | null;
   actionLabel?: string;
   onAction?: () => void;
@@ -17,6 +18,7 @@ export function TimeCard({
   date,
   start,
   end,
+  resourceName,
   badge,
   actionLabel,
   onAction,
@@ -27,6 +29,11 @@ export function TimeCard({
     <View className='mb-3 rounded-2xl bg-theme-surface px-5 py-4'>
       <View className='flex-row items-center justify-between'>
         <View className='flex-1 pr-3'>
+          {resourceName ? (
+            <Text className='mb-1 text-sm font-medium text-theme-muted'>
+              {resourceName}
+            </Text>
+          ) : null}
           <Text className='text-2xl font-semibold tracking-tight text-theme-ink'>
             {timeRange(start, end)}
           </Text>

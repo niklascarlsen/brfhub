@@ -18,9 +18,9 @@ export default function App() {
   useEffect(() => {
     void registerPushToken();
 
-    return onNotificationTap(({date}) => {
+    return onNotificationTap(({date, resourceId}) => {
       if (navigationRef.isReady()) {
-        navigationRef.navigate('Booking', {date});
+        navigationRef.navigate('Booking', {date, resourceId});
       }
     });
   }, []);

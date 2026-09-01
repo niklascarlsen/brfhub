@@ -7,6 +7,7 @@ export type Booking = components['schemas']['Booking'];
 export type Slot = components['schemas']['Slot'];
 export type BookingWindow = components['schemas']['BookingWindow'];
 export type Subscription = components['schemas']['Subscription'];
+export type Resource = components['schemas']['Resource'];
 
 const CURRENT_APARTMENT_NUMBER = '12';
 const TIMEOUT_MS = 10_000;

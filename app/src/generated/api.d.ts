@@ -4,6 +4,95 @@
  */
 
 export interface paths {
+    "/resources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Resource"][];
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/slots": {
         parameters: {
             query?: never;
@@ -15,6 +104,7 @@ export interface paths {
             parameters: {
                 query: {
                     date: string;
+                    resourceId: string;
                 };
                 header?: never;
                 path?: never;
@@ -795,7 +885,18 @@ export interface components {
             /** @enum {string} */
             code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "SLOT_STARTED" | "OUTSIDE_BOOKING_WINDOW" | "SLOT_AVAILABLE" | "NOT_FOUND" | "UNAUTHORIZED" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
         };
+        ResourceInput: {
+            id: string;
+            name: string;
+            /** @enum {string} */
+            kind: "laundry" | "drying";
+            hasDryer: boolean;
+        };
         BookingInput: {
+            resourceId: string;
+            resourceName: string;
+            /** @enum {string} */
+            resourceKind: "laundry" | "drying";
             /** Format: uuid */
             id: string;
             /** Format: date */
@@ -809,6 +910,10 @@ export interface components {
             released: boolean;
         };
         CreatedBookingInput: {
+            resourceId: string;
+            resourceName: string;
+            /** @enum {string} */
+            resourceKind: "laundry" | "drying";
             /** Format: uuid */
             id: string;
             /** Format: date */
@@ -826,6 +931,7 @@ export interface components {
             /** Format: date */
             date: string;
             slotId: string;
+            resourceId: string;
             replaceExisting?: boolean;
         };
         PushTokenBodyInput: {
@@ -871,6 +977,10 @@ export interface components {
             to: string;
         };
         SubscriptionInput: {
+            resourceId: string;
+            resourceName: string;
+            /** @enum {string} */
+            resourceKind: "laundry" | "drying";
             /** Format: uuid */
             id: string;
             /** Format: date */
@@ -887,6 +997,7 @@ export interface components {
             /** Format: date */
             date: string;
             slotId: string;
+            resourceId: string;
         };
         Error: {
             statusCode: number;
@@ -894,7 +1005,18 @@ export interface components {
             /** @enum {string} */
             code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "SLOT_STARTED" | "OUTSIDE_BOOKING_WINDOW" | "SLOT_AVAILABLE" | "NOT_FOUND" | "UNAUTHORIZED" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
         };
+        Resource: {
+            id: string;
+            name: string;
+            /** @enum {string} */
+            kind: "laundry" | "drying";
+            hasDryer: boolean;
+        };
         Booking: {
+            resourceId: string;
+            resourceName: string;
+            /** @enum {string} */
+            resourceKind: "laundry" | "drying";
             /** Format: uuid */
             id: string;
             /** Format: date */
@@ -908,6 +1030,10 @@ export interface components {
             released: boolean;
         };
         CreatedBooking: {
+            resourceId: string;
+            resourceName: string;
+            /** @enum {string} */
+            resourceKind: "laundry" | "drying";
             /** Format: uuid */
             id: string;
             /** Format: date */
@@ -925,6 +1051,7 @@ export interface components {
             /** Format: date */
             date: string;
             slotId: string;
+            resourceId: string;
             replaceExisting?: boolean;
         };
         PushTokenBody: {
@@ -970,6 +1097,10 @@ export interface components {
             to: string;
         };
         Subscription: {
+            resourceId: string;
+            resourceName: string;
+            /** @enum {string} */
+            resourceKind: "laundry" | "drying";
             /** Format: uuid */
             id: string;
             /** Format: date */
@@ -986,6 +1117,7 @@ export interface components {
             /** Format: date */
             date: string;
             slotId: string;
+            resourceId: string;
         };
     };
     responses: never;
