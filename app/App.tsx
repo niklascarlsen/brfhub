@@ -6,6 +6,7 @@ import {
 } from '@react-navigation/native';
 import {StatusBar} from 'expo-status-bar';
 import {useEffect} from 'react';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
 
 import AppTabNavigator, {
   type AppTabParamList,
@@ -26,9 +27,11 @@ export default function App() {
   }, []);
 
   return (
-    <NavigationContainer ref={navigationRef}>
-      <AppTabNavigator />
-      <StatusBar style='dark' />
-    </NavigationContainer>
+    <SafeAreaProvider>
+      <NavigationContainer ref={navigationRef}>
+        <AppTabNavigator />
+        <StatusBar style='dark' />
+      </NavigationContainer>
+    </SafeAreaProvider>
   );
 }

@@ -2,17 +2,22 @@ import {Pressable, Text, View} from 'react-native';
 
 import {formatLongDate, timeRange} from '@/lib/dates';
 
+type Badge = {label: string; tone: 'accent' | 'muted'};
+
 type TimeCardProps = {
   date: string;
   start: string;
   end: string;
   resourceName?: string;
-  badge: string | null;
+  badge: Badge | null;
   actionLabel?: string;
+  actionTone?: 'solid' | 'outline';
   onAction?: () => void;
   secondaryLabel?: string;
   onSecondary?: () => void;
 };
+
+const tabularNums = {fontVariant: ['tabular-nums' as const]};
 
 export function TimeCard({
   date,
@@ -21,51 +26,80 @@ export function TimeCard({
   resourceName,
   badge,
   actionLabel,
+  actionTone = 'outline',
   onAction,
   secondaryLabel,
   onSecondary,
 }: TimeCardProps) {
+  const solid = actionTone === 'solid';
+
   return (
-    <View className='mb-3 rounded-2xl bg-theme-surface px-5 py-4'>
-      <View className='flex-row items-center justify-between'>
-        <View className='flex-1 pr-3'>
+    <View className='flex-row items-center gap-3.5 rounded-2xl border border-theme-line bg-theme-surface px-[18px] py-4'>
+      <View className='min-w-0 flex-1 gap-1'>
+        <View className='flex-row items-center gap-2'>
           {resourceName ? (
-            <Text className='mb-1 text-sm font-medium text-theme-muted'>
+            <Text className='text-xs font-semibold text-theme-muted'>
               {resourceName}
             </Text>
           ) : null}
-          <Text className='text-2xl font-semibold tracking-tight text-theme-ink'>
-            {timeRange(start, end)}
-          </Text>
-          <Text className='mt-1 text-sm font-medium capitalize text-theme-muted'>
-            {formatLongDate(date)}
-          </Text>
           {badge ? (
-            <Text className='mt-2 self-start rounded-full bg-theme-mist px-3 py-1 text-xs font-semibold uppercase tracking-wide text-theme-accent'>
-              {badge}
-            </Text>
+            <View
+              className={`rounded-full px-[9px] py-1 ${
+                badge.tone === 'accent' ? 'bg-theme-mist' : 'bg-theme-sunk'
+              }`}
+            >
+              <Text
+                className={`text-[10px] font-bold uppercase tracking-[1px] ${
+                  badge.tone === 'accent'
+                    ? 'text-theme-accent'
+                    : 'text-theme-muted'
+                }`}
+              >
+                {badge.label}
+              </Text>
+            </View>
           ) : null}
         </View>
-        {actionLabel && onAction ? (
-          <View className='items-end'>
-            <Pressable onPress={onAction} className='pt-1 active:opacity-60'>
-              <Text className='rounded-2xl border border-theme-accent/20 px-4 py-2 text-base font-semibold text-theme-accent'>
-                {actionLabel}
+        <Text
+          style={tabularNums}
+          className='text-[22px] font-semibold tracking-tight text-theme-ink'
+        >
+          {timeRange(start, end)}
+        </Text>
+        <Text className='text-[13px] font-medium text-theme-muted'>
+          {formatLongDate(date)}
+        </Text>
+      </View>
+      {actionLabel && onAction ? (
+        <View className='items-end gap-1.5'>
+          <Pressable
+            onPress={onAction}
+            className={`h-11 items-center justify-center rounded-full px-5 active:opacity-70 ${
+              solid
+                ? 'bg-theme-ink'
+                : 'border border-theme-edge bg-theme-surface'
+            }`}
+          >
+            <Text
+              className={`text-sm font-semibold tracking-tight ${
+                solid ? 'text-theme-surface' : 'text-theme-ink'
+              }`}
+            >
+              {actionLabel}
+            </Text>
+          </Pressable>
+          {secondaryLabel && onSecondary ? (
+            <Pressable
+              onPress={onSecondary}
+              className='h-[26px] justify-center px-1 active:opacity-60'
+            >
+              <Text className='text-[13px] font-medium text-theme-muted'>
+                {secondaryLabel}
               </Text>
             </Pressable>
-            {secondaryLabel && onSecondary ? (
-              <Pressable
-                onPress={onSecondary}
-                className='mt-2 px-1 py-1 active:opacity-60'
-              >
-                <Text className='text-sm font-semibold text-theme-muted'>
-                  {secondaryLabel}
-                </Text>
-              </Pressable>
-            ) : null}
-          </View>
-        ) : null}
-      </View>
+          ) : null}
+        </View>
+      ) : null}
     </View>
   );
 }

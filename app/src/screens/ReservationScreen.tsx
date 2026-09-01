@@ -1,5 +1,5 @@
 import {useFocusEffect} from '@react-navigation/native';
-import {useCallback, useState} from 'react';
+import {useCallback, useState, type ReactNode} from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -7,6 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 
 import {api, unwrap, type Booking, type Subscription} from '@/api/client';
 import {codeOf, errorMessage} from '@/api/errors';
@@ -27,6 +28,29 @@ function sortByWhen(times: MyTime[]): MyTime[] {
     (a, b) =>
       a.entry.date.localeCompare(b.entry.date) ||
       a.entry.start.localeCompare(b.entry.start),
+  );
+}
+
+function TimesSection({
+  title,
+  times,
+  children,
+}: {
+  title: string;
+  times: MyTime[];
+  children: ReactNode;
+}) {
+  if (times.length === 0) {
+    return null;
+  }
+
+  return (
+    <View className='mb-[26px]'>
+      <Text className='mb-2.5 ml-0.5 text-[11px] font-bold uppercase tracking-[1px] text-theme-muted'>
+        {title}
+      </Text>
+      <View className='gap-2.5'>{children}</View>
+    </View>
   );
 }
 
@@ -71,15 +95,21 @@ export function ReservationScreen() {
 
   if (!fetched) {
     return (
-      <View className='flex-1 items-center justify-center bg-theme-bg'>
+      <SafeAreaView
+        className='flex-1 items-center justify-center bg-theme-bg'
+        edges={['top']}
+      >
         <ActivityIndicator />
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (fetched.error) {
     return (
-      <View className='flex-1 items-center justify-center bg-theme-bg px-8'>
+      <SafeAreaView
+        className='flex-1 items-center justify-center bg-theme-bg px-8'
+        edges={['top']}
+      >
         <Text className='text-center text-sm text-theme-muted'>
           {fetched.error}
         </Text>
@@ -94,34 +124,56 @@ export function ReservationScreen() {
             Försök igen
           </Text>
         </Pressable>
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (fetched.times.length === 0) {
     return (
-      <View className='flex-1 items-center justify-center bg-theme-bg px-8'>
+      <SafeAreaView
+        className='flex-1 items-center justify-center bg-theme-bg px-8'
+        edges={['top']}
+      >
         <Text className='text-center text-xl font-semibold text-theme-ink'>
           Inga tider
         </Text>
         <Text className='mt-2 text-center text-sm leading-5 text-theme-muted'>
           När du tar en lucka eller ställer dig i kö dyker den upp här.
         </Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
+  const bookings = fetched.times.filter(
+    (time): time is {kind: 'booking'; entry: Booking} =>
+      time.kind === 'booking',
+  );
+  const reservations = fetched.times.filter(
+    (time): time is {kind: 'subscription'; entry: Subscription} =>
+      time.kind === 'subscription',
+  );
+
   return (
-    <ScrollView
-      className='flex-1 bg-theme-bg'
-      contentContainerClassName='px-5 py-4 pb-8'
-    >
-      <Text className='mb-3 text-base font-medium text-theme-muted'>
-        {fetched.times.length === 1 ? '1 tid' : `${fetched.times.length} tider`}
-      </Text>
-      {fetched.times.map(({kind, entry}) => {
-        if (kind === 'booking') {
-          if (entry.released) {
+    <SafeAreaView className='flex-1 bg-theme-bg' edges={['top']}>
+      <ScrollView className='flex-1' contentContainerClassName='px-5 pb-8 pt-2'>
+        <Text className='mb-6 text-[27px] font-semibold tracking-tight text-theme-ink'>
+          Mina tider
+        </Text>
+        <TimesSection title='Bokningar' times={bookings}>
+          {bookings.map(({entry}) => {
+            if (entry.released) {
+              return (
+                <TimeCard
+                  key={entry.id}
+                  date={entry.date}
+                  start={entry.start}
+                  end={entry.end}
+                  resourceName={entry.resourceName}
+                  badge={{label: 'Avslutad', tone: 'muted'}}
+                />
+              );
+            }
+
             return (
               <TimeCard
                 key={entry.id}
@@ -129,60 +181,53 @@ export function ReservationScreen() {
                 start={entry.start}
                 end={entry.end}
                 resourceName={entry.resourceName}
-                badge='Avslutad'
+                badge={null}
+                actionLabel={entry.started ? 'Jag är klar' : 'Avboka'}
+                onAction={() =>
+                  entry.started ? confirmRelease(entry) : confirmCancel(entry)
+                }
               />
             );
-          }
+          })}
+        </TimesSection>
+        <TimesSection title='Reserv' times={reservations}>
+          {reservations.map(({entry}) => {
+            const bookable = entry.available && !entry.started;
+            const activeSameKind =
+              bookings.find(
+                (time) => time.entry.resourceKind === entry.resourceKind,
+              )?.entry ?? null;
 
-          return (
-            <TimeCard
-              key={entry.id}
-              date={entry.date}
-              start={entry.start}
-              end={entry.end}
-              resourceName={entry.resourceName}
-              badge={null}
-              actionLabel={entry.started ? 'Jag är klar' : 'Avboka'}
-              onAction={() =>
-                entry.started ? confirmRelease(entry) : confirmCancel(entry)
-              }
-            />
-          );
-        }
-
-        const bookable = entry.available && !entry.started;
-        const activeSameKind =
-          fetched.times.find(
-            (time): time is {kind: 'booking'; entry: Booking} =>
-              time.kind === 'booking' &&
-              time.entry.resourceKind === entry.resourceKind,
-          )?.entry ?? null;
-
-        return (
-          <TimeCard
-            key={entry.id}
-            date={entry.date}
-            start={entry.start}
-            end={entry.end}
-            resourceName={entry.resourceName}
-            badge={
-              entry.available && entry.started
-                ? 'Drop-in'
-                : entry.available
-                  ? 'Ledig nu'
-                  : 'Reserv'
-            }
-            actionLabel={bookable ? 'Boka' : 'Lämna kön'}
-            onAction={() =>
-              bookable
-                ? confirmBookable(entry, activeSameKind)
-                : confirmUnsubscribe(entry)
-            }
-            secondaryLabel={bookable ? 'Lämna kön' : undefined}
-            onSecondary={bookable ? () => confirmUnsubscribe(entry) : undefined}
-          />
-        );
-      })}
-    </ScrollView>
+            return (
+              <TimeCard
+                key={entry.id}
+                date={entry.date}
+                start={entry.start}
+                end={entry.end}
+                resourceName={entry.resourceName}
+                badge={
+                  entry.available && entry.started
+                    ? {label: 'Drop-in', tone: 'accent'}
+                    : entry.available
+                      ? {label: 'Ledig nu', tone: 'accent'}
+                      : {label: 'Reserv', tone: 'muted'}
+                }
+                actionLabel={bookable ? 'Boka' : 'Lämna kön'}
+                actionTone={bookable ? 'solid' : 'outline'}
+                onAction={() =>
+                  bookable
+                    ? confirmBookable(entry, activeSameKind)
+                    : confirmUnsubscribe(entry)
+                }
+                secondaryLabel={bookable ? 'Lämna kön' : undefined}
+                onSecondary={
+                  bookable ? () => confirmUnsubscribe(entry) : undefined
+                }
+              />
+            );
+          })}
+        </TimesSection>
+      </ScrollView>
+    </SafeAreaView>
   );
 }

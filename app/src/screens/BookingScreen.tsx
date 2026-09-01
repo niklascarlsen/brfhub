@@ -11,6 +11,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 
 import {getBookingWindow} from '@/api/bookingWindow';
 import {
@@ -172,14 +173,18 @@ export function BookingScreen() {
         ) ?? null)
       : null;
 
+  const showPicker = resources.length > 0 && resourceId;
+
   return (
-    <View className='flex-1 bg-theme-bg'>
-      {resources.length > 0 && resourceId ? (
-        <ResourcePicker
-          resources={resources}
-          selectedId={resourceId}
-          onSelect={setSelectedResourceId}
-        />
+    <SafeAreaView className='flex-1 bg-theme-bg' edges={['top']}>
+      {showPicker ? (
+        <View className='pb-3 pt-1'>
+          <ResourcePicker
+            resources={resources}
+            selectedId={resourceId}
+            onSelect={setSelectedResourceId}
+          />
+        </View>
       ) : null}
       {window && isoDate ? (
         <DatePicker
@@ -190,55 +195,54 @@ export function BookingScreen() {
         />
       ) : null}
       <ScrollView
-        className='w-full flex-1 px-5 pt-2'
-        contentContainerClassName='w-full grow pb-8'
+        className='w-full flex-1'
+        contentContainerClassName='w-full grow px-5 pb-8 pt-4'
       >
-        <Text className='mb-1 mt-2 text-2xl font-semibold capitalize tracking-tight text-theme-ink'>
+        <Text className='text-[27px] font-semibold tracking-tight text-theme-ink'>
           {isoDate ? formatLongDate(isoDate) : ''}
         </Text>
         {resource?.hasDryer ? (
-          <Text className='mb-1 text-sm font-medium text-theme-accent'>
+          <Text className='mt-1 text-[13px] font-medium text-theme-accent'>
             Med torktumlare
           </Text>
         ) : null}
-        <Text className='mb-5 text-sm text-theme-muted'>
-          Välj en ledig lucka
-        </Text>
-        {error ? (
-          <View className='items-center py-12'>
-            <Text className='mb-3 text-center text-sm text-theme-muted'>
-              {error}
-            </Text>
-            <Pressable onPress={reload} className='active:opacity-60'>
-              <Text className='text-base font-semibold text-theme-accent'>
-                Försök igen
+        <View className='mt-5 gap-[9px]'>
+          {error ? (
+            <View className='items-center py-12'>
+              <Text className='mb-3 text-center text-sm text-theme-muted'>
+                {error}
               </Text>
-            </Pressable>
-          </View>
-        ) : !ready ? (
-          <View className='items-center py-12'>
-            <ActivityIndicator />
-          </View>
-        ) : slots.length === 0 ? (
-          <View className='items-center py-12'>
-            <Text className='text-center text-sm text-theme-muted'>
-              Inga tider kvar den här dagen
-            </Text>
-          </View>
-        ) : (
-          slots.map((slot) => (
-            <TimeSlotRow
-              key={slot.id}
-              slot={slot}
-              onPress={() =>
-                resource
-                  ? confirmBook(slot, isoDate, resource, active)
-                  : undefined
-              }
-            />
-          ))
-        )}
+              <Pressable onPress={reload} className='active:opacity-60'>
+                <Text className='text-base font-semibold text-theme-accent'>
+                  Försök igen
+                </Text>
+              </Pressable>
+            </View>
+          ) : !ready ? (
+            <View className='items-center py-12'>
+              <ActivityIndicator />
+            </View>
+          ) : slots.length === 0 ? (
+            <View className='items-center py-12'>
+              <Text className='text-center text-sm text-theme-muted'>
+                Inga tider kvar den här dagen
+              </Text>
+            </View>
+          ) : (
+            slots.map((slot) => (
+              <TimeSlotRow
+                key={slot.id}
+                slot={slot}
+                onPress={() =>
+                  resource
+                    ? confirmBook(slot, isoDate, resource, active)
+                    : undefined
+                }
+              />
+            ))
+          )}
+        </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }

@@ -1,11 +1,15 @@
 const theme = {
-  bg: '#F3EFE6',
-  surface: '#FFFCF7',
-  ink: '#1A1916',
-  muted: '#504C44',
-  line: '#E5DED3',
-  accent: '#1E5A55',
-  mist: '#E4F0EE',
+  bg: '#F7F5F1',
+  surface: '#FFFFFF',
+  sunk: '#F2EFE9',
+  track: '#EAE6DE',
+  line: '#E8E4DC',
+  edge: '#DAD5CB',
+  faint: '#A19B90',
+  muted: '#77726A',
+  ink: '#14130F',
+  accent: '#4E6553',
+  mist: '#ECF0EA',
 };
 
 module.exports = {theme};

@@ -1,4 +1,18 @@
 const WEEKDAYS = ['sön', 'mån', 'tis', 'ons', 'tor', 'fre', 'lör'];
+const MONTHS = [
+  'jan',
+  'feb',
+  'mar',
+  'apr',
+  'maj',
+  'jun',
+  'jul',
+  'aug',
+  'sep',
+  'okt',
+  'nov',
+  'dec',
+];
 
 export function toIsoDate(date: Date): string {
   const year = date.getFullYear();
@@ -27,13 +41,11 @@ export function daysBetween(from: string, to: string): Date[] {
 }
 
 function formatMonthHeading(date: Date): string {
+  const month = MONTHS[date.getMonth()];
   const now = new Date();
   const includeYear = date.getFullYear() !== now.getFullYear();
 
-  return date.toLocaleDateString('sv-SE', {
-    month: 'long',
-    ...(includeYear ? {year: 'numeric'} : {}),
-  });
+  return includeYear ? `${month} ${date.getFullYear()}` : month;
 }
 
 export function groupDaysByMonth(

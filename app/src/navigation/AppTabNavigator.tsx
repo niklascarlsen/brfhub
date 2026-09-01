@@ -1,4 +1,5 @@
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 import {BookingScreen} from '@/screens/BookingScreen';
 import {ReservationScreen} from '@/screens/ReservationScreen';
@@ -15,28 +16,35 @@ export default function AppTabNavigator() {
   return (
     <Tab.Navigator
       screenOptions={{
-        headerStyle: {backgroundColor: theme.bg},
-        headerShadowVisible: false,
-        headerTintColor: theme.ink,
-        headerTitleStyle: {fontWeight: '600', fontSize: 17},
+        headerShown: false,
         tabBarStyle: {
           backgroundColor: theme.surface,
           borderTopColor: theme.line,
         },
-        tabBarActiveTintColor: theme.accent,
-        tabBarInactiveTintColor: theme.muted,
-        tabBarLabelStyle: {fontSize: 12, fontWeight: '600'},
+        tabBarActiveTintColor: theme.ink,
+        tabBarInactiveTintColor: theme.faint,
+        tabBarLabelStyle: {fontSize: 11, fontWeight: '600', marginTop: 4},
       }}
     >
       <Tab.Screen
         name='Booking'
         component={BookingScreen}
-        options={{title: 'Boka'}}
+        options={{
+          title: 'Boka',
+          tabBarIcon: ({color, size}) => (
+            <Ionicons name='calendar-outline' size={size} color={color} />
+          ),
+        }}
       />
       <Tab.Screen
         name='Reservation'
         component={ReservationScreen}
-        options={{title: 'Mina tider'}}
+        options={{
+          title: 'Mina tider',
+          tabBarIcon: ({color, size}) => (
+            <Ionicons name='time-outline' size={size} color={color} />
+          ),
+        }}
       />
     </Tab.Navigator>
   );
