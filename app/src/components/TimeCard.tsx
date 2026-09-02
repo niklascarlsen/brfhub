@@ -1,5 +1,6 @@
 import {Pressable, Text, View} from 'react-native';
 
+import {SkeletonBar} from '@/components/Skeleton';
 import {formatLongDate, timeRange} from '@/lib/dates';
 
 type Badge = {label: string; tone: 'accent' | 'muted'};
@@ -100,6 +101,19 @@ export function TimeCard({
           ) : null}
         </View>
       ) : null}
+    </View>
+  );
+}
+
+export function TimeCardSkeleton() {
+  return (
+    <View className='flex-row items-center gap-3.5 rounded-2xl border border-theme-line bg-theme-surface px-[18px] py-4'>
+      <View className='min-w-0 flex-1 gap-1'>
+        <SkeletonBar className='h-4 w-[92px]' />
+        <SkeletonBar className='h-[26px] w-[152px]' />
+        <SkeletonBar className='h-4 w-[124px]' />
+      </View>
+      <View className='h-11 w-[94px] rounded-full bg-theme-sunk' />
     </View>
   );
 }

@@ -8,7 +8,7 @@ import {db, pool} from '../db/index.js';
 import {bookings, resources, subscriptions, timeSlots} from '../db/schema.js';
 import {slotEndsAt, toIsoDate} from '../lib/time.js';
 import type {Resource} from '../resource/resource.dto.js';
-import type {Slot} from '../slot/slot.dto.js';
+import type {Slots} from '../slot/slot.dto.js';
 import type {Subscription} from '../subscription/subscription.dto.js';
 import {listSubscribers} from '../subscription/subscription.service.js';
 import type {Booking, CreatedBooking} from './booking.dto.js';
@@ -307,13 +307,13 @@ test('opens a started booking for walk-in without freeing the apartment', async 
 
   const listed = await slotsFor(NEIGHBOUR, today);
   assert.equal(
-    listed.json<Slot[]>().find((slot) => slot.id === 'all-day')?.status,
+    listed.json<Slots>().slots.find((slot) => slot.id === 'all-day')?.status,
     'walkin',
   );
 
   const own = await slotsFor(TENANT, today);
   assert.equal(
-    own.json<Slot[]>().find((slot) => slot.id === 'all-day')?.status,
+    own.json<Slots>().slots.find((slot) => slot.id === 'all-day')?.status,
     'walkin',
   );
 });
@@ -528,11 +528,11 @@ test('lets two apartments book the same slot in different laundry rooms', async 
   const laundry2 = await slotsFor(NEIGHBOUR, bookableDate, LAUNDRY_2);
 
   assert.equal(
-    laundry1.json<Slot[]>().find((slot) => slot.id === '07-10')?.status,
+    laundry1.json<Slots>().slots.find((slot) => slot.id === '07-10')?.status,
     'mine',
   );
   assert.equal(
-    laundry2.json<Slot[]>().find((slot) => slot.id === '07-10')?.status,
+    laundry2.json<Slots>().slots.find((slot) => slot.id === '07-10')?.status,
     'mine',
   );
 });
@@ -645,14 +645,35 @@ test('keeps the laundry queue off the other room', async () => {
 
   const otherRoom = await slotsFor(TENANT, bookableDate, LAUNDRY_2);
   assert.equal(
-    otherRoom.json<Slot[]>().find((slot) => slot.id === '07-10')?.status,
+    otherRoom.json<Slots>().slots.find((slot) => slot.id === '07-10')?.status,
     'available',
   );
 
   const queued = await slotsFor(TENANT, bookableDate, LAUNDRY_1);
-  const slot = queued.json<Slot[]>().find((item) => item.id === '07-10');
+  const slot = queued.json<Slots>().slots.find((item) => item.id === '07-10');
   assert.equal(slot?.status, 'booked');
   assert.ok(slot?.status === 'booked' && slot.subscriptionId);
+});
+
+test('slots report the active booking of the same kind', async () => {
+  const before = await slotsFor(TENANT, bookableDate, LAUNDRY_2);
+  assert.equal(before.json<Slots>().active, null);
+
+  await book(TENANT, {date: bookableDate, slotId: '07-10'});
+
+  const sameKind = await slotsFor(TENANT, bookableDate, LAUNDRY_2);
+  assert.deepEqual(sameKind.json<Slots>().active, {released: false});
+
+  const otherKind = await slotsFor(TENANT, bookableDate, DRYING);
+  assert.equal(otherKind.json<Slots>().active, null);
+});
+
+test('slots report a released booking as still active', async () => {
+  const {id} = await insertStartedBooking(TENANT);
+  await cancel(TENANT, id);
+
+  const listed = await slotsFor(TENANT, bookableDate, LAUNDRY_2);
+  assert.deepEqual(listed.json<Slots>().active, {released: true});
 });
 
 test('a started booking in one room does not occupy the other', async () => {
@@ -660,13 +681,13 @@ test('a started booking in one room does not occupy the other', async () => {
 
   const other = await slotsFor(NEIGHBOUR, today, LAUNDRY_2);
   assert.equal(
-    other.json<Slot[]>().find((slot) => slot.id === 'all-day')?.status,
+    other.json<Slots>().slots.find((slot) => slot.id === 'all-day')?.status,
     'walkin',
   );
 
   const ownOther = await slotsFor(TENANT, today, LAUNDRY_2);
   assert.equal(
-    ownOther.json<Slot[]>().find((slot) => slot.id === 'all-day')?.status,
+    ownOther.json<Slots>().slots.find((slot) => slot.id === 'all-day')?.status,
     'walkin',
   );
 });

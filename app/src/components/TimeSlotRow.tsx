@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import {Pressable, Text, View} from 'react-native';
 
 import type {Slot} from '@/api/client';
+import {Skeleton, SkeletonBar} from '@/components/Skeleton';
 import {timeRange} from '@/lib/dates';
 import {exhaustive} from '@/lib/exhaustive';
 import {theme} from '../../theme';
@@ -108,5 +109,26 @@ export function TimeSlotRow({slot, onPress}: TimeSlotRowProps) {
         ) : null}
       </View>
     </Pressable>
+  );
+}
+
+function TimeSlotRowSkeleton() {
+  return (
+    <View className='h-[66px] w-full flex-row items-center justify-between rounded-2xl border border-theme-line bg-theme-surface px-[18px]'>
+      <SkeletonBar className='h-3.5 w-[108px]' />
+      <SkeletonBar className='h-3 w-11' />
+    </View>
+  );
+}
+
+export function TimeSlotListSkeleton({rows}: {rows: number}) {
+  return (
+    <Skeleton>
+      <View className='gap-[9px]'>
+        {Array.from({length: rows}, (_, row) => (
+          <TimeSlotRowSkeleton key={row} />
+        ))}
+      </View>
+    </Skeleton>
   );
 }

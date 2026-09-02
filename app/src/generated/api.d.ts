@@ -118,7 +118,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Slot"][];
+                        "application/json": components["schemas"]["Slots"];
                     };
                 };
                 /** @description Default Response */
@@ -968,6 +968,12 @@ export interface components {
             bookingId: string;
             started: boolean;
         };
+        SlotsInput: {
+            slots: components["schemas"]["SlotInput"][];
+            active: {
+                released: boolean;
+            } | null;
+        };
         BookingWindowInput: {
             /** Format: date */
             today: string;
@@ -1087,6 +1093,12 @@ export interface components {
             /** Format: uuid */
             bookingId: string;
             started: boolean;
+        };
+        Slots: {
+            slots: components["schemas"]["Slot"][];
+            active: {
+                released: boolean;
+            } | null;
         };
         BookingWindow: {
             /** Format: date */

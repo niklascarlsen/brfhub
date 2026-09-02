@@ -5,7 +5,7 @@ import {getUserId} from '../lib/user.js';
 import {
   bookingWindowSchema,
   listSlotsQuerySchema,
-  slotSchema,
+  slotsSchema,
 } from './slot.dto.js';
 import {getBookingWindow, listSlots} from './slot.service.js';
 
@@ -16,7 +16,7 @@ export const slotRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         querystring: listSlotsQuerySchema,
         response: {
-          200: slotSchema.array(),
+          200: slotsSchema,
           ...errorResponses,
         },
       },

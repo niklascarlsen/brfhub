@@ -3,6 +3,7 @@ import {Alert} from 'react-native';
 import {
   api,
   unwrap,
+  type ActiveBooking,
   type Booking,
   type Resource,
   type Slot,
@@ -160,7 +161,7 @@ export function useBookingActions(onChange?: () => void) {
     );
   }
 
-  function confirmBookable(target: Bookable, active: Booking | null) {
+  function confirmBookable(target: Bookable, active: ActiveBooking | null) {
     if (active?.released) {
       Alert.alert(
         'Du har redan en bokning',
@@ -186,7 +187,7 @@ export function useBookingActions(onChange?: () => void) {
     slot: Slot,
     date: string,
     resource: Resource,
-    active: Booking | null,
+    active: ActiveBooking | null,
   ) {
     const times = {
       date,

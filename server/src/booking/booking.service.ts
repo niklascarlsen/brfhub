@@ -1,4 +1,4 @@
-import {and, asc, eq, gt, sql} from 'drizzle-orm';
+import {and, asc, eq, sql} from 'drizzle-orm';
 import type {FastifyBaseLogger} from 'fastify';
 
 import {isUniqueViolation} from '../db/errors.js';
@@ -14,6 +14,7 @@ import {
 import {getResource} from '../resource/resource.service.js';
 import {getBookingWindow, isWithinBookingWindow} from '../slot/slot.service.js';
 import type {Booking, CreatedBooking} from './booking.dto.js';
+import {stillActive} from './booking.query.js';
 import {notifySlotReleased} from './booking.notification.js';
 
 const BOOKING_LOCK_NAMESPACE = 881001;
@@ -23,10 +24,6 @@ const resourceFields = {
   resourceName: resources.name,
   resourceKind: resources.kind,
 };
-
-function stillActive(userId: string) {
-  return and(eq(bookings.userId, userId), gt(bookings.endsAt, sql`now()`));
-}
 
 export async function deleteBooking(
   id: string,

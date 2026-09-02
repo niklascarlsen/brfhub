@@ -1,11 +1,13 @@
 import {and, asc, eq, isNull, sql} from 'drizzle-orm';
 
 import {db} from '../db/index.js';
-import {bookings, subscriptions, timeSlots} from '../db/schema.js';
+import {bookings, resources, subscriptions, timeSlots} from '../db/schema.js';
+import {stillActive} from '../booking/booking.query.js';
 import {appError} from '../lib/errors.js';
 import {bookingWindowSql, slotEndsAt, slotHasStarted} from '../lib/time.js';
+import type {Resource} from '../resource/resource.dto.js';
 import {getResource} from '../resource/resource.service.js';
-import type {BookingWindow, Slot} from './slot.dto.js';
+import type {BookingWindow, Slot, Slots} from './slot.dto.js';
 
 export async function getBookingWindow(): Promise<BookingWindow> {
   const {today, from, to} = bookingWindowSql();
@@ -105,6 +107,17 @@ function toSlot(row: SlotRow, userId: string): Slot {
   };
 }
 
+async function selectActiveBooking(userId: string, kind: Resource['kind']) {
+  const [row] = await db
+    .select({released: sql<boolean>`${bookings.releasedAt} is not null`})
+    .from(bookings)
+    .innerJoin(resources, eq(bookings.resourceId, resources.id))
+    .where(and(stillActive(userId), eq(resources.kind, kind)))
+    .limit(1);
+
+  return row ?? null;
+}
+
 export async function listSlots({
   userId,
   date,
@@ -113,8 +126,10 @@ export async function listSlots({
   userId: string;
   date: string;
   resourceId: string;
-}): Promise<Slot[]> {
-  if (!(await getResource(resourceId))) {
+}): Promise<Slots> {
+  const resource = await getResource(resourceId);
+
+  if (!resource) {
     throw appError('NOT_FOUND', 'Unknown resource');
   }
 
@@ -122,7 +137,10 @@ export async function listSlots({
     throw appError('OUTSIDE_BOOKING_WINDOW');
   }
 
-  const rows = await selectSlotRows(userId, date, resourceId);
+  const [rows, active] = await Promise.all([
+    selectSlotRows(userId, date, resourceId),
+    selectActiveBooking(userId, resource.kind),
+  ]);
 
-  return rows.map((row) => toSlot(row, userId));
+  return {slots: rows.map((row) => toSlot(row, userId)), active};
 }

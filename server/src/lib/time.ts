@@ -10,7 +10,7 @@ export function toIsoDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-export function slotStartsAt(
+function slotStartsAt(
   date: string | PgColumn,
   slotStart: string | PgColumn,
 ): SQL<Date> {

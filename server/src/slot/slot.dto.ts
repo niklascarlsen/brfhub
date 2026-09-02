@@ -11,7 +11,7 @@ const slotTimes = {
   end: z.string(),
 };
 
-export const slotSchema = z.discriminatedUnion('status', [
+const slotSchema = z.discriminatedUnion('status', [
   z.object({
     ...slotTimes,
     status: z.literal('available'),
@@ -35,6 +35,11 @@ export const slotSchema = z.discriminatedUnion('status', [
   }),
 ]);
 
+export const slotsSchema = z.object({
+  slots: slotSchema.array(),
+  active: z.object({released: z.boolean()}).nullable(),
+});
+
 export const bookingWindowSchema = z.object({
   today: z.iso.date(),
   from: z.iso.date(),
@@ -42,7 +47,9 @@ export const bookingWindowSchema = z.object({
 });
 
 export type Slot = z.infer<typeof slotSchema>;
+export type Slots = z.infer<typeof slotsSchema>;
 export type BookingWindow = z.infer<typeof bookingWindowSchema>;
 
 z.globalRegistry.add(slotSchema, {id: 'Slot'});
+z.globalRegistry.add(slotsSchema, {id: 'Slots'});
 z.globalRegistry.add(bookingWindowSchema, {id: 'BookingWindow'});

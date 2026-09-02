@@ -12,18 +12,32 @@ export type AppTabParamList = {
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
 
+const BAR_HEIGHT = 49;
+const ITEM_PADDING = 5;
+const ICON_SLOT = 25;
+const ICON_GLYPH = 23;
+const LABEL_GAP = 1;
+const LABEL_LINE = BAR_HEIGHT - ITEM_PADDING * 2 - ICON_SLOT - LABEL_GAP;
+
 export default function AppTabNavigator() {
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: theme.surface,
+          backgroundColor: theme.bg,
           borderTopColor: theme.line,
+          elevation: 0,
         },
         tabBarActiveTintColor: theme.ink,
         tabBarInactiveTintColor: theme.faint,
-        tabBarLabelStyle: {fontSize: 11, fontWeight: '600', marginTop: 4},
+        tabBarIconStyle: {width: ICON_SLOT, height: ICON_SLOT},
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '600',
+          lineHeight: LABEL_LINE,
+          marginTop: LABEL_GAP,
+        },
       }}
     >
       <Tab.Screen
@@ -31,8 +45,8 @@ export default function AppTabNavigator() {
         component={BookingScreen}
         options={{
           title: 'Boka',
-          tabBarIcon: ({color, size}) => (
-            <Ionicons name='calendar-outline' size={size} color={color} />
+          tabBarIcon: ({color}) => (
+            <Ionicons name='calendar-outline' size={ICON_GLYPH} color={color} />
           ),
         }}
       />
@@ -41,8 +55,8 @@ export default function AppTabNavigator() {
         component={ReservationScreen}
         options={{
           title: 'Mina tider',
-          tabBarIcon: ({color, size}) => (
-            <Ionicons name='time-outline' size={size} color={color} />
+          tabBarIcon: ({color}) => (
+            <Ionicons name='time-outline' size={ICON_GLYPH} color={color} />
           ),
         }}
       />

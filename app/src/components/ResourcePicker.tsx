@@ -22,7 +22,7 @@ export function ResourcePicker({
   onSelect,
 }: ResourcePickerProps) {
   return (
-    <View className='mx-5 flex-row gap-[3px] rounded-xl bg-theme-track p-[3px]'>
+    <View className='mx-5 flex-row gap-[3px] rounded-xl bg-theme-track/80 p-[3px]'>
       {resources.map((resource) => {
         const selected = resource.id === selectedId;
 

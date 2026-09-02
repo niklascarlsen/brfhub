@@ -30,12 +30,12 @@ export function DatePicker({
   onSelect,
 }: DatePickerProps) {
   const {width} = useWindowDimensions();
-  const selectedIso = toIsoDate(selectedDate);
-  const months = groupDaysByMonth(days);
   const dayWidth =
     (width - HORIZONTAL_PADDING * 2 - DAY_GAP * (DAYS_VISIBLE - 1)) /
     DAYS_VISIBLE;
   const circleSize = Math.round(dayWidth * CIRCLE_RATIO);
+  const selectedIso = toIsoDate(selectedDate);
+  const months = groupDaysByMonth(days);
 
   return (
     <ScrollView

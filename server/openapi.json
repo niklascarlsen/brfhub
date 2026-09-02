@@ -380,6 +380,39 @@
           }
         ]
       },
+      "SlotsInput": {
+        "type": "object",
+        "properties": {
+          "slots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SlotInput"
+            }
+          },
+          "active": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "released": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "released"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "slots",
+          "active"
+        ]
+      },
       "BookingWindowInput": {
         "type": "object",
         "properties": {
@@ -873,6 +906,41 @@
           }
         ]
       },
+      "Slots": {
+        "type": "object",
+        "properties": {
+          "slots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Slot"
+            }
+          },
+          "active": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "released": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "released"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "slots",
+          "active"
+        ],
+        "additionalProperties": false
+      },
       "BookingWindow": {
         "type": "object",
         "properties": {
@@ -1096,10 +1164,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Slot"
-                  }
+                  "$ref": "#/components/schemas/Slots"
                 }
               }
             }
