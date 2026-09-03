@@ -16,7 +16,8 @@
     "types:gen": "tsx scripts/generate-types.ts",
     "types:check": "tsx scripts/generate-types.ts && git diff --exit-code -- openapi.json ../app/src/generated/api.d.ts",
     "format": "prettier --write .",
-    "test": "export DATABASE_URL=postgresql://postgres:postgres@localhost:5434/booking_test; drizzle-kit push --force && node --import tsx --test --test-concurrency=1 \"src/**/*.test.ts\""
+    "test": "export DATABASE_URL=postgresql://postgres:postgres@localhost:5434/booking_test; drizzle-kit push --force && node --import tsx --test --test-concurrency=1 \"src/**/*.test.ts\"",
+    "check": "prettier --check . && npm run typecheck && npm run types:check"
   },
   "dependencies": {
     "@fastify/cors": "^11.3.0",

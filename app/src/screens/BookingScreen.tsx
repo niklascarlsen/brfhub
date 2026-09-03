@@ -10,7 +10,7 @@ import {useConfig} from '@/config';
 import {useBookingActions} from '@/hooks/useBookingActions';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useResetWhenChanged} from '@/hooks/useResetWhenChanged';
-import {formatLongDate} from '@/lib/dates';
+import {formatLongDate, isWithinBookingWindow} from '@/lib/dates';
 import type {AppTabParamList} from '@/navigation/AppTabNavigator';
 
 function fetchDay(isoDate: string, resourceId: string) {
@@ -36,8 +36,7 @@ export function BookingScreen() {
     setResourceId(routeResourceId ?? resources[0].id);
   });
 
-  const date =
-    chosen >= window.from && chosen <= window.to ? chosen : window.today;
+  const date = isWithinBookingWindow(chosen, window) ? chosen : window.today;
   const resource =
     resources.find((item) => item.id === resourceId) ?? resources[0];
 
@@ -55,7 +54,7 @@ export function BookingScreen() {
         resources={resources}
         resource={resource}
         onSelectResource={setResourceId}
-        window={window}
+        bookingWindow={window}
         isoDate={date}
         onSelectDate={setChosen}
       />

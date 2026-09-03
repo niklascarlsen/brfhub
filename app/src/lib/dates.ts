@@ -1,3 +1,5 @@
+import type {BookingWindow} from '@/api/client';
+
 const WEEKDAYS = ['sön', 'mån', 'tis', 'ons', 'tor', 'fre', 'lör'];
 const MONTHS = [
   'jan',
@@ -26,6 +28,13 @@ export function fromIsoDate(isoDate: string): Date {
   return new Date(year, month - 1, day);
 }
 
+export function isWithinBookingWindow(
+  isoDate: string,
+  window: BookingWindow,
+): boolean {
+  return isoDate >= window.from && isoDate <= window.to;
+}
+
 export function daysBetween(from: string, to: string): Date[] {
   const days: Date[] = [];
 
@@ -40,17 +49,18 @@ export function daysBetween(from: string, to: string): Date[] {
   return days;
 }
 
-function formatMonthHeading(date: Date): string {
+function formatMonthHeading(date: Date, currentYear: number): string {
   const month = MONTHS[date.getMonth()];
-  const now = new Date();
-  const includeYear = date.getFullYear() !== now.getFullYear();
+  const includeYear = date.getFullYear() !== currentYear;
 
   return includeYear ? `${month} ${date.getFullYear()}` : month;
 }
 
 export function groupDaysByMonth(
   days: Date[],
+  todayIso: string,
 ): {key: string; label: string; days: Date[]}[] {
+  const currentYear = fromIsoDate(todayIso).getFullYear();
   const groups: {key: string; label: string; days: Date[]}[] = [];
 
   for (const day of days) {
@@ -60,7 +70,11 @@ export function groupDaysByMonth(
     if (last?.key === key) {
       last.days.push(day);
     } else {
-      groups.push({key, label: formatMonthHeading(day), days: [day]});
+      groups.push({
+        key,
+        label: formatMonthHeading(day, currentYear),
+        days: [day],
+      });
     }
   }
 

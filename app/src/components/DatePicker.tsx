@@ -11,7 +11,7 @@ import {getWeekdayLabel, groupDaysByMonth, toIsoDate} from '@/lib/dates';
 
 type DatePickerProps = {
   days: Date[];
-  selectedDate: Date;
+  selectedIso: string;
   todayIso: string;
   onSelect: (date: Date) => void;
 };
@@ -25,7 +25,7 @@ const tabularNums = {fontVariant: ['tabular-nums' as const]};
 
 export function DatePicker({
   days,
-  selectedDate,
+  selectedIso,
   todayIso,
   onSelect,
 }: DatePickerProps) {
@@ -34,8 +34,7 @@ export function DatePicker({
     (width - HORIZONTAL_PADDING * 2 - DAY_GAP * (DAYS_VISIBLE - 1)) /
     DAYS_VISIBLE;
   const circleSize = Math.round(dayWidth * CIRCLE_RATIO);
-  const selectedIso = toIsoDate(selectedDate);
-  const months = groupDaysByMonth(days);
+  const months = groupDaysByMonth(days, todayIso);
 
   return (
     <ScrollView
