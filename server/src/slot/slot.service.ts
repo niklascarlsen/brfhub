@@ -1,23 +1,34 @@
 import {and, asc, eq, isNull, sql} from 'drizzle-orm';
 
 import {db} from '../db/index.js';
-import {bookings, resources, subscriptions, timeSlots} from '../db/schema.js';
+import {
+  bookings,
+  organizations,
+  resourceSlots,
+  resources,
+  subscriptions,
+} from '../db/schema.js';
 import {stillActive} from '../booking/booking.query.js';
 import {appError} from '../lib/errors.js';
 import {bookingWindowSql, slotEndsAt, slotHasStarted} from '../lib/time.js';
-import type {Resource} from '../resource/resource.dto.js';
-import {getResource} from '../resource/resource.service.js';
+import type {Member} from '../lib/user.js';
+import {
+  getResource,
+  type BookableResource,
+} from '../resource/resource.service.js';
 import type {BookingWindow, Slot, Slots} from './slot.dto.js';
 
-export async function getBookingWindow(): Promise<BookingWindow> {
-  const {today, from, to} = bookingWindowSql();
-  const result = await db.execute<BookingWindow>(
-    sql`select ${today} as "today", ${from} as "from", ${to} as "to"`,
-  );
+export async function getBookingWindow(
+  organizationId: string,
+): Promise<BookingWindow> {
+  const {today, from, to} = bookingWindowSql(organizations.bookingWindowDays);
+  const [row] = await db
+    .select({today, from, to})
+    .from(organizations)
+    .where(eq(organizations.id, organizationId));
 
-  const row = result.rows[0];
   if (!row) {
-    throw new Error('Booking window query returned no row');
+    throw new Error(`Unknown organization ${organizationId}`);
   }
 
   return row;
@@ -30,23 +41,22 @@ export function isWithinBookingWindow(
   return date >= window.from && date <= window.to;
 }
 
-function selectSlotRows(userId: string, date: string, resourceId: string) {
+function selectSlotRows(memberId: string, date: string, resourceId: string) {
   return db
     .select({
-      id: timeSlots.id,
-      start: timeSlots.start,
-      end: timeSlots.end,
-      started: slotHasStarted(date, timeSlots.start),
+      start: resourceSlots.start,
+      end: resourceSlots.end,
+      started: slotHasStarted(date, resourceSlots.start),
       bookingId: bookings.id,
-      bookingUserId: bookings.userId,
+      bookingMemberId: bookings.memberId,
       subscriptionId: subscriptions.id,
     })
-    .from(timeSlots)
+    .from(resourceSlots)
     .leftJoin(
       bookings,
       and(
-        eq(bookings.slotId, timeSlots.id),
-        eq(bookings.resourceId, resourceId),
+        eq(bookings.resourceId, resourceSlots.resourceId),
+        eq(bookings.start, resourceSlots.start),
         eq(bookings.date, date),
         isNull(bookings.releasedAt),
       ),
@@ -54,23 +64,27 @@ function selectSlotRows(userId: string, date: string, resourceId: string) {
     .leftJoin(
       subscriptions,
       and(
-        eq(subscriptions.slotId, timeSlots.id),
-        eq(subscriptions.resourceId, resourceId),
+        eq(subscriptions.resourceId, resourceSlots.resourceId),
+        eq(subscriptions.start, resourceSlots.start),
         eq(subscriptions.date, date),
-        eq(subscriptions.userId, userId),
+        eq(subscriptions.memberId, memberId),
       ),
     )
-    .where(sql`${slotEndsAt(date, timeSlots.end)} > now()`)
-    .orderBy(asc(timeSlots.start));
+    .where(
+      and(
+        eq(resourceSlots.resourceId, resourceId),
+        sql`${slotEndsAt(date, resourceSlots.end, resourceSlots.endOffsetDays)} > now()`,
+      ),
+    )
+    .orderBy(asc(resourceSlots.start));
 }
 
 type SlotRow = Awaited<ReturnType<typeof selectSlotRows>>[number];
 
-function toSlot(row: SlotRow, userId: string): Slot {
+function toSlot(row: SlotRow, memberId: string): Slot {
   if (!row.bookingId) {
     if (row.started) {
       return {
-        id: row.id,
         start: row.start,
         end: row.end,
         status: 'walkin',
@@ -78,7 +92,6 @@ function toSlot(row: SlotRow, userId: string): Slot {
     }
 
     return {
-      id: row.id,
       start: row.start,
       end: row.end,
       status: 'available',
@@ -86,9 +99,8 @@ function toSlot(row: SlotRow, userId: string): Slot {
     };
   }
 
-  if (row.bookingUserId === userId) {
+  if (row.bookingMemberId === memberId) {
     return {
-      id: row.id,
       start: row.start,
       end: row.end,
       status: 'mine',
@@ -98,7 +110,6 @@ function toSlot(row: SlotRow, userId: string): Slot {
   }
 
   return {
-    id: row.id,
     start: row.start,
     end: row.end,
     status: 'booked',
@@ -107,40 +118,49 @@ function toSlot(row: SlotRow, userId: string): Slot {
   };
 }
 
-async function selectActiveBooking(userId: string, kind: Resource['kind']) {
+async function selectActiveBooking(
+  memberId: string,
+  resource: BookableResource,
+) {
+  if (resource.maxActive !== 1) {
+    return null;
+  }
+
   const [row] = await db
     .select({released: sql<boolean>`${bookings.releasedAt} is not null`})
     .from(bookings)
     .innerJoin(resources, eq(bookings.resourceId, resources.id))
-    .where(and(stillActive(userId), eq(resources.kind, kind)))
+    .where(and(stillActive(memberId), eq(resources.kindId, resource.kind)))
     .limit(1);
 
   return row ?? null;
 }
 
 export async function listSlots({
-  userId,
+  member,
   date,
   resourceId,
 }: {
-  userId: string;
+  member: Member;
   date: string;
   resourceId: string;
 }): Promise<Slots> {
-  const resource = await getResource(resourceId);
+  const resource = await getResource(member.organizationId, resourceId);
 
   if (!resource) {
     throw appError('NOT_FOUND', 'Unknown resource');
   }
 
-  if (!isWithinBookingWindow(date, await getBookingWindow())) {
+  if (
+    !isWithinBookingWindow(date, await getBookingWindow(member.organizationId))
+  ) {
     throw appError('OUTSIDE_BOOKING_WINDOW');
   }
 
   const [rows, active] = await Promise.all([
-    selectSlotRows(userId, date, resourceId),
-    selectActiveBooking(userId, resource.kind),
+    selectSlotRows(member.id, date, resourceId),
+    selectActiveBooking(member.id, resource),
   ]);
 
-  return {slots: rows.map((row) => toSlot(row, userId)), active};
+  return {slots: rows.map((row) => toSlot(row, member.id)), active};
 }

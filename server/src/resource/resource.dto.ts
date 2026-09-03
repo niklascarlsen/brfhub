@@ -1,14 +1,12 @@
 import {z} from 'zod';
 
-import {RESOURCE_KINDS} from '../db/schema.js';
-
-const resourceKindSchema = z.enum(RESOURCE_KINDS);
+const resourceKindSchema = z.string();
 
 export const resourceSchema = z.object({
   id: z.string(),
   name: z.string(),
   kind: resourceKindSchema,
-  hasDryer: z.boolean(),
+  tags: z.array(z.string()),
 });
 
 export const resourceRefSchema = z.object({

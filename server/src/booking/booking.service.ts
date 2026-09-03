@@ -3,7 +3,12 @@ import type {FastifyBaseLogger} from 'fastify';
 
 import {isUniqueViolation} from '../db/errors.js';
 import {db} from '../db/index.js';
-import {bookings, resources, subscriptions, timeSlots} from '../db/schema.js';
+import {
+  bookings,
+  resourceSlots,
+  resources,
+  subscriptions,
+} from '../db/schema.js';
 import {appError} from '../lib/errors.js';
 import {
   asIsoText,
@@ -11,6 +16,7 @@ import {
   slotHasEnded,
   slotHasStarted,
 } from '../lib/time.js';
+import type {Member} from '../lib/user.js';
 import {getResource} from '../resource/resource.service.js';
 import {getBookingWindow, isWithinBookingWindow} from '../slot/slot.service.js';
 import type {Booking, CreatedBooking} from './booking.dto.js';
@@ -22,28 +28,26 @@ const BOOKING_LOCK_NAMESPACE = 881001;
 const resourceFields = {
   resourceId: resources.id,
   resourceName: resources.name,
-  resourceKind: resources.kind,
+  resourceKind: resources.kindId,
 };
 
 export async function deleteBooking(
   id: string,
-  userId: string,
+  memberId: string,
   log: FastifyBaseLogger,
 ): Promise<void> {
   const [existing] = await db
     .select({
-      userId: bookings.userId,
+      memberId: bookings.memberId,
       date: bookings.date,
-      slotId: bookings.slotId,
       resourceId: bookings.resourceId,
       resourceName: resources.name,
       releasedAt: bookings.releasedAt,
-      started: slotHasStarted(bookings.date, timeSlots.start),
-      start: timeSlots.start,
-      end: timeSlots.end,
+      started: slotHasStarted(bookings.date, bookings.start),
+      start: bookings.start,
+      end: bookings.end,
     })
     .from(bookings)
-    .innerJoin(timeSlots, eq(bookings.slotId, timeSlots.id))
     .innerJoin(resources, eq(bookings.resourceId, resources.id))
     .where(eq(bookings.id, id));
 
@@ -51,7 +55,7 @@ export async function deleteBooking(
     throw appError('NOT_FOUND', 'Booking not found');
   }
 
-  if (existing.userId !== userId) {
+  if (existing.memberId !== memberId) {
     throw appError('FORBIDDEN', 'Not your booking');
   }
 
@@ -73,7 +77,7 @@ export async function deleteBooking(
     .where(eq(bookings.id, id))
     .returning({
       date: bookings.date,
-      slotId: bookings.slotId,
+      start: bookings.start,
     });
 
   if (!removed) {
@@ -85,67 +89,66 @@ export async function deleteBooking(
       ...removed,
       resourceId: existing.resourceId,
       resourceName: existing.resourceName,
-      start: existing.start,
       end: existing.end,
     },
-    userId,
+    memberId,
     log,
   );
 }
 
-export function listBookings(userId: string): Promise<Booking[]> {
+export function listBookings(memberId: string): Promise<Booking[]> {
   return db
     .select({
       id: bookings.id,
       date: bookings.date,
-      slotId: bookings.slotId,
-      start: timeSlots.start,
-      end: timeSlots.end,
+      start: bookings.start,
+      end: bookings.end,
       endsAt: asIsoText(bookings.endsAt),
-      started: slotHasStarted(bookings.date, timeSlots.start),
+      started: slotHasStarted(bookings.date, bookings.start),
       released: sql<boolean>`${bookings.releasedAt} is not null`,
       ...resourceFields,
     })
     .from(bookings)
-    .innerJoin(timeSlots, eq(bookings.slotId, timeSlots.id))
     .innerJoin(resources, eq(bookings.resourceId, resources.id))
-    .where(stillActive(userId))
-    .orderBy(
-      asc(bookings.date),
-      asc(timeSlots.start),
-      asc(resources.sortOrder),
-    );
+    .where(stillActive(memberId))
+    .orderBy(asc(bookings.date), asc(bookings.start), asc(resources.sortOrder));
 }
 
 export async function createBooking({
-  userId,
+  member,
   date,
-  slotId,
+  start,
   resourceId,
   replaceExisting,
   log,
 }: {
-  userId: string;
+  member: Member;
   date: string;
-  slotId: string;
+  start: string;
   resourceId: string;
   replaceExisting: boolean;
   log: FastifyBaseLogger;
 }): Promise<CreatedBooking> {
-  const resource = await getResource(resourceId);
+  const resource = await getResource(member.organizationId, resourceId);
   if (!resource) {
     throw appError('NOT_FOUND', 'Unknown resource');
   }
 
   const [slot] = await db
     .select({
-      start: timeSlots.start,
-      end: timeSlots.end,
-      ended: slotHasEnded(date, timeSlots.end),
-      started: slotHasStarted(date, timeSlots.start),
+      start: resourceSlots.start,
+      end: resourceSlots.end,
+      endOffsetDays: resourceSlots.endOffsetDays,
+      ended: slotHasEnded(date, resourceSlots.end, resourceSlots.endOffsetDays),
+      started: slotHasStarted(date, resourceSlots.start),
     })
-    .from(timeSlots)
-    .where(eq(timeSlots.id, slotId));
+    .from(resourceSlots)
+    .where(
+      and(
+        eq(resourceSlots.resourceId, resourceId),
+        eq(resourceSlots.start, start),
+      ),
+    );
 
   if (!slot) {
     throw appError('NOT_FOUND', 'Unknown time slot');
@@ -159,54 +162,67 @@ export async function createBooking({
     throw appError('SLOT_STARTED');
   }
 
-  if (!isWithinBookingWindow(date, await getBookingWindow())) {
+  if (
+    !isWithinBookingWindow(date, await getBookingWindow(member.organizationId))
+  ) {
     throw appError('OUTSIDE_BOOKING_WINDOW');
   }
 
   const created = await db
     .transaction(async (tx) => {
       await tx.execute(
-        sql`select pg_advisory_xact_lock(${BOOKING_LOCK_NAMESPACE}, hashtext(${userId}))`,
+        sql`select pg_advisory_xact_lock(${BOOKING_LOCK_NAMESPACE}, hashtext(${member.id}))`,
       );
 
-      const [active] = await tx
+      const active = await tx
         .select({
           id: bookings.id,
           date: bookings.date,
-          slotId: bookings.slotId,
+          start: bookings.start,
+          end: bookings.end,
           resourceId: bookings.resourceId,
           resourceName: resources.name,
-          start: timeSlots.start,
-          end: timeSlots.end,
           releasedAt: bookings.releasedAt,
         })
         .from(bookings)
-        .innerJoin(timeSlots, eq(bookings.slotId, timeSlots.id))
         .innerJoin(resources, eq(bookings.resourceId, resources.id))
-        .where(and(stillActive(userId), eq(resources.kind, resource.kind)))
-        .limit(1);
+        .where(
+          and(stillActive(member.id), eq(resources.kindId, resource.kind)),
+        );
 
-      if (active && (active.releasedAt || !replaceExisting)) {
-        return undefined;
-      }
+      let replaced: (typeof active)[number] | null = null;
 
-      if (active) {
-        await tx.delete(bookings).where(eq(bookings.id, active.id));
+      if (active.length >= resource.maxActive) {
+        const [existing] = active;
+
+        if (
+          resource.maxActive !== 1 ||
+          !replaceExisting ||
+          !existing ||
+          existing.releasedAt
+        ) {
+          return undefined;
+        }
+
+        replaced = existing;
+        await tx.delete(bookings).where(eq(bookings.id, existing.id));
       }
 
       const [row] = await tx
         .insert(bookings)
         .values({
+          organizationId: member.organizationId,
+          memberId: member.id,
           date,
-          slotId,
+          start: slot.start,
+          end: slot.end,
           resourceId,
-          userId,
-          endsAt: slotEndsAt(date, slot.end),
+          endsAt: slotEndsAt(date, slot.end, slot.endOffsetDays),
         })
         .returning({
           id: bookings.id,
           date: bookings.date,
-          slotId: bookings.slotId,
+          start: bookings.start,
           endsAt: asIsoText(bookings.endsAt),
         });
 
@@ -218,35 +234,25 @@ export async function createBooking({
         .delete(subscriptions)
         .where(
           and(
-            eq(subscriptions.userId, userId),
+            eq(subscriptions.memberId, member.id),
             eq(subscriptions.resourceId, resourceId),
             eq(subscriptions.date, date),
-            eq(subscriptions.slotId, slotId),
+            eq(subscriptions.start, slot.start),
           ),
         );
 
       return {
         booking: {
           ...row,
-          start: slot.start,
           end: slot.end,
           started: false,
           released: false,
           resourceId: resource.id,
           resourceName: resource.name,
           resourceKind: resource.kind,
-          replacedId: active?.id ?? null,
+          replacedId: replaced?.id ?? null,
         },
-        replaced: active
-          ? {
-              date: active.date,
-              slotId: active.slotId,
-              resourceId: active.resourceId,
-              resourceName: active.resourceName,
-              start: active.start,
-              end: active.end,
-            }
-          : null,
+        replaced,
       };
     })
     .catch((error: unknown) => {
@@ -261,7 +267,7 @@ export async function createBooking({
   }
 
   if (created.replaced) {
-    await notifySlotReleased(created.replaced, userId, log);
+    await notifySlotReleased(created.replaced, member.id, log);
   }
 
   return created.booking;

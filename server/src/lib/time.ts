@@ -3,6 +3,8 @@ import type {PgColumn} from 'drizzle-orm/pg-core';
 
 const STOCKHOLM = 'Europe/Stockholm';
 
+type Value<T> = T | PgColumn | SQL<T>;
+
 export function toIsoDate(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -11,31 +13,33 @@ export function toIsoDate(date: Date): string {
 }
 
 function slotStartsAt(
-  date: string | PgColumn,
-  slotStart: string | PgColumn,
+  date: Value<string>,
+  slotStart: Value<string>,
 ): SQL<Date> {
   return sql`(${date}::date + ${slotStart}::time) at time zone ${STOCKHOLM}`;
 }
 
 export function slotEndsAt(
-  date: string | PgColumn,
-  slotEnd: string | PgColumn,
+  date: Value<string>,
+  slotEnd: Value<string>,
+  endOffsetDays: Value<number> = 0,
 ): SQL<Date> {
-  return sql`(${date}::date + ${slotEnd}::time) at time zone ${STOCKHOLM}`;
+  return sql`((${date}::date + ${slotEnd}::time) + make_interval(days => ${endOffsetDays})) at time zone ${STOCKHOLM}`;
 }
 
 export function slotHasStarted(
-  date: string | PgColumn,
-  slotStart: string | PgColumn,
+  date: Value<string>,
+  slotStart: Value<string>,
 ): SQL<boolean> {
   return sql`${slotStartsAt(date, slotStart)} <= now()`;
 }
 
 export function slotHasEnded(
-  date: string | PgColumn,
-  slotEnd: string | PgColumn,
+  date: Value<string>,
+  slotEnd: Value<string>,
+  endOffsetDays: Value<number> = 0,
 ): SQL<boolean> {
-  return sql`${slotEndsAt(date, slotEnd)} <= now()`;
+  return sql`${slotEndsAt(date, slotEnd, endOffsetDays)} <= now()`;
 }
 
 export function notExpired(endsAt: PgColumn) {
@@ -46,14 +50,14 @@ export function asIsoText(column: PgColumn): SQL<string> {
   return sql`to_char(${column} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`;
 }
 
-export function bookingWindowSql() {
+export function bookingWindowSql(days: Value<number>) {
   const today = sql`(now() at time zone ${STOCKHOLM})::date`;
-  const asDate = (value: SQL) => sql`to_char(${value}, 'YYYY-MM-DD')`;
+  const asDate = (value: SQL) => sql<string>`to_char(${value}, 'YYYY-MM-DD')`;
 
   return {
     today: asDate(today),
     from: asDate(today),
-    to: asDate(sql`${today} + interval '1 month'`),
+    to: asDate(sql`${today} + make_interval(days => ${days})`),
   };
 }
 

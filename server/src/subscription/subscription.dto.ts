@@ -5,7 +5,6 @@ import {resourceRefSchema} from '../resource/resource.dto.js';
 export const subscriptionSchema = resourceRefSchema.extend({
   id: z.uuid(),
   date: z.iso.date(),
-  slotId: z.string(),
   start: z.string(),
   end: z.string(),
   endsAt: z.iso.datetime(),
@@ -15,7 +14,7 @@ export const subscriptionSchema = resourceRefSchema.extend({
 
 export const createSubscriptionBodySchema = z.object({
   date: z.iso.date(),
-  slotId: z.string().min(1),
+  start: z.string().min(1),
   resourceId: z.string().min(1),
 });
 

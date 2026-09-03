@@ -13,7 +13,7 @@ import {formatWhen, timeRange} from '@/lib/dates';
 import {exhaustive} from '@/lib/exhaustive';
 
 type Times = Pick<Booking, 'date' | 'start' | 'end' | 'resourceName'>;
-type Bookable = Times & Pick<Booking, 'slotId' | 'resourceId'>;
+type Bookable = Times & Pick<Booking, 'resourceId'>;
 type Identified = Times & Pick<Booking, 'id'>;
 
 function shouldReload(code: ClientErrorCode) {
@@ -65,7 +65,7 @@ export function useBookingActions(onChange?: () => void) {
         api.POST('/bookings', {
           body: {
             date: target.date,
-            slotId: target.slotId,
+            start: target.start,
             resourceId: target.resourceId,
             ...(replaceExisting ? {replaceExisting: true} : {}),
           },
@@ -80,7 +80,7 @@ export function useBookingActions(onChange?: () => void) {
         api.POST('/subscriptions', {
           body: {
             date: target.date,
-            slotId: target.slotId,
+            start: target.start,
             resourceId: target.resourceId,
           },
         }),
@@ -198,10 +198,7 @@ export function useBookingActions(onChange?: () => void) {
 
     switch (slot.status) {
       case 'available':
-        confirmBookable(
-          {...times, slotId: slot.id, resourceId: resource.id},
-          active,
-        );
+        confirmBookable({...times, resourceId: resource.id}, active);
         return;
       case 'walkin':
         return;
@@ -215,7 +212,7 @@ export function useBookingActions(onChange?: () => void) {
           return;
         }
 
-        confirmSubscribe({...times, slotId: slot.id, resourceId: resource.id});
+        confirmSubscribe({...times, resourceId: resource.id});
         return;
       case 'mine':
         if (slot.started) {

@@ -10,7 +10,6 @@ import {listSubscribers} from '../subscription/subscription.service.js';
 
 type ReleasedSlot = {
   date: string;
-  slotId: string;
   resourceId: string;
   resourceName: string;
   start: string;
@@ -35,20 +34,20 @@ export async function notifySlotReleased(
   const subscribers = await listSubscribers(
     slot.resourceId,
     slot.date,
-    slot.slotId,
+    slot.start,
   );
-  const userIds = subscribers
-    .map((row) => row.userId)
-    .filter((userId) => userId !== releasedBy);
+  const memberIds = subscribers
+    .map((row) => row.memberId)
+    .filter((memberId) => memberId !== releasedBy);
 
-  if (userIds.length === 0) {
+  if (memberIds.length === 0) {
     return;
   }
 
   const tokens = await db
     .select({token: pushTokens.token})
     .from(pushTokens)
-    .where(inArray(pushTokens.userId, userIds));
+    .where(inArray(pushTokens.memberId, memberIds));
 
   try {
     await sendPush(
@@ -58,7 +57,7 @@ export async function notifySlotReleased(
         body: `${slot.resourceName} ${formatWhen(slot.date, slot.start, slot.end)} är ledig – först till kvarn.`,
         data: {
           date: slot.date,
-          slotId: slot.slotId,
+          start: slot.start,
           resourceId: slot.resourceId,
         },
       })),

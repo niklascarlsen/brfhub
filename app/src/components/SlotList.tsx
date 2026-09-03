@@ -30,7 +30,7 @@ export function SlotList({slots, error, onRetry, onSelect}: SlotListProps) {
         <View className='gap-[9px]'>
           {slots.map((slot) => (
             <TimeSlotRow
-              key={slot.id}
+              key={slot.start}
               slot={slot}
               onPress={() => onSelect(slot)}
             />

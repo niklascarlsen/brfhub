@@ -1,6 +1,7 @@
 import type {FastifyPluginAsyncZod} from '@fastify/type-provider-zod';
 
 import {errorResponses} from '../lib/errors.js';
+import {getMember} from '../lib/user.js';
 import {resourceSchema} from './resource.dto.js';
 import {listResources} from './resource.service.js';
 
@@ -15,6 +16,9 @@ export const resourceRoutes: FastifyPluginAsyncZod = async (app) => {
         },
       },
     },
-    async () => listResources(),
+    async (request) => {
+      const member = await getMember(request);
+      return listResources(member.organizationId);
+    },
   );
 };

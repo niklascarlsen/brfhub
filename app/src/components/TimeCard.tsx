@@ -39,7 +39,7 @@ export function TimeCard({
       <View className='min-w-0 flex-1 gap-1'>
         <View className='flex-row items-center gap-2'>
           {resourceName ? (
-            <Text className='text-xs font-semibold text-theme-muted'>
+            <Text className='text-sm font-semibold text-theme-muted'>
               {resourceName}
             </Text>
           ) : null}

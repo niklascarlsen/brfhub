@@ -2,7 +2,7 @@ import type {FastifyPluginAsyncZod} from '@fastify/type-provider-zod';
 import {z} from 'zod';
 
 import {errorResponses} from '../lib/errors.js';
-import {getUserId} from '../lib/user.js';
+import {getMember} from '../lib/user.js';
 import {
   bookingParamsSchema,
   bookingSchema,
@@ -22,7 +22,10 @@ export const bookingRoutes: FastifyPluginAsyncZod = async (app) => {
         },
       },
     },
-    async (request) => listBookings(getUserId(request)),
+    async (request) => {
+      const member = await getMember(request);
+      return listBookings(member.id);
+    },
   );
 
   app.post(
@@ -37,12 +40,12 @@ export const bookingRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request, reply) => {
-      const {date, slotId, resourceId, replaceExisting = false} = request.body;
+      const {date, start, resourceId, replaceExisting = false} = request.body;
 
       const booking = await createBooking({
-        userId: getUserId(request),
+        member: await getMember(request),
         date,
-        slotId,
+        start,
         resourceId,
         replaceExisting,
         log: request.log,
@@ -64,7 +67,8 @@ export const bookingRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request, reply) => {
-      await deleteBooking(request.params.id, getUserId(request), request.log);
+      const member = await getMember(request);
+      await deleteBooking(request.params.id, member.id, request.log);
       return reply.code(204).send();
     },
   );

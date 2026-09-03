@@ -888,20 +888,17 @@ export interface components {
         ResourceInput: {
             id: string;
             name: string;
-            /** @enum {string} */
-            kind: "laundry" | "drying";
-            hasDryer: boolean;
+            kind: string;
+            tags: string[];
         };
         BookingInput: {
             resourceId: string;
             resourceName: string;
-            /** @enum {string} */
-            resourceKind: "laundry" | "drying";
+            resourceKind: string;
             /** Format: uuid */
             id: string;
             /** Format: date */
             date: string;
-            slotId: string;
             start: string;
             end: string;
             /** Format: date-time */
@@ -912,13 +909,11 @@ export interface components {
         CreatedBookingInput: {
             resourceId: string;
             resourceName: string;
-            /** @enum {string} */
-            resourceKind: "laundry" | "drying";
+            resourceKind: string;
             /** Format: uuid */
             id: string;
             /** Format: date */
             date: string;
-            slotId: string;
             start: string;
             end: string;
             /** Format: date-time */
@@ -930,7 +925,7 @@ export interface components {
         CreateBookingBodyInput: {
             /** Format: date */
             date: string;
-            slotId: string;
+            start: string;
             resourceId: string;
             replaceExisting?: boolean;
         };
@@ -938,20 +933,17 @@ export interface components {
             token: string;
         };
         SlotInput: {
-            id: string;
             start: string;
             end: string;
             /** @constant */
             status: "available";
             subscriptionId: string | null;
         } | {
-            id: string;
             start: string;
             end: string;
             /** @constant */
             status: "walkin";
         } | {
-            id: string;
             start: string;
             end: string;
             /** @constant */
@@ -959,7 +951,6 @@ export interface components {
             started: boolean;
             subscriptionId: string | null;
         } | {
-            id: string;
             start: string;
             end: string;
             /** @constant */
@@ -985,13 +976,11 @@ export interface components {
         SubscriptionInput: {
             resourceId: string;
             resourceName: string;
-            /** @enum {string} */
-            resourceKind: "laundry" | "drying";
+            resourceKind: string;
             /** Format: uuid */
             id: string;
             /** Format: date */
             date: string;
-            slotId: string;
             start: string;
             end: string;
             /** Format: date-time */
@@ -1002,7 +991,7 @@ export interface components {
         CreateSubscriptionBodyInput: {
             /** Format: date */
             date: string;
-            slotId: string;
+            start: string;
             resourceId: string;
         };
         Error: {
@@ -1014,20 +1003,17 @@ export interface components {
         Resource: {
             id: string;
             name: string;
-            /** @enum {string} */
-            kind: "laundry" | "drying";
-            hasDryer: boolean;
+            kind: string;
+            tags: string[];
         };
         Booking: {
             resourceId: string;
             resourceName: string;
-            /** @enum {string} */
-            resourceKind: "laundry" | "drying";
+            resourceKind: string;
             /** Format: uuid */
             id: string;
             /** Format: date */
             date: string;
-            slotId: string;
             start: string;
             end: string;
             /** Format: date-time */
@@ -1038,13 +1024,11 @@ export interface components {
         CreatedBooking: {
             resourceId: string;
             resourceName: string;
-            /** @enum {string} */
-            resourceKind: "laundry" | "drying";
+            resourceKind: string;
             /** Format: uuid */
             id: string;
             /** Format: date */
             date: string;
-            slotId: string;
             start: string;
             end: string;
             /** Format: date-time */
@@ -1056,7 +1040,7 @@ export interface components {
         CreateBookingBody: {
             /** Format: date */
             date: string;
-            slotId: string;
+            start: string;
             resourceId: string;
             replaceExisting?: boolean;
         };
@@ -1064,20 +1048,17 @@ export interface components {
             token: string;
         };
         Slot: {
-            id: string;
             start: string;
             end: string;
             /** @constant */
             status: "available";
             subscriptionId: string | null;
         } | {
-            id: string;
             start: string;
             end: string;
             /** @constant */
             status: "walkin";
         } | {
-            id: string;
             start: string;
             end: string;
             /** @constant */
@@ -1085,7 +1066,6 @@ export interface components {
             started: boolean;
             subscriptionId: string | null;
         } | {
-            id: string;
             start: string;
             end: string;
             /** @constant */
@@ -1111,13 +1091,11 @@ export interface components {
         Subscription: {
             resourceId: string;
             resourceName: string;
-            /** @enum {string} */
-            resourceKind: "laundry" | "drying";
+            resourceKind: string;
             /** Format: uuid */
             id: string;
             /** Format: date */
             date: string;
-            slotId: string;
             start: string;
             end: string;
             /** Format: date-time */
@@ -1128,7 +1106,7 @@ export interface components {
         CreateSubscriptionBody: {
             /** Format: date */
             date: string;
-            slotId: string;
+            start: string;
             resourceId: string;
         };
     };

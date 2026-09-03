@@ -2,7 +2,7 @@ import type {FastifyPluginAsyncZod} from '@fastify/type-provider-zod';
 import {z} from 'zod';
 
 import {errorResponses} from '../lib/errors.js';
-import {getUserId} from '../lib/user.js';
+import {getMember} from '../lib/user.js';
 import {
   createSubscriptionBodySchema,
   subscriptionParamsSchema,
@@ -25,7 +25,10 @@ export const subscriptionRoutes: FastifyPluginAsyncZod = async (app) => {
         },
       },
     },
-    async (request) => listSubscriptions(getUserId(request)),
+    async (request) => {
+      const member = await getMember(request);
+      return listSubscriptions(member.id);
+    },
   );
 
   app.post(
@@ -41,7 +44,7 @@ export const subscriptionRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request, reply) => {
       const subscription = await createSubscription({
-        userId: getUserId(request),
+        member: await getMember(request),
         ...request.body,
       });
 
@@ -61,7 +64,8 @@ export const subscriptionRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request, reply) => {
-      await deleteSubscription(request.params.id, getUserId(request));
+      const member = await getMember(request);
+      await deleteSubscription(request.params.id, member.id);
       return reply.code(204).send();
     },
   );

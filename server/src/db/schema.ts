@@ -1,54 +1,124 @@
 import {
-  boolean,
   date,
+  foreignKey,
   index,
   integer,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   unique,
   uuid,
 } from 'drizzle-orm/pg-core';
 
-export const RESOURCE_KINDS = ['laundry', 'drying'] as const;
-type ResourceKind = (typeof RESOURCE_KINDS)[number];
-
-export const resources = pgTable('resources', {
+export const organizations = pgTable('organizations', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
-  kind: text('kind').$type<ResourceKind>().notNull(),
-  hasDryer: boolean('has_dryer').notNull(),
-  sortOrder: integer('sort_order').notNull(),
+  bookingWindowDays: integer('booking_window_days').notNull(),
 });
 
-export const timeSlots = pgTable('time_slots', {
-  id: text('id').primaryKey(),
-  start: text('start').notNull(),
-  end: text('end').notNull(),
-});
+export const members = pgTable(
+  'members',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    label: text('label').notNull(),
+    leftAt: timestamp('left_at', {withTimezone: true}),
+  },
+  (table) => [
+    unique('members_organization_label_unique').on(
+      table.organizationId,
+      table.label,
+    ),
+    unique('members_organization_id_unique').on(table.organizationId, table.id),
+  ],
+);
+
+export const resourceKinds = pgTable(
+  'resource_kinds',
+  {
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    id: text('id').notNull(),
+    name: text('name').notNull(),
+    maxActive: integer('max_active').notNull(),
+  },
+  (table) => [primaryKey({columns: [table.organizationId, table.id]})],
+);
+
+export const resources = pgTable(
+  'resources',
+  {
+    id: text('id').primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    kindId: text('kind_id').notNull(),
+    name: text('name').notNull(),
+    tags: text('tags').array().notNull(),
+    sortOrder: integer('sort_order').notNull(),
+  },
+  (table) => [
+    unique('resources_organization_id_unique').on(
+      table.organizationId,
+      table.id,
+    ),
+    foreignKey({
+      name: 'resources_kind_fk',
+      columns: [table.organizationId, table.kindId],
+      foreignColumns: [resourceKinds.organizationId, resourceKinds.id],
+    }),
+  ],
+);
+
+export const resourceSlots = pgTable(
+  'resource_slots',
+  {
+    resourceId: text('resource_id')
+      .notNull()
+      .references(() => resources.id),
+    start: text('start').notNull(),
+    end: text('end').notNull(),
+    endOffsetDays: integer('end_offset_days').notNull().default(0),
+  },
+  (table) => [primaryKey({columns: [table.resourceId, table.start]})],
+);
 
 export const bookings = pgTable(
   'bookings',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    resourceId: text('resource_id')
+    organizationId: text('organization_id')
       .notNull()
-      .references(() => resources.id),
+      .references(() => organizations.id),
+    memberId: uuid('member_id').notNull(),
+    resourceId: text('resource_id').notNull(),
     date: date('date', {mode: 'string'}).notNull(),
-    slotId: text('slot_id')
-      .notNull()
-      .references(() => timeSlots.id),
-    userId: text('apartment_number').notNull(),
+    start: text('start').notNull(),
+    end: text('end').notNull(),
     endsAt: timestamp('ends_at', {withTimezone: true}).notNull(),
     releasedAt: timestamp('released_at', {withTimezone: true}),
   },
   (table) => [
-    unique('bookings_resource_date_slot_unique').on(
+    unique('bookings_resource_date_start_unique').on(
       table.resourceId,
       table.date,
-      table.slotId,
+      table.start,
     ),
-    index('bookings_user_ends_at_idx').on(table.userId, table.endsAt),
+    foreignKey({
+      name: 'bookings_member_fk',
+      columns: [table.organizationId, table.memberId],
+      foreignColumns: [members.organizationId, members.id],
+    }),
+    foreignKey({
+      name: 'bookings_resource_fk',
+      columns: [table.organizationId, table.resourceId],
+      foreignColumns: [resources.organizationId, resources.id],
+    }),
+    index('bookings_member_ends_at_idx').on(table.memberId, table.endsAt),
   ],
 );
 
@@ -56,38 +126,50 @@ export const subscriptions = pgTable(
   'subscriptions',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    resourceId: text('resource_id')
+    organizationId: text('organization_id')
       .notNull()
-      .references(() => resources.id),
+      .references(() => organizations.id),
+    memberId: uuid('member_id').notNull(),
+    resourceId: text('resource_id').notNull(),
     date: date('date', {mode: 'string'}).notNull(),
-    slotId: text('slot_id')
-      .notNull()
-      .references(() => timeSlots.id),
-    userId: text('apartment_number').notNull(),
+    start: text('start').notNull(),
+    end: text('end').notNull(),
     endsAt: timestamp('ends_at', {withTimezone: true}).notNull(),
     createdAt: timestamp('created_at', {withTimezone: true})
       .notNull()
       .defaultNow(),
   },
   (table) => [
-    unique('subscriptions_user_resource_date_slot_unique').on(
-      table.userId,
+    unique('subscriptions_member_resource_date_start_unique').on(
+      table.memberId,
       table.resourceId,
       table.date,
-      table.slotId,
+      table.start,
     ),
-    index('subscriptions_resource_date_slot_idx').on(
+    foreignKey({
+      name: 'subscriptions_member_fk',
+      columns: [table.organizationId, table.memberId],
+      foreignColumns: [members.organizationId, members.id],
+    }),
+    foreignKey({
+      name: 'subscriptions_resource_fk',
+      columns: [table.organizationId, table.resourceId],
+      foreignColumns: [resources.organizationId, resources.id],
+    }),
+    index('subscriptions_resource_date_start_idx').on(
       table.resourceId,
       table.date,
-      table.slotId,
+      table.start,
     ),
-    index('subscriptions_user_ends_at_idx').on(table.userId, table.endsAt),
+    index('subscriptions_member_ends_at_idx').on(table.memberId, table.endsAt),
   ],
 );
 
 export const pushTokens = pgTable('push_tokens', {
   token: text('token').primaryKey(),
-  userId: text('apartment_number').notNull(),
+  memberId: uuid('member_id')
+    .notNull()
+    .references(() => members.id),
   createdAt: timestamp('created_at', {withTimezone: true})
     .notNull()
     .defaultNow(),

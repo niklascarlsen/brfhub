@@ -1,7 +1,7 @@
 import type {FastifyPluginAsyncZod} from '@fastify/type-provider-zod';
 
 import {errorResponses} from '../lib/errors.js';
-import {getUserId} from '../lib/user.js';
+import {getMember} from '../lib/user.js';
 import {
   bookingWindowSchema,
   listSlotsQuerySchema,
@@ -23,7 +23,7 @@ export const slotRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request) =>
       listSlots({
-        userId: getUserId(request),
+        member: await getMember(request),
         date: request.query.date,
         resourceId: request.query.resourceId,
       }),
@@ -39,6 +39,9 @@ export const slotRoutes: FastifyPluginAsyncZod = async (app) => {
         },
       },
     },
-    async () => getBookingWindow(),
+    async (request) => {
+      const member = await getMember(request);
+      return getBookingWindow(member.organizationId);
+    },
   );
 };

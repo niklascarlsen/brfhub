@@ -6,7 +6,6 @@ export const listSlotsQuerySchema = z.object({
 });
 
 const slotTimes = {
-  id: z.string(),
   start: z.string(),
   end: z.string(),
 };

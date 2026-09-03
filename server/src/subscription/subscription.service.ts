@@ -1,7 +1,12 @@
 import {and, asc, eq, isNull, sql} from 'drizzle-orm';
 
 import {db} from '../db/index.js';
-import {bookings, resources, subscriptions, timeSlots} from '../db/schema.js';
+import {
+  bookings,
+  resourceSlots,
+  resources,
+  subscriptions,
+} from '../db/schema.js';
 import {appError} from '../lib/errors.js';
 import {
   asIsoText,
@@ -10,6 +15,7 @@ import {
   slotHasEnded,
   slotHasStarted,
 } from '../lib/time.js';
+import type {Member} from '../lib/user.js';
 import {getResource} from '../resource/resource.service.js';
 import {getBookingWindow, isWithinBookingWindow} from '../slot/slot.service.js';
 import type {Subscription} from './subscription.dto.js';
@@ -17,84 +23,88 @@ import type {Subscription} from './subscription.dto.js';
 const resourceFields = {
   resourceId: resources.id,
   resourceName: resources.name,
-  resourceKind: resources.kind,
+  resourceKind: resources.kindId,
 };
 
-function stillActive(userId: string) {
+function stillActive(memberId: string) {
   return and(
-    eq(subscriptions.userId, userId),
+    eq(subscriptions.memberId, memberId),
     notExpired(subscriptions.endsAt),
   );
 }
 
-export function listSubscriptions(userId: string): Promise<Subscription[]> {
+export function listSubscriptions(memberId: string): Promise<Subscription[]> {
   return db
     .select({
       id: subscriptions.id,
       date: subscriptions.date,
-      slotId: subscriptions.slotId,
-      start: timeSlots.start,
-      end: timeSlots.end,
+      start: subscriptions.start,
+      end: subscriptions.end,
       endsAt: asIsoText(subscriptions.endsAt),
       available: sql<boolean>`${bookings.id} is null`,
-      started: slotHasStarted(subscriptions.date, timeSlots.start),
+      started: slotHasStarted(subscriptions.date, subscriptions.start),
       ...resourceFields,
     })
     .from(subscriptions)
-    .innerJoin(timeSlots, eq(subscriptions.slotId, timeSlots.id))
     .innerJoin(resources, eq(subscriptions.resourceId, resources.id))
     .leftJoin(
       bookings,
       and(
-        eq(bookings.slotId, subscriptions.slotId),
+        eq(bookings.start, subscriptions.start),
         eq(bookings.resourceId, subscriptions.resourceId),
         eq(bookings.date, subscriptions.date),
         isNull(bookings.releasedAt),
       ),
     )
-    .where(stillActive(userId))
+    .where(stillActive(memberId))
     .orderBy(
       asc(subscriptions.date),
-      asc(timeSlots.start),
+      asc(subscriptions.start),
       asc(resources.sortOrder),
     );
 }
 
 export async function createSubscription({
-  userId,
+  member,
   date,
-  slotId,
+  start,
   resourceId,
 }: {
-  userId: string;
+  member: Member;
   date: string;
-  slotId: string;
+  start: string;
   resourceId: string;
 }): Promise<Subscription> {
-  const resource = await getResource(resourceId);
+  const resource = await getResource(member.organizationId, resourceId);
   if (!resource) {
     throw appError('NOT_FOUND', 'Unknown resource');
   }
 
   const slot = await db
     .select({
-      start: timeSlots.start,
-      end: timeSlots.end,
-      ended: slotHasEnded(date, timeSlots.end),
-      started: slotHasStarted(date, timeSlots.start),
-      bookedBy: bookings.userId,
+      start: resourceSlots.start,
+      end: resourceSlots.end,
+      endOffsetDays: resourceSlots.endOffsetDays,
+      ended: slotHasEnded(date, resourceSlots.end, resourceSlots.endOffsetDays),
+      started: slotHasStarted(date, resourceSlots.start),
+      bookedBy: bookings.memberId,
     })
-    .from(timeSlots)
+    .from(resourceSlots)
     .leftJoin(
       bookings,
       and(
-        eq(bookings.slotId, timeSlots.id),
+        eq(bookings.start, resourceSlots.start),
         eq(bookings.resourceId, resourceId),
         eq(bookings.date, date),
         isNull(bookings.releasedAt),
       ),
     )
-    .where(eq(timeSlots.id, slotId))
+    .where(
+      and(
+        eq(resourceSlots.resourceId, resourceId),
+        eq(resourceSlots.start, start),
+      ),
+    )
     .then((rows) => rows[0]);
 
   if (!slot) {
@@ -105,7 +115,9 @@ export async function createSubscription({
     throw appError('SLOT_IN_PAST');
   }
 
-  if (!isWithinBookingWindow(date, await getBookingWindow())) {
+  if (
+    !isWithinBookingWindow(date, await getBookingWindow(member.organizationId))
+  ) {
     throw appError('OUTSIDE_BOOKING_WINDOW');
   }
 
@@ -117,32 +129,35 @@ export async function createSubscription({
     throw appError('SLOT_AVAILABLE');
   }
 
-  if (slot.bookedBy === userId) {
+  if (slot.bookedBy === member.id) {
     throw appError('HAS_ACTIVE_BOOKING');
   }
 
   const [row] = await db
     .insert(subscriptions)
     .values({
+      organizationId: member.organizationId,
+      memberId: member.id,
       date,
-      slotId,
+      start: slot.start,
+      end: slot.end,
       resourceId,
-      userId,
-      endsAt: slotEndsAt(date, slot.end),
+      endsAt: slotEndsAt(date, slot.end, slot.endOffsetDays),
     })
     .onConflictDoUpdate({
       target: [
-        subscriptions.userId,
+        subscriptions.memberId,
         subscriptions.resourceId,
         subscriptions.date,
-        subscriptions.slotId,
+        subscriptions.start,
       ],
-      set: {endsAt: slotEndsAt(date, slot.end)},
+      set: {endsAt: slotEndsAt(date, slot.end, slot.endOffsetDays)},
     })
     .returning({
       id: subscriptions.id,
       date: subscriptions.date,
-      slotId: subscriptions.slotId,
+      start: subscriptions.start,
+      end: subscriptions.end,
       endsAt: asIsoText(subscriptions.endsAt),
     });
 
@@ -152,8 +167,6 @@ export async function createSubscription({
 
   return {
     ...row,
-    start: slot.start,
-    end: slot.end,
     available: false,
     started: false,
     resourceId: resource.id,
@@ -164,10 +177,10 @@ export async function createSubscription({
 
 export async function deleteSubscription(
   id: string,
-  userId: string,
+  memberId: string,
 ): Promise<void> {
   const existing = await db
-    .select({userId: subscriptions.userId})
+    .select({memberId: subscriptions.memberId})
     .from(subscriptions)
     .where(eq(subscriptions.id, id))
     .then((rows) => rows[0]);
@@ -176,7 +189,7 @@ export async function deleteSubscription(
     throw appError('NOT_FOUND', 'Subscription not found');
   }
 
-  if (existing.userId !== userId) {
+  if (existing.memberId !== memberId) {
     throw appError('FORBIDDEN', 'Not your subscription');
   }
 
@@ -186,16 +199,16 @@ export async function deleteSubscription(
 export function listSubscribers(
   resourceId: string,
   date: string,
-  slotId: string,
+  start: string,
 ) {
   return db
-    .select({userId: subscriptions.userId})
+    .select({memberId: subscriptions.memberId})
     .from(subscriptions)
     .where(
       and(
         eq(subscriptions.resourceId, resourceId),
         eq(subscriptions.date, date),
-        eq(subscriptions.slotId, slotId),
+        eq(subscriptions.start, start),
         notExpired(subscriptions.endsAt),
       ),
     );

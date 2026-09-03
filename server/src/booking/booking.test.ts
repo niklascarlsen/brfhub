@@ -5,8 +5,17 @@ import {sql} from 'drizzle-orm';
 
 import {buildApp} from '../app.js';
 import {db, pool} from '../db/index.js';
-import {bookings, resources, subscriptions, timeSlots} from '../db/schema.js';
+import {
+  bookings,
+  members,
+  organizations,
+  resourceKinds,
+  resourceSlots,
+  resources,
+  subscriptions,
+} from '../db/schema.js';
 import {slotEndsAt, toIsoDate} from '../lib/time.js';
+import {ORGANIZATION_ID} from '../lib/user.js';
 import type {Resource} from '../resource/resource.dto.js';
 import type {Slots} from '../slot/slot.dto.js';
 import type {Subscription} from '../subscription/subscription.dto.js';
@@ -16,36 +25,78 @@ import type {Booking, CreatedBooking} from './booking.dto.js';
 const LAUNDRY_1 = 'laundry-1';
 const LAUNDRY_2 = 'laundry-2';
 const DRYING = 'drying-room';
+const SAUNA = 'sauna';
+
+const ORGANIZATION = {
+  id: ORGANIZATION_ID,
+  name: 'Testföreningen',
+  bookingWindowDays: 30,
+};
+
+const KINDS = [
+  {organizationId: ORGANIZATION_ID, id: 'laundry', name: 'Tvätt', maxActive: 1},
+  {organizationId: ORGANIZATION_ID, id: 'drying', name: 'Tork', maxActive: 1},
+  {organizationId: ORGANIZATION_ID, id: 'sauna', name: 'Bastu', maxActive: 2},
+];
+
+const APARTMENTS = ['11', '12', '13', '14', '15', '21'];
 
 const RESOURCES = [
   {
     id: LAUNDRY_1,
+    organizationId: ORGANIZATION_ID,
+    kindId: 'laundry',
     name: 'Tvättstuga 1',
-    kind: 'laundry' as const,
-    hasDryer: true,
+    tags: ['torktumlare'],
     sortOrder: 1,
   },
   {
     id: LAUNDRY_2,
+    organizationId: ORGANIZATION_ID,
+    kindId: 'laundry',
     name: 'Tvättstuga 2',
-    kind: 'laundry' as const,
-    hasDryer: false,
+    tags: [],
     sortOrder: 2,
   },
   {
     id: DRYING,
+    organizationId: ORGANIZATION_ID,
+    kindId: 'drying',
     name: 'Torkrum',
-    kind: 'drying' as const,
-    hasDryer: false,
+    tags: ['avfuktare'],
     sortOrder: 3,
+  },
+  {
+    id: SAUNA,
+    organizationId: ORGANIZATION_ID,
+    kindId: 'sauna',
+    name: 'Bastu',
+    tags: [],
+    sortOrder: 4,
   },
 ];
 
-const TIME_SLOTS = [
-  {id: '07-10', start: '07:00', end: '10:00'},
-  {id: '10-13', start: '10:00', end: '13:00'},
-  {id: '13-16', start: '13:00', end: '16:00'},
-  {id: 'all-day', start: '00:00', end: '23:59:59'},
+type SlotSpec = {start: string; end: string; endOffsetDays?: number};
+
+const DAY_SLOTS: SlotSpec[] = [
+  {start: '07:00', end: '10:00'},
+  {start: '10:00', end: '13:00'},
+  {start: '13:00', end: '16:00'},
+];
+
+const ALL_DAY = {start: '00:00', end: '00:00', endOffsetDays: 1};
+const EVENING = {start: '16:00', end: '20:00'};
+const NIGHT = {start: '22:00', end: '07:00', endOffsetDays: 1};
+
+const RESOURCE_SLOTS = [
+  ...[LAUNDRY_1, LAUNDRY_2].flatMap((resourceId) =>
+    [...DAY_SLOTS, ALL_DAY].map((slot) => ({...slot, resourceId})),
+  ),
+  ...[...DAY_SLOTS, EVENING, NIGHT].map((slot) => ({
+    ...slot,
+    resourceId: DRYING,
+  })),
+  ...DAY_SLOTS.map((slot) => ({...slot, resourceId: SAUNA})),
 ];
 
 const TENANT = '12';
@@ -60,9 +111,22 @@ function dateInDays(days: number): string {
 }
 
 const bookableDate = dateInDays(3);
+const dayAfterBookable = dateInDays(4);
 const today = dateInDays(0);
 const yesterday = dateInDays(-1);
 const beyondWindow = dateInDays(40);
+
+const memberIds = new Map<string, string>();
+
+function memberId(label: string): string {
+  const id = memberIds.get(label);
+
+  if (!id) {
+    throw new Error(`Unknown member ${label}`);
+  }
+
+  return id;
+}
 
 let server: Awaited<ReturnType<typeof buildApp>>;
 
@@ -79,10 +143,23 @@ before(async () => {
 
   server = await buildApp({logger: false});
   await db.execute(
-    sql`truncate resources, time_slots, bookings, subscriptions cascade`,
+    sql`truncate organizations, members, resource_kinds, resources, resource_slots, bookings, subscriptions, push_tokens cascade`,
   );
+  await db.insert(organizations).values(ORGANIZATION);
+  await db.insert(resourceKinds).values(KINDS);
   await db.insert(resources).values([...RESOURCES]);
-  await db.insert(timeSlots).values([...TIME_SLOTS]);
+  await db.insert(resourceSlots).values(RESOURCE_SLOTS);
+
+  const rows = await db
+    .insert(members)
+    .values(
+      APARTMENTS.map((label) => ({organizationId: ORGANIZATION_ID, label})),
+    )
+    .returning({id: members.id, label: members.label});
+
+  for (const row of rows) {
+    memberIds.set(row.label, row.id);
+  }
 });
 
 beforeEach(async () => {
@@ -127,6 +204,10 @@ function slotsFor(userId: string, date: string, resourceId = LAUNDRY_1) {
   });
 }
 
+function startsIn(response: {json: <T>() => T}) {
+  return response.json<Slots>().slots.map((slot) => slot.start);
+}
+
 async function insertStartedBooking(
   userId: string,
   resourceId: string = LAUNDRY_1,
@@ -134,11 +215,13 @@ async function insertStartedBooking(
   const [row] = await db
     .insert(bookings)
     .values({
+      organizationId: ORGANIZATION_ID,
+      memberId: memberId(userId),
       date: today,
-      slotId: 'all-day',
+      start: ALL_DAY.start,
+      end: ALL_DAY.end,
       resourceId,
-      userId,
-      endsAt: slotEndsAt(today, '23:59:59'),
+      endsAt: slotEndsAt(today, ALL_DAY.end, ALL_DAY.endOffsetDays),
     })
     .returning({id: bookings.id});
 
@@ -179,12 +262,12 @@ function codeOf(response: {json: <T>() => T}) {
 }
 
 test('books a free slot', async () => {
-  const response = await book(TENANT, {date: bookableDate, slotId: '07-10'});
+  const response = await book(TENANT, {date: bookableDate, start: '07:00'});
   const created = response.json<CreatedBooking>();
 
   assert.equal(response.statusCode, 201);
   assert.equal(created.date, bookableDate);
-  assert.equal(created.slotId, '07-10');
+  assert.equal(created.start, '07:00');
   assert.equal(created.resourceId, LAUNDRY_1);
   assert.equal(created.resourceKind, 'laundry');
   assert.equal(created.resourceName, 'Tvättstuga 1');
@@ -196,9 +279,9 @@ test('books a free slot', async () => {
 });
 
 test('rejects a slot another apartment already took', async () => {
-  await book(NEIGHBOUR, {date: bookableDate, slotId: '10-13'});
+  await book(NEIGHBOUR, {date: bookableDate, start: '10:00'});
 
-  const response = await book(TENANT, {date: bookableDate, slotId: '10-13'});
+  const response = await book(TENANT, {date: bookableDate, start: '10:00'});
 
   assert.equal(response.statusCode, 409);
   assert.equal(codeOf(response), 'SLOT_TAKEN');
@@ -208,9 +291,9 @@ test('rejects a slot another apartment already took', async () => {
 });
 
 test('rejects a second booking for the same apartment', async () => {
-  const first = await book(TENANT, {date: bookableDate, slotId: '07-10'});
+  const first = await book(TENANT, {date: bookableDate, start: '07:00'});
 
-  const response = await book(TENANT, {date: bookableDate, slotId: '13-16'});
+  const response = await book(TENANT, {date: bookableDate, start: '13:00'});
 
   assert.equal(response.statusCode, 409);
   assert.equal(codeOf(response), 'HAS_ACTIVE_BOOKING');
@@ -223,49 +306,49 @@ test('rejects a second booking for the same apartment', async () => {
 });
 
 test('replaces the active booking when replaceExisting is set', async () => {
-  const first = await book(TENANT, {date: bookableDate, slotId: '07-10'});
+  const first = await book(TENANT, {date: bookableDate, start: '07:00'});
 
   const response = await book(TENANT, {
     date: bookableDate,
-    slotId: '13-16',
+    start: '13:00',
     replaceExisting: true,
   });
   const created = response.json<CreatedBooking>();
 
   assert.equal(response.statusCode, 201);
-  assert.equal(created.slotId, '13-16');
+  assert.equal(created.start, '13:00');
   assert.equal(created.replacedId, first.json<CreatedBooking>().id);
 
   const mine = await myBookings(TENANT);
   assert.deepEqual(
-    mine.json<Booking[]>().map((booking) => booking.slotId),
-    ['13-16'],
+    mine.json<Booking[]>().map((booking) => booking.start),
+    ['13:00'],
   );
 });
 
 test('rejects an unknown slot', async () => {
-  const response = await book(TENANT, {date: bookableDate, slotId: '22-25'});
+  const response = await book(TENANT, {date: bookableDate, start: '05:00'});
 
   assert.equal(response.statusCode, 404);
   assert.equal(codeOf(response), 'NOT_FOUND');
 });
 
 test('rejects a slot that has already ended', async () => {
-  const response = await book(TENANT, {date: yesterday, slotId: '07-10'});
+  const response = await book(TENANT, {date: yesterday, start: '07:00'});
 
   assert.equal(response.statusCode, 400);
   assert.equal(codeOf(response), 'SLOT_IN_PAST');
 });
 
 test('rejects a slot that has already started', async () => {
-  const response = await book(TENANT, {date: today, slotId: 'all-day'});
+  const response = await book(TENANT, {date: today, start: '00:00'});
 
   assert.equal(response.statusCode, 400);
   assert.equal(codeOf(response), 'SLOT_STARTED');
 });
 
 test('rejects a date beyond the booking window', async () => {
-  const response = await book(TENANT, {date: beyondWindow, slotId: '07-10'});
+  const response = await book(TENANT, {date: beyondWindow, start: '07:00'});
 
   assert.equal(response.statusCode, 400);
   assert.equal(codeOf(response), 'OUTSIDE_BOOKING_WINDOW');
@@ -279,7 +362,7 @@ test('rejects a request without an apartment number', async () => {
 });
 
 test('cancels its own booking', async () => {
-  const created = await book(TENANT, {date: bookableDate, slotId: '07-10'});
+  const created = await book(TENANT, {date: bookableDate, start: '07:00'});
 
   const response = await cancel(TENANT, created.json<CreatedBooking>().id);
 
@@ -288,7 +371,7 @@ test('cancels its own booking', async () => {
   const mine = await myBookings(TENANT);
   assert.deepEqual(mine.json<Booking[]>(), []);
 
-  const again = await book(TENANT, {date: bookableDate, slotId: '10-13'});
+  const again = await book(TENANT, {date: bookableDate, start: '10:00'});
   assert.equal(again.statusCode, 201);
 });
 
@@ -307,13 +390,13 @@ test('opens a started booking for walk-in without freeing the apartment', async 
 
   const listed = await slotsFor(NEIGHBOUR, today);
   assert.equal(
-    listed.json<Slots>().slots.find((slot) => slot.id === 'all-day')?.status,
+    listed.json<Slots>().slots.find((slot) => slot.start === '00:00')?.status,
     'walkin',
   );
 
   const own = await slotsFor(TENANT, today);
   assert.equal(
-    own.json<Slots>().slots.find((slot) => slot.id === 'all-day')?.status,
+    own.json<Slots>().slots.find((slot) => slot.start === '00:00')?.status,
     'walkin',
   );
 });
@@ -322,13 +405,13 @@ test('rejects a new booking after the apartment opens a started slot', async () 
   const {id} = await insertStartedBooking(TENANT);
   await cancel(TENANT, id);
 
-  const again = await book(TENANT, {date: bookableDate, slotId: '07-10'});
+  const again = await book(TENANT, {date: bookableDate, start: '07:00'});
   assert.equal(again.statusCode, 409);
   assert.equal(codeOf(again), 'HAS_ACTIVE_BOOKING');
 
   const replace = await book(TENANT, {
     date: bookableDate,
-    slotId: '07-10',
+    start: '07:00',
     replaceExisting: true,
   });
   assert.equal(replace.statusCode, 409);
@@ -344,11 +427,13 @@ test('rejects a new booking after the apartment opens a started slot', async () 
 test('keeps the queue after a drop-in so the subscriber can leave', async () => {
   const {id} = await insertStartedBooking(TENANT);
   await db.insert(subscriptions).values({
+    organizationId: ORGANIZATION_ID,
+    memberId: memberId(NEIGHBOUR),
     date: today,
-    slotId: 'all-day',
+    start: ALL_DAY.start,
+    end: ALL_DAY.end,
     resourceId: LAUNDRY_1,
-    userId: NEIGHBOUR,
-    endsAt: slotEndsAt(today, '23:59:59'),
+    endsAt: slotEndsAt(today, ALL_DAY.end, ALL_DAY.endOffsetDays),
   });
 
   await cancel(TENANT, id);
@@ -358,7 +443,7 @@ test('keeps the queue after a drop-in so the subscriber can leave', async () => 
   assert.equal(held?.available, true);
   assert.equal(held?.started, true);
 
-  const take = await book(NEIGHBOUR, {date: today, slotId: 'all-day'});
+  const take = await book(NEIGHBOUR, {date: today, start: '00:00'});
   assert.equal(take.statusCode, 400);
   assert.equal(codeOf(take), 'SLOT_STARTED');
 
@@ -385,7 +470,7 @@ test('opening an already released booking is a no-op', async () => {
 test('rejects cancelling another apartment booking', async () => {
   const created = await book(NEIGHBOUR, {
     date: bookableDate,
-    slotId: '07-10',
+    start: '07:00',
   });
 
   const response = await cancel(TENANT, created.json<CreatedBooking>().id);
@@ -409,7 +494,7 @@ test('lets only one apartment take a slot when several book at once', async () =
 
   const responses = await Promise.all(
     apartments.map((apartment) =>
-      book(apartment, {date: bookableDate, slotId: '07-10'}),
+      book(apartment, {date: bookableDate, start: '07:00'}),
     ),
   );
 
@@ -429,8 +514,8 @@ test('lets only one apartment take a slot when several book at once', async () =
 
 test('keeps an apartment at one booking when it books several at once', async () => {
   const responses = await Promise.all(
-    ['07-10', '10-13', '13-16'].map((slotId) =>
-      book(TENANT, {date: bookableDate, slotId}),
+    ['07:00', '10:00', '13:00'].map((start) =>
+      book(TENANT, {date: bookableDate, start}),
     ),
   );
 
@@ -444,8 +529,8 @@ test('keeps an apartment at one booking when it books several at once', async ()
 });
 
 test('drops the subscription when the subscriber books the freed slot', async () => {
-  const theirs = await book(NEIGHBOUR, {date: bookableDate, slotId: '07-10'});
-  await subscribe(TENANT, {date: bookableDate, slotId: '07-10'});
+  const theirs = await book(NEIGHBOUR, {date: bookableDate, start: '07:00'});
+  await subscribe(TENANT, {date: bookableDate, start: '07:00'});
 
   await cancel(NEIGHBOUR, theirs.json<CreatedBooking>().id);
 
@@ -455,7 +540,7 @@ test('drops the subscription when the subscriber books the freed slot', async ()
     [true],
   );
 
-  const response = await book(TENANT, {date: bookableDate, slotId: '07-10'});
+  const response = await book(TENANT, {date: bookableDate, start: '07:00'});
 
   assert.equal(response.statusCode, 201);
 
@@ -464,16 +549,16 @@ test('drops the subscription when the subscriber books the freed slot', async ()
 
   const mine = await myBookings(TENANT);
   assert.deepEqual(
-    mine.json<Booking[]>().map((booking) => booking.slotId),
-    ['07-10'],
+    mine.json<Booking[]>().map((booking) => booking.start),
+    ['07:00'],
   );
 });
 
 test('queueing twice for the same slot changes nothing', async () => {
-  await book(NEIGHBOUR, {date: bookableDate, slotId: '07-10'});
+  await book(NEIGHBOUR, {date: bookableDate, start: '07:00'});
 
-  const first = await subscribe(TENANT, {date: bookableDate, slotId: '07-10'});
-  const second = await subscribe(TENANT, {date: bookableDate, slotId: '07-10'});
+  const first = await subscribe(TENANT, {date: bookableDate, start: '07:00'});
+  const second = await subscribe(TENANT, {date: bookableDate, start: '07:00'});
 
   assert.equal(first.statusCode, 201);
   assert.equal(second.statusCode, 201);
@@ -484,11 +569,11 @@ test('queueing twice for the same slot changes nothing', async () => {
 });
 
 test('rejects queueing for your own booking', async () => {
-  await book(TENANT, {date: bookableDate, slotId: '07-10'});
+  await book(TENANT, {date: bookableDate, start: '07:00'});
 
   const response = await subscribe(TENANT, {
     date: bookableDate,
-    slotId: '07-10',
+    start: '07:00',
   });
 
   assert.equal(response.statusCode, 409);
@@ -510,12 +595,13 @@ test('lists bookable resources', async () => {
     response.json<Resource[]>().map((resource) => ({
       id: resource.id,
       kind: resource.kind,
-      hasDryer: resource.hasDryer,
+      tags: resource.tags,
     })),
     [
-      {id: LAUNDRY_1, kind: 'laundry', hasDryer: true},
-      {id: LAUNDRY_2, kind: 'laundry', hasDryer: false},
-      {id: DRYING, kind: 'drying', hasDryer: false},
+      {id: LAUNDRY_1, kind: 'laundry', tags: ['torktumlare']},
+      {id: LAUNDRY_2, kind: 'laundry', tags: []},
+      {id: DRYING, kind: 'drying', tags: ['avfuktare']},
+      {id: SAUNA, kind: 'sauna', tags: []},
     ],
   );
 });
@@ -530,7 +616,7 @@ test('rejects slots for an unknown resource', async () => {
 test('rejects a booking for an unknown resource', async () => {
   const response = await book(TENANT, {
     date: bookableDate,
-    slotId: '07-10',
+    start: '07:00',
     resourceId: 'nope',
   });
 
@@ -541,12 +627,12 @@ test('rejects a booking for an unknown resource', async () => {
 test('lets two apartments book the same slot in different laundry rooms', async () => {
   const first = await book(TENANT, {
     date: bookableDate,
-    slotId: '07-10',
+    start: '07:00',
     resourceId: LAUNDRY_1,
   });
   const second = await book(NEIGHBOUR, {
     date: bookableDate,
-    slotId: '07-10',
+    start: '07:00',
     resourceId: LAUNDRY_2,
   });
 
@@ -557,11 +643,11 @@ test('lets two apartments book the same slot in different laundry rooms', async 
   const laundry2 = await slotsFor(NEIGHBOUR, bookableDate, LAUNDRY_2);
 
   assert.equal(
-    laundry1.json<Slots>().slots.find((slot) => slot.id === '07-10')?.status,
+    laundry1.json<Slots>().slots.find((slot) => slot.start === '07:00')?.status,
     'mine',
   );
   assert.equal(
-    laundry2.json<Slots>().slots.find((slot) => slot.id === '07-10')?.status,
+    laundry2.json<Slots>().slots.find((slot) => slot.start === '07:00')?.status,
     'mine',
   );
 });
@@ -569,13 +655,13 @@ test('lets two apartments book the same slot in different laundry rooms', async 
 test('rejects a second laundry booking even in the other room', async () => {
   await book(TENANT, {
     date: bookableDate,
-    slotId: '07-10',
+    start: '07:00',
     resourceId: LAUNDRY_1,
   });
 
   const response = await book(TENANT, {
     date: bookableDate,
-    slotId: '13-16',
+    start: '13:00',
     resourceId: LAUNDRY_2,
   });
 
@@ -586,12 +672,12 @@ test('rejects a second laundry booking even in the other room', async () => {
 test('lets an apartment book laundry and drying at the same time', async () => {
   const laundry = await book(TENANT, {
     date: bookableDate,
-    slotId: '07-10',
+    start: '07:00',
     resourceId: LAUNDRY_1,
   });
   const drying = await book(TENANT, {
     date: bookableDate,
-    slotId: '10-13',
+    start: '10:00',
     resourceId: DRYING,
   });
 
@@ -611,18 +697,18 @@ test('lets an apartment book laundry and drying at the same time', async () => {
 test('replaces only the laundry booking when switching rooms', async () => {
   const first = await book(TENANT, {
     date: bookableDate,
-    slotId: '07-10',
+    start: '07:00',
     resourceId: LAUNDRY_1,
   });
   await book(TENANT, {
     date: bookableDate,
-    slotId: '10-13',
+    start: '10:00',
     resourceId: DRYING,
   });
 
   const swapped = await book(TENANT, {
     date: bookableDate,
-    slotId: '13-16',
+    start: '13:00',
     resourceId: LAUNDRY_2,
     replaceExisting: true,
   });
@@ -637,22 +723,22 @@ test('replaces only the laundry booking when switching rooms', async () => {
   assert.deepEqual(
     mine
       .json<Booking[]>()
-      .map((booking) => `${booking.resourceId}:${booking.slotId}`)
+      .map((booking) => `${booking.resourceId}:${booking.start}`)
       .sort(),
-    [`${DRYING}:10-13`, `${LAUNDRY_2}:13-16`].sort(),
+    [`${DRYING}:10:00`, `${LAUNDRY_2}:13:00`].sort(),
   );
 });
 
 test('rejects a second drying booking', async () => {
   await book(TENANT, {
     date: bookableDate,
-    slotId: '07-10',
+    start: '07:00',
     resourceId: DRYING,
   });
 
   const response = await book(TENANT, {
     date: bookableDate,
-    slotId: '13-16',
+    start: '13:00',
     resourceId: DRYING,
   });
 
@@ -663,23 +749,26 @@ test('rejects a second drying booking', async () => {
 test('keeps the laundry queue off the other room', async () => {
   await book(NEIGHBOUR, {
     date: bookableDate,
-    slotId: '07-10',
+    start: '07:00',
     resourceId: LAUNDRY_1,
   });
   await subscribe(TENANT, {
     date: bookableDate,
-    slotId: '07-10',
+    start: '07:00',
     resourceId: LAUNDRY_1,
   });
 
   const otherRoom = await slotsFor(TENANT, bookableDate, LAUNDRY_2);
   assert.equal(
-    otherRoom.json<Slots>().slots.find((slot) => slot.id === '07-10')?.status,
+    otherRoom.json<Slots>().slots.find((slot) => slot.start === '07:00')
+      ?.status,
     'available',
   );
 
   const queued = await slotsFor(TENANT, bookableDate, LAUNDRY_1);
-  const slot = queued.json<Slots>().slots.find((item) => item.id === '07-10');
+  const slot = queued
+    .json<Slots>()
+    .slots.find((item) => item.start === '07:00');
   assert.equal(slot?.status, 'booked');
   assert.ok(slot?.status === 'booked' && slot.subscriptionId);
 });
@@ -688,7 +777,7 @@ test('slots report the active booking of the same kind', async () => {
   const before = await slotsFor(TENANT, bookableDate, LAUNDRY_2);
   assert.equal(before.json<Slots>().active, null);
 
-  await book(TENANT, {date: bookableDate, slotId: '07-10'});
+  await book(TENANT, {date: bookableDate, start: '07:00'});
 
   const sameKind = await slotsFor(TENANT, bookableDate, LAUNDRY_2);
   assert.deepEqual(sameKind.json<Slots>().active, {released: false});
@@ -710,13 +799,13 @@ test('a started booking in one room does not occupy the other', async () => {
 
   const other = await slotsFor(NEIGHBOUR, today, LAUNDRY_2);
   assert.equal(
-    other.json<Slots>().slots.find((slot) => slot.id === 'all-day')?.status,
+    other.json<Slots>().slots.find((slot) => slot.start === '00:00')?.status,
     'walkin',
   );
 
   const ownOther = await slotsFor(TENANT, today, LAUNDRY_2);
   assert.equal(
-    ownOther.json<Slots>().slots.find((slot) => slot.id === 'all-day')?.status,
+    ownOther.json<Slots>().slots.find((slot) => slot.start === '00:00')?.status,
     'walkin',
   );
 });
@@ -724,17 +813,17 @@ test('a started booking in one room does not occupy the other', async () => {
 test('cancelling one room does not free a queue on the other', async () => {
   const first = await book(NEIGHBOUR, {
     date: bookableDate,
-    slotId: '07-10',
+    start: '07:00',
     resourceId: LAUNDRY_1,
   });
   await book('14', {
     date: bookableDate,
-    slotId: '07-10',
+    start: '07:00',
     resourceId: LAUNDRY_2,
   });
   await subscribe(TENANT, {
     date: bookableDate,
-    slotId: '07-10',
+    start: '07:00',
     resourceId: LAUNDRY_2,
   });
 
@@ -750,26 +839,26 @@ test('cancelling one room does not free a queue on the other', async () => {
 test('lists queue members only for that resource', async () => {
   await book(NEIGHBOUR, {
     date: bookableDate,
-    slotId: '07-10',
+    start: '07:00',
     resourceId: LAUNDRY_1,
   });
   await book('14', {
     date: bookableDate,
-    slotId: '07-10',
+    start: '07:00',
     resourceId: LAUNDRY_2,
   });
   await subscribe(TENANT, {
     date: bookableDate,
-    slotId: '07-10',
+    start: '07:00',
     resourceId: LAUNDRY_1,
   });
 
-  const laundry1 = await listSubscribers(LAUNDRY_1, bookableDate, '07-10');
-  const laundry2 = await listSubscribers(LAUNDRY_2, bookableDate, '07-10');
+  const laundry1 = await listSubscribers(LAUNDRY_1, bookableDate, '07:00');
+  const laundry2 = await listSubscribers(LAUNDRY_2, bookableDate, '07:00');
 
   assert.deepEqual(
-    laundry1.map((row) => row.userId),
-    [TENANT],
+    laundry1.map((row) => row.memberId),
+    [memberId(TENANT)],
   );
   assert.deepEqual(laundry2, []);
 });
@@ -780,10 +869,81 @@ test('releasing a started laundry booking still blocks the other laundry room', 
 
   const response = await book(TENANT, {
     date: bookableDate,
-    slotId: '07-10',
+    start: '07:00',
     resourceId: LAUNDRY_2,
   });
 
   assert.equal(response.statusCode, 409);
   assert.equal(codeOf(response), 'HAS_ACTIVE_BOOKING');
+});
+
+test('rejects a header that is not a member', async () => {
+  const response = await myBookings('999');
+
+  assert.equal(response.statusCode, 401);
+  assert.equal(codeOf(response), 'UNAUTHORIZED');
+});
+
+test('a room offers its own grid and nothing else', async () => {
+  const laundry = startsIn(await slotsFor(TENANT, bookableDate, LAUNDRY_1));
+  const drying = startsIn(await slotsFor(TENANT, bookableDate, DRYING));
+
+  assert.ok(laundry.includes(ALL_DAY.start));
+  assert.ok(!laundry.includes(EVENING.start));
+  assert.ok(!laundry.includes(NIGHT.start));
+
+  assert.ok(drying.includes(EVENING.start));
+  assert.ok(drying.includes(NIGHT.start));
+  assert.ok(!drying.includes(ALL_DAY.start));
+});
+
+test('rejects a start the room does not offer', async () => {
+  const response = await book(TENANT, {
+    date: bookableDate,
+    start: EVENING.start,
+    resourceId: LAUNDRY_1,
+  });
+
+  assert.equal(response.statusCode, 404);
+  assert.equal(codeOf(response), 'NOT_FOUND');
+});
+
+test('lets a kind with room for two take a second booking', async () => {
+  const first = await book(TENANT, {
+    date: bookableDate,
+    start: '07:00',
+    resourceId: SAUNA,
+  });
+  const second = await book(TENANT, {
+    date: bookableDate,
+    start: '10:00',
+    resourceId: SAUNA,
+  });
+  const third = await book(TENANT, {
+    date: bookableDate,
+    start: '13:00',
+    resourceId: SAUNA,
+  });
+
+  assert.equal(first.statusCode, 201);
+  assert.equal(second.statusCode, 201);
+  assert.equal(third.statusCode, 409);
+  assert.equal(codeOf(third), 'HAS_ACTIVE_BOOKING');
+
+  const mine = await myBookings(TENANT);
+  assert.equal(mine.json<Booking[]>().length, 2);
+});
+
+test('a night slot ends the morning after it starts', async () => {
+  const response = await book(TENANT, {
+    date: bookableDate,
+    start: NIGHT.start,
+    resourceId: DRYING,
+  });
+  const created = response.json<CreatedBooking>();
+
+  assert.equal(response.statusCode, 201);
+  assert.equal(created.start, NIGHT.start);
+  assert.equal(created.end, NIGHT.end);
+  assert.equal(created.endsAt.slice(0, 10), dayAfterBookable);
 });

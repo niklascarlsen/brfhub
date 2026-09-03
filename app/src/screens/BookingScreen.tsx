@@ -65,11 +65,18 @@ export function BookingScreen() {
         <Text className='text-[27px] font-semibold tracking-tight text-theme-ink'>
           {formatLongDate(date)}
         </Text>
-        {resource.hasDryer ? (
-          <View className='mt-2 mb-1 self-start rounded-full bg-theme-mist px-[9px] py-1'>
-            <Text className='text-[10px] font-bold uppercase tracking-[0.5px] text-theme-accent'>
-              torktumlare
-            </Text>
+        {resource.tags.length > 0 ? (
+          <View className='mt-2 mb-1 flex-row flex-wrap gap-[6px]'>
+            {resource.tags.map((tag) => (
+              <View
+                key={tag}
+                className='self-start rounded-full bg-theme-mist px-[9px] py-1'
+              >
+                <Text className='text-[10px] font-bold uppercase tracking-[0.5px] text-theme-accent'>
+                  {tag}
+                </Text>
+              </View>
+            ))}
           </View>
         ) : null}
         <View className='mt-5 grow'>
