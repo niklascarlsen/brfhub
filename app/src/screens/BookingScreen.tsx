@@ -46,6 +46,7 @@ export function BookingScreen() {
     error,
     reload,
   } = useFocusLoad(() => fetchDay(date, resource.id), `${date}:${resource.id}`);
+
   const {confirmBook} = useBookingActions(reload);
 
   return (

@@ -1,5 +1,6 @@
 import {useFocusEffect} from '@react-navigation/native';
 import {useCallback, useEffect, useRef, useState} from 'react';
+import {AppState} from 'react-native';
 
 import {codeOf, errorMessage} from '@/api/errors';
 
@@ -9,13 +10,22 @@ export function useFocusLoad<T>(load: () => Promise<T>, identity?: string) {
   const [attempt, setAttempt] = useState(0);
   const reload = () => setAttempt((previous) => previous + 1);
 
-  const dropWhenStale = identity !== undefined;
-  const requestKey = dropWhenStale ? `${identity}#${attempt}` : String(attempt);
+  const scope = identity ?? '';
   const loadRef = useRef(load);
 
   useEffect(() => {
     loadRef.current = load;
   });
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        setAttempt((previous) => previous + 1);
+      }
+    });
+
+    return () => subscription.remove();
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -27,7 +37,7 @@ export function useFocusLoad<T>(load: () => Promise<T>, identity?: string) {
         .current()
         .then((value) => {
           if (current) {
-            setLoaded({key: requestKey, value});
+            setLoaded({key: scope, value});
           }
         })
         .catch((caught: unknown) => {
@@ -39,15 +49,13 @@ export function useFocusLoad<T>(load: () => Promise<T>, identity?: string) {
       return () => {
         current = false;
       };
-    }, [requestKey]),
+      // attempt is a trigger, not a value the load reads.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [scope, attempt]),
   );
 
   return {
-    data: dropWhenStale
-      ? loaded?.key === requestKey
-        ? loaded.value
-        : null
-      : (loaded?.value ?? null),
+    data: loaded?.key === scope ? loaded.value : null,
     error,
     reload,
   };

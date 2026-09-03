@@ -64,8 +64,10 @@ export function ReservationScreen() {
     error,
     reload,
   } = useFocusLoad(fetchBookingsAndSubscriptions);
+
   const {confirmBookable, confirmCancel, confirmRelease, confirmUnsubscribe} =
     useBookingActions(reload);
+
   const showSkeleton = useSlowLoad(times === null && error === null);
 
   if (!times) {

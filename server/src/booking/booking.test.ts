@@ -469,6 +469,35 @@ test('drops the subscription when the subscriber books the freed slot', async ()
   );
 });
 
+test('queueing twice for the same slot changes nothing', async () => {
+  await book(NEIGHBOUR, {date: bookableDate, slotId: '07-10'});
+
+  const first = await subscribe(TENANT, {date: bookableDate, slotId: '07-10'});
+  const second = await subscribe(TENANT, {date: bookableDate, slotId: '07-10'});
+
+  assert.equal(first.statusCode, 201);
+  assert.equal(second.statusCode, 201);
+  assert.equal(second.json<Subscription>().id, first.json<Subscription>().id);
+
+  const queued = await mySubscriptions(TENANT);
+  assert.equal(queued.json<Subscription[]>().length, 1);
+});
+
+test('rejects queueing for your own booking', async () => {
+  await book(TENANT, {date: bookableDate, slotId: '07-10'});
+
+  const response = await subscribe(TENANT, {
+    date: bookableDate,
+    slotId: '07-10',
+  });
+
+  assert.equal(response.statusCode, 409);
+  assert.equal(codeOf(response), 'HAS_ACTIVE_BOOKING');
+
+  const queued = await mySubscriptions(TENANT);
+  assert.deepEqual(queued.json<Subscription[]>(), []);
+});
+
 test('lists bookable resources', async () => {
   const response = await server.inject({
     method: 'GET',

@@ -1,4 +1,4 @@
-import {sql, type SQL} from 'drizzle-orm';
+import {gt, sql, type SQL} from 'drizzle-orm';
 import type {PgColumn} from 'drizzle-orm/pg-core';
 
 const STOCKHOLM = 'Europe/Stockholm';
@@ -36,6 +36,10 @@ export function slotHasEnded(
   slotEnd: string | PgColumn,
 ): SQL<boolean> {
   return sql`${slotEndsAt(date, slotEnd)} <= now()`;
+}
+
+export function notExpired(endsAt: PgColumn) {
+  return gt(endsAt, sql`now()`);
 }
 
 export function asIsoText(column: PgColumn): SQL<string> {

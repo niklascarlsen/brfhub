@@ -1,10 +1,11 @@
-import {and, asc, eq, gt, isNull, sql} from 'drizzle-orm';
+import {and, asc, eq, isNull, sql} from 'drizzle-orm';
 
 import {db} from '../db/index.js';
 import {bookings, resources, subscriptions, timeSlots} from '../db/schema.js';
 import {appError} from '../lib/errors.js';
 import {
   asIsoText,
+  notExpired,
   slotEndsAt,
   slotHasEnded,
   slotHasStarted,
@@ -22,7 +23,7 @@ const resourceFields = {
 function stillActive(userId: string) {
   return and(
     eq(subscriptions.userId, userId),
-    gt(subscriptions.endsAt, sql`now()`),
+    notExpired(subscriptions.endsAt),
   );
 }
 
@@ -116,6 +117,10 @@ export async function createSubscription({
     throw appError('SLOT_AVAILABLE');
   }
 
+  if (slot.bookedBy === userId) {
+    throw appError('HAS_ACTIVE_BOOKING');
+  }
+
   const [row] = await db
     .insert(subscriptions)
     .values({
@@ -124,6 +129,15 @@ export async function createSubscription({
       resourceId,
       userId,
       endsAt: slotEndsAt(date, slot.end),
+    })
+    .onConflictDoUpdate({
+      target: [
+        subscriptions.userId,
+        subscriptions.resourceId,
+        subscriptions.date,
+        subscriptions.slotId,
+      ],
+      set: {endsAt: slotEndsAt(date, slot.end)},
     })
     .returning({
       id: subscriptions.id,
@@ -182,7 +196,7 @@ export function listSubscribers(
         eq(subscriptions.resourceId, resourceId),
         eq(subscriptions.date, date),
         eq(subscriptions.slotId, slotId),
-        gt(subscriptions.endsAt, sql`now()`),
+        notExpired(subscriptions.endsAt),
       ),
     );
 }
