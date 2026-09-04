@@ -21,7 +21,13 @@ edit them by hand. Change the Zod schemas in
 
 `app/`
 
-- `npm start` — Expo dev server. `ios`, `android` and `web` pick one platform.
+- `npm run android` / `npm run ios` — build, install and start Metro. Saving a
+  file then reloads the app by itself. Rerun only after changes to `app.json`
+  or a package with native code.
+- `npm start` — start Metro alone, when the app is installed but Metro is not
+  running.
+- `npm run go` — Expo Go on a physical iPhone. UI only: push does not work
+  there, and it throws on Android.
 - `npm run check` — Prettier, TypeScript and ESLint.
 - `npm test` — Jest via `jest-expo`, run in Europe/Stockholm and then
   America/New_York. The date helpers use local time, and only a negative

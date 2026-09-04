@@ -50,7 +50,7 @@ export async function notifySlotReleased(
     .where(inArray(pushTokens.memberId, memberIds));
 
   try {
-    await sendPush(
+    const failures = await sendPush(
       tokens.map(({token}) => ({
         to: token,
         title: 'En tid blev ledig',
@@ -62,6 +62,20 @@ export async function notifySlotReleased(
         },
       })),
     );
+
+    const unregistered = failures
+      .filter((failure) => failure.unregistered)
+      .map((failure) => failure.token);
+
+    if (unregistered.length > 0) {
+      await db
+        .delete(pushTokens)
+        .where(inArray(pushTokens.token, unregistered));
+    }
+
+    for (const failure of failures.filter((item) => !item.unregistered)) {
+      log.error({failure, slot}, 'push notification rejected');
+    }
   } catch (error) {
     log.error({err: error, slot}, 'push notification failed');
   }

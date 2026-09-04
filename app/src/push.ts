@@ -1,5 +1,6 @@
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
+import {Platform} from 'react-native';
 
 import {api, unwrap} from '@/api/client';
 
@@ -17,8 +18,21 @@ type ReleasedSlotData = {
   resourceId: string;
 };
 
+async function ensureSlotChannel(): Promise<void> {
+  if (Platform.OS !== 'android') {
+    return;
+  }
+
+  await Notifications.setNotificationChannelAsync('slots', {
+    name: 'Lediga tider',
+    importance: Notifications.AndroidImportance.HIGH,
+  });
+}
+
 export async function registerPushToken(): Promise<void> {
   try {
+    await ensureSlotChannel();
+
     const existing = await Notifications.getPermissionsAsync();
     const granted =
       existing.granted ||
@@ -30,13 +44,16 @@ export async function registerPushToken(): Promise<void> {
 
     const projectId = Constants.expoConfig?.extra?.eas?.projectId;
     if (typeof projectId !== 'string') {
+      console.warn(
+        '[push] no eas.projectId in app config, run: npx eas-cli init',
+      );
       return;
     }
 
     const {data} = await Notifications.getExpoPushTokenAsync({projectId});
     await unwrap(api.POST('/push-tokens', {body: {token: data}}));
-  } catch {
-    return;
+  } catch (error) {
+    console.warn('[push] could not register push token', error);
   }
 }
 

@@ -76,10 +76,14 @@ export function DatePicker({
                 </Text>
                 <View
                   style={{width: circleSize, height: circleSize}}
-                  className={`mt-1.5 items-center justify-center rounded-full ${
-                    selected ? 'bg-theme-ink' : ''
-                  }`}
+                  className='mt-1.5 items-center justify-center'
                 >
+                  {selected ? (
+                    <View
+                      style={{borderRadius: circleSize / 2}}
+                      className='absolute inset-0 bg-theme-ink'
+                    />
+                  ) : null}
                   <Text
                     style={tabularNums}
                     className={`text-base ${

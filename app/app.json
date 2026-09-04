@@ -2,12 +2,14 @@
   "expo": {
     "name": "booking",
     "slug": "booking",
+    "scheme": "bookslot",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.bookslot.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -16,11 +18,20 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.bookslot.app",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
-    }
+    },
+    "plugins": ["expo-notifications"],
+    "extra": {
+      "eas": {
+        "projectId": "c54a944e-ddd0-43b1-ad06-707540ffbf7d"
+      }
+    },
+    "owner": "ncrf"
   }
 }

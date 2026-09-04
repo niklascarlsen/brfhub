@@ -27,3 +27,7 @@ node_modules
 dist
 drizzle
 .env.test
+
+/app/android/
+/app/ios/
+app/google-services.json
