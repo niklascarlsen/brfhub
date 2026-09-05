@@ -12,7 +12,7 @@ import {ConfigProvider} from '@/config';
 import AppTabNavigator, {
   type AppTabParamList,
 } from '@/navigation/AppTabNavigator';
-import {onNotificationTap, registerPushToken} from '@/push';
+import {onNotificationTap, onPushTokenChange, registerPushToken} from '@/push';
 
 const navigationRef = createNavigationContainerRef<AppTabParamList>();
 
@@ -22,7 +22,8 @@ export default function App() {
   useEffect(() => {
     void registerPushToken();
 
-    return onNotificationTap((target) => {
+    const stopListeningForToken = onPushTokenChange();
+    const stopListeningForTap = onNotificationTap((target) => {
       if (navigationRef.isReady()) {
         navigationRef.navigate('Booking', target);
         return;
@@ -30,6 +31,11 @@ export default function App() {
 
       pending.current = target;
     });
+
+    return () => {
+      stopListeningForToken();
+      stopListeningForTap();
+    };
   }, []);
 
   const onReady = useCallback(() => {

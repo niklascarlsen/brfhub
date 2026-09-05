@@ -37,8 +37,10 @@
   "scripts": {
     "go": "expo start --go",
     "start": "expo start --dev-client",
-    "android": "expo run:android",
     "ios": "expo run:ios",
+    "android": "expo run:android",
+    "app:restart": "adb shell am force-stop com.bookslot.app && adb shell am start -n com.bookslot.app/.MainActivity",
+    "app:logs": "adb logcat -s ReactNativeJS:V",
     "web": "expo start --web",
     "lint": "expo lint",
     "format": "prettier --write .",

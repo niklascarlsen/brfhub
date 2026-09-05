@@ -18,6 +18,10 @@ edit them by hand. Change the Zod schemas in
 - `npm run check` — Prettier and TypeScript.
 - `npm test` — integration tests against booking_test on :5434. Needs `db:up`.
 - `npm run db:up` — Postgres in Docker, dev on :5433 and test on :5434.
+- `npm run db:seed` — resets bookings, subscriptions and resources to a known
+  state. Members and push tokens survive, so the app stays registered.
+- `npm run push:test` — releases an upcoming booking held by another apartment
+  and sends the real notification. Reseed when it runs out of bookings.
 
 `app/`
 

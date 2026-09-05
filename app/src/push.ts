@@ -29,6 +29,26 @@ async function ensureSlotChannel(): Promise<void> {
   });
 }
 
+async function sendToken(
+  devicePushToken?: Notifications.DevicePushToken,
+): Promise<void> {
+  const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+
+  if (typeof projectId !== 'string') {
+    console.warn(
+      '[push] no eas.projectId in app config, run: npx eas-cli init',
+    );
+    return;
+  }
+
+  const {data} = await Notifications.getExpoPushTokenAsync({
+    projectId,
+    devicePushToken,
+  });
+
+  await unwrap(api.POST('/push-tokens', {body: {token: data}}));
+}
+
 export async function registerPushToken(): Promise<void> {
   try {
     await ensureSlotChannel();
@@ -42,19 +62,20 @@ export async function registerPushToken(): Promise<void> {
       return;
     }
 
-    const projectId = Constants.expoConfig?.extra?.eas?.projectId;
-    if (typeof projectId !== 'string') {
-      console.warn(
-        '[push] no eas.projectId in app config, run: npx eas-cli init',
-      );
-      return;
-    }
-
-    const {data} = await Notifications.getExpoPushTokenAsync({projectId});
-    await unwrap(api.POST('/push-tokens', {body: {token: data}}));
+    await sendToken();
   } catch (error) {
     console.warn('[push] could not register push token', error);
   }
+}
+
+export function onPushTokenChange(): () => void {
+  const subscription = Notifications.addPushTokenListener((devicePushToken) => {
+    sendToken(devicePushToken).catch((error: unknown) => {
+      console.warn('[push] could not register rotated push token', error);
+    });
+  });
+
+  return () => subscription.remove();
 }
 
 export function onNotificationTap(

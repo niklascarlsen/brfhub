@@ -1,25 +1,20 @@
 import 'dotenv/config';
 
-import {and, eq} from 'drizzle-orm';
+import {and, asc, eq, isNull, ne, not} from 'drizzle-orm';
 
 import {db, pool} from '../src/db/index.js';
-import {members, pushTokens} from '../src/db/schema.js';
-import {toIsoDate} from '../src/lib/time.js';
+import {bookings, members, pushTokens, resources} from '../src/db/schema.js';
+import {slotHasStarted} from '../src/lib/time.js';
 import {ORGANIZATION_ID} from '../src/lib/user.js';
 
 const API_URL = process.env.API_URL ?? 'http://localhost:3000';
 const WATCHER = '12';
-const OWNERS = ['21', '23', '31', '14'];
 
-type Resource = {id: string; name: string};
-type Slot = {start: string; end: string; status: string};
-type Booking = {id: string};
-
-async function request<T>(
+async function request(
   path: string,
   apartment: string,
   init: RequestInit = {},
-): Promise<T> {
+): Promise<void> {
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
     headers: {
@@ -30,69 +25,41 @@ async function request<T>(
   });
 
   if (!response.ok) {
-    const body = await response.text();
     throw new Error(
-      `${init.method ?? 'GET'} ${path} → ${response.status} ${body}`,
+      `${init.method ?? 'GET'} ${path} → ${response.status} ${await response.text()}`,
     );
   }
-
-  return response.status === 204
-    ? (undefined as T)
-    : ((await response.json()) as T);
 }
 
-function datesAhead(days: number): string[] {
-  const dates = Array.from({length: days}, (_, index) => {
-    const date = new Date();
-    date.setHours(0, 0, 0, 0);
-    date.setDate(date.getDate() + index + 1);
-    return toIsoDate(date);
-  });
-
-  return dates.sort(() => Math.random() - 0.5);
+function findReleasableBooking() {
+  return db
+    .select({
+      id: bookings.id,
+      owner: members.label,
+      date: bookings.date,
+      start: bookings.start,
+      end: bookings.end,
+      resourceId: bookings.resourceId,
+      resourceName: resources.name,
+    })
+    .from(bookings)
+    .innerJoin(members, eq(members.id, bookings.memberId))
+    .innerJoin(resources, eq(resources.id, bookings.resourceId))
+    .where(
+      and(
+        eq(bookings.organizationId, ORGANIZATION_ID),
+        isNull(bookings.releasedAt),
+        ne(members.label, WATCHER),
+        not(slotHasStarted(bookings.date, bookings.start)),
+      ),
+    )
+    .orderBy(asc(bookings.date), asc(bookings.start))
+    .limit(1)
+    .then((rows) => rows[0]);
 }
 
-async function findFreeSlot(resources: Resource[]) {
-  for (const date of datesAhead(14)) {
-    for (const resource of resources) {
-      const {slots} = await request<{slots: Slot[]}>(
-        `/slots?date=${date}&resourceId=${resource.id}`,
-        WATCHER,
-      );
-      const free = slots.find((slot) => slot.status === 'available');
-
-      if (free) {
-        return {date, resource, start: free.start, end: free.end};
-      }
-    }
-  }
-
-  throw new Error('No free slot within the booking window');
-}
-
-async function bookAsAnyone(
-  date: string,
-  resourceId: string,
-  start: string,
-): Promise<{owner: string; booking: Booking}> {
-  for (const owner of OWNERS) {
-    try {
-      const booking = await request<Booking>('/bookings', owner, {
-        method: 'POST',
-        body: JSON.stringify({date, start, resourceId}),
-      });
-
-      return {owner, booking};
-    } catch {
-      continue;
-    }
-  }
-
-  throw new Error('Every candidate apartment already holds a booking');
-}
-
-async function countTokens(): Promise<number> {
-  const rows = await db
+function countTokens() {
+  return db
     .select({token: pushTokens.token})
     .from(pushTokens)
     .innerJoin(members, eq(members.id, pushTokens.memberId))
@@ -101,37 +68,41 @@ async function countTokens(): Promise<number> {
         eq(members.organizationId, ORGANIZATION_ID),
         eq(members.label, WATCHER),
       ),
-    );
-
-  return rows.length;
+    )
+    .then((rows) => rows.length);
 }
 
 try {
-  const resources = await request<Resource[]>('/resources', WATCHER);
-  const {date, resource, start, end} = await findFreeSlot(resources);
+  const booking = await findReleasableBooking();
 
-  const {owner, booking} = await bookAsAnyone(date, resource.id, start);
+  if (!booking) {
+    console.log('No upcoming booking held by another apartment.');
+    console.log('Run npm run db:seed and try again.');
+    process.exit(1);
+  }
+
+  const {id, owner, date, start, end, resourceId, resourceName} = booking;
   console.log(
-    `1. apartment ${owner} booked ${resource.name} ${date} ${start}–${end}`,
+    `1. apartment ${owner} holds ${resourceName} ${date} ${start}–${end}`,
   );
 
   await request('/subscriptions', WATCHER, {
     method: 'POST',
-    body: JSON.stringify({date, start, resourceId: resource.id}),
+    body: JSON.stringify({date, start, resourceId}),
   });
-  console.log(`2. apartment ${WATCHER} is watching the same slot`);
+  console.log(`2. apartment ${WATCHER} is watching it`);
 
   const tokens = await countTokens();
 
-  await request(`/bookings/${booking.id}`, owner, {method: 'DELETE'});
+  await request(`/bookings/${id}`, owner, {method: 'DELETE'});
   console.log(`3. apartment ${owner} released it`);
+  console.log('');
 
   if (tokens === 0) {
-    console.log('');
-    console.log(`No push token registered for apartment ${WATCHER}.`);
+    console.log(`No push token for apartment ${WATCHER}.`);
+    console.log('Restart the app so it registers one, then run this again.');
   } else {
-    console.log('');
-    console.log(`Sent to ${tokens} device token(s).`);
+    console.log(`Sent to ${tokens} device token(s). Watch the emulator.`);
   }
 } finally {
   await pool.end();

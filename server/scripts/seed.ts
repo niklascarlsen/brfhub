@@ -1,6 +1,6 @@
 import 'dotenv/config';
 
-import {eq} from 'drizzle-orm';
+import {eq, sql} from 'drizzle-orm';
 
 import {db, pool} from '../src/db/index.js';
 import {
@@ -122,16 +122,20 @@ function findSlot(resourceId: string, start: string) {
 }
 
 try {
+  await db.execute(
+    sql`truncate bookings, subscriptions, resource_slots, resources, resource_kinds cascade`,
+  );
+
   await db.insert(organizations).values(ORGANIZATION).onConflictDoNothing();
-  await db.insert(resourceKinds).values(KINDS).onConflictDoNothing();
   await db
     .insert(members)
     .values(
       APARTMENTS.map((label) => ({organizationId: ORGANIZATION_ID, label})),
     )
     .onConflictDoNothing();
-  await db.insert(resources).values(RESOURCES).onConflictDoNothing();
-  await db.insert(resourceSlots).values(RESOURCE_SLOTS).onConflictDoNothing();
+  await db.insert(resourceKinds).values(KINDS);
+  await db.insert(resources).values(RESOURCES);
+  await db.insert(resourceSlots).values(RESOURCE_SLOTS);
 
   const memberRows = await db
     .select({id: members.id, label: members.label})
@@ -147,9 +151,6 @@ try {
     }
     return id;
   }
-
-  await db.delete(subscriptions);
-  await db.delete(bookings);
 
   function toRow({
     days,
