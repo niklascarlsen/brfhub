@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {Pressable, Text, View} from 'react-native';
 
-import {theme} from '../../theme';
+import theme from '@/theme.json';
 
 type NoticeProps = {
   title?: string;
@@ -18,7 +18,7 @@ export function Notice({title, message, actionLabel, onAction}: NoticeProps) {
           {title}
         </Text>
       ) : null}
-      <Text className='text-center text-sm leading-5 text-theme-muted'>
+      <Text className='text-center font-sans text-sm leading-5 text-theme-muted'>
         {message}
       </Text>
       {actionLabel && onAction ? (

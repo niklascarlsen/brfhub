@@ -68,7 +68,10 @@ export async function buildApp(options: FastifyServerOptions = {}) {
     ),
   );
 
-  await server.register(cors, {origin: true});
+  await server.register(cors, {
+    origin: true,
+    methods: ['GET', 'HEAD', 'POST', 'DELETE'],
+  });
 
   await server.register(swagger, {
     openapi: {

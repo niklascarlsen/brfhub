@@ -204,6 +204,19 @@ function slotsFor(userId: string, date: string, resourceId = LAUNDRY_1) {
   });
 }
 
+function slotsBetween(
+  userId: string,
+  from: string,
+  to: string,
+  resourceId = LAUNDRY_1,
+) {
+  return server.inject({
+    method: 'GET',
+    url: `/slots?date=${from}&to=${to}&resourceId=${resourceId}`,
+    headers: {'x-apartment-number': userId},
+  });
+}
+
 function startsIn(response: {json: <T>() => T}) {
   return response.json<Slots>().slots.map((slot) => slot.start);
 }
@@ -946,4 +959,51 @@ test('a night slot ends the morning after it starts', async () => {
   assert.equal(created.start, NIGHT.start);
   assert.equal(created.end, NIGHT.end);
   assert.equal(created.endsAt.slice(0, 10), dayAfterBookable);
+});
+
+test('a range answers for every day in it', async () => {
+  const response = await slotsBetween(TENANT, bookableDate, dayAfterBookable);
+  const dates = new Set(response.json<Slots>().slots.map((slot) => slot.date));
+
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual([...dates].sort(), [bookableDate, dayAfterBookable]);
+});
+
+test('a booking in a range marks only its own day', async () => {
+  await book(TENANT, {date: bookableDate, start: '07:00'});
+
+  const {slots} = (
+    await slotsBetween(TENANT, bookableDate, dayAfterBookable)
+  ).json<Slots>();
+
+  const booked = slots.find(
+    (slot) => slot.date === bookableDate && slot.start === '07:00',
+  );
+  const untouched = slots.find(
+    (slot) => slot.date === dayAfterBookable && slot.start === '07:00',
+  );
+
+  assert.equal(booked?.status, 'mine');
+  assert.equal(untouched?.status, 'available');
+});
+
+test('a range without to still answers for the single day', async () => {
+  const {slots} = (await slotsFor(TENANT, bookableDate)).json<Slots>();
+
+  assert.ok(slots.length > 0);
+  assert.ok(slots.every((slot) => slot.date === bookableDate));
+});
+
+test('rejects a range that reaches past the booking window', async () => {
+  const response = await slotsBetween(TENANT, bookableDate, beyondWindow);
+
+  assert.equal(response.statusCode, 400);
+  assert.equal(codeOf(response), 'OUTSIDE_BOOKING_WINDOW');
+});
+
+test('rejects a range that ends before it starts', async () => {
+  const response = await slotsBetween(TENANT, dayAfterBookable, bookableDate);
+
+  assert.equal(response.statusCode, 400);
+  assert.equal(codeOf(response), 'VALIDATION');
 });

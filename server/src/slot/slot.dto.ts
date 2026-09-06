@@ -2,10 +2,12 @@ import {z} from 'zod';
 
 export const listSlotsQuerySchema = z.object({
   date: z.iso.date(),
+  to: z.iso.date().optional(),
   resourceId: z.string().min(1),
 });
 
 const slotTimes = {
+  date: z.iso.date(),
   start: z.string(),
   end: z.string(),
 };

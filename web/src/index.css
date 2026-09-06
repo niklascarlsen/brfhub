@@ -1,0 +1,54 @@
+@import 'tailwindcss';
+@import './theme.css';
+
+@theme {
+  --font-sans: 'Merriweather Variable', ui-serif, Georgia, serif;
+  --animate-skeleton-pulse: skeleton-pulse 1400ms ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@layer base {
+  html {
+    background-color: var(--color-theme-bg);
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: none;
+  }
+
+  body {
+    margin: 0;
+    overscroll-behavior: none;
+    background-color: var(--color-theme-bg);
+    color: var(--color-theme-ink);
+    font-family: var(--font-sans);
+  }
+
+  body:has(dialog:modal) {
+    overflow: hidden;
+  }
+
+  :where(button, [type='button'], [type='submit']):not(:disabled) {
+    cursor: pointer;
+  }
+
+  :focus {
+    outline: none;
+  }
+
+  [data-input='keyboard'] :focus-visible {
+    outline: 3px solid var(--color-theme-accent);
+    outline-offset: 0px;
+  }
+
+  [data-input='keyboard'] dialog button:focus-visible {
+    outline-offset: 2px;
+  }
+}

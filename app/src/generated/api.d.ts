@@ -104,6 +104,7 @@ export interface paths {
             parameters: {
                 query: {
                     date: string;
+                    to?: string;
                     resourceId: string;
                 };
                 header?: never;
@@ -933,17 +934,23 @@ export interface components {
             token: string;
         };
         SlotInput: {
+            /** Format: date */
+            date: string;
             start: string;
             end: string;
             /** @constant */
             status: "available";
             subscriptionId: string | null;
         } | {
+            /** Format: date */
+            date: string;
             start: string;
             end: string;
             /** @constant */
             status: "walkin";
         } | {
+            /** Format: date */
+            date: string;
             start: string;
             end: string;
             /** @constant */
@@ -951,6 +958,8 @@ export interface components {
             started: boolean;
             subscriptionId: string | null;
         } | {
+            /** Format: date */
+            date: string;
             start: string;
             end: string;
             /** @constant */
@@ -1048,17 +1057,23 @@ export interface components {
             token: string;
         };
         Slot: {
+            /** Format: date */
+            date: string;
             start: string;
             end: string;
             /** @constant */
             status: "available";
             subscriptionId: string | null;
         } | {
+            /** Format: date */
+            date: string;
             start: string;
             end: string;
             /** @constant */
             status: "walkin";
         } | {
+            /** Format: date */
+            date: string;
             start: string;
             end: string;
             /** @constant */
@@ -1066,6 +1081,8 @@ export interface components {
             started: boolean;
             subscriptionId: string | null;
         } | {
+            /** Format: date */
+            date: string;
             start: string;
             end: string;
             /** @constant */

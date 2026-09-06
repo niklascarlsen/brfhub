@@ -97,7 +97,7 @@ export function ReservationScreen() {
           <Notice message={error} actionLabel='Försök igen' onAction={reload} />
         ) : (
           <Notice
-            title='Inga tider'
+            title='Här var det tomt.'
             message='När du tar en lucka eller ställer dig i kö dyker den upp här.'
           />
         )}

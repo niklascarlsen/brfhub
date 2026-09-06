@@ -3,7 +3,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 import {BookingScreen} from '@/screens/BookingScreen';
 import {ReservationScreen} from '@/screens/ReservationScreen';
-import {theme} from '../../theme';
+import theme from '@/theme.json';
 
 export type AppTabParamList = {
   Booking: {date?: string; resourceId?: string} | undefined;
@@ -33,8 +33,8 @@ export default function AppTabNavigator() {
         tabBarInactiveTintColor: theme.faint,
         tabBarIconStyle: {width: ICON_SLOT, height: ICON_SLOT},
         tabBarLabelStyle: {
+          fontFamily: 'Merriweather_600SemiBold',
           fontSize: 11,
-          fontWeight: '600',
           lineHeight: LABEL_LINE,
           marginTop: LABEL_GAP,
         },

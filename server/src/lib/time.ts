@@ -3,7 +3,7 @@ import type {PgColumn} from 'drizzle-orm/pg-core';
 
 const STOCKHOLM = 'Europe/Stockholm';
 
-type Value<T> = T | PgColumn | SQL<T>;
+type Value<T> = T | PgColumn | SQL<T> | SQL.Aliased<T>;
 
 export function toIsoDate(date: Date): string {
   const year = date.getFullYear();
@@ -50,14 +50,17 @@ export function asIsoText(column: PgColumn): SQL<string> {
   return sql`to_char(${column} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`;
 }
 
+export function asDateText(value: PgColumn | SQL | SQL.Aliased): SQL<string> {
+  return sql`to_char(${value}, 'YYYY-MM-DD')`;
+}
+
 export function bookingWindowSql(days: Value<number>) {
   const today = sql`(now() at time zone ${STOCKHOLM})::date`;
-  const asDate = (value: SQL) => sql<string>`to_char(${value}, 'YYYY-MM-DD')`;
 
   return {
-    today: asDate(today),
-    from: asDate(today),
-    to: asDate(sql`${today} + make_interval(days => ${days})`),
+    today: asDateText(today),
+    from: asDateText(today),
+    to: asDateText(sql`${today} + make_interval(days => ${days})`),
   };
 }
 

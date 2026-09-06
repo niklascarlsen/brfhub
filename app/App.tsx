@@ -1,11 +1,19 @@
 import './global.css';
 
 import {
+  Merriweather_400Regular,
+  Merriweather_500Medium,
+  Merriweather_600SemiBold,
+  Merriweather_700Bold,
+  useFonts,
+} from '@expo-google-fonts/merriweather';
+import {
   createNavigationContainerRef,
   NavigationContainer,
 } from '@react-navigation/native';
 import {StatusBar} from 'expo-status-bar';
 import {useCallback, useEffect, useRef} from 'react';
+import {View} from 'react-native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 
 import {ConfigProvider} from '@/config';
@@ -17,6 +25,12 @@ import {onNotificationTap, onPushTokenChange, registerPushToken} from '@/push';
 const navigationRef = createNavigationContainerRef<AppTabParamList>();
 
 export default function App() {
+  const [fontsLoaded, fontError] = useFonts({
+    Merriweather_400Regular,
+    Merriweather_500Medium,
+    Merriweather_600SemiBold,
+    Merriweather_700Bold,
+  });
   const pending = useRef<AppTabParamList['Booking']>(undefined);
 
   useEffect(() => {
@@ -46,6 +60,10 @@ export default function App() {
       navigationRef.navigate('Booking', target);
     }
   }, []);
+
+  if (!fontsLoaded && fontError === null) {
+    return <View className='flex-1 bg-theme-bg' />;
+  }
 
   return (
     <SafeAreaProvider>

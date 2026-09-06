@@ -1,3 +1,15 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer utilities {
+  .font-medium {
+    font-family: Merriweather_500Medium;
+  }
+  .font-semibold {
+    font-family: Merriweather_600SemiBold;
+  }
+  .font-bold {
+    font-family: Merriweather_700Bold;
+  }
+}

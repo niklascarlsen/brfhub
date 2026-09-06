@@ -1,0 +1,14 @@
+/* Generated from app/src/theme.json by npm run generate. Do not edit by hand. */
+@theme {
+  --color-theme-bg: #F7F5F1;
+  --color-theme-surface: #FFFFFF;
+  --color-theme-sunk: #F2EFE9;
+  --color-theme-track: #EAE6DE;
+  --color-theme-line: #E8E4DC;
+  --color-theme-edge: #DAD5CB;
+  --color-theme-faint: #A19B90;
+  --color-theme-muted: #77726A;
+  --color-theme-ink: #14130F;
+  --color-theme-accent: #4E6553;
+  --color-theme-mist: #ECF0EA;
+}

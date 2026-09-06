@@ -185,12 +185,11 @@ export function useBookingActions(onChange?: () => void) {
 
   function confirmBook(
     slot: Slot,
-    date: string,
     resource: Resource,
     active: ActiveBooking | null,
   ) {
     const times = {
-      date,
+      date: slot.date,
       start: slot.start,
       end: slot.end,
       resourceName: resource.name,

@@ -85,7 +85,7 @@ export function BookingScreen() {
             error={error}
             onRetry={reload}
             onSelect={(slot) =>
-              confirmBook(slot, date, resource, day?.active ?? null)
+              confirmBook(slot, resource, day?.active ?? null)
             }
           />
         </View>

@@ -10,7 +10,12 @@ import {
 } from '../db/schema.js';
 import {stillActive} from '../booking/booking.query.js';
 import {appError} from '../lib/errors.js';
-import {bookingWindowSql, slotEndsAt, slotHasStarted} from '../lib/time.js';
+import {
+  asDateText,
+  bookingWindowSql,
+  slotEndsAt,
+  slotHasStarted,
+} from '../lib/time.js';
 import type {Member} from '../lib/user.js';
 import {
   getResource,
@@ -41,23 +46,42 @@ export function isWithinBookingWindow(
   return date >= window.from && date <= window.to;
 }
 
-function selectSlotRows(memberId: string, date: string, resourceId: string) {
+function selectSlotRows(
+  memberId: string,
+  from: string,
+  to: string,
+  resourceId: string,
+) {
+  // WITH days AS (one row per day in the range). generate_series has no query-builder form, so this block stays raw SQL.)
+  const days = db
+    .$with('days')
+    .as(
+      db
+        .select({day: sql<string>`day::date`.as('day')})
+        .from(
+          sql`generate_series(${from}::date, ${to}::date, interval '1 day') as day`,
+        ),
+    );
+
   return db
+    .with(days)
     .select({
+      date: asDateText(days.day),
       start: resourceSlots.start,
       end: resourceSlots.end,
-      started: slotHasStarted(date, resourceSlots.start),
+      started: slotHasStarted(days.day, resourceSlots.start),
       bookingId: bookings.id,
       bookingMemberId: bookings.memberId,
       subscriptionId: subscriptions.id,
     })
     .from(resourceSlots)
+    .crossJoin(days)
     .leftJoin(
       bookings,
       and(
         eq(bookings.resourceId, resourceSlots.resourceId),
         eq(bookings.start, resourceSlots.start),
-        eq(bookings.date, date),
+        eq(bookings.date, days.day),
         isNull(bookings.releasedAt),
       ),
     )
@@ -66,17 +90,17 @@ function selectSlotRows(memberId: string, date: string, resourceId: string) {
       and(
         eq(subscriptions.resourceId, resourceSlots.resourceId),
         eq(subscriptions.start, resourceSlots.start),
-        eq(subscriptions.date, date),
+        eq(subscriptions.date, days.day),
         eq(subscriptions.memberId, memberId),
       ),
     )
     .where(
       and(
         eq(resourceSlots.resourceId, resourceId),
-        sql`${slotEndsAt(date, resourceSlots.end, resourceSlots.endOffsetDays)} > now()`,
+        sql`${slotEndsAt(days.day, resourceSlots.end, resourceSlots.endOffsetDays)} > now()`,
       ),
     )
-    .orderBy(asc(resourceSlots.start));
+    .orderBy(asc(days.day), asc(resourceSlots.start));
 }
 
 type SlotRow = Awaited<ReturnType<typeof selectSlotRows>>[number];
@@ -85,6 +109,7 @@ function toSlot(row: SlotRow, memberId: string): Slot {
   if (!row.bookingId) {
     if (row.started) {
       return {
+        date: row.date,
         start: row.start,
         end: row.end,
         status: 'walkin',
@@ -92,6 +117,7 @@ function toSlot(row: SlotRow, memberId: string): Slot {
     }
 
     return {
+      date: row.date,
       start: row.start,
       end: row.end,
       status: 'available',
@@ -101,6 +127,7 @@ function toSlot(row: SlotRow, memberId: string): Slot {
 
   if (row.bookingMemberId === memberId) {
     return {
+      date: row.date,
       start: row.start,
       end: row.end,
       status: 'mine',
@@ -110,6 +137,7 @@ function toSlot(row: SlotRow, memberId: string): Slot {
   }
 
   return {
+    date: row.date,
     start: row.start,
     end: row.end,
     status: 'booked',
@@ -139,10 +167,12 @@ async function selectActiveBooking(
 export async function listSlots({
   member,
   date,
+  to,
   resourceId,
 }: {
   member: Member;
   date: string;
+  to?: string;
   resourceId: string;
 }): Promise<Slots> {
   const resource = await getResource(member.organizationId, resourceId);
@@ -151,14 +181,23 @@ export async function listSlots({
     throw appError('NOT_FOUND', 'Unknown resource');
   }
 
+  const last = to ?? date;
+
+  if (last < date) {
+    throw appError('VALIDATION', 'to must not be before date');
+  }
+
+  const window = await getBookingWindow(member.organizationId);
+
   if (
-    !isWithinBookingWindow(date, await getBookingWindow(member.organizationId))
+    !isWithinBookingWindow(date, window) ||
+    !isWithinBookingWindow(last, window)
   ) {
     throw appError('OUTSIDE_BOOKING_WINDOW');
   }
 
   const [rows, active] = await Promise.all([
-    selectSlotRows(member.id, date, resourceId),
+    selectSlotRows(member.id, date, last, resourceId),
     selectActiveBooking(member.id, resource),
   ]);
 

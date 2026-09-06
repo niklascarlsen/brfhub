@@ -85,6 +85,10 @@ export function getWeekdayLabel(date: Date): string {
   return WEEKDAYS[date.getDay()];
 }
 
+export function getMonthLabel(date: Date): string {
+  return MONTHS[date.getMonth()];
+}
+
 export function formatLongDate(isoDate: string): string {
   return fromIsoDate(isoDate).toLocaleDateString('sv-SE', {
     weekday: 'long',

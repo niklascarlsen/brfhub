@@ -5,7 +5,7 @@ import type {Slot} from '@/api/client';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
 import {timeRange} from '@/lib/dates';
 import {exhaustive} from '@/lib/exhaustive';
-import {theme} from '../../theme';
+import theme from '@/theme.json';
 
 type TimeSlotRowProps = {
   slot: Slot;

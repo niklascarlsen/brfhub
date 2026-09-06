@@ -1,4 +1,4 @@
-const {theme} = require('./theme');
+const theme = require('./src/theme.json');
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -8,6 +8,9 @@ module.exports = {
     extend: {
       colors: {
         theme,
+      },
+      fontFamily: {
+        sans: ['Merriweather_400Regular'],
       },
     },
   },
