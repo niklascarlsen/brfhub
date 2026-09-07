@@ -34,6 +34,23 @@ if (nextHtml !== html) {
   writeFileSync(htmlPath, nextHtml);
 }
 
+const manifestPath = resolve(root, 'public/manifest.webmanifest');
+const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+
+if (
+  manifest.theme_color !== theme.bg ||
+  manifest.background_color !== theme.bg
+) {
+  writeFileSync(
+    manifestPath,
+    `${JSON.stringify(
+      {...manifest, background_color: theme.bg, theme_color: theme.bg},
+      null,
+      2,
+    )}\n`,
+  );
+}
+
 console.log(
   `theme.css: ${Object.keys(theme).length} colours from app/src/theme.json`,
 );
