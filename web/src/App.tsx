@@ -1,21 +1,44 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 
 import {DialogProvider} from '@/components/Dialog';
 import {TabBar} from '@/components/TabBar';
 import {ConfigProvider, useConfig} from '@/config';
 import {DesktopShell} from '@/desktop/DesktopShell';
 import {isWithinBookingWindow} from '@/lib/dates';
+import {usePushPrompt} from '@/hooks/usePushPrompt';
 import {useIsDesktop} from '@/lib/media';
-import {useRoute} from '@/lib/route';
+import {onNotificationOpen} from '@/lib/push';
+import {startupSlot, useRoute} from '@/lib/route';
 import {BookingScreen} from '@/screens/BookingScreen';
 import {ReservationScreen} from '@/screens/ReservationScreen';
 
 function Shell() {
   const {window: bookingWindow, resources} = useConfig();
   const isDesktop = useIsDesktop();
+
+  usePushPrompt();
   const [route, navigate] = useRoute();
-  const [chosen, setChosen] = useState(bookingWindow.today);
-  const [resourceId, setResourceId] = useState(resources[0].id);
+  const [chosen, setChosen] = useState(startupSlot.date ?? bookingWindow.today);
+  const [resourceId, setResourceId] = useState(
+    startupSlot.resourceId ?? resources[0].id,
+  );
+
+  // A notification tapped while the app is open jumps to the slot.
+  useEffect(
+    () =>
+      onNotificationOpen((slot) => {
+        if (slot.date !== null) {
+          setChosen(slot.date);
+        }
+
+        if (slot.resourceId !== null) {
+          setResourceId(slot.resourceId);
+        }
+
+        navigate('boka');
+      }),
+    [navigate],
+  );
 
   const date = isWithinBookingWindow(chosen, bookingWindow)
     ? chosen

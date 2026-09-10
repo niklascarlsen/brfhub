@@ -48,7 +48,7 @@ function SlotRows({
           key={slot.start}
           slot={slot}
           onPress={() => onSelect(slot)}
-          {...roving.itemProps(index)}
+          itemProps={roving.itemProps(index)}
         />
       ))}
     </div>

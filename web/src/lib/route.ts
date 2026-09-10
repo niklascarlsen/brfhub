@@ -17,6 +17,44 @@ export function hrefOf(route: Route): string {
   return `/${route}`;
 }
 
+// A notification opened in a new window lands on /boka?date=..&resource=..
+// The slot is read once at startup and the params are removed from the
+// url so a reload does not jump back to it.
+export type OpenedSlot = {date: string | null; resourceId: string | null};
+
+const DATE_PARAM = 'date';
+const RESOURCE_PARAM = 'resource';
+
+export function openedSlot(url: string): OpenedSlot {
+  const {searchParams} = new URL(url, window.location.origin);
+
+  return {
+    date: searchParams.get(DATE_PARAM),
+    resourceId: searchParams.get(RESOURCE_PARAM),
+  };
+}
+
+function takeStartupSlot(): OpenedSlot {
+  const slot = openedSlot(window.location.href);
+
+  if (slot.date === null && slot.resourceId === null) {
+    return slot;
+  }
+
+  const url = new URL(window.location.href);
+  url.searchParams.delete(DATE_PARAM);
+  url.searchParams.delete(RESOURCE_PARAM);
+  window.history.replaceState(
+    null,
+    '',
+    `${url.pathname}${url.search}${url.hash}`,
+  );
+
+  return slot;
+}
+
+export const startupSlot = takeStartupSlot();
+
 function readRoute(): Route {
   return PATHS[window.location.pathname] ?? 'boka';
 }

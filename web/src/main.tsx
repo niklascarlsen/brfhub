@@ -6,8 +6,10 @@ import {createRoot} from 'react-dom/client';
 
 import {App} from '@/App';
 import {trackInputModality} from '@/lib/inputModality';
+import {registerServiceWorker} from '@/lib/serviceWorker';
 
 trackInputModality();
+registerServiceWorker();
 
 const container = document.getElementById('root');
 

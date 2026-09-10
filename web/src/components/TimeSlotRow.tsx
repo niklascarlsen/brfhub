@@ -8,9 +8,10 @@ import {isLocked, slotAppearance} from '@/lib/slots';
 type TimeSlotRowProps = {
   slot: Slot;
   onPress: () => void;
-} & RovingItemProps;
+  itemProps: RovingItemProps;
+};
 
-export function TimeSlotRow({slot, onPress, ...roving}: TimeSlotRowProps) {
+export function TimeSlotRow({slot, onPress, itemProps}: TimeSlotRowProps) {
   const locked = isLocked(slot);
   const {surface, time, label, tone, mark, chevron} = slotAppearance(slot);
 
@@ -19,7 +20,7 @@ export function TimeSlotRow({slot, onPress, ...roving}: TimeSlotRowProps) {
       type='button'
       onClick={onPress}
       disabled={locked}
-      {...roving}
+      {...itemProps}
       className={`flex h-16.5 w-full items-center justify-between rounded-2xl px-4.5 ${surface} ${
         locked
           ? ''

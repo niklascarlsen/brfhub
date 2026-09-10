@@ -28,8 +28,6 @@ type DialogApi = {
 
 const DialogContext = createContext<DialogApi | null>(null);
 
-const CONFIRMED = 'confirm';
-
 const BUTTON =
   'h-11 flex-1 rounded-full text-sm font-semibold tracking-tight active:opacity-70';
 
@@ -65,19 +63,20 @@ export function DialogProvider({children}: {children: ReactNode}) {
       return;
     }
 
-    dialog.returnValue = '';
     dialog.showModal();
   }, [request]);
 
-  const onClose = () => {
-    const confirmed = dialogRef.current?.returnValue === CONFIRMED;
+  const close = () => {
+    setRequest(null);
+    dialogRef.current?.close();
+  };
+
+  // The action has to run inside the click, or Safari drops the user gesture.
+  const press = () => {
     const action = request?.action;
 
-    setRequest(null);
-
-    if (confirmed) {
-      action?.onPress();
-    }
+    close();
+    action?.onPress();
   };
 
   return (
@@ -85,14 +84,14 @@ export function DialogProvider({children}: {children: ReactNode}) {
       {children}
       <dialog
         ref={dialogRef}
-        onClose={onClose}
+        onCancel={close}
         onMouseDown={(event) => {
           pressedBackdrop.current = event.target === dialogRef.current;
         }}
         onClick={(event) => {
           // Both mousedown and click must land on the backdrop.
           if (pressedBackdrop.current && event.target === dialogRef.current) {
-            dialogRef.current?.close();
+            close();
           }
         }}
         aria-labelledby={titleId}
@@ -100,7 +99,7 @@ export function DialogProvider({children}: {children: ReactNode}) {
         className='m-auto w-[calc(100%-40px)] max-w-85 rounded-2xl border border-theme-line bg-theme-surface backdrop:bg-theme-ink/30'
       >
         {request ? (
-          <form method='dialog' className='p-5'>
+          <div className='p-5'>
             <p
               id={titleId}
               className='text-[17px] font-semibold tracking-tight text-theme-ink'
@@ -116,22 +115,22 @@ export function DialogProvider({children}: {children: ReactNode}) {
             <div className='mt-5 flex gap-2.5'>
               {request.action ? (
                 <button
-                  type='submit'
-                  value='cancel'
+                  type='button'
+                  onClick={close}
                   className={`${BUTTON} border border-theme-edge bg-theme-surface text-theme-ink transition-colors hover:bg-theme-sunk`}
                 >
                   Avbryt
                 </button>
               ) : null}
               <button
-                type='submit'
-                value={CONFIRMED}
+                type='button'
+                onClick={press}
                 className={`${BUTTON} bg-theme-ink text-theme-surface transition-opacity hover:opacity-90`}
               >
                 {request.action?.label ?? 'OK'}
               </button>
             </div>
-          </form>
+          </div>
         ) : null}
       </dialog>
     </DialogContext.Provider>
