@@ -25,10 +25,18 @@
 
   body {
     margin: 0;
-    overscroll-behavior: none;
     background-color: var(--color-theme-bg);
     color: var(--color-theme-ink);
     font-family: var(--font-sans);
+  }
+
+  @media (max-width: 1023px) {
+    html,
+    body,
+    #root {
+      height: 100%;
+      overflow: hidden;
+    }
   }
 
   body:has(dialog:modal) {

@@ -63,7 +63,7 @@ function Shell() {
     <div className='flex h-dvh flex-col overflow-hidden bg-theme-bg pt-[env(safe-area-inset-top)]'>
       <main
         key={route}
-        className='flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain'
+        className='flex min-h-0 flex-1 flex-col overflow-hidden'
       >
         {route === 'boka' ? (
           <BookingScreen {...booking} />
