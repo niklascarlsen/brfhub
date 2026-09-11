@@ -69,7 +69,7 @@ function Actions({
         <button
           type='button'
           onClick={onSecondary}
-          className='h-6.5 px-1 text-[13px] font-medium text-theme-muted active:opacity-60'
+          className='h-6.5 rounded-lg px-1 text-[13px] font-medium text-theme-muted active:opacity-60'
         >
           {secondaryLabel}
         </button>

@@ -19,7 +19,7 @@ export function TabBar({route, onNavigate}: TabBarProps) {
       aria-label='Huvudmeny'
       className='shrink-0 border-t border-theme-line bg-theme-bg pb-[env(safe-area-inset-bottom)]'
     >
-      <div className='flex'>
+      <div className='flex p-1.5'>
         {TABS.map(({route: target, label, Icon}) => {
           const active = route === target;
 
@@ -28,7 +28,7 @@ export function TabBar({route, onNavigate}: TabBarProps) {
               key={target}
               {...linkProps(target, onNavigate)}
               aria-current={active ? 'page' : undefined}
-              className={`flex flex-1 flex-col items-center gap-1 py-2.5 transition-colors active:opacity-60 ${
+              className={`flex flex-1 flex-col items-center gap-1 py-1.5 rounded-lg transition-colors active:opacity-60 ${
                 active
                   ? 'text-theme-ink'
                   : 'text-theme-faint hover:text-theme-muted'

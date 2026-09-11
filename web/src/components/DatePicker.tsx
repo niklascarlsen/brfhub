@@ -62,7 +62,7 @@ export function DatePicker({
                   aria-pressed={selected}
                   onClick={() => onSelect(day)}
                   {...roving.itemProps(positions.get(isoDate) ?? 0)}
-                  className={`group flex ${DAY} shrink-0 flex-col items-center active:opacity-60`}
+                  className={`group flex ${DAY} shrink-0 flex-col items-center rounded-lg active:opacity-60`}
                 >
                   <span className='flex h-6 items-end'>
                     {dayIndex === 0 ? (
