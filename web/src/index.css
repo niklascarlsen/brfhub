@@ -56,7 +56,8 @@
     outline-offset: 0px;
   }
 
-  [data-input='keyboard'] dialog button:focus-visible {
+  [data-input='keyboard'] button[type='submit']:focus-visible,
+  [data-input='keyboard'] dialog button:last-child:focus-visible {
     outline-offset: 2px;
   }
 }
