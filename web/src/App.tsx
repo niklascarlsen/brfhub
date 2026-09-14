@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 
+import {SessionGate} from '@/auth/session';
 import {DialogProvider} from '@/components/Dialog';
 import {TabBar} from '@/components/TabBar';
 import {ConfigProvider, useConfig} from '@/config';
@@ -79,9 +80,11 @@ function Shell() {
 export function App() {
   return (
     <DialogProvider>
-      <ConfigProvider>
-        <Shell />
-      </ConfigProvider>
+      <SessionGate>
+        <ConfigProvider>
+          <Shell />
+        </ConfigProvider>
+      </SessionGate>
     </DialogProvider>
   );
 }

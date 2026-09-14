@@ -52,23 +52,43 @@ async function subscriptionOf(
   });
 }
 
-async function saveSubscription(subscription: PushSubscription): Promise<void> {
+function tokenOf(subscription: PushSubscription): string {
   const {endpoint, keys} = subscription.toJSON();
 
   if (!endpoint || !keys?.p256dh || !keys.auth) {
     throw new Error('Prenumerationen saknar nycklar');
   }
 
+  return JSON.stringify({
+    endpoint,
+    keys: {p256dh: keys.p256dh, auth: keys.auth},
+  });
+}
+
+async function saveSubscription(subscription: PushSubscription): Promise<void> {
   await unwrap(
-    api.POST('/push-tokens', {
-      body: {
-        token: JSON.stringify({
-          endpoint,
-          keys: {p256dh: keys.p256dh, auth: keys.auth},
-        }),
-      },
-    }),
+    api.POST('/push-tokens', {body: {token: tokenOf(subscription)}}),
   );
+}
+
+// Signing out must not leave this browser subscribed to the apartment's
+// queue. Dev has no worker, so there is nothing to drop there.
+export async function dropPushSubscription(): Promise<void> {
+  if (!isSupported()) {
+    return;
+  }
+
+  const registration = await navigator.serviceWorker.getRegistration();
+  const subscription = await registration?.pushManager.getSubscription();
+
+  if (!subscription) {
+    return;
+  }
+
+  await unwrap(
+    api.DELETE('/push-tokens', {body: {token: tokenOf(subscription)}}),
+  );
+  await subscription.unsubscribe();
 }
 
 // Runs on every load. Re-sends the subscription when notifications are

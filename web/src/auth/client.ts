@@ -1,0 +1,13 @@
+import {createAuthClient} from 'better-auth/react';
+
+import {apiBaseUrl} from '@/api/baseUrl';
+
+export const authClient = createAuthClient({
+  baseURL: `${apiBaseUrl()}/auth`,
+});
+
+// Makes useSession refetch, so a session the server no longer accepts
+// drops the app back to the login screen.
+export function sessionChanged(): void {
+  authClient.$store.notify('$sessionSignal');
+}

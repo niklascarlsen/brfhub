@@ -21,10 +21,12 @@
     "check": "prettier --check . && npm run typecheck && npm run types:check"
   },
   "dependencies": {
+    "@better-auth/expo": "^1.7.4",
     "@fastify/cors": "^11.3.0",
     "@fastify/swagger": "^9.8.1",
     "@fastify/swagger-ui": "^6.1.1",
     "@fastify/type-provider-zod": "^1.0.0",
+    "better-auth": "^1.7.4",
     "close-with-grace": "^2.5.0",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",

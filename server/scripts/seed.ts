@@ -2,6 +2,7 @@ import 'dotenv/config';
 
 import {eq, sql} from 'drizzle-orm';
 
+import {createUser} from '../src/auth/auth.service.js';
 import {db, pool} from '../src/db/index.js';
 import {
   bookings,
@@ -16,6 +17,8 @@ import {slotEndsAt, toIsoDate} from '../src/lib/time.js';
 import {ORGANIZATION_ID} from '../src/lib/user.js';
 
 const CURRENT_APARTMENT = '12';
+// Every apartment signs in as <apartment>@example.com with this password.
+const PASSWORD = 'password';
 
 const ORGANIZATION = {
   id: ORGANIZATION_ID,
@@ -123,7 +126,7 @@ function findSlot(resourceId: string, start: string) {
 
 try {
   await db.execute(
-    sql`truncate bookings, subscriptions, resource_slots, resources, resource_kinds cascade`,
+    sql`truncate bookings, subscriptions, resource_slots, resources, resource_kinds, "user" cascade`,
   );
 
   await db.insert(organizations).values(ORGANIZATION).onConflictDoNothing();
@@ -179,6 +182,15 @@ try {
 
   await db.insert(bookings).values(SEEDED_BOOKINGS.map(toRow));
   await db.insert(subscriptions).values(SEEDED_SUBSCRIPTIONS.map(toRow));
+
+  for (const label of APARTMENTS) {
+    await createUser({
+      email: `${label}@example.com`,
+      password: PASSWORD,
+      name: `Lägenhet ${label}`,
+      memberId: memberId(label),
+    });
+  }
 
   console.log('Seed complete');
 } finally {

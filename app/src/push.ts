@@ -29,16 +29,16 @@ async function ensureSlotChannel(): Promise<void> {
   });
 }
 
-async function sendToken(
+async function expoPushToken(
   devicePushToken?: Notifications.DevicePushToken,
-): Promise<void> {
+): Promise<string | null> {
   const projectId = Constants.expoConfig?.extra?.eas?.projectId;
 
   if (typeof projectId !== 'string') {
     console.warn(
       '[push] no eas.projectId in app config, run: npx eas-cli init',
     );
-    return;
+    return null;
   }
 
   const {data} = await Notifications.getExpoPushTokenAsync({
@@ -46,7 +46,31 @@ async function sendToken(
     devicePushToken,
   });
 
-  await unwrap(api.POST('/push-tokens', {body: {token: data}}));
+  return data;
+}
+
+async function sendToken(
+  devicePushToken?: Notifications.DevicePushToken,
+): Promise<void> {
+  const token = await expoPushToken(devicePushToken);
+
+  if (token !== null) {
+    await unwrap(api.POST('/push-tokens', {body: {token}}));
+  }
+}
+
+// Signing out must not leave this device on the apartment's queue. Only
+// a device that was allowed to register has a token to drop.
+export async function dropPushToken(): Promise<void> {
+  if (!(await Notifications.getPermissionsAsync()).granted) {
+    return;
+  }
+
+  const token = await expoPushToken();
+
+  if (token !== null) {
+    await unwrap(api.DELETE('/push-tokens', {body: {token}}));
+  }
 }
 
 export async function registerPushToken(): Promise<void> {

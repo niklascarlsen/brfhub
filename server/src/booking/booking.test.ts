@@ -1,14 +1,16 @@
 import assert from 'node:assert/strict';
 import {after, before, beforeEach, test} from 'node:test';
 
-import {sql} from 'drizzle-orm';
+import {eq, sql} from 'drizzle-orm';
 
 import {buildApp} from '../app.js';
+import {createUser} from '../auth/auth.service.js';
 import {db, pool} from '../db/index.js';
 import {
   bookings,
   members,
   organizations,
+  pushTokens,
   resourceKinds,
   resourceSlots,
   resources,
@@ -39,7 +41,7 @@ const KINDS = [
   {organizationId: ORGANIZATION_ID, id: 'sauna', name: 'Bastu', maxActive: 2},
 ];
 
-const APARTMENTS = ['11', '12', '13', '14', '15', '21'];
+const APARTMENTS = ['11', '12', '13', '14', '15', '21', '31'];
 
 const RESOURCES = [
   {
@@ -129,6 +131,42 @@ function memberId(label: string): string {
 }
 
 let server: Awaited<ReturnType<typeof buildApp>>;
+const cookies = new Map<string, string>();
+
+const PASSWORD = 'password';
+const ORIGIN = 'http://localhost:5173';
+
+function emailOf(label: string) {
+  return `${label}@example.com`;
+}
+
+// Signs in through the auth route the clients use and folds Set-Cookie into
+// the Cookie header the next request sends.
+async function signIn(email: string, password = PASSWORD) {
+  const response = await server.inject({
+    method: 'POST',
+    url: '/auth/sign-in/email',
+    headers: {origin: ORIGIN},
+    payload: {email, password},
+  });
+
+  const setCookie = response.headers['set-cookie'] ?? [];
+  const cookie = (Array.isArray(setCookie) ? setCookie : [setCookie])
+    .map((entry) => entry.split(';')[0])
+    .join('; ');
+
+  return {response, cookie};
+}
+
+function signedInAs(label: string) {
+  const cookie = cookies.get(label);
+
+  if (!cookie) {
+    throw new Error(`No session for ${label}`);
+  }
+
+  return {cookie};
+}
 
 before(async () => {
   const [connection] = (
@@ -143,7 +181,7 @@ before(async () => {
 
   server = await buildApp({logger: false});
   await db.execute(
-    sql`truncate organizations, members, resource_kinds, resources, resource_slots, bookings, subscriptions, push_tokens cascade`,
+    sql`truncate organizations, members, resource_kinds, resources, resource_slots, bookings, subscriptions, push_tokens, "user" cascade`,
   );
   await db.insert(organizations).values(ORGANIZATION);
   await db.insert(resourceKinds).values(KINDS);
@@ -159,6 +197,14 @@ before(async () => {
 
   for (const row of rows) {
     memberIds.set(row.label, row.id);
+
+    await createUser({
+      email: emailOf(row.label),
+      password: PASSWORD,
+      name: `Lägenhet ${row.label}`,
+      memberId: row.id,
+    });
+    cookies.set(row.label, (await signIn(emailOf(row.label))).cookie);
   }
 });
 
@@ -175,7 +221,7 @@ function book(userId: string, payload: Record<string, unknown>) {
   return server.inject({
     method: 'POST',
     url: '/bookings',
-    headers: {'x-apartment-number': userId},
+    headers: signedInAs(userId),
     payload: {resourceId: LAUNDRY_1, ...payload},
   });
 }
@@ -184,7 +230,7 @@ function myBookings(userId: string) {
   return server.inject({
     method: 'GET',
     url: '/bookings',
-    headers: {'x-apartment-number': userId},
+    headers: signedInAs(userId),
   });
 }
 
@@ -192,7 +238,7 @@ function cancel(userId: string, id: string) {
   return server.inject({
     method: 'DELETE',
     url: `/bookings/${id}`,
-    headers: {'x-apartment-number': userId},
+    headers: signedInAs(userId),
   });
 }
 
@@ -200,7 +246,7 @@ function slotsFor(userId: string, date: string, resourceId = LAUNDRY_1) {
   return server.inject({
     method: 'GET',
     url: `/slots?date=${date}&resourceId=${resourceId}`,
-    headers: {'x-apartment-number': userId},
+    headers: signedInAs(userId),
   });
 }
 
@@ -213,7 +259,7 @@ function slotsBetween(
   return server.inject({
     method: 'GET',
     url: `/slots?date=${from}&to=${to}&resourceId=${resourceId}`,
-    headers: {'x-apartment-number': userId},
+    headers: signedInAs(userId),
   });
 }
 
@@ -249,7 +295,7 @@ function subscribe(userId: string, payload: Record<string, unknown>) {
   return server.inject({
     method: 'POST',
     url: '/subscriptions',
-    headers: {'x-apartment-number': userId},
+    headers: signedInAs(userId),
     payload: {resourceId: LAUNDRY_1, ...payload},
   });
 }
@@ -258,7 +304,7 @@ function mySubscriptions(userId: string) {
   return server.inject({
     method: 'GET',
     url: '/subscriptions',
-    headers: {'x-apartment-number': userId},
+    headers: signedInAs(userId),
   });
 }
 
@@ -266,7 +312,7 @@ function unsubscribe(userId: string, id: string) {
   return server.inject({
     method: 'DELETE',
     url: `/subscriptions/${id}`,
-    headers: {'x-apartment-number': userId},
+    headers: signedInAs(userId),
   });
 }
 
@@ -367,7 +413,18 @@ test('rejects a date beyond the booking window', async () => {
   assert.equal(codeOf(response), 'OUTSIDE_BOOKING_WINDOW');
 });
 
-test('rejects a request without an apartment number', async () => {
+test('tells a signed-in person their apartment', async () => {
+  const response = await server.inject({
+    method: 'GET',
+    url: '/me',
+    headers: signedInAs(TENANT),
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(response.json(), {apartment: TENANT});
+});
+
+test('rejects a request without a session', async () => {
   const response = await server.inject({method: 'GET', url: '/bookings'});
 
   assert.equal(response.statusCode, 401);
@@ -600,7 +657,7 @@ test('lists bookable resources', async () => {
   const response = await server.inject({
     method: 'GET',
     url: '/resources',
-    headers: {'x-apartment-number': TENANT},
+    headers: signedInAs(TENANT),
   });
 
   assert.equal(response.statusCode, 200);
@@ -890,11 +947,119 @@ test('releasing a started laundry booking still blocks the other laundry room', 
   assert.equal(codeOf(response), 'HAS_ACTIVE_BOOKING');
 });
 
-test('rejects a header that is not a member', async () => {
-  const response = await myBookings('999');
+test('rejects a person not linked to an apartment', async () => {
+  await createUser({
+    email: 'nobody@example.com',
+    password: PASSWORD,
+    name: 'Ingen lägenhet',
+  });
+  const {cookie} = await signIn('nobody@example.com');
+  const response = await server.inject({
+    method: 'GET',
+    url: '/bookings',
+    headers: {cookie},
+  });
 
   assert.equal(response.statusCode, 401);
   assert.equal(codeOf(response), 'UNAUTHORIZED');
+});
+
+test('rejects a person whose apartment has moved out', async () => {
+  const left = '31';
+  const {cookie} = await signIn(emailOf(left));
+  await db
+    .update(members)
+    .set({leftAt: new Date()})
+    .where(eq(members.id, memberId(left)));
+
+  const response = await server.inject({
+    method: 'GET',
+    url: '/me',
+    headers: {cookie},
+  });
+
+  assert.equal(response.statusCode, 401);
+  assert.equal(codeOf(response), 'UNAUTHORIZED');
+});
+
+test('rejects a wrong password and a forged cookie', async () => {
+  const {response} = await signIn(emailOf(TENANT), 'wrong');
+  assert.equal(response.statusCode, 401);
+
+  const forged = await server.inject({
+    method: 'GET',
+    url: '/me',
+    headers: {cookie: 'better-auth.session_token=not-a-session'},
+  });
+  assert.equal(forged.statusCode, 401);
+  assert.equal(codeOf(forged), 'UNAUTHORIZED');
+});
+
+test('does not let anyone register an account', async () => {
+  const response = await server.inject({
+    method: 'POST',
+    url: '/auth/sign-up/email',
+    headers: {origin: ORIGIN},
+    payload: {email: 'new@example.com', password: PASSWORD, name: 'Ny'},
+  });
+
+  assert.equal(response.statusCode, 400);
+  assert.equal(
+    response.json<{code: string}>().code,
+    'EMAIL_PASSWORD_SIGN_UP_DISABLED',
+  );
+});
+
+test('an apartment drops only its own push token', async () => {
+  const mine = 'ExponentPushToken[mine]';
+  const theirs = 'ExponentPushToken[theirs]';
+  await db.insert(pushTokens).values([
+    {token: mine, memberId: memberId(TENANT)},
+    {token: theirs, memberId: memberId(NEIGHBOUR)},
+  ]);
+
+  for (const token of [mine, theirs]) {
+    const response = await server.inject({
+      method: 'DELETE',
+      url: '/push-tokens',
+      headers: signedInAs(TENANT),
+      payload: {token},
+    });
+    assert.equal(response.statusCode, 204);
+  }
+
+  const left = await db.select({token: pushTokens.token}).from(pushTokens);
+  assert.deepEqual(
+    left.map((row) => row.token),
+    [theirs],
+  );
+});
+
+test('signing out ends the session', async () => {
+  const {cookie} = await signIn(emailOf(NEIGHBOUR));
+
+  const before = await server.inject({
+    method: 'GET',
+    url: '/me',
+    headers: {cookie},
+  });
+  assert.equal(before.statusCode, 200);
+  assert.deepEqual(before.json(), {apartment: NEIGHBOUR});
+
+  const signOut = await server.inject({
+    method: 'POST',
+    url: '/auth/sign-out',
+    headers: {cookie, origin: ORIGIN},
+    payload: {},
+  });
+  assert.equal(signOut.statusCode, 200);
+
+  const after = await server.inject({
+    method: 'GET',
+    url: '/me',
+    headers: {cookie},
+  });
+  assert.equal(after.statusCode, 401);
 });
 
 test('a room offers its own grid and nothing else', async () => {

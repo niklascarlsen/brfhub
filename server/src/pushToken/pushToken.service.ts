@@ -1,4 +1,4 @@
-import {inArray} from 'drizzle-orm';
+import {and, eq, inArray} from 'drizzle-orm';
 
 import {db} from '../db/index.js';
 import {pushTokens} from '../db/schema.js';
@@ -27,4 +27,14 @@ export async function removePushTokens(tokens: string[]): Promise<void> {
   }
 
   await db.delete(pushTokens).where(inArray(pushTokens.token, tokens));
+}
+
+// Only the apartment a token is bound to may drop it.
+export async function removeMemberPushToken(
+  memberId: string,
+  token: string,
+): Promise<void> {
+  await db
+    .delete(pushTokens)
+    .where(and(eq(pushTokens.token, token), eq(pushTokens.memberId, memberId)));
 }

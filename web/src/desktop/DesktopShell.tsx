@@ -1,6 +1,7 @@
-import {CURRENT_APARTMENT_NUMBER} from '@/api/client';
+import {signOut} from '@/auth/signOut';
 import {CalendarOutlineIcon, TimeOutlineIcon} from '@/components/icons';
 import {MyTimes} from '@/components/MyTimes';
+import {useConfig} from '@/config';
 import {DesktopBooking, type BookingProps} from '@/desktop/DesktopBooking';
 import {SHELL} from '@/desktop/layout';
 import {linkProps, type Route} from '@/lib/route';
@@ -30,6 +31,8 @@ export function DesktopShell({
   onNavigate,
   ...booking
 }: DesktopShellProps) {
+  const {apartment} = useConfig();
+
   return (
     <div className='flex min-h-dvh flex-col bg-theme-bg'>
       <header className='shrink-0 border-b border-theme-line bg-theme-surface'>
@@ -55,9 +58,18 @@ export function DesktopShell({
               );
             })}
           </nav>
-          <span className='rounded-full bg-theme-sunk px-3 py-1.5 text-[13px] font-semibold text-theme-muted'>
-            Lägenhet {CURRENT_APARTMENT_NUMBER}
-          </span>
+          <div className='flex items-center gap-3'>
+            <span className='rounded-full bg-theme-sunk px-3 py-1.5 text-[13px] font-semibold text-theme-muted'>
+              Lägenhet {apartment}
+            </span>
+            <button
+              type='button'
+              onClick={() => void signOut()}
+              className='h-9 rounded-[10px] px-3 text-[15px] font-medium text-theme-muted transition-colors hover:text-theme-ink'
+            >
+              Logga ut
+            </button>
+          </div>
         </div>
       </header>
       <main className='flex grow flex-col'>

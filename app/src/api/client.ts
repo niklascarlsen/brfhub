@@ -1,6 +1,8 @@
 import createClient from 'openapi-fetch';
 
+import {API_BASE_URL} from '@/api/baseUrl';
 import {apiError} from '@/api/errors';
+import {authClient, sessionChanged} from '@/auth/client';
 import type {components, paths} from '@/generated/api';
 
 export type Booking = components['schemas']['Booking'];
@@ -12,7 +14,6 @@ export type ActiveBooking = NonNullable<
   components['schemas']['Slots']['active']
 >;
 
-const CURRENT_APARTMENT_NUMBER = '12';
 const TIMEOUT_MS = 10_000;
 
 async function fetchWithTimeout(input: Request): Promise<Response> {
@@ -25,11 +26,16 @@ async function fetchWithTimeout(input: Request): Promise<Response> {
 }
 
 export const api = createClient<paths>({
-  baseUrl: process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000',
-  headers: {
-    'x-apartment-number': CURRENT_APARTMENT_NUMBER,
-  },
+  baseUrl: API_BASE_URL,
+  // The session cookie lives in SecureStore, not the platform cookie jar.
+  credentials: 'omit',
   fetch: fetchWithTimeout,
+});
+
+api.use({
+  async onRequest({request}) {
+    request.headers.set('cookie', await authClient.getCookie());
+  },
 });
 
 type ParsedError = Partial<components['schemas']['Error']>;
@@ -49,6 +55,9 @@ export async function unwrap<T>(
   if (!result.response.ok || result.error !== undefined) {
     if (result.response.status >= 500) {
       throw apiError('SERVER_ERROR');
+    }
+    if (result.response.status === 401) {
+      sessionChanged();
     }
     throw apiError(result.error?.code ?? 'UNKNOWN');
   }

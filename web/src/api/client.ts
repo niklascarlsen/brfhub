@@ -1,6 +1,8 @@
 import createClient from 'openapi-fetch';
 
+import {apiBaseUrl} from '@/api/baseUrl';
 import {apiError} from '@/api/errors';
+import {sessionChanged} from '@/auth/client';
 import type {components, paths} from '@/generated/api';
 
 export type Booking = components['schemas']['Booking'];
@@ -11,33 +13,7 @@ export type ActiveBooking = NonNullable<
   components['schemas']['Slots']['active']
 >;
 
-export const CURRENT_APARTMENT_NUMBER = '12';
 const TIMEOUT_MS = 10_000;
-
-function apiBaseUrl() {
-  const configured = import.meta.env.VITE_API_URL;
-
-  if (!configured) {
-    if (!import.meta.env.DEV) {
-      throw new Error('VITE_API_URL is required in production');
-    }
-
-    const url = new URL('http://localhost:3000');
-    url.hostname = window.location.hostname;
-    return url.href.replace(/\/$/, '');
-  }
-
-  const url = new URL(configured, window.location.origin);
-
-  if (
-    import.meta.env.DEV &&
-    (url.hostname === 'localhost' || url.hostname === '127.0.0.1')
-  ) {
-    url.hostname = window.location.hostname;
-  }
-
-  return url.href.replace(/\/$/, '');
-}
 
 async function fetchWithTimeout(input: Request): Promise<Response> {
   const controller = new AbortController();
@@ -50,9 +26,7 @@ async function fetchWithTimeout(input: Request): Promise<Response> {
 
 export const api = createClient<paths>({
   baseUrl: apiBaseUrl(),
-  headers: {
-    'x-apartment-number': CURRENT_APARTMENT_NUMBER,
-  },
+  credentials: 'include',
   fetch: fetchWithTimeout,
 });
 
@@ -73,6 +47,9 @@ export async function unwrap<T>(
   if (!result.response.ok || result.error !== undefined) {
     if (result.response.status >= 500) {
       throw apiError('SERVER_ERROR');
+    }
+    if (result.response.status === 401) {
+      sessionChanged();
     }
     throw apiError(result.error?.code ?? 'UNKNOWN');
   }

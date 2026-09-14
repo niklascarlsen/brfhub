@@ -9,6 +9,45 @@ import {ORGANIZATION_ID} from '../src/lib/user.js';
 
 const API_URL = process.env.API_URL ?? 'http://localhost:3000';
 const WATCHER = '12';
+// The accounts seed.ts creates.
+const PASSWORD = 'password';
+
+const sessions = new Map<string, string>();
+
+async function signIn(apartment: string): Promise<string> {
+  const known = sessions.get(apartment);
+
+  if (known) {
+    return known;
+  }
+
+  // Better Auth refuses a POST without an Origin, which fetch does not set.
+  const response = await fetch(`${API_URL}/auth/sign-in/email`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      origin: process.env.WEB_ORIGIN ?? API_URL,
+    },
+    body: JSON.stringify({
+      email: `${apartment}@example.com`,
+      password: PASSWORD,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `sign-in as ${apartment} → ${response.status} ${await response.text()}`,
+    );
+  }
+
+  const cookie = response.headers
+    .getSetCookie()
+    .map((entry) => entry.split(';')[0])
+    .join('; ');
+  sessions.set(apartment, cookie);
+
+  return cookie;
+}
 
 async function request(
   path: string,
@@ -19,7 +58,7 @@ async function request(
     ...init,
     headers: {
       ...(init.body === undefined ? {} : {'content-type': 'application/json'}),
-      'x-apartment-number': apartment,
+      cookie: await signIn(apartment),
       ...init.headers,
     },
   });
