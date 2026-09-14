@@ -1,4 +1,6 @@
 import {signOut} from '@/auth/signOut';
+import {Account} from '@/components/Account';
+import {useDialog} from '@/components/Dialog';
 import {CalendarOutlineIcon, TimeOutlineIcon} from '@/components/icons';
 import {MyTimes} from '@/components/MyTimes';
 import {useConfig} from '@/config';
@@ -32,6 +34,15 @@ export function DesktopShell({
   ...booking
 }: DesktopShellProps) {
   const {apartment} = useConfig();
+  const dialog = useDialog();
+
+  const confirmSignOut = () =>
+    dialog.confirm('Logga ut', `Vill du logga ut från lägenhet ${apartment}?`, {
+      label: 'Logga ut',
+      onPress: () => {
+        void signOut();
+      },
+    });
 
   return (
     <div className='flex min-h-dvh flex-col bg-theme-bg'>
@@ -64,7 +75,7 @@ export function DesktopShell({
             </span>
             <button
               type='button'
-              onClick={() => void signOut()}
+              onClick={confirmSignOut}
               className='h-9 rounded-[10px] px-3 text-[15px] font-medium text-theme-muted transition-colors hover:text-theme-ink'
             >
               Logga ut
@@ -75,12 +86,19 @@ export function DesktopShell({
       <main className='flex grow flex-col'>
         {route === 'boka' ? (
           <DesktopBooking {...booking} />
-        ) : (
+        ) : route === 'mina-tider' ? (
           <div className={`${SHELL} flex grow flex-col pb-12 pt-8`}>
             <h1 className='mb-6 text-[27px] font-semibold tracking-tight text-theme-ink'>
               Mina tider
             </h1>
             <MyTimes layout='row' />
+          </div>
+        ) : (
+          <div className={`${SHELL} flex grow flex-col pb-12 pt-8`}>
+            <h1 className='mb-6 text-[27px] font-semibold tracking-tight text-theme-ink'>
+              Lägenhet {apartment}
+            </h1>
+            <Account />
           </div>
         )}
       </main>

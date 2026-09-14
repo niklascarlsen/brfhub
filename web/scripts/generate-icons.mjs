@@ -7,6 +7,7 @@ import {fileURLToPath} from 'node:url';
 const ICONS = {
   'calendar-outline': 'CalendarOutlineIcon',
   'time-outline': 'TimeOutlineIcon',
+  'home-outline': 'HomeOutlineIcon',
   'lock-closed': 'LockClosedIcon',
   'chevron-forward': 'ChevronForwardIcon',
   'chevron-back': 'ChevronBackIcon',

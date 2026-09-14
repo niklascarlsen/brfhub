@@ -1,16 +1,18 @@
 import {useCallback, useEffect, useSyncExternalStore} from 'react';
 
-export type Route = 'boka' | 'mina-tider';
+export type Route = 'boka' | 'mina-tider' | 'lagenhet';
 
 // Chrome on iOS scrolls the viewport if this is a hash URL.
 const PATHS: Record<string, Route> = {
   '/boka': 'boka',
   '/mina-tider': 'mina-tider',
+  '/lagenhet': 'lagenhet',
 };
 
 const TITLES: Record<Route, string> = {
   boka: 'Boka',
   'mina-tider': 'Mina tider',
+  lagenhet: 'Lägenhet',
 };
 
 export function hrefOf(route: Route): string {

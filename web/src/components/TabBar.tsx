@@ -1,4 +1,8 @@
-import {CalendarOutlineIcon, TimeOutlineIcon} from '@/components/icons';
+import {
+  CalendarOutlineIcon,
+  HomeOutlineIcon,
+  TimeOutlineIcon,
+} from '@/components/icons';
 import {linkProps, type Route} from '@/lib/route';
 
 const ICON_SIZE = 23;
@@ -11,6 +15,7 @@ type TabBarProps = {
 const TABS = [
   {route: 'boka', label: 'Boka', Icon: CalendarOutlineIcon},
   {route: 'mina-tider', label: 'Mina tider', Icon: TimeOutlineIcon},
+  {route: 'lagenhet', label: 'Lägenhet', Icon: HomeOutlineIcon},
 ] as const;
 
 export function TabBar({route, onNavigate}: TabBarProps) {

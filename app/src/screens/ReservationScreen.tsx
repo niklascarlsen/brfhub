@@ -1,20 +1,16 @@
 import {type ReactNode} from 'react';
-import {Pressable, ScrollView, Text, View} from 'react-native';
+import {ScrollView, Text, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
 import {api, unwrap} from '@/api/client';
-import {signOut} from '@/auth/signOut';
 import {Notice, NoticeBar} from '@/components/Notice';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
 import {TimeCard, TimeCardSkeleton} from '@/components/TimeCard';
-import {useConfig} from '@/config';
 import {useBookingActions} from '@/hooks/useBookingActions';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useSlowLoad} from '@/hooks/useSlowLoad';
 
 function TimesPage({children}: {children: ReactNode}) {
-  const {apartment} = useConfig();
-
   return (
     <SafeAreaView className='flex-1 bg-theme-bg' edges={['top']}>
       <ScrollView
@@ -25,19 +21,6 @@ function TimesPage({children}: {children: ReactNode}) {
           Mina tider
         </Text>
         {children}
-        <View className='mt-auto flex-row items-center justify-between pt-8'>
-          <Text className='text-[13px] text-theme-muted'>
-            Lägenhet {apartment}
-          </Text>
-          <Pressable
-            onPress={() => void signOut()}
-            className='active:opacity-60'
-          >
-            <Text className='text-[13px] font-semibold text-theme-accent'>
-              Logga ut
-            </Text>
-          </Pressable>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );

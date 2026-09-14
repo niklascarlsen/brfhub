@@ -12,10 +12,9 @@ Zod schemas in `server/src/<feature>/<feature>.dto.ts`, then from `server/` run
 
 `web/src/theme.css`, `web/src/components/icons/` and the theme-color meta tag
 in `web/index.html` are generated from `app/src/theme.json` and the `ionicons`
-package: change colours or glyphs there and both clients follow. The two
-generated paths are gitignored; `npm run generate` in `web/` rewrites them,
-and `dev`, `build` and `check` run it first, which is how a fresh clone works
-without those files in git.
+package: change colours or glyphs there and both clients follow. The generated
+files are committed; `npm run generate` in `web/` rewrites them, and `dev`,
+`build` and `check` run it first, so commit what it produces.
 
 # Scripts
 

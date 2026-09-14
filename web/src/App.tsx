@@ -10,6 +10,7 @@ import {usePushPrompt} from '@/hooks/usePushPrompt';
 import {useIsDesktop} from '@/lib/media';
 import {onNotificationOpen} from '@/lib/push';
 import {startupSlot, useRoute} from '@/lib/route';
+import {ApartmentScreen} from '@/screens/ApartmentScreen';
 import {BookingScreen} from '@/screens/BookingScreen';
 import {ReservationScreen} from '@/screens/ReservationScreen';
 
@@ -68,8 +69,10 @@ function Shell() {
       >
         {route === 'boka' ? (
           <BookingScreen {...booking} />
-        ) : (
+        ) : route === 'mina-tider' ? (
           <ReservationScreen />
+        ) : (
+          <ApartmentScreen />
         )}
       </main>
       <TabBar route={route} onNavigate={navigate} />
