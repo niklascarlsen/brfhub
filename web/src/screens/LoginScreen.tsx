@@ -20,8 +20,8 @@ function loginMessage(status: number): string {
 }
 
 export function LoginScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('12@example.com');
+  const [password, setPassword] = useState('password');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
