@@ -51,7 +51,7 @@ export function LoginScreen() {
         <Text className='mb-1 text-[27px] font-semibold tracking-tight text-theme-ink'>
           Logga in
         </Text>
-        <Text className='mb-6 text-sm leading-5 text-theme-muted'>
+        <Text className='mb-6 font-sans text-sm leading-5 text-theme-muted'>
           Med e-posten som är kopplad till din lägenhet.
         </Text>
         <FloatingLabelInput

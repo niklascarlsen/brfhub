@@ -29,6 +29,8 @@ const ORGANIZATION = {
 const KINDS = [
   {organizationId: ORGANIZATION_ID, id: 'laundry', name: 'Tvätt', maxActive: 1},
   {organizationId: ORGANIZATION_ID, id: 'drying', name: 'Tork', maxActive: 1},
+  {organizationId: ORGANIZATION_ID, id: 'sauna', name: 'Bastu', maxActive: 1},
+  {organizationId: ORGANIZATION_ID, id: 'hobby', name: 'Hobby', maxActive: 1},
 ];
 
 const APARTMENTS = ['12', '14', '21', '23', '31'];
@@ -58,6 +60,22 @@ const RESOURCES = [
     tags: [],
     sortOrder: 3,
   },
+  {
+    id: 'sauna',
+    organizationId: ORGANIZATION_ID,
+    kindId: 'sauna',
+    name: 'Bastu',
+    tags: ['max 4 personer'],
+    sortOrder: 4,
+  },
+  {
+    id: 'workshop',
+    organizationId: ORGANIZATION_ID,
+    kindId: 'hobby',
+    name: 'Snickerirum',
+    tags: [],
+    sortOrder: 5,
+  },
 ];
 
 type SlotSpec = {start: string; end: string; endOffsetDays?: number};
@@ -76,10 +94,22 @@ const DRYING_SLOTS: SlotSpec[] = [
   {start: '20:00', end: '08:00', endOffsetDays: 1},
 ];
 
+const SAUNA_SLOTS: SlotSpec[] = [
+  {start: '17:00', end: '19:00'},
+  {start: '19:00', end: '21:00'},
+];
+
+const WORKSHOP_SLOTS: SlotSpec[] = [
+  {start: '10:00', end: '15:00'},
+  {start: '15:00', end: '20:00'},
+];
+
 const RESOURCE_SLOTS = [
   ...LAUNDRY_SLOTS.map((slot) => ({...slot, resourceId: 'laundry-1'})),
   ...LAUNDRY_SLOTS.map((slot) => ({...slot, resourceId: 'laundry-2'})),
   ...DRYING_SLOTS.map((slot) => ({...slot, resourceId: 'drying-room'})),
+  ...SAUNA_SLOTS.map((slot) => ({...slot, resourceId: 'sauna'})),
+  ...WORKSHOP_SLOTS.map((slot) => ({...slot, resourceId: 'workshop'})),
 ];
 
 const SEEDED_BOOKINGS = [

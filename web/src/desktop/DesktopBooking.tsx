@@ -124,7 +124,7 @@ export function DesktopBooking({
             resources={resources}
             selectedId={resource.id}
             onSelect={onSelectResource}
-            className='w-108 shrink-0'
+            className='min-w-0'
             showTags
           />
         </div>
