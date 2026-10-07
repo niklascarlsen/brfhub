@@ -9,7 +9,10 @@
   .font-semibold {
     font-family: Merriweather_600SemiBold;
   }
+  /* The family already carries the weight. On Android a bold weight on top
+     of a custom family falls back to the system font. */
   .font-bold {
     font-family: Merriweather_700Bold;
+    font-weight: normal;
   }
 }
