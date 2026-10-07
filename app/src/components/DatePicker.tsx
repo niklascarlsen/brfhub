@@ -7,6 +7,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 
+import {useRevealSelected} from '@/hooks/useRevealSelected';
 import {getWeekdayLabel, groupDaysByMonth, toIsoDate} from '@/lib/dates';
 
 type DatePickerProps = {
@@ -35,9 +36,11 @@ export function DatePicker({
     DAYS_VISIBLE;
   const circleSize = Math.round(dayWidth * CIRCLE_RATIO);
   const months = groupDaysByMonth(days, todayIso);
+  const {scrollProps, itemLayout} = useRevealSelected(selectedIso);
 
   return (
     <ScrollView
+      {...scrollProps}
       horizontal
       showsHorizontalScrollIndicator={false}
       className='w-full grow-0'
@@ -61,6 +64,7 @@ export function DatePicker({
               <Pressable
                 key={isoDate}
                 onPress={() => onSelect(day)}
+                onLayout={itemLayout(isoDate)}
                 style={{width: dayWidth}}
                 className='items-center active:opacity-60'
               >

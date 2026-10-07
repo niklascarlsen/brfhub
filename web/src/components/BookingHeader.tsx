@@ -29,7 +29,7 @@ export function BookingHeader({
 
   return (
     <>
-      <div className='mt-4 pb-3 pt-1 px-5'>
+      <div className='mt-4 pb-2'>
         <ResourcePicker
           resources={resources}
           selectedId={resource.id}

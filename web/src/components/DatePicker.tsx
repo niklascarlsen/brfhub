@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 
+import {useRevealSelected} from '@/hooks/useRevealSelected';
 import {useRovingList} from '@/hooks/useRovingList';
 import {getWeekdayLabel, groupDaysByMonth, toIsoDate} from '@/lib/dates';
 
@@ -20,6 +21,7 @@ export function DatePicker({
   onSelect,
 }: DatePickerProps) {
   const months = groupDaysByMonth(days, todayIso);
+  const scroller = useRevealSelected(selectedIso);
 
   const positions = useMemo(
     () => new Map(days.map((day, index) => [toIsoDate(day), index])),
@@ -35,11 +37,12 @@ export function DatePicker({
 
   return (
     <div
+      ref={scroller}
       role='toolbar'
       aria-label='Välj dag'
       aria-orientation={roving.orientation}
       onKeyDown={roving.onKeyDown}
-      className='w-full shrink-0 overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden'
+      className='w-full shrink-0 scroll-px-5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
     >
       <div className='flex items-stretch gap-1 px-5 py-2.5'>
         {months.map((month, monthIndex) => (

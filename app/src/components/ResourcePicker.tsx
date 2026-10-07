@@ -1,6 +1,7 @@
-import {Pressable, Text, View} from 'react-native';
+import {Pressable, ScrollView, Text} from 'react-native';
 
 import type {Resource} from '@/api/client';
+import {useRevealSelected} from '@/hooks/useRevealSelected';
 
 type ResourcePickerProps = {
   resources: Resource[];
@@ -8,21 +9,21 @@ type ResourcePickerProps = {
   onSelect: (id: string) => void;
 };
 
-const selectedLift = {
-  shadowColor: '#14130F',
-  shadowOpacity: 0.07,
-  shadowOffset: {width: 0, height: 1},
-  shadowRadius: 2,
-  elevation: 1,
-};
-
 export function ResourcePicker({
   resources,
   selectedId,
   onSelect,
 }: ResourcePickerProps) {
+  const {scrollProps, itemLayout} = useRevealSelected(selectedId);
+
   return (
-    <View className='mx-5 flex-row gap-[3px] rounded-xl bg-theme-track/80 p-[3px]'>
+    <ScrollView
+      {...scrollProps}
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      className='w-full grow-0'
+      contentContainerClassName='gap-2 px-5'
+    >
       {resources.map((resource) => {
         const selected = resource.id === selectedId;
 
@@ -30,17 +31,21 @@ export function ResourcePicker({
           <Pressable
             key={resource.id}
             onPress={() => onSelect(resource.id)}
-            style={selected ? selectedLift : undefined}
-            className={`h-[38px] min-w-0 flex-1 items-center justify-center rounded-[9px] ${
-              selected ? 'bg-theme-surface' : 'active:opacity-50'
+            onLayout={itemLayout(resource.id)}
+            accessibilityRole='button'
+            accessibilityState={{selected}}
+            className={`h-11 justify-center rounded-full border px-5 ${
+              selected
+                ? 'border-theme-ink bg-theme-ink'
+                : 'border-theme-line bg-theme-surface active:opacity-50'
             }`}
           >
             <Text
               numberOfLines={1}
               className={`text-sm ${
                 selected
-                  ? 'font-semibold text-theme-ink'
-                  : 'font-medium text-theme-muted'
+                  ? 'font-semibold text-theme-surface'
+                  : 'font-medium text-theme-ink'
               }`}
             >
               {resource.name}
@@ -48,6 +53,6 @@ export function ResourcePicker({
           </Pressable>
         );
       })}
-    </View>
+    </ScrollView>
   );
 }

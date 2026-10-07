@@ -1,5 +1,6 @@
 import type {Resource} from '@/api/client';
 import {Tag} from '@/components/Tag';
+import {useRevealSelected} from '@/hooks/useRevealSelected';
 import {useRovingList} from '@/hooks/useRovingList';
 
 type ResourcePickerProps = {
@@ -17,6 +18,8 @@ export function ResourcePicker({
   className = '',
   showTags = false,
 }: ResourcePickerProps) {
+  const scroller = useRevealSelected(selectedId);
+  const selected = resources.find((resource) => resource.id === selectedId);
   const anyTagged =
     showTags && resources.some((resource) => resource.tags.length > 0);
 
@@ -33,26 +36,27 @@ export function ResourcePicker({
   return (
     <div className={className}>
       <div
+        ref={scroller}
         role='toolbar'
         aria-label='Välj utrymme'
         aria-orientation={roving.orientation}
         onKeyDown={roving.onKeyDown}
-        className='flex gap-0.75 rounded-xl bg-theme-track/80 p-0.75'
+        className='flex scroll-px-5 gap-2 overflow-x-auto px-5 py-1 [scrollbar-width:none] lg:flex-wrap lg:overflow-visible lg:px-0 [&::-webkit-scrollbar]:hidden'
       >
         {resources.map((resource, index) => {
-          const selected = resource.id === selectedId;
+          const isSelected = resource.id === selectedId;
 
           return (
             <button
               type='button'
               key={resource.id}
               onClick={() => onSelect(resource.id)}
-              aria-pressed={selected}
+              aria-pressed={isSelected}
               {...roving.itemProps(index)}
-              className={`h-9.5 min-w-0 flex-1 truncate rounded-[9px] px-2 text-xs ${
-                selected
-                  ? 'bg-theme-surface font-semibold text-theme-ink shadow-[0_1px_2px_rgba(20,19,15,0.07)]'
-                  : 'font-medium text-theme-muted hover:text-theme-ink active:opacity-50'
+              className={`h-11 shrink-0 rounded-full border px-5 text-sm whitespace-nowrap ${
+                isSelected
+                  ? 'border-theme-ink bg-theme-ink font-semibold text-theme-surface'
+                  : 'border-theme-line bg-theme-surface font-medium text-theme-ink hover:bg-theme-sunk active:opacity-50'
               }`}
             >
               {resource.name}
@@ -61,16 +65,9 @@ export function ResourcePicker({
         })}
       </div>
       {anyTagged ? (
-        <div className='mt-2 flex gap-0.75 px-0.75'>
-          {resources.map((resource) => (
-            <div
-              key={resource.id}
-              className='flex min-w-0 flex-1 flex-wrap gap-1.5'
-            >
-              {resource.id === selectedId
-                ? resource.tags.map((tag) => <Tag key={tag} label={tag} />)
-                : null}
-            </div>
+        <div className='mt-1 flex min-h-5.75 flex-wrap gap-1.5'>
+          {selected?.tags.map((tag) => (
+            <Tag key={tag} label={tag} />
           ))}
         </div>
       ) : null}
