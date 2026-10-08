@@ -44,6 +44,8 @@ async function fetchBookingsAndSubscriptions() {
   return {bookings, subscriptions};
 }
 
+export type Times = Awaited<ReturnType<typeof fetchBookingsAndSubscriptions>>;
+
 export function MyTimes({layout = 'card'}: {layout?: TimeCardLayout}) {
   const {
     data: times,
@@ -51,6 +53,24 @@ export function MyTimes({layout = 'card'}: {layout?: TimeCardLayout}) {
     reload,
   } = useFocusLoad(fetchBookingsAndSubscriptions);
 
+  return (
+    <MyTimesList times={times} error={error} reload={reload} layout={layout} />
+  );
+}
+
+// The list without its own loading, for a page that loads the times
+// together with something else and reloads both at once.
+export function MyTimesList({
+  times,
+  error,
+  reload,
+  layout = 'card',
+}: {
+  times: Times | null;
+  error: string | null;
+  reload: () => void;
+  layout?: TimeCardLayout;
+}) {
   const {confirmBookable, confirmCancel, confirmRelease, confirmUnsubscribe} =
     useBookingActions(reload);
 

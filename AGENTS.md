@@ -90,10 +90,11 @@ pick up changes without a restart.
 
 - The server owns the booking rules. The client renders what it is told.
 - `web/` is one app. Below 1024px it renders the same screens as `app/`; above
-  it renders the week grid in `src/desktop/`.
+  it renders the calendar and day view in `src/desktop/`, which loads the whole
+  booking window for every resource in one `/schedule` request.
 - `src/lib/dates.ts` is the same file in both clients, kept honest by web's
   `dates:check`. Its tests live in `app/`, so add helpers there. What only the
-  week grid needs goes in `web/src/desktop/weeks.ts`.
+  desktop calendar needs goes in `web/src/desktop/weeks.ts`.
 - `web/` is on Tailwind v4 (CSS-first, tokens in `@theme`); `app/` stays on the
   v3 LTS that NativeWind needs. Do not copy config between them.
 - Match the app's result, not its layout mechanism. Anything sized from the
