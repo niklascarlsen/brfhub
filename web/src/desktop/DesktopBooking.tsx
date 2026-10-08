@@ -1,15 +1,20 @@
-import {useRef} from 'react';
-
-import {api, unwrap, type BookingWindow, type Resource} from '@/api/client';
-import {ChevronBackIcon, ChevronForwardIcon} from '@/components/icons';
-import {ResourcePicker} from '@/components/ResourcePicker';
+import {
+  api,
+  unwrap,
+  type Booking,
+  type BookingWindow,
+  type Resource,
+} from '@/api/client';
+import {MyTimesList} from '@/components/MyTimes';
+import {useConfig} from '@/config';
+import {DayPanel, type ResourceDay} from '@/desktop/DayPanel';
 import {SHELL} from '@/desktop/layout';
-import {WeekGrid} from '@/desktop/WeekGrid';
+import {MonthCalendar, type DaySummary} from '@/desktop/MonthCalendar';
+import {PageHeader} from '@/desktop/PageHeader';
+import {formatHeadingDate, relativeDay} from '@/desktop/weeks';
 import {useBookingActions} from '@/hooks/useBookingActions';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
-import {addDays, dayOffset, formatDayRange} from '@/desktop/weeks';
-
-const DAYS_PER_WEEK = 7;
+import {fromIsoDate, getWeekdayLabel, timeRange} from '@/lib/dates';
 
 export type BookingProps = {
   bookingWindow: BookingWindow;
@@ -20,58 +25,81 @@ export type BookingProps = {
   onSelectDate: (isoDate: string) => void;
 };
 
-function fetchWeek(from: string, to: string, resourceId: string) {
-  return unwrap(
-    api.GET('/slots', {params: {query: {date: from, to, resourceId}}}),
-  );
+// The whole booking window for every resource, and the apartment's own
+// times, in one go. Picking a day then needs no request, and a booking
+// reloads both so the calendar and the list never disagree.
+async function fetchOverview(bookingWindow: BookingWindow) {
+  const [schedule, bookings, subscriptions] = await Promise.all([
+    unwrap(
+      api.GET('/schedule', {
+        params: {query: {from: bookingWindow.from, to: bookingWindow.to}},
+      }),
+    ),
+    unwrap(api.GET('/bookings')),
+    unwrap(api.GET('/subscriptions')),
+  ]);
+
+  return {schedule, times: {bookings, subscriptions}};
 }
 
-function weekOf(window: BookingWindow, date: string) {
-  const index = Math.floor(dayOffset(window.from, date) / DAYS_PER_WEEK);
-  const start = addDays(window.from, index * DAYS_PER_WEEK);
-  const days = Array.from({length: DAYS_PER_WEEK}, (_, offset) =>
-    addDays(start, offset),
-  );
-  const totalDays = dayOffset(window.from, window.to) + 1;
+type Overview = Awaited<ReturnType<typeof fetchOverview>>;
 
-  // The last week can reach past the booking window. Fetch only to the edge.
-  let last = days[DAYS_PER_WEEK - 1];
-  if (last > window.to) {
-    last = window.to;
+function summarize(schedule: Overview['schedule']): Map<string, DaySummary> {
+  const summaries = new Map<string, DaySummary>();
+
+  for (const entry of schedule) {
+    for (const slot of entry.slots) {
+      const summary = summaries.get(slot.date) ?? {free: 0, mine: false};
+
+      if (slot.status === 'available') {
+        summary.free += 1;
+      } else if (slot.status === 'mine') {
+        summary.mine = true;
+      }
+
+      summaries.set(slot.date, summary);
+    }
   }
 
-  return {
-    index,
-    start,
-    days,
-    last,
-    count: Math.ceil(totalDays / DAYS_PER_WEEK),
-  };
+  return summaries;
 }
 
-function WeekNavButton({
-  label,
-  disabled,
-  onClick,
-  ref,
-  children,
+function NextBooking({
+  booking,
+  todayIso,
+  onSelectDate,
 }: {
-  label: string;
-  disabled: boolean;
-  onClick: () => void;
-  ref: React.Ref<HTMLButtonElement>;
-  children: React.ReactNode;
+  booking: Booking;
+  todayIso: string;
+  onSelectDate: (isoDate: string) => void;
 }) {
+  const day = fromIsoDate(booking.date);
+  const when =
+    relativeDay(booking.date, todayIso) ?? formatHeadingDate(booking.date);
+
   return (
     <button
       type='button'
-      ref={ref}
-      aria-label={label}
-      disabled={disabled}
-      onClick={onClick}
-      className='flex h-9 w-9 items-center justify-center rounded-full border border-theme-edge bg-theme-surface text-theme-ink transition-colors hover:bg-theme-sunk disabled:cursor-default disabled:opacity-35 disabled:hover:bg-theme-surface'
+      onClick={() => onSelectDate(booking.date)}
+      className='flex items-center gap-3.5 rounded-2xl bg-theme-mist py-3 pr-4.5 pl-3.5 text-left transition-opacity hover:opacity-85'
     >
-      {children}
+      <span className='flex h-10 w-10 flex-col items-center justify-center rounded-xl bg-theme-surface leading-none'>
+        <span className='text-[9px] font-bold text-theme-accent uppercase'>
+          {getWeekdayLabel(day)}
+        </span>
+        <span className='text-[15px] font-semibold tabular-nums text-theme-ink'>
+          {day.getDate()}
+        </span>
+      </span>
+      <span className='flex flex-col gap-0.5'>
+        <span className='text-xs font-bold text-theme-accent'>
+          Din nästa tid
+        </span>
+        <span className='text-sm font-semibold text-theme-ink'>
+          {when}, {timeRange(booking.start, booking.end)} ·{' '}
+          {booking.resourceName}
+        </span>
+      </span>
     </button>
   );
 }
@@ -79,88 +107,90 @@ function WeekNavButton({
 export function DesktopBooking({
   bookingWindow,
   resources,
-  resource,
-  onSelectResource,
   date,
   onSelectDate,
 }: BookingProps) {
-  const week = weekOf(bookingWindow, date);
-  const prevButton = useRef<HTMLButtonElement>(null);
-  const nextButton = useRef<HTMLButtonElement>(null);
+  const {apartment} = useConfig();
 
   const {
-    data: loaded,
+    data: overview,
     error,
     reload,
   } = useFocusLoad(
-    () => fetchWeek(week.start, week.last, resource.id),
-    `${week.start}:${week.last}:${resource.id}`,
+    () => fetchOverview(bookingWindow),
+    `${bookingWindow.from}:${bookingWindow.to}`,
   );
 
   const {confirmBook} = useBookingActions(reload);
 
-  const isFirstWeek = week.index === 0;
-  const isLastWeek = week.index + 1 >= week.count;
+  const summaries = overview ? summarize(overview.schedule) : null;
 
-  // Stepping onto the first or last week disables the button under the
-  // cursor. Hand focus to the one that stays enabled.
-  function goToWeek(index: number) {
-    if (index === 0) {
-      nextButton.current?.focus();
-    } else if (index + 1 >= week.count) {
-      prevButton.current?.focus();
-    }
+  const day: ResourceDay[] | null = overview
+    ? resources.map((resource) => {
+        const entry = overview.schedule.find(
+          (item) => item.resourceId === resource.id,
+        );
 
-    onSelectDate(addDays(bookingWindow.from, index * DAYS_PER_WEEK));
-  }
+        return {
+          resource,
+          slots: entry?.slots.filter((slot) => slot.date === date) ?? [],
+          active: entry?.active ?? null,
+        };
+      })
+    : null;
+
+  const nextBooking = overview?.times.bookings.find(
+    (booking) => !booking.released,
+  );
 
   return (
     <>
-      <div
-        className={`${SHELL} flex shrink-0 items-center justify-between gap-6 pb-5 pt-7`}
+      <PageHeader
+        eyebrow={formatHeadingDate(bookingWindow.today)}
+        title={`Hej, lägenhet ${apartment}`}
       >
-        <div className='flex min-w-0 items-center gap-3.5'>
-          <ResourcePicker
-            resources={resources}
-            selectedId={resource.id}
-            onSelect={onSelectResource}
-            className='min-w-0'
-            showTags
+        {nextBooking ? (
+          <NextBooking
+            booking={nextBooking}
+            todayIso={bookingWindow.today}
+            onSelectDate={onSelectDate}
           />
-        </div>
-        <div className='flex shrink-0 items-center gap-3'>
-          <WeekNavButton
-            label='Föregående vecka'
-            ref={prevButton}
-            disabled={isFirstWeek}
-            onClick={() => goToWeek(week.index - 1)}
-          >
-            <ChevronBackIcon size={16} />
-          </WeekNavButton>
-          <h1 className='min-w-25 text-center text-[15px] font-semibold tracking-tight tabular-nums text-theme-ink'>
-            {formatDayRange(week.start, week.last)}
-          </h1>
-          <WeekNavButton
-            label='Nästa vecka'
-            ref={nextButton}
-            disabled={isLastWeek}
-            onClick={() => goToWeek(week.index + 1)}
-          >
-            <ChevronForwardIcon size={16} />
-          </WeekNavButton>
-        </div>
-      </div>
-      <div className={`${SHELL} flex grow flex-col pb-8`}>
-        <WeekGrid
-          slots={loaded?.slots ?? null}
-          days={week.days}
-          resourceId={resource.id}
-          todayIso={bookingWindow.today}
-          lastIso={bookingWindow.to}
+        ) : null}
+      </PageHeader>
+      <div className={`${SHELL} flex items-start gap-7 pt-6 pb-10`}>
+        <aside className='flex w-90 shrink-0 flex-col gap-5.5 xl:w-105'>
+          <MonthCalendar
+            bookingWindow={bookingWindow}
+            selected={date}
+            onSelect={onSelectDate}
+            summaries={summaries}
+          />
+          {overview || !error ? (
+            <section aria-labelledby='my-times-heading'>
+              <h2
+                id='my-times-heading'
+                className='mb-3 ml-0.5 text-base font-semibold tracking-tight text-theme-ink'
+              >
+                Mina tider
+              </h2>
+              <MyTimesList
+                times={overview?.times ?? null}
+                // The day panel shows a failed reload, once for the page.
+                error={null}
+                reload={reload}
+              />
+            </section>
+          ) : null}
+        </aside>
+        <DayPanel
+          isoDate={date}
+          bookingWindow={bookingWindow}
+          day={day}
           error={error}
           onRetry={reload}
-          onSelect={(slot) =>
-            confirmBook(slot, resource, loaded?.active ?? null)
+          onSelectDate={onSelectDate}
+          onSelect={(slot, entry) =>
+            confirmBook(slot, entry.resource, entry.active)
           }
         />
       </div>

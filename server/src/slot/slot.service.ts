@@ -19,9 +19,10 @@ import {
 import type {Member} from '../lib/user.js';
 import {
   getResource,
+  listBookableResources,
   type BookableResource,
 } from '../resource/resource.service.js';
-import type {BookingWindow, Slot, Slots} from './slot.dto.js';
+import type {BookingWindow, ResourceSchedule, Slot, Slots} from './slot.dto.js';
 
 export async function getBookingWindow(
   organizationId: string,
@@ -46,11 +47,13 @@ export function isWithinBookingWindow(
   return date >= window.from && date <= window.to;
 }
 
+// Without a resource id it returns the slots of every resource in the
+// organization, ordered as the resources are.
 function selectSlotRows(
-  memberId: string,
+  member: Member,
   from: string,
   to: string,
-  resourceId: string,
+  resourceId?: string,
 ) {
   // WITH days AS (one row per day in the range). generate_series has no query-builder form, so this block stays raw SQL.)
   const days = db
@@ -66,6 +69,7 @@ function selectSlotRows(
   return db
     .with(days)
     .select({
+      resourceId: resourceSlots.resourceId,
       date: asDateText(days.day),
       start: resourceSlots.start,
       end: resourceSlots.end,
@@ -75,6 +79,7 @@ function selectSlotRows(
       subscriptionId: subscriptions.id,
     })
     .from(resourceSlots)
+    .innerJoin(resources, eq(resources.id, resourceSlots.resourceId))
     .crossJoin(days)
     .leftJoin(
       bookings,
@@ -91,16 +96,17 @@ function selectSlotRows(
         eq(subscriptions.resourceId, resourceSlots.resourceId),
         eq(subscriptions.start, resourceSlots.start),
         eq(subscriptions.date, days.day),
-        eq(subscriptions.memberId, memberId),
+        eq(subscriptions.memberId, member.id),
       ),
     )
     .where(
       and(
-        eq(resourceSlots.resourceId, resourceId),
+        eq(resources.organizationId, member.organizationId),
+        resourceId ? eq(resourceSlots.resourceId, resourceId) : undefined,
         sql`${slotEndsAt(days.day, resourceSlots.end, resourceSlots.endOffsetDays)} > now()`,
       ),
     )
-    .orderBy(asc(days.day), asc(resourceSlots.start));
+    .orderBy(asc(resources.sortOrder), asc(days.day), asc(resourceSlots.start));
 }
 
 type SlotRow = Awaited<ReturnType<typeof selectSlotRows>>[number];
@@ -146,22 +152,46 @@ function toSlot(row: SlotRow, memberId: string): Slot {
   };
 }
 
-async function selectActiveBooking(
-  memberId: string,
-  resource: BookableResource,
-) {
-  if (resource.maxActive !== 1) {
-    return null;
-  }
+// Only a kind that allows one booking at a time reports it, since that is
+// when booking another slot of the kind has to swap.
+type ActiveByKind = Map<string, {released: boolean}>;
 
-  const [row] = await db
-    .select({released: sql<boolean>`${bookings.releasedAt} is not null`})
+async function selectActiveByKind(memberId: string): Promise<ActiveByKind> {
+  const rows = await db
+    .select({
+      kind: resources.kindId,
+      released: sql<boolean>`${bookings.releasedAt} is not null`,
+    })
     .from(bookings)
     .innerJoin(resources, eq(bookings.resourceId, resources.id))
-    .where(and(stillActive(memberId), eq(resources.kindId, resource.kind)))
-    .limit(1);
+    .where(stillActive(memberId));
 
-  return row ?? null;
+  return new Map(rows.map((row) => [row.kind, {released: row.released}]));
+}
+
+function activeFor(resource: BookableResource, activeByKind: ActiveByKind) {
+  return resource.maxActive === 1
+    ? (activeByKind.get(resource.kind) ?? null)
+    : null;
+}
+
+async function assertWithinBookingWindow(
+  organizationId: string,
+  from: string,
+  to: string,
+) {
+  if (to < from) {
+    throw appError('VALIDATION', 'The range must not end before it starts');
+  }
+
+  const window = await getBookingWindow(organizationId);
+
+  if (
+    !isWithinBookingWindow(from, window) ||
+    !isWithinBookingWindow(to, window)
+  ) {
+    throw appError('OUTSIDE_BOOKING_WINDOW');
+  }
 }
 
 export async function listSlots({
@@ -182,24 +212,41 @@ export async function listSlots({
   }
 
   const last = to ?? date;
+  await assertWithinBookingWindow(member.organizationId, date, last);
 
-  if (last < date) {
-    throw appError('VALIDATION', 'to must not be before date');
-  }
-
-  const window = await getBookingWindow(member.organizationId);
-
-  if (
-    !isWithinBookingWindow(date, window) ||
-    !isWithinBookingWindow(last, window)
-  ) {
-    throw appError('OUTSIDE_BOOKING_WINDOW');
-  }
-
-  const [rows, active] = await Promise.all([
-    selectSlotRows(member.id, date, last, resourceId),
-    selectActiveBooking(member.id, resource),
+  const [rows, activeByKind] = await Promise.all([
+    selectSlotRows(member, date, last, resourceId),
+    selectActiveByKind(member.id),
   ]);
 
-  return {slots: rows.map((row) => toSlot(row, member.id)), active};
+  return {
+    slots: rows.map((row) => toSlot(row, member.id)),
+    active: activeFor(resource, activeByKind),
+  };
+}
+
+export async function listSchedule({
+  member,
+  from,
+  to,
+}: {
+  member: Member;
+  from: string;
+  to: string;
+}): Promise<ResourceSchedule[]> {
+  await assertWithinBookingWindow(member.organizationId, from, to);
+
+  const [bookable, rows, activeByKind] = await Promise.all([
+    listBookableResources(member.organizationId),
+    selectSlotRows(member, from, to),
+    selectActiveByKind(member.id),
+  ]);
+
+  return bookable.map((resource) => ({
+    resourceId: resource.id,
+    slots: rows
+      .filter((row) => row.resourceId === resource.id)
+      .map((row) => toSlot(row, member.id)),
+    active: activeFor(resource, activeByKind),
+  }));
 }

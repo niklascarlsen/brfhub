@@ -73,19 +73,25 @@ function subscribe(onChange: () => void) {
   };
 }
 
-export function useRoute(): [Route, (route: Route) => void] {
+type Navigate = (route: Route, options?: {replace?: boolean}) => void;
+
+export function useRoute(): [Route, Navigate] {
   const route = useSyncExternalStore(subscribe, readRoute);
 
   useEffect(() => {
     document.title = TITLES[route];
   }, [route]);
 
-  const navigate = useCallback((next: Route) => {
+  const navigate = useCallback<Navigate>((next, options) => {
     if (readRoute() === next) {
       return;
     }
 
-    window.history.pushState(null, '', hrefOf(next));
+    if (options?.replace) {
+      window.history.replaceState(null, '', hrefOf(next));
+    } else {
+      window.history.pushState(null, '', hrefOf(next));
+    }
     window.scrollTo(0, 0);
 
     for (const read of readers) {

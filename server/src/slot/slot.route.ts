@@ -4,10 +4,12 @@ import {errorResponses} from '../lib/errors.js';
 import {getMember} from '../lib/user.js';
 import {
   bookingWindowSchema,
+  listScheduleQuerySchema,
   listSlotsQuerySchema,
+  resourceScheduleSchema,
   slotsSchema,
 } from './slot.dto.js';
-import {getBookingWindow, listSlots} from './slot.service.js';
+import {getBookingWindow, listSchedule, listSlots} from './slot.service.js';
 
 export const slotRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get(
@@ -27,6 +29,27 @@ export const slotRoutes: FastifyPluginAsyncZod = async (app) => {
         date: request.query.date,
         to: request.query.to,
         resourceId: request.query.resourceId,
+      }),
+  );
+
+  // Every resource over a range in one request, for a client that shows the
+  // whole booking window at once.
+  app.get(
+    '/schedule',
+    {
+      schema: {
+        querystring: listScheduleQuerySchema,
+        response: {
+          200: resourceScheduleSchema.array(),
+          ...errorResponses,
+        },
+      },
+    },
+    async (request) =>
+      listSchedule({
+        member: await getMember(request),
+        from: request.query.from,
+        to: request.query.to,
       }),
   );
 

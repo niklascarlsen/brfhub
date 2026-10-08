@@ -19,6 +19,7 @@ type Config = {
   window: BookingWindow;
   resources: [Resource, ...Resource[]];
   apartment: string;
+  organizationName: string;
 };
 
 const ConfigContext = createContext<Config | null>(null);
@@ -40,7 +41,12 @@ async function fetchConfig() {
     unwrap(api.GET('/me')),
   ]);
 
-  return {window, resources, apartment: me.apartment};
+  return {
+    window,
+    resources,
+    apartment: me.apartment,
+    organizationName: me.organizationName,
+  };
 }
 
 export function ConfigProvider({children}: {children: ReactNode}) {
@@ -135,6 +141,7 @@ export function ConfigProvider({children}: {children: ReactNode}) {
         window: loaded.window,
         resources: [first, ...rest],
         apartment: loaded.apartment,
+        organizationName: loaded.organizationName,
       }}
     >
       {children}
