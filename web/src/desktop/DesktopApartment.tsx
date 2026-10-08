@@ -9,7 +9,7 @@ import {SHELL} from '@/desktop/layout';
 import {PageHeader} from '@/desktop/PageHeader';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useSlowLoad} from '@/hooks/useSlowLoad';
-import {timeRange} from '@/lib/dates';
+import {daysBetween, timeRange} from '@/lib/dates';
 import {linkProps, type Route} from '@/lib/route';
 
 type Kind = components['schemas']['BookingRules']['kinds'][number];
@@ -35,7 +35,6 @@ function limitOf(kind: Kind): string {
 }
 
 function KindRules({kind}: {kind: Kind}) {
-  const several = kind.resources.length > 1;
   const times = kind.resources.map((resource) => timesOf(resource.slots));
   const sharedTimes = times.every((item) => item === times[0]);
 
@@ -59,28 +58,21 @@ function KindRules({kind}: {kind: Kind}) {
         ))
       )}
       <p className='text-xs leading-5 text-theme-muted'>{limitOf(kind)}</p>
-      {kind.resources.flatMap((resource) =>
-        resource.tags.map((tag) => (
-          <p
-            key={`${resource.id}:${tag}`}
-            className='text-xs leading-5 text-theme-muted'
-          >
-            {several ? `${resource.name}: ${tag}` : tag}
-          </p>
-        )),
-      )}
     </div>
   );
 }
 
 function BookingRules() {
+  const {window: bookingWindow} = useConfig();
+  const daysAhead =
+    daysBetween(bookingWindow.today, bookingWindow.to).length - 1;
   const {data: rules, error, reload} = useFocusLoad(fetchRules);
   const showSkeleton = useSlowLoad(rules === null && error === null);
 
   let body = null;
   if (rules) {
     body = (
-      <div className='grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-3'>
+      <div className='grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3'>
         {rules.kinds.map((kind) => (
           <KindRules key={kind.id} kind={kind} />
         ))}
@@ -93,7 +85,7 @@ function BookingRules() {
   } else if (showSkeleton) {
     body = (
       <Skeleton>
-        <div className='grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-3'>
+        <div className='grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3'>
           {Array.from({length: 4}, (_, index) => (
             <div
               key={index}
@@ -120,11 +112,9 @@ function BookingRules() {
         >
           Regler
         </h2>
-        {rules ? (
-          <span className='text-[13px] text-theme-muted'>
-            Bokningsbart {rules.bookingWindowDays} dagar framåt
-          </span>
-        ) : null}
+        <span className='text-[13px] text-theme-muted'>
+          Bokningsbart {daysAhead} dagar framåt
+        </span>
       </div>
       {body}
     </section>

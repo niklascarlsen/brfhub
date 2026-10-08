@@ -16,7 +16,6 @@ export const resourceRefSchema = z.object({
 });
 
 export const bookingRulesSchema = z.object({
-  bookingWindowDays: z.number().int(),
   kinds: z
     .object({
       id: resourceKindSchema,

@@ -1268,7 +1268,6 @@ test('booking rules group the resources by kind', async () => {
   const rules = response.json<BookingRules>();
 
   assert.equal(response.statusCode, 200);
-  assert.equal(rules.bookingWindowDays, ORGANIZATION.bookingWindowDays);
   assert.deepEqual(
     rules.kinds.map((kind) => ({
       id: kind.id,

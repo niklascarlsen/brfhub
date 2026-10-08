@@ -69,11 +69,6 @@
       "BookingRulesInput": {
         "type": "object",
         "properties": {
-          "bookingWindowDays": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991
-          },
           "kinds": {
             "type": "array",
             "items": {
@@ -145,7 +140,6 @@
           }
         },
         "required": [
-          "bookingWindowDays",
           "kinds"
         ]
       },
@@ -705,11 +699,6 @@
       "BookingRules": {
         "type": "object",
         "properties": {
-          "bookingWindowDays": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991
-          },
           "kinds": {
             "type": "array",
             "items": {
@@ -784,7 +773,6 @@
           }
         },
         "required": [
-          "bookingWindowDays",
           "kinds"
         ],
         "additionalProperties": false

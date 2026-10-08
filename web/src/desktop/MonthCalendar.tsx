@@ -105,7 +105,11 @@ export function MonthCalendar({
                 );
               }
 
-              const summary = summaries?.get(isoDate);
+              // A loaded day without slots has none left, today after the
+              // last one has ended.
+              const summary = summaries
+                ? (summaries.get(isoDate) ?? {free: 0, mine: false})
+                : undefined;
               const isSelected = isoDate === selected;
               const isToday = isoDate === bookingWindow.today;
 

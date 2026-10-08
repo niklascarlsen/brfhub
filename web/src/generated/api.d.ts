@@ -1238,7 +1238,6 @@ export interface components {
             tags: string[];
         };
         BookingRulesInput: {
-            bookingWindowDays: number;
             kinds: {
                 id: string;
                 name: string;
@@ -1389,7 +1388,6 @@ export interface components {
             tags: string[];
         };
         BookingRules: {
-            bookingWindowDays: number;
             kinds: {
                 id: string;
                 name: string;

@@ -181,7 +181,7 @@ async function assertWithinBookingWindow(
   to: string,
 ) {
   if (to < from) {
-    throw appError('VALIDATION', 'to must not be before date');
+    throw appError('VALIDATION', 'The range must not end before it starts');
   }
 
   const window = await getBookingWindow(organizationId);

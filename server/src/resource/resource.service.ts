@@ -1,12 +1,7 @@
 import {and, asc, eq} from 'drizzle-orm';
 
 import {db} from '../db/index.js';
-import {
-  organizations,
-  resourceKinds,
-  resourceSlots,
-  resources,
-} from '../db/schema.js';
+import {resourceKinds, resourceSlots, resources} from '../db/schema.js';
 import type {BookingRules, Resource} from './resource.dto.js';
 
 const resourceFields = {
@@ -63,11 +58,7 @@ export async function getResource(
 export async function getBookingRules(
   organizationId: string,
 ): Promise<BookingRules> {
-  const [[organization], kinds, bookable, slots] = await Promise.all([
-    db
-      .select({bookingWindowDays: organizations.bookingWindowDays})
-      .from(organizations)
-      .where(eq(organizations.id, organizationId)),
+  const [kinds, bookable, slots] = await Promise.all([
     db
       .select({
         id: resourceKinds.id,
@@ -89,14 +80,9 @@ export async function getBookingRules(
       .orderBy(asc(resourceSlots.start)),
   ]);
 
-  if (!organization) {
-    throw new Error(`Unknown organization ${organizationId}`);
-  }
-
   const kindOrder = [...new Set(bookable.map((resource) => resource.kind))];
 
   return {
-    bookingWindowDays: organization.bookingWindowDays,
     kinds: kindOrder.flatMap((kindId) => {
       const kind = kinds.find((item) => item.id === kindId);
 

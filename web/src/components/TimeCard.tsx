@@ -3,15 +3,12 @@ import {formatLongDate, timeRange} from '@/lib/dates';
 
 type Badge = {label: string; tone: 'accent' | 'muted'};
 
-export type TimeCardLayout = 'card' | 'row';
-
 type TimeCardProps = {
   date: string;
   start: string;
   end: string;
   resourceName?: string;
   badge: Badge | null;
-  layout?: TimeCardLayout;
   actionLabel?: string;
   actionTone?: 'solid' | 'outline';
   onAction?: () => void;
@@ -84,35 +81,8 @@ export function TimeCard({
   end,
   resourceName,
   badge,
-  layout = 'card',
   ...actions
 }: TimeCardProps) {
-  if (layout === 'row') {
-    return (
-      <div className={`${SHELL} gap-6 px-6 py-5`}>
-        <div className='flex shrink-0 items-center self-stretch border-r border-theme-line pr-6'>
-          <span className='text-[22px] font-semibold tracking-tight tabular-nums text-theme-ink'>
-            {timeRange(start, end)}
-          </span>
-        </div>
-        <div className='flex min-w-0 flex-1 flex-col gap-1'>
-          <div className='flex items-center gap-2'>
-            {resourceName ? (
-              <span className='text-[17px] font-semibold tracking-tight text-theme-ink'>
-                {resourceName}
-              </span>
-            ) : null}
-            {badge ? <BadgeChip badge={badge} /> : null}
-          </div>
-          <span className='text-[13px] font-medium text-theme-muted'>
-            {formatLongDate(date)}
-          </span>
-        </div>
-        <Actions {...actions} />
-      </div>
-    );
-  }
-
   return (
     <div className={`${SHELL} gap-3.5 px-4.5 py-4`}>
       <div className='flex min-w-0 flex-1 flex-col gap-1'>
@@ -136,22 +106,7 @@ export function TimeCard({
   );
 }
 
-export function TimeCardSkeleton({layout = 'card'}: {layout?: TimeCardLayout}) {
-  if (layout === 'row') {
-    return (
-      <div className={`${SHELL} gap-6 px-6 py-5`}>
-        <div className='flex w-45 shrink-0 items-center self-stretch border-r border-theme-line pr-6'>
-          <SkeletonBar className='h-6.5 w-35' />
-        </div>
-        <div className='flex min-w-0 flex-1 flex-col gap-2'>
-          <SkeletonBar className='h-5 w-33' />
-          <SkeletonBar className='h-4 w-37' />
-        </div>
-        <div className='h-11 w-23.5 rounded-full bg-theme-sunk' />
-      </div>
-    );
-  }
-
+export function TimeCardSkeleton() {
   return (
     <div className={`${SHELL} gap-3.5 px-4.5 py-4`}>
       <div className='flex min-w-0 flex-1 flex-col gap-1'>

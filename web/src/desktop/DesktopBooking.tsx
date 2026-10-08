@@ -175,7 +175,8 @@ export function DesktopBooking({
               </h2>
               <MyTimesList
                 times={overview?.times ?? null}
-                error={overview ? error : null}
+                // The day panel shows a failed reload, once for the page.
+                error={null}
                 reload={reload}
               />
             </section>

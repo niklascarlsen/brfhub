@@ -17,8 +17,6 @@ export function DesktopShell({
 }: DesktopShellProps) {
   const {apartment, organizationName} = useConfig();
 
-  // The booking page lists the apartment's own times, so on desktop
-  // "Mina tider" is the booking page.
   const onApartment = route === 'lagenhet';
 
   return (

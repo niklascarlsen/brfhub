@@ -42,6 +42,14 @@ function Shell() {
     [navigate],
   );
 
+  // Desktop lists the apartment's times on the booking page and has no
+  // page of its own for them.
+  useEffect(() => {
+    if (isDesktop && route === 'mina-tider') {
+      navigate('boka', {replace: true});
+    }
+  }, [isDesktop, route, navigate]);
+
   const date = isWithinBookingWindow(chosen, bookingWindow)
     ? chosen
     : bookingWindow.today;

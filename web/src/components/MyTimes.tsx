@@ -3,11 +3,7 @@ import type {ReactNode} from 'react';
 import {api, unwrap} from '@/api/client';
 import {Notice, NoticeBar} from '@/components/Notice';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
-import {
-  TimeCard,
-  TimeCardSkeleton,
-  type TimeCardLayout,
-} from '@/components/TimeCard';
+import {TimeCard, TimeCardSkeleton} from '@/components/TimeCard';
 import {useBookingActions} from '@/hooks/useBookingActions';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useSlowLoad} from '@/hooks/useSlowLoad';
@@ -46,16 +42,14 @@ async function fetchBookingsAndSubscriptions() {
 
 export type Times = Awaited<ReturnType<typeof fetchBookingsAndSubscriptions>>;
 
-export function MyTimes({layout = 'card'}: {layout?: TimeCardLayout}) {
+export function MyTimes() {
   const {
     data: times,
     error,
     reload,
   } = useFocusLoad(fetchBookingsAndSubscriptions);
 
-  return (
-    <MyTimesList times={times} error={error} reload={reload} layout={layout} />
-  );
+  return <MyTimesList times={times} error={error} reload={reload} />;
 }
 
 // The list without its own loading, for a page that loads the times
@@ -64,12 +58,10 @@ export function MyTimesList({
   times,
   error,
   reload,
-  layout = 'card',
 }: {
   times: Times | null;
   error: string | null;
   reload: () => void;
-  layout?: TimeCardLayout;
 }) {
   const {confirmBookable, confirmCancel, confirmRelease, confirmUnsubscribe} =
     useBookingActions(reload);
@@ -87,8 +79,8 @@ export function MyTimesList({
       <Skeleton>
         <SkeletonBar className='mb-2.5 ml-0.5 h-3 w-22' />
         <div className='flex flex-col gap-2.5'>
-          <TimeCardSkeleton layout={layout} />
-          <TimeCardSkeleton layout={layout} />
+          <TimeCardSkeleton />
+          <TimeCardSkeleton />
         </div>
       </Skeleton>
     ) : null;
@@ -122,7 +114,6 @@ export function MyTimesList({
             return (
               <TimeCard
                 key={entry.id}
-                layout={layout}
                 date={entry.date}
                 start={entry.start}
                 end={entry.end}
@@ -135,7 +126,6 @@ export function MyTimesList({
           return (
             <TimeCard
               key={entry.id}
-              layout={layout}
               date={entry.date}
               start={entry.start}
               end={entry.end}
@@ -160,7 +150,6 @@ export function MyTimesList({
           return (
             <TimeCard
               key={entry.id}
-              layout={layout}
               date={entry.date}
               start={entry.start}
               end={entry.end}
