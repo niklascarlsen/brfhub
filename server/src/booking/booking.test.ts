@@ -18,8 +18,8 @@ import {
 } from '../db/schema.js';
 import {slotEndsAt, toIsoDate} from '../lib/time.js';
 import {ORGANIZATION_ID} from '../lib/user.js';
-import type {Resource} from '../resource/resource.dto.js';
-import type {Slots} from '../slot/slot.dto.js';
+import type {BookingRules, Resource} from '../resource/resource.dto.js';
+import type {ResourceSchedule, Slots} from '../slot/slot.dto.js';
 import type {Subscription} from '../subscription/subscription.dto.js';
 import {listSubscribers} from '../subscription/subscription.service.js';
 import type {Booking, CreatedBooking} from './booking.dto.js';
@@ -263,6 +263,14 @@ function slotsBetween(
   });
 }
 
+function scheduleBetween(userId: string, from: string, to: string) {
+  return server.inject({
+    method: 'GET',
+    url: `/schedule?from=${from}&to=${to}`,
+    headers: signedInAs(userId),
+  });
+}
+
 function startsIn(response: {json: <T>() => T}) {
   return response.json<Slots>().slots.map((slot) => slot.start);
 }
@@ -421,7 +429,10 @@ test('tells a signed-in person their apartment', async () => {
   });
 
   assert.equal(response.statusCode, 200);
-  assert.deepEqual(response.json(), {apartment: TENANT});
+  assert.deepEqual(response.json(), {
+    apartment: TENANT,
+    organizationName: ORGANIZATION.name,
+  });
 });
 
 test('rejects a request without a session', async () => {
@@ -1044,7 +1055,7 @@ test('signing out ends the session', async () => {
     headers: {cookie},
   });
   assert.equal(before.statusCode, 200);
-  assert.deepEqual(before.json(), {apartment: NEIGHBOUR});
+  assert.equal(before.json<{apartment: string}>().apartment, NEIGHBOUR);
 
   const signOut = await server.inject({
     method: 'POST',
@@ -1171,4 +1182,107 @@ test('rejects a range that ends before it starts', async () => {
 
   assert.equal(response.statusCode, 400);
   assert.equal(codeOf(response), 'VALIDATION');
+});
+
+test('a schedule answers for every resource in resource order', async () => {
+  const response = await scheduleBetween(
+    TENANT,
+    bookableDate,
+    dayAfterBookable,
+  );
+  const schedule = response.json<ResourceSchedule[]>();
+
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(
+    schedule.map((entry) => entry.resourceId),
+    RESOURCES.map((resource) => resource.id),
+  );
+
+  for (const entry of schedule) {
+    const dates = new Set(entry.slots.map((slot) => slot.date));
+    assert.deepEqual([...dates].sort(), [bookableDate, dayAfterBookable]);
+  }
+});
+
+test('a schedule matches the slots of each resource', async () => {
+  await book(TENANT, {date: bookableDate, start: '07:00'});
+  await book(NEIGHBOUR, {date: bookableDate, start: '10:00'});
+
+  const schedule = (
+    await scheduleBetween(TENANT, bookableDate, dayAfterBookable)
+  ).json<ResourceSchedule[]>();
+
+  for (const resource of RESOURCES) {
+    const single = (
+      await slotsBetween(TENANT, bookableDate, dayAfterBookable, resource.id)
+    ).json<Slots>();
+    const entry = schedule.find((item) => item.resourceId === resource.id);
+
+    assert.deepEqual(
+      {slots: entry?.slots, active: entry?.active},
+      {slots: single.slots, active: single.active},
+    );
+  }
+});
+
+test('a schedule reports the active booking only on its own kind', async () => {
+  await book(TENANT, {date: bookableDate, start: '07:00'});
+
+  const schedule = (
+    await scheduleBetween(TENANT, bookableDate, bookableDate)
+  ).json<ResourceSchedule[]>();
+  const activeOf = (id: string) =>
+    schedule.find((entry) => entry.resourceId === id)?.active;
+
+  assert.deepEqual(activeOf(LAUNDRY_1), {released: false});
+  assert.deepEqual(activeOf(LAUNDRY_2), {released: false});
+  assert.equal(activeOf(DRYING), null);
+  assert.equal(activeOf(SAUNA), null);
+});
+
+test('rejects a schedule outside the booking window', async () => {
+  const past = await scheduleBetween(TENANT, yesterday, bookableDate);
+  const beyond = await scheduleBetween(TENANT, bookableDate, beyondWindow);
+
+  assert.equal(codeOf(past), 'OUTSIDE_BOOKING_WINDOW');
+  assert.equal(codeOf(beyond), 'OUTSIDE_BOOKING_WINDOW');
+});
+
+test('rejects a schedule that ends before it starts', async () => {
+  const response = await scheduleBetween(
+    TENANT,
+    dayAfterBookable,
+    bookableDate,
+  );
+
+  assert.equal(response.statusCode, 400);
+  assert.equal(codeOf(response), 'VALIDATION');
+});
+
+test('booking rules group the resources by kind', async () => {
+  const response = await server.inject({
+    method: 'GET',
+    url: '/booking-rules',
+    headers: signedInAs(TENANT),
+  });
+  const rules = response.json<BookingRules>();
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(rules.bookingWindowDays, ORGANIZATION.bookingWindowDays);
+  assert.deepEqual(
+    rules.kinds.map((kind) => ({
+      id: kind.id,
+      maxActive: kind.maxActive,
+      resources: kind.resources.map((resource) => resource.id),
+    })),
+    [
+      {id: 'laundry', maxActive: 1, resources: [LAUNDRY_1, LAUNDRY_2]},
+      {id: 'drying', maxActive: 1, resources: [DRYING]},
+      {id: 'sauna', maxActive: 2, resources: [SAUNA]},
+    ],
+  );
+  assert.deepEqual(
+    rules.kinds[1]?.resources[0]?.slots,
+    [...DAY_SLOTS, EVENING, NIGHT].map(({start, end}) => ({start, end})),
+  );
 });

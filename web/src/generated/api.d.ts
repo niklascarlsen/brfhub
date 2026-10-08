@@ -182,6 +182,95 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/booking-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BookingRules"];
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/slots": {
         parameters: {
             query?: never;
@@ -209,6 +298,98 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["Slots"];
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query: {
+                    from: string;
+                    to: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResourceSchedule"][];
                     };
                 };
                 /** @description Default Response */
@@ -1056,6 +1237,23 @@ export interface components {
             kind: string;
             tags: string[];
         };
+        BookingRulesInput: {
+            bookingWindowDays: number;
+            kinds: {
+                id: string;
+                name: string;
+                maxActive: number;
+                resources: {
+                    id: string;
+                    name: string;
+                    tags: string[];
+                    slots: {
+                        start: string;
+                        end: string;
+                    }[];
+                }[];
+            }[];
+        };
         BookingInput: {
             resourceId: string;
             resourceName: string;
@@ -1096,6 +1294,7 @@ export interface components {
         };
         MeInput: {
             apartment: string;
+            organizationName: string;
         };
         PushTokenBodyInput: {
             token: string;
@@ -1141,6 +1340,13 @@ export interface components {
                 released: boolean;
             } | null;
         };
+        ResourceScheduleInput: {
+            slots: components["schemas"]["SlotInput"][];
+            active: {
+                released: boolean;
+            } | null;
+            resourceId: string;
+        };
         BookingWindowInput: {
             /** Format: date */
             today: string;
@@ -1182,6 +1388,23 @@ export interface components {
             kind: string;
             tags: string[];
         };
+        BookingRules: {
+            bookingWindowDays: number;
+            kinds: {
+                id: string;
+                name: string;
+                maxActive: number;
+                resources: {
+                    id: string;
+                    name: string;
+                    tags: string[];
+                    slots: {
+                        start: string;
+                        end: string;
+                    }[];
+                }[];
+            }[];
+        };
         Booking: {
             resourceId: string;
             resourceName: string;
@@ -1222,6 +1445,7 @@ export interface components {
         };
         Me: {
             apartment: string;
+            organizationName: string;
         };
         PushTokenBody: {
             token: string;
@@ -1266,6 +1490,13 @@ export interface components {
             active: {
                 released: boolean;
             } | null;
+        };
+        ResourceSchedule: {
+            slots: components["schemas"]["Slot"][];
+            active: {
+                released: boolean;
+            } | null;
+            resourceId: string;
         };
         BookingWindow: {
             /** Format: date */

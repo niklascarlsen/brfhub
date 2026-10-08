@@ -6,6 +6,11 @@ export const listSlotsQuerySchema = z.object({
   resourceId: z.string().min(1),
 });
 
+export const listScheduleQuerySchema = z.object({
+  from: z.iso.date(),
+  to: z.iso.date(),
+});
+
 const slotTimes = {
   date: z.iso.date(),
   start: z.string(),
@@ -41,6 +46,10 @@ export const slotsSchema = z.object({
   active: z.object({released: z.boolean()}).nullable(),
 });
 
+export const resourceScheduleSchema = slotsSchema.extend({
+  resourceId: z.string(),
+});
+
 export const bookingWindowSchema = z.object({
   today: z.iso.date(),
   from: z.iso.date(),
@@ -49,8 +58,10 @@ export const bookingWindowSchema = z.object({
 
 export type Slot = z.infer<typeof slotSchema>;
 export type Slots = z.infer<typeof slotsSchema>;
+export type ResourceSchedule = z.infer<typeof resourceScheduleSchema>;
 export type BookingWindow = z.infer<typeof bookingWindowSchema>;
 
 z.globalRegistry.add(slotSchema, {id: 'Slot'});
 z.globalRegistry.add(slotsSchema, {id: 'Slots'});
+z.globalRegistry.add(resourceScheduleSchema, {id: 'ResourceSchedule'});
 z.globalRegistry.add(bookingWindowSchema, {id: 'BookingWindow'});
