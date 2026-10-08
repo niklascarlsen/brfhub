@@ -42,7 +42,7 @@ export function DesktopShell({
             className={`flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold transition-colors ${
               onApartment
                 ? 'text-theme-muted hover:text-theme-ink'
-                : 'bg-theme-sunk text-theme-ink'
+                : 'bg-theme-ink text-theme-surface'
             }`}
           >
             <CalendarOutlineIcon size={17} className='-translate-y-px' />

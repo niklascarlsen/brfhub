@@ -3,6 +3,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 
 import {authClient} from '@/auth/client';
 import {signOut} from '@/auth/signOut';
+import {BookingRules} from '@/components/BookingRules';
 import {useConfig} from '@/config';
 
 function confirmSignOut(apartment: string) {
@@ -52,7 +53,7 @@ function Account() {
 }
 
 export function ApartmentScreen() {
-  const {apartment} = useConfig();
+  const {apartment, organizationName} = useConfig();
 
   return (
     <SafeAreaView className='flex-1 bg-theme-bg' edges={['top']}>
@@ -60,10 +61,14 @@ export function ApartmentScreen() {
         className='flex-1'
         contentContainerClassName='grow px-5 pb-8 pt-2'
       >
-        <Text className='mb-6 text-[27px] font-semibold tracking-tight text-theme-ink'>
+        <Text className='text-[27px] font-semibold tracking-tight text-theme-ink'>
           Lägenhet {apartment}
         </Text>
+        <Text className='mb-6 mt-1 font-sans text-[13px] text-theme-muted'>
+          {organizationName}
+        </Text>
         <Account />
+        <BookingRules />
       </ScrollView>
     </SafeAreaView>
   );
