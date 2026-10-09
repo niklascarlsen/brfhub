@@ -80,7 +80,7 @@ export function LoginScreen() {
         {error ? (
           <Text
             accessibilityRole='alert'
-            className='mb-4 text-sm text-theme-ink'
+            className='mb-4 font-sans text-sm text-theme-ink'
           >
             {error}
           </Text>
