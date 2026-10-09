@@ -13,6 +13,8 @@ const MESSAGES: Record<ClientErrorCode, string> = {
   SLOT_STARTED: 'Tiden har börjat, drop-in gäller',
   OUTSIDE_BOOKING_WINDOW: 'Den dagen går inte att boka än',
   SLOT_AVAILABLE: 'Tiden är ledig, boka den istället',
+  APARTMENT_TAKEN: 'Det finns redan en lägenhet med det numret',
+  EMAIL_TAKEN: 'E-postadressen används redan av ett annat konto',
   NOT_FOUND: 'Hittades inte',
   UNAUTHORIZED: 'Du är inte inloggad',
   FORBIDDEN: 'Det där är inte din bokning',

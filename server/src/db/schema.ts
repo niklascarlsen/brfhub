@@ -33,10 +33,11 @@ export const members = pgTable(
     leftAt: timestamp('left_at', {withTimezone: true}),
   },
   (table) => [
-    unique('members_organization_label_unique').on(
-      table.organizationId,
-      table.label,
-    ),
+    // Only among apartments still in the organization, so a number frees up
+    // once its apartment is removed.
+    uniqueIndex('members_organization_label_unique')
+      .on(table.organizationId, table.label)
+      .where(sql`${table.leftAt} is null`),
     unique('members_organization_id_unique').on(table.organizationId, table.id),
   ],
 );

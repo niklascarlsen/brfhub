@@ -1,46 +1,30 @@
 import {useEffect} from 'react';
 
+import {AdminAccountContext} from '@/admin/account';
+import {AdminApartments} from '@/admin/AdminApartments';
+import {AdminOrganization} from '@/admin/AdminOrganization';
 import type {AdminAccount} from '@/auth/account';
-import {authClient} from '@/auth/client';
-import {Account} from '@/components/Account';
+import {PeopleOutlineIcon, SettingsOutlineIcon} from '@/components/icons';
+import {TabBar} from '@/components/TabBar';
+import type {Tab} from '@/components/tabs';
 import {SHELL} from '@/desktop/layout';
 import {OrganizationMark} from '@/desktop/OrganizationMark';
-import {PageHeader} from '@/desktop/PageHeader';
 import {useIsDesktop} from '@/lib/media';
 import {dropPushSubscription} from '@/lib/push';
+import {isAdminRoute, linkProps, useRoute} from '@/lib/route';
 
-const ADMIN_PATH = '/admin';
-
-async function signOutAdmin() {
-  await authClient.signOut();
-}
-
-function Upcoming() {
-  return (
-    <section aria-labelledby='upcoming-heading'>
-      <h2
-        id='upcoming-heading'
-        className='mb-2.5 ml-0.5 text-[11px] font-bold uppercase tracking-[1px] text-theme-muted'
-      >
-        Föreningen
-      </h2>
-      <div className='rounded-2xl border border-theme-line bg-theme-surface px-4.5 py-4'>
-        <p className='text-[13px] leading-5 text-theme-ink'>
-          Här kommer du att lägga till lägenheter och ställa in resurser, tider,
-          regler och anslag.
-        </p>
-      </div>
-    </section>
-  );
-}
+const ADMIN_TABS: readonly Tab[] = [
+  {route: 'admin/lagenheter', label: 'Lägenheter', Icon: PeopleOutlineIcon},
+  {route: 'admin/forening', label: 'Föreningen', Icon: SettingsOutlineIcon},
+];
 
 // The admin's app. It books nothing, so none of the booking screens, push or
 // their routes are mounted here.
 export function AdminShell({account}: {account: AdminAccount}) {
   const isDesktop = useIsDesktop();
-  const {organizationName} = account;
+  const [route, navigate] = useRoute();
 
-  // A phone an apartment used before may still hand its push to the
+  // A browser an apartment used before may still hand its push to the
   // apartment; the admin should not get those notifications.
   useEffect(() => {
     dropPushSubscription().catch((error: unknown) => {
@@ -48,51 +32,71 @@ export function AdminShell({account}: {account: AdminAccount}) {
     });
   }, []);
 
+  // A booking page left in the address bar, or a tab not built yet.
+  const known = ADMIN_TABS.some((tab) => tab.route === route);
   useEffect(() => {
-    document.title = 'Admin';
-
-    if (window.location.pathname !== ADMIN_PATH) {
-      window.history.replaceState(null, '', ADMIN_PATH);
+    if (!isAdminRoute(route) || !known) {
+      navigate('admin/lagenheter', {replace: true});
     }
-  }, []);
+  }, [route, known, navigate]);
 
-  const accountCard = (
-    <Account signOutFrom={organizationName} onSignOut={signOutAdmin} />
-  );
+  const page =
+    route === 'admin/forening' ? <AdminOrganization /> : <AdminApartments />;
 
   if (isDesktop) {
     return (
-      <div className='flex min-h-dvh flex-col bg-theme-bg'>
-        <header className={`${SHELL} flex shrink-0 items-center pt-5.5`}>
-          <span className='flex items-center gap-2.5 py-1 pr-2 text-theme-ink'>
-            <OrganizationMark name={organizationName} />
-          </span>
-        </header>
-        <main className='flex grow flex-col'>
-          <PageHeader eyebrow={organizationName} title='Administration' />
-          <div className={`${SHELL} pt-7 pb-12`}>
-            <div className='flex max-w-xl flex-col'>
-              {accountCard}
-              <Upcoming />
-            </div>
-          </div>
-        </main>
-      </div>
+      <AdminAccountContext.Provider value={account}>
+        <div className='flex min-h-dvh flex-col bg-theme-bg'>
+          <header
+            className={`${SHELL} flex shrink-0 flex-wrap items-center justify-between gap-3 pt-5.5`}
+          >
+            <a
+              {...linkProps('admin/lagenheter', navigate)}
+              className='flex items-center gap-2.5 rounded-xl py-1 pr-2 text-theme-ink'
+            >
+              <OrganizationMark name={account.organizationName} />
+            </a>
+            <nav className='flex items-center gap-2' aria-label='Huvudmeny'>
+              {ADMIN_TABS.map(({route: target, label, Icon}) => {
+                const active = route === target;
+
+                return (
+                  <a
+                    key={target}
+                    {...linkProps(target, navigate)}
+                    aria-current={active ? 'page' : undefined}
+                    className={`flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold transition-colors ${
+                      active
+                        ? 'bg-theme-ink text-theme-surface'
+                        : 'text-theme-muted hover:text-theme-ink'
+                    }`}
+                  >
+                    <Icon size={17} className='-translate-y-px' />
+                    {label}
+                  </a>
+                );
+              })}
+            </nav>
+          </header>
+          <main key={route} className='flex grow flex-col'>
+            {page}
+          </main>
+        </div>
+      </AdminAccountContext.Provider>
     );
   }
 
   return (
-    <div className='flex min-h-dvh flex-col bg-theme-bg pt-[env(safe-area-inset-top)]'>
-      <main className='flex flex-col px-5 pt-2 pb-8'>
-        <h1 className='mt-4 text-[27px] font-semibold tracking-tight text-theme-ink'>
-          Administration
-        </h1>
-        <p className='mt-1 mb-6 text-[13px] text-theme-muted'>
-          {organizationName}
-        </p>
-        {accountCard}
-        <Upcoming />
-      </main>
-    </div>
+    <AdminAccountContext.Provider value={account}>
+      <div className='flex h-dvh flex-col overflow-hidden bg-theme-bg pt-[env(safe-area-inset-top)]'>
+        <main
+          key={route}
+          className='min-h-0 flex-1 overflow-y-auto overscroll-y-contain'
+        >
+          {page}
+        </main>
+        <TabBar tabs={ADMIN_TABS} route={route} onNavigate={navigate} />
+      </div>
+    </AdminAccountContext.Provider>
   );
 }

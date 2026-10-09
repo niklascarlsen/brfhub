@@ -1,19 +1,34 @@
 import {useCallback, useEffect, useSyncExternalStore} from 'react';
 
-export type Route = 'boka' | 'mina-tider' | 'lagenhet';
+export type MemberRoute = 'boka' | 'mina-tider' | 'lagenhet';
+export type AdminRoute =
+  'admin/lagenheter' | 'admin/resurser' | 'admin/anslag' | 'admin/forening';
+export type Route = MemberRoute | AdminRoute;
 
 // Chrome on iOS scrolls the viewport if this is a hash URL.
 const PATHS: Record<string, Route> = {
   '/boka': 'boka',
   '/mina-tider': 'mina-tider',
   '/lagenhet': 'lagenhet',
+  '/admin/lagenheter': 'admin/lagenheter',
+  '/admin/resurser': 'admin/resurser',
+  '/admin/anslag': 'admin/anslag',
+  '/admin/forening': 'admin/forening',
 };
 
 const TITLES: Record<Route, string> = {
   boka: 'Boka',
   'mina-tider': 'Mina tider',
   lagenhet: 'Lägenhet',
+  'admin/lagenheter': 'Lägenheter',
+  'admin/resurser': 'Resurser',
+  'admin/anslag': 'Anslag',
+  'admin/forening': 'Föreningen',
 };
+
+export function isAdminRoute(route: Route): route is AdminRoute {
+  return route.startsWith('admin/');
+}
 
 export function hrefOf(route: Route): string {
   return `/${route}`;
@@ -78,8 +93,8 @@ type Navigate = (route: Route, options?: {replace?: boolean}) => void;
 export function useRoute(): [Route, Navigate] {
   const route = useSyncExternalStore(subscribe, readRoute);
 
-  // An unknown path, such as / or the admin's /admin, settles on the path
-  // of the route it falls back to.
+  // An unknown path, such as /, settles on the path of the route it falls
+  // back to.
   useEffect(() => {
     document.title = TITLES[route];
 

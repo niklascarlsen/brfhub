@@ -75,3 +75,13 @@ export async function getMember(request: FastifyRequest): Promise<Member> {
 
   return signedIn.member;
 }
+
+export async function getAdmin(request: FastifyRequest): Promise<Admin> {
+  const signedIn = await getSignedIn(request);
+
+  if (signedIn.role !== 'admin') {
+    throw appError('FORBIDDEN', 'Only the admin can do this');
+  }
+
+  return signedIn.admin;
+}
