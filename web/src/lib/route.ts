@@ -78,8 +78,14 @@ type Navigate = (route: Route, options?: {replace?: boolean}) => void;
 export function useRoute(): [Route, Navigate] {
   const route = useSyncExternalStore(subscribe, readRoute);
 
+  // An unknown path, such as / or the admin's /admin, settles on the path
+  // of the route it falls back to.
   useEffect(() => {
     document.title = TITLES[route];
+
+    if (window.location.pathname !== hrefOf(route)) {
+      window.history.replaceState(null, '', hrefOf(route));
+    }
   }, [route]);
 
   const navigate = useCallback<Navigate>((next, options) => {

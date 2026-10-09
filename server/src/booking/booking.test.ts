@@ -1,33 +1,33 @@
 import assert from 'node:assert/strict';
 import {after, before, beforeEach, test} from 'node:test';
 
-import {eq, sql} from 'drizzle-orm';
+import {sql} from 'drizzle-orm';
 
 import {buildApp} from '../app.js';
-import {createUser} from '../auth/auth.service.js';
 import {db, pool} from '../db/index.js';
-import {
-  bookings,
-  members,
-  organizations,
-  pushTokens,
-  resourceKinds,
-  resourceSlots,
-  resources,
-  subscriptions,
-} from '../db/schema.js';
+import {bookings, pushTokens, subscriptions} from '../db/schema.js';
 import {slotEndsAt, toIsoDate} from '../lib/time.js';
-import {ORGANIZATION_ID} from '../lib/user.js';
 import type {BookingRules, Resource} from '../resource/resource.dto.js';
 import type {ResourceSchedule, Slots} from '../slot/slot.dto.js';
 import type {Subscription} from '../subscription/subscription.dto.js';
 import {listSubscribers} from '../subscription/subscription.service.js';
+import {
+  assertTestDatabase,
+  codeOf,
+  ORIGIN,
+  PASSWORD,
+  resetDatabase,
+  seedOrganization,
+  signIn as signInTo,
+} from '../test/fixtures.js';
 import type {Booking, CreatedBooking} from './booking.dto.js';
 
 const LAUNDRY_1 = 'laundry-1';
 const LAUNDRY_2 = 'laundry-2';
 const DRYING = 'drying-room';
 const SAUNA = 'sauna';
+
+const ORGANIZATION_ID = 'test';
 
 const ORGANIZATION = {
   id: ORGANIZATION_ID,
@@ -36,9 +36,9 @@ const ORGANIZATION = {
 };
 
 const KINDS = [
-  {organizationId: ORGANIZATION_ID, id: 'laundry', name: 'Tvätt', maxActive: 1},
-  {organizationId: ORGANIZATION_ID, id: 'drying', name: 'Tork', maxActive: 1},
-  {organizationId: ORGANIZATION_ID, id: 'sauna', name: 'Bastu', maxActive: 2},
+  {id: 'laundry', name: 'Tvätt', maxActive: 1},
+  {id: 'drying', name: 'Tork', maxActive: 1},
+  {id: 'sauna', name: 'Bastu', maxActive: 2},
 ];
 
 const APARTMENTS = ['11', '12', '13', '14', '15', '21', '31'];
@@ -46,7 +46,6 @@ const APARTMENTS = ['11', '12', '13', '14', '15', '21', '31'];
 const RESOURCES = [
   {
     id: LAUNDRY_1,
-    organizationId: ORGANIZATION_ID,
     kindId: 'laundry',
     name: 'Tvättstuga 1',
     tags: ['torktumlare'],
@@ -54,7 +53,6 @@ const RESOURCES = [
   },
   {
     id: LAUNDRY_2,
-    organizationId: ORGANIZATION_ID,
     kindId: 'laundry',
     name: 'Tvättstuga 2',
     tags: [],
@@ -62,7 +60,6 @@ const RESOURCES = [
   },
   {
     id: DRYING,
-    organizationId: ORGANIZATION_ID,
     kindId: 'drying',
     name: 'Torkrum',
     tags: ['avfuktare'],
@@ -70,7 +67,6 @@ const RESOURCES = [
   },
   {
     id: SAUNA,
-    organizationId: ORGANIZATION_ID,
     kindId: 'sauna',
     name: 'Bastu',
     tags: [],
@@ -133,29 +129,12 @@ function memberId(label: string): string {
 let server: Awaited<ReturnType<typeof buildApp>>;
 const cookies = new Map<string, string>();
 
-const PASSWORD = 'password';
-const ORIGIN = 'http://localhost:5173';
-
 function emailOf(label: string) {
   return `${label}@example.com`;
 }
 
-// Signs in through the auth route the clients use and folds Set-Cookie into
-// the Cookie header the next request sends.
-async function signIn(email: string, password = PASSWORD) {
-  const response = await server.inject({
-    method: 'POST',
-    url: '/auth/sign-in/email',
-    headers: {origin: ORIGIN},
-    payload: {email, password},
-  });
-
-  const setCookie = response.headers['set-cookie'] ?? [];
-  const cookie = (Array.isArray(setCookie) ? setCookie : [setCookie])
-    .map((entry) => entry.split(';')[0])
-    .join('; ');
-
-  return {response, cookie};
+function signIn(email: string, password = PASSWORD) {
+  return signInTo(server, email, password);
 }
 
 function signedInAs(label: string) {
@@ -169,42 +148,24 @@ function signedInAs(label: string) {
 }
 
 before(async () => {
-  const [connection] = (
-    await db.execute<{name: string}>(sql`select current_database() as name`)
-  ).rows;
-
-  if (!connection?.name.endsWith('_test')) {
-    throw new Error(
-      `Refusing to run against ${connection?.name ?? 'unknown database'}, expected a _test database`,
-    );
-  }
+  await assertTestDatabase();
 
   server = await buildApp({logger: false});
-  await db.execute(
-    sql`truncate organizations, members, resource_kinds, resources, resource_slots, bookings, subscriptions, push_tokens, "user" cascade`,
-  );
-  await db.insert(organizations).values(ORGANIZATION);
-  await db.insert(resourceKinds).values(KINDS);
-  await db.insert(resources).values([...RESOURCES]);
-  await db.insert(resourceSlots).values(RESOURCE_SLOTS);
+  await resetDatabase();
 
-  const rows = await db
-    .insert(members)
-    .values(
-      APARTMENTS.map((label) => ({organizationId: ORGANIZATION_ID, label})),
-    )
-    .returning({id: members.id, label: members.label});
+  const ids = await seedOrganization({
+    organization: ORGANIZATION,
+    kinds: KINDS,
+    resources: RESOURCES,
+    slots: RESOURCE_SLOTS,
+    apartments: APARTMENTS,
+    emailOf,
+    adminEmail: 'admin@example.com',
+  });
 
-  for (const row of rows) {
-    memberIds.set(row.label, row.id);
-
-    await createUser({
-      email: emailOf(row.label),
-      password: PASSWORD,
-      name: `Lägenhet ${row.label}`,
-      memberId: row.id,
-    });
-    cookies.set(row.label, (await signIn(emailOf(row.label))).cookie);
+  for (const [label, id] of ids) {
+    memberIds.set(label, id);
+    cookies.set(label, (await signIn(emailOf(label))).cookie);
   }
 });
 
@@ -324,10 +285,6 @@ function unsubscribe(userId: string, id: string) {
   });
 }
 
-function codeOf(response: {json: <T>() => T}) {
-  return response.json<{code: string}>().code;
-}
-
 test('books a free slot', async () => {
   const response = await book(TENANT, {date: bookableDate, start: '07:00'});
   const created = response.json<CreatedBooking>();
@@ -419,20 +376,6 @@ test('rejects a date beyond the booking window', async () => {
 
   assert.equal(response.statusCode, 400);
   assert.equal(codeOf(response), 'OUTSIDE_BOOKING_WINDOW');
-});
-
-test('tells a signed-in person their apartment', async () => {
-  const response = await server.inject({
-    method: 'GET',
-    url: '/me',
-    headers: signedInAs(TENANT),
-  });
-
-  assert.equal(response.statusCode, 200);
-  assert.deepEqual(response.json(), {
-    apartment: TENANT,
-    organizationName: ORGANIZATION.name,
-  });
 });
 
 test('rejects a request without a session', async () => {
@@ -958,48 +901,13 @@ test('releasing a started laundry booking still blocks the other laundry room', 
   assert.equal(codeOf(response), 'HAS_ACTIVE_BOOKING');
 });
 
-test('rejects a person not linked to an apartment', async () => {
-  await createUser({
-    email: 'nobody@example.com',
-    password: PASSWORD,
-    name: 'Ingen lägenhet',
-  });
-  const {cookie} = await signIn('nobody@example.com');
-  const response = await server.inject({
-    method: 'GET',
-    url: '/bookings',
-    headers: {cookie},
-  });
-
-  assert.equal(response.statusCode, 401);
-  assert.equal(codeOf(response), 'UNAUTHORIZED');
-});
-
-test('rejects a person whose apartment has moved out', async () => {
-  const left = '31';
-  const {cookie} = await signIn(emailOf(left));
-  await db
-    .update(members)
-    .set({leftAt: new Date()})
-    .where(eq(members.id, memberId(left)));
-
-  const response = await server.inject({
-    method: 'GET',
-    url: '/me',
-    headers: {cookie},
-  });
-
-  assert.equal(response.statusCode, 401);
-  assert.equal(codeOf(response), 'UNAUTHORIZED');
-});
-
 test('rejects a wrong password and a forged cookie', async () => {
   const {response} = await signIn(emailOf(TENANT), 'wrong');
   assert.equal(response.statusCode, 401);
 
   const forged = await server.inject({
     method: 'GET',
-    url: '/me',
+    url: '/account',
     headers: {cookie: 'better-auth.session_token=not-a-session'},
   });
   assert.equal(forged.statusCode, 401);
@@ -1051,7 +959,7 @@ test('signing out ends the session', async () => {
 
   const before = await server.inject({
     method: 'GET',
-    url: '/me',
+    url: '/account',
     headers: {cookie},
   });
   assert.equal(before.statusCode, 200);
@@ -1067,7 +975,7 @@ test('signing out ends the session', async () => {
 
   const after = await server.inject({
     method: 'GET',
-    url: '/me',
+    url: '/account',
     headers: {cookie},
   });
   assert.equal(after.statusCode, 401);

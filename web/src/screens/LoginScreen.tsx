@@ -50,7 +50,7 @@ export function LoginScreen() {
             Logga in
           </h1>
           <p className='mb-6 text-sm leading-5 text-theme-muted'>
-            Med e-posten som är kopplad till din lägenhet.
+            Med e-posten för lägenheten eller föreningens admin.
           </p>
           <FloatingLabelInput
             className='mb-3'

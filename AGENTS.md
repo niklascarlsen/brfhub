@@ -26,13 +26,22 @@ files are committed; `npm run generate` in `web/` rewrites them, and `dev`,
 - `npm run check` — Prettier, TypeScript and the generated-types sync
   (regenerates and diffs, so it fails on uncommitted type changes).
 - `npm test` — integration tests against booking_test on :5434. Needs `db:up`.
+  It drops and re-pushes the test schema every run, since `drizzle-kit push`
+  silently keeps the old schema there when it wants to prompt.
 - `npm run db:up` — Postgres in Docker, dev on :5433 and test on :5434.
 - `npm run db:seed` — resets bookings, subscriptions, resources and accounts
-  to a known state. Every apartment signs in as `<number>@example.com` with
-  password `password`. Members and push tokens survive, so the app stays
-  registered. It wipes bookings I may be testing with, so ask before running it.
-- `npm run push:test` — releases an upcoming booking held by another apartment
-  and sends the real notification. Reseed when it runs out of bookings.
+  of the two seeded organizations; others, such as ones made with
+  `org:create`, are left alone. Brf Exempel signs in as
+  `<number>@example.com`, Brf Andra as `<number>@andra.example.com`, and each
+  admin as `admin@` on the same domain, all with password `password`. Members
+  and push tokens survive, so the app stays registered. It wipes bookings I
+  may be testing with, so ask before running it.
+- `npm run org:create -- --id <slug> --name <name> --admin-email <email>`:
+  creates an organization and its one admin, and prints the password once.
+- `npm run push:test -- [organization] [apartment]`: releases an upcoming
+  booking held by another apartment and sends the real notification to the
+  watching apartment, `demo` and `12` by default. Reseed when it runs out of
+  bookings.
 
 `app/`
 
@@ -89,6 +98,10 @@ pick up changes without a restart.
 # Clients
 
 - The server owns the booking rules. The client renders what it is told.
+- An account is an apartment (`role: member`) or its organization's one
+  admin, and the organization always comes from the account. `AccountGate`
+  in `src/auth/account.tsx` picks the app; the admin app mounts no booking
+  screens or push.
 - `web/` is one app. Below 1024px it renders the same screens as `app/`; above
   it renders the calendar and day view in `src/desktop/`, which loads the whole
   booking window for every resource in one `/schedule` request.

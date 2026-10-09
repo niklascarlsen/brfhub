@@ -1,14 +1,18 @@
+import {sql} from 'drizzle-orm';
 import {
   boolean,
+  check,
   date,
   foreignKey,
   index,
   integer,
+  pgEnum,
   pgTable,
   primaryKey,
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 
@@ -176,23 +180,47 @@ export const pushTokens = pgTable('push_tokens', {
     .defaultNow(),
 });
 
-// Better Auth owns the shape of these four tables. memberId is ours: the
-// apartment a signed-in person books for, null until they have been linked.
-export const user = pgTable('user', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  email: text('email').notNull().unique(),
-  emailVerified: boolean('email_verified').notNull().default(false),
-  image: text('image'),
-  memberId: uuid('member_id').references(() => members.id),
-  createdAt: timestamp('created_at', {withTimezone: true})
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp('updated_at', {withTimezone: true})
-    .notNull()
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-});
+export const userRole = pgEnum('user_role', ['member', 'admin']);
+
+// Better Auth owns the shape of these four tables. role, organizationId and
+// memberId are ours: a member account books for one apartment, the one
+// admin account of an organization manages it and books nothing.
+export const user = pgTable(
+  'user',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    email: text('email').notNull().unique(),
+    emailVerified: boolean('email_verified').notNull().default(false),
+    image: text('image'),
+    role: userRole('role').notNull(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    memberId: uuid('member_id'),
+    createdAt: timestamp('created_at', {withTimezone: true})
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', {withTimezone: true})
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    foreignKey({
+      name: 'user_member_fk',
+      columns: [table.organizationId, table.memberId],
+      foreignColumns: [members.organizationId, members.id],
+    }),
+    check(
+      'user_role_member_check',
+      sql`(${table.role} = 'member') = (${table.memberId} is not null)`,
+    ),
+    uniqueIndex('user_one_admin_per_organization')
+      .on(table.organizationId)
+      .where(sql`${table.role} = 'admin'`),
+  ],
+);
 
 export const session = pgTable(
   'session',

@@ -52,7 +52,7 @@ export function LoginScreen() {
           Logga in
         </Text>
         <Text className='mb-6 font-sans text-sm leading-5 text-theme-muted'>
-          Med e-posten som är kopplad till din lägenhet.
+          Med e-posten för lägenheten eller föreningens admin.
         </Text>
         <FloatingLabelInput
           className='mb-3'
@@ -80,7 +80,7 @@ export function LoginScreen() {
         {error ? (
           <Text
             accessibilityRole='alert'
-            className='mb-4 text-sm text-theme-ink'
+            className='mb-4 font-sans text-sm text-theme-ink'
           >
             {error}
           </Text>

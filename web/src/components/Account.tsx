@@ -1,18 +1,21 @@
 import {authClient} from '@/auth/client';
-import {signOut} from '@/auth/signOut';
 import {useDialog} from '@/components/Dialog';
-import {useConfig} from '@/config';
 
-export function Account() {
+type AccountProps = {
+  // Completes "Vill du logga ut från …?".
+  signOutFrom: string;
+  onSignOut: () => Promise<void>;
+};
+
+export function Account({signOutFrom, onSignOut}: AccountProps) {
   const {data: session} = authClient.useSession();
-  const {apartment} = useConfig();
   const dialog = useDialog();
 
   const confirmSignOut = () =>
-    dialog.confirm('Logga ut', `Vill du logga ut från lägenhet ${apartment}?`, {
+    dialog.confirm('Logga ut', `Vill du logga ut från ${signOutFrom}?`, {
       label: 'Logga ut',
       onPress: () => {
-        void signOut();
+        void onSignOut();
       },
     });
 

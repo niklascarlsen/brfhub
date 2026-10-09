@@ -1,6 +1,6 @@
 import 'dotenv/config';
 
-import {eq, sql} from 'drizzle-orm';
+import {and, eq, inArray} from 'drizzle-orm';
 
 import {createUser} from '../src/auth/auth.service.js';
 import {db, pool} from '../src/db/index.js';
@@ -12,12 +12,16 @@ import {
   resourceSlots,
   resources,
   subscriptions,
+  user,
 } from '../src/db/schema.js';
 import {slotEndsAt, toIsoDate} from '../src/lib/time.js';
-import {ORGANIZATION_ID} from '../src/lib/user.js';
 
+const ORGANIZATION_ID = 'demo';
+const OTHER_ORGANIZATION_ID = 'andra';
 const CURRENT_APARTMENT = '12';
-// Every apartment signs in as <apartment>@example.com with this password.
+// Every account signs in with this password: apartments in Brf Exempel as
+// <apartment>@example.com, in Brf Andra as <apartment>@andra.example.com,
+// and each admin as admin@ on the same domain.
 const PASSWORD = 'password';
 
 const ORGANIZATION = {
@@ -112,6 +116,59 @@ const RESOURCE_SLOTS = [
   ...WORKSHOP_SLOTS.map((slot) => ({...slot, resourceId: 'workshop'})),
 ];
 
+// A second organization, so every screen shows that nothing leaks between
+// them. Resource ids are global until they become uuids, hence the prefix.
+const OTHER_ORGANIZATION = {
+  id: OTHER_ORGANIZATION_ID,
+  name: 'Brf Andra',
+  bookingWindowDays: 14,
+};
+
+const OTHER_KINDS = [
+  {
+    organizationId: OTHER_ORGANIZATION_ID,
+    id: 'laundry',
+    name: 'Tvätt',
+    maxActive: 1,
+  },
+  {
+    organizationId: OTHER_ORGANIZATION_ID,
+    id: 'guest',
+    name: 'Gästlägenhet',
+    maxActive: 1,
+  },
+];
+
+const OTHER_APARTMENTS = ['1001', '1002', '1101', '1102'];
+
+const OTHER_RESOURCES = [
+  {
+    id: 'andra-laundry',
+    organizationId: OTHER_ORGANIZATION_ID,
+    kindId: 'laundry',
+    name: 'Tvättstugan',
+    tags: [],
+    sortOrder: 1,
+  },
+  {
+    id: 'andra-guest',
+    organizationId: OTHER_ORGANIZATION_ID,
+    kindId: 'guest',
+    name: 'Gästlägenheten',
+    tags: ['4 bäddar'],
+    sortOrder: 2,
+  },
+];
+
+const OTHER_RESOURCE_SLOTS = [
+  ...[
+    {start: '08:00', end: '12:00'},
+    {start: '12:00', end: '16:00'},
+    {start: '16:00', end: '20:00'},
+  ].map((slot) => ({...slot, resourceId: 'andra-laundry'})),
+  {start: '15:00', end: '11:00', endOffsetDays: 1, resourceId: 'andra-guest'},
+];
+
 const SEEDED_BOOKINGS = [
   {days: -1, start: '19:00', label: CURRENT_APARTMENT, resourceId: 'laundry-1'},
   {days: 0, start: '10:00', label: '21', resourceId: 'laundry-1'},
@@ -155,20 +212,52 @@ function findSlot(resourceId: string, start: string) {
 }
 
 try {
-  await db.execute(
-    sql`truncate bookings, subscriptions, resource_slots, resources, resource_kinds, "user" cascade`,
-  );
+  // Only the two seeded organizations start over: one made with
+  // org:create keeps its admin, whose password was shown only once.
+  const seeded = [ORGANIZATION_ID, OTHER_ORGANIZATION_ID];
+  await db.transaction(async (tx) => {
+    await tx.delete(bookings).where(inArray(bookings.organizationId, seeded));
+    await tx
+      .delete(subscriptions)
+      .where(inArray(subscriptions.organizationId, seeded));
+    await tx
+      .delete(resourceSlots)
+      .where(
+        inArray(
+          resourceSlots.resourceId,
+          tx
+            .select({id: resources.id})
+            .from(resources)
+            .where(inArray(resources.organizationId, seeded)),
+        ),
+      );
+    await tx.delete(resources).where(inArray(resources.organizationId, seeded));
+    await tx
+      .delete(resourceKinds)
+      .where(inArray(resourceKinds.organizationId, seeded));
+    // Sessions and credential accounts go with their user.
+    await tx.delete(user).where(inArray(user.organizationId, seeded));
+  });
 
-  await db.insert(organizations).values(ORGANIZATION).onConflictDoNothing();
+  await db
+    .insert(organizations)
+    .values([ORGANIZATION, OTHER_ORGANIZATION])
+    .onConflictDoNothing();
   await db
     .insert(members)
-    .values(
-      APARTMENTS.map((label) => ({organizationId: ORGANIZATION_ID, label})),
-    )
+    .values([
+      ...APARTMENTS.map((label) => ({organizationId: ORGANIZATION_ID, label})),
+      ...OTHER_APARTMENTS.map((label) => ({
+        organizationId: OTHER_ORGANIZATION_ID,
+        label,
+      })),
+    ])
     .onConflictDoNothing();
-  await db.insert(resourceKinds).values(KINDS);
-  await db.insert(resources).values(RESOURCES);
-  await db.insert(resourceSlots).values(RESOURCE_SLOTS);
+  await db.insert(resourceKinds).values([...KINDS, ...OTHER_KINDS]);
+  await db.insert(resources).values([...RESOURCES, ...OTHER_RESOURCES]);
+  await db
+    .insert(resourceSlots)
+    .values([...RESOURCE_SLOTS, ...OTHER_RESOURCE_SLOTS]);
 
   const memberRows = await db
     .select({id: members.id, label: members.label})
@@ -218,9 +307,47 @@ try {
       email: `${label}@example.com`,
       password: PASSWORD,
       name: `Lägenhet ${label}`,
+      organizationId: ORGANIZATION_ID,
+      role: 'member',
       memberId: memberId(label),
     });
   }
+
+  const otherMembers = await db
+    .select({id: members.id, label: members.label})
+    .from(members)
+    .where(
+      and(
+        eq(members.organizationId, OTHER_ORGANIZATION_ID),
+        inArray(members.label, OTHER_APARTMENTS),
+      ),
+    );
+
+  for (const {id, label} of otherMembers) {
+    await createUser({
+      email: `${label}@andra.example.com`,
+      password: PASSWORD,
+      name: `Lägenhet ${label}`,
+      organizationId: OTHER_ORGANIZATION_ID,
+      role: 'member',
+      memberId: id,
+    });
+  }
+
+  await createUser({
+    email: 'admin@example.com',
+    password: PASSWORD,
+    name: `Admin ${ORGANIZATION.name}`,
+    organizationId: ORGANIZATION_ID,
+    role: 'admin',
+  });
+  await createUser({
+    email: 'admin@andra.example.com',
+    password: PASSWORD,
+    name: `Admin ${OTHER_ORGANIZATION.name}`,
+    organizationId: OTHER_ORGANIZATION_ID,
+    role: 'admin',
+  });
 
   console.log('Seed complete');
 } finally {
