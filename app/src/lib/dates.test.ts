@@ -12,6 +12,7 @@ import {
   isWithinBookingWindow,
   timeRange,
   toIsoDate,
+  unbrokenRange,
 } from '@/lib/dates';
 
 // Shaped by the generated types, so a server schema change breaks the build
@@ -204,6 +205,12 @@ describe('labels', () => {
 
   test('a slot keeps the times the server sent, joined by an en dash', () => {
     expect(timeRange(SLOT.start, SLOT.end)).toBe('07:00–10:00');
+  });
+
+  test('an unbroken range only differs by invisible word joiners', () => {
+    const range = unbrokenRange(SLOT.start, SLOT.end);
+    expect(range).toBe('07:00\u2060–\u206010:00');
+    expect(range.replace(/\u2060/g, '')).toBe(timeRange(SLOT.start, SLOT.end));
   });
 
   // These two delegate to toLocaleDateString, so they assert Node's ICU. The
