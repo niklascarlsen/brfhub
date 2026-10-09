@@ -133,7 +133,13 @@ function Settings() {
     <View className='mb-[26px]'>
       <Text className={SECTION_LABEL}>Inställningar</Text>
       {data ? (
-        <SettingsForm initial={data} onSaved={refresh} />
+        // Saved elsewhere since it was opened: start over from what the
+        // server has, so a save cannot put the old values back.
+        <SettingsForm
+          key={JSON.stringify(data)}
+          initial={data}
+          onSaved={refresh}
+        />
       ) : error ? (
         <Notice message={error} actionLabel='Försök igen' onAction={reload} />
       ) : null}

@@ -134,7 +134,13 @@ function Settings() {
         Inställningar
       </h2>
       {data ? (
-        <SettingsForm initial={data} onSaved={refresh} />
+        // Saved elsewhere since it was opened: start over from what the
+        // server has, so a save cannot put the old values back.
+        <SettingsForm
+          key={JSON.stringify(data)}
+          initial={data}
+          onSaved={refresh}
+        />
       ) : error ? (
         <Notice message={error} actionLabel='Försök igen' onAction={reload} />
       ) : null}
