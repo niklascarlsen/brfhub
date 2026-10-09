@@ -30,15 +30,18 @@ files are committed; `npm run generate` in `web/` rewrites them, and `dev`,
   silently keeps the old schema there when it wants to prompt.
 - `npm run db:up` — Postgres in Docker, dev on :5433 and test on :5434.
 - `npm run db:seed` — resets bookings, subscriptions, resources and accounts
-  to a known state for two organizations. Brf Exempel signs in as
+  of the two seeded organizations; others, such as ones made with
+  `org:create`, are left alone. Brf Exempel signs in as
   `<number>@example.com`, Brf Andra as `<number>@andra.example.com`, and each
   admin as `admin@` on the same domain, all with password `password`. Members
   and push tokens survive, so the app stays registered. It wipes bookings I
   may be testing with, so ask before running it.
 - `npm run org:create -- --id <slug> --name <name> --admin-email <email>`:
   creates an organization and its one admin, and prints the password once.
-- `npm run push:test` — releases an upcoming booking held by another apartment
-  and sends the real notification. Reseed when it runs out of bookings.
+- `npm run push:test -- [organization] [apartment]`: releases an upcoming
+  booking held by another apartment and sends the real notification to the
+  watching apartment, `demo` and `12` by default. Reseed when it runs out of
+  bookings.
 
 `app/`
 

@@ -1,8 +1,9 @@
-import {CalendarOutlineIcon, HomeOutlineIcon} from '@/components/icons';
+import {CalendarOutlineIcon} from '@/components/icons';
 import {useConfig} from '@/config';
 import {DesktopApartment} from '@/desktop/DesktopApartment';
 import {DesktopBooking, type BookingProps} from '@/desktop/DesktopBooking';
 import {SHELL} from '@/desktop/layout';
+import {OrganizationMark} from '@/desktop/OrganizationMark';
 import {linkProps, type Route} from '@/lib/route';
 
 type DesktopShellProps = BookingProps & {
@@ -28,12 +29,7 @@ export function DesktopShell({
           {...linkProps('boka', onNavigate)}
           className='flex items-center gap-2.5 rounded-xl py-1 pr-2 text-theme-ink'
         >
-          <span className='flex h-8 w-8 items-center justify-center rounded-[10px] bg-theme-ink text-theme-surface'>
-            <HomeOutlineIcon size={17} />
-          </span>
-          <span className='text-[15px] font-semibold tracking-tight'>
-            {organizationName}
-          </span>
+          <OrganizationMark name={organizationName} />
         </a>
         <nav className='flex items-center gap-2' aria-label='Huvudmeny'>
           <a

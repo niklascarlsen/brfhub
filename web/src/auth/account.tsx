@@ -3,15 +3,13 @@ import {useEffect, useState, type ReactNode} from 'react';
 import {api, unwrap} from '@/api/client';
 import {codeOf, errorMessage, type ClientErrorCode} from '@/api/errors';
 import {signOut} from '@/auth/signOut';
+import {Blank} from '@/components/Blank';
 import {Notice} from '@/components/Notice';
 import type {components} from '@/generated/api';
+import {useReturnToTab} from '@/hooks/useReturnToTab';
 
 export type MemberAccount = components['schemas']['MemberAccount'];
 export type AdminAccount = components['schemas']['AdminAccount'];
-
-function Fallback({children}: {children: ReactNode}) {
-  return <div className='flex min-h-svh flex-col bg-theme-bg'>{children}</div>;
-}
 
 type AccountGateProps = {
   member: (account: MemberAccount) => ReactNode;
@@ -39,7 +37,14 @@ export function AccountGate({member, admin}: AccountGateProps) {
       })
       .catch((caught: unknown) => {
         if (current) {
-          setError(codeOf(caught));
+          const code = codeOf(caught);
+          setError(code);
+
+          // The apartment has moved out since the last answer: stop
+          // showing its app. Other failures keep the account shown.
+          if (code === 'UNAUTHORIZED') {
+            setAccount(null);
+          }
         }
       });
 
@@ -47,6 +52,10 @@ export function AccountGate({member, admin}: AccountGateProps) {
       current = false;
     };
   }, [attempt]);
+
+  // Asked again whenever the tab returns, so a renamed organization or a
+  // moved-out apartment shows without a reload.
+  useReturnToTab(() => setAttempt((previous) => previous + 1));
 
   if (account) {
     return account.role === 'admin' ? admin(account) : member(account);
@@ -56,28 +65,28 @@ export function AccountGate({member, admin}: AccountGateProps) {
   // Retrying cannot fix that.
   if (error === 'UNAUTHORIZED') {
     return (
-      <Fallback>
+      <Blank>
         <Notice
           title='Kontot saknar lägenhet'
           message='Ditt konto är inte kopplat till någon lägenhet. Kontakta styrelsen.'
           actionLabel='Logga ut'
           onAction={() => void signOut()}
         />
-      </Fallback>
+      </Blank>
     );
   }
 
   if (error !== null) {
     return (
-      <Fallback>
+      <Blank>
         <Notice
           message={errorMessage(error)}
           actionLabel='Försök igen'
           onAction={() => setAttempt((previous) => previous + 1)}
         />
-      </Fallback>
+      </Blank>
     );
   }
 
-  return <Fallback>{null}</Fallback>;
+  return <Blank />;
 }

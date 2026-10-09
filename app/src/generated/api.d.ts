@@ -1241,7 +1241,6 @@ export interface components {
             /** @constant */
             role: "admin";
             organizationName: string;
-            name: string;
         };
         AccountInput: components["schemas"]["MemberAccountInput"] | components["schemas"]["AdminAccountInput"];
         ResourceInput: {
@@ -1400,7 +1399,6 @@ export interface components {
             /** @constant */
             role: "admin";
             organizationName: string;
-            name: string;
         };
         Account: components["schemas"]["MemberAccount"] | components["schemas"]["AdminAccount"];
         Resource: {

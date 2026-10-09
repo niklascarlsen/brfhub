@@ -25,7 +25,6 @@ export async function getAccount(signedIn: SignedIn): Promise<Account> {
     return {
       role: 'admin',
       organizationName: await organizationName(admin.organizationId),
-      name: admin.name,
     };
   }
 

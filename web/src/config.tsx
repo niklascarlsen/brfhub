@@ -9,6 +9,7 @@ import {
 import {api, unwrap, type BookingWindow, type Resource} from '@/api/client';
 import {codeOf, errorMessage, type ClientErrorCode} from '@/api/errors';
 import type {MemberAccount} from '@/auth/account';
+import {Blank} from '@/components/Blank';
 import {Notice} from '@/components/Notice';
 import {useReturnToTab} from '@/hooks/useReturnToTab';
 
@@ -38,10 +39,6 @@ async function fetchConfig() {
   ]);
 
   return {window, resources};
-}
-
-function ConfigFallback({children}: {children: ReactNode}) {
-  return <div className='flex min-h-svh flex-col bg-theme-bg'>{children}</div>;
 }
 
 type ConfigProviderProps = {
@@ -84,31 +81,31 @@ export function ConfigProvider({account, children}: ConfigProviderProps) {
   if (loaded === null) {
     if (error !== null) {
       return (
-        <ConfigFallback>
+        <Blank>
           <Notice
             message={errorMessage(error)}
             actionLabel='Försök igen'
             onAction={reload}
           />
-        </ConfigFallback>
+        </Blank>
       );
     }
 
-    return <ConfigFallback>{null}</ConfigFallback>;
+    return <Blank />;
   }
 
   const [first, ...rest] = loaded.resources;
 
   if (first === undefined) {
     return (
-      <ConfigFallback>
+      <Blank>
         <Notice
           title='Inget att boka'
           message='Det finns inga utrymmen att boka just nu.'
           actionLabel='Försök igen'
           onAction={reload}
         />
-      </ConfigFallback>
+      </Blank>
     );
   }
 

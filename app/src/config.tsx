@@ -5,12 +5,12 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import {AppState, View} from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import {AppState} from 'react-native';
 
 import {api, unwrap, type BookingWindow, type Resource} from '@/api/client';
 import {codeOf, errorMessage, type ClientErrorCode} from '@/api/errors';
 import type {MemberAccount} from '@/auth/account';
+import {Blank} from '@/components/Blank';
 import {Notice} from '@/components/Notice';
 
 // Refetched whenever the app returns: the window's dates move at midnight, and
@@ -91,31 +91,31 @@ export function ConfigProvider({account, children}: ConfigProviderProps) {
   if (loaded === null) {
     if (error !== null) {
       return (
-        <SafeAreaView className='flex-1 bg-theme-bg' edges={['top']}>
+        <Blank>
           <Notice
             message={errorMessage(error)}
             actionLabel='Försök igen'
             onAction={reload}
           />
-        </SafeAreaView>
+        </Blank>
       );
     }
 
-    return <View className='flex-1 bg-theme-bg' />;
+    return <Blank />;
   }
 
   const [first, ...rest] = loaded.resources;
 
   if (first === undefined) {
     return (
-      <SafeAreaView className='flex-1 bg-theme-bg' edges={['top']}>
+      <Blank>
         <Notice
           title='Inget att boka'
           message='Det finns inga utrymmen att boka just nu.'
           actionLabel='Försök igen'
           onAction={reload}
         />
-      </SafeAreaView>
+      </Blank>
     );
   }
 

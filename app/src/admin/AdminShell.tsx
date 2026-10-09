@@ -1,9 +1,11 @@
+import {useEffect} from 'react';
 import {ScrollView, Text, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
 import type {AdminAccount} from '@/auth/account';
 import {authClient} from '@/auth/client';
 import {Account} from '@/components/Account';
+import {dropPushToken} from '@/push';
 
 async function signOutAdmin() {
   await authClient.signOut();
@@ -13,6 +15,14 @@ async function signOutAdmin() {
 // are mounted here.
 export function AdminShell({account}: {account: AdminAccount}) {
   const {organizationName} = account;
+
+  // A phone an apartment used before may still hand its push to the
+  // apartment; the admin should not get those notifications.
+  useEffect(() => {
+    dropPushToken().catch((error: unknown) => {
+      console.warn('[push] could not drop push token', error);
+    });
+  }, []);
 
   return (
     <SafeAreaView className='flex-1 bg-theme-bg' edges={['top']}>

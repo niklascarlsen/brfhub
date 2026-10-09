@@ -61,24 +61,23 @@ try {
     throw new Error(`${adminEmail} already has an account`);
   }
 
-  await db.insert(organizations).values({id, name, bookingWindowDays});
-
   const password = generatePassword();
 
-  // Better Auth writes through its own adapter, outside any transaction
-  // here, so a failed account takes the organization back out by hand.
-  try {
-    await createUser({
-      email: adminEmail,
-      password,
-      name: `Admin ${name}`,
-      organizationId: id,
-      role: 'admin',
-    });
-  } catch (error) {
-    await db.delete(organizations).where(eq(organizations.id, id));
-    throw error;
-  }
+  // One transaction, so a failure leaves neither the organization nor a
+  // half-made admin behind.
+  await db.transaction(async (tx) => {
+    await tx.insert(organizations).values({id, name, bookingWindowDays});
+    await createUser(
+      {
+        email: adminEmail,
+        password,
+        name: `Admin ${name}`,
+        organizationId: id,
+        role: 'admin',
+      },
+      tx,
+    );
+  });
 
   console.log(`Created ${name} (${id})`);
   console.log(`Admin: ${adminEmail}`);

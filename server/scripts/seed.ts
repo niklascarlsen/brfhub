@@ -1,6 +1,6 @@
 import 'dotenv/config';
 
-import {and, eq, inArray, sql} from 'drizzle-orm';
+import {and, eq, inArray} from 'drizzle-orm';
 
 import {createUser} from '../src/auth/auth.service.js';
 import {db, pool} from '../src/db/index.js';
@@ -12,6 +12,7 @@ import {
   resourceSlots,
   resources,
   subscriptions,
+  user,
 } from '../src/db/schema.js';
 import {slotEndsAt, toIsoDate} from '../src/lib/time.js';
 
@@ -211,9 +212,32 @@ function findSlot(resourceId: string, start: string) {
 }
 
 try {
-  await db.execute(
-    sql`truncate bookings, subscriptions, resource_slots, resources, resource_kinds, "user" cascade`,
-  );
+  // Only the two seeded organizations start over: one made with
+  // org:create keeps its admin, whose password was shown only once.
+  const seeded = [ORGANIZATION_ID, OTHER_ORGANIZATION_ID];
+  await db.transaction(async (tx) => {
+    await tx.delete(bookings).where(inArray(bookings.organizationId, seeded));
+    await tx
+      .delete(subscriptions)
+      .where(inArray(subscriptions.organizationId, seeded));
+    await tx
+      .delete(resourceSlots)
+      .where(
+        inArray(
+          resourceSlots.resourceId,
+          tx
+            .select({id: resources.id})
+            .from(resources)
+            .where(inArray(resources.organizationId, seeded)),
+        ),
+      );
+    await tx.delete(resources).where(inArray(resources.organizationId, seeded));
+    await tx
+      .delete(resourceKinds)
+      .where(inArray(resourceKinds.organizationId, seeded));
+    // Sessions and credential accounts go with their user.
+    await tx.delete(user).where(inArray(user.organizationId, seeded));
+  });
 
   await db
     .insert(organizations)

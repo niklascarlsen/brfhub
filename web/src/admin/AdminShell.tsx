@@ -3,10 +3,11 @@ import {useEffect} from 'react';
 import type {AdminAccount} from '@/auth/account';
 import {authClient} from '@/auth/client';
 import {Account} from '@/components/Account';
-import {HomeOutlineIcon} from '@/components/icons';
 import {SHELL} from '@/desktop/layout';
+import {OrganizationMark} from '@/desktop/OrganizationMark';
 import {PageHeader} from '@/desktop/PageHeader';
 import {useIsDesktop} from '@/lib/media';
+import {dropPushSubscription} from '@/lib/push';
 
 const ADMIN_PATH = '/admin';
 
@@ -39,6 +40,14 @@ export function AdminShell({account}: {account: AdminAccount}) {
   const isDesktop = useIsDesktop();
   const {organizationName} = account;
 
+  // A phone an apartment used before may still hand its push to the
+  // apartment; the admin should not get those notifications.
+  useEffect(() => {
+    dropPushSubscription().catch((error: unknown) => {
+      console.warn('[push] could not drop subscription', error);
+    });
+  }, []);
+
   useEffect(() => {
     document.title = 'Admin';
 
@@ -56,12 +65,7 @@ export function AdminShell({account}: {account: AdminAccount}) {
       <div className='flex min-h-dvh flex-col bg-theme-bg'>
         <header className={`${SHELL} flex shrink-0 items-center pt-5.5`}>
           <span className='flex items-center gap-2.5 py-1 pr-2 text-theme-ink'>
-            <span className='flex h-8 w-8 items-center justify-center rounded-[10px] bg-theme-ink text-theme-surface'>
-              <HomeOutlineIcon size={17} />
-            </span>
-            <span className='text-[15px] font-semibold tracking-tight'>
-              {organizationName}
-            </span>
+            <OrganizationMark name={organizationName} />
           </span>
         </header>
         <main className='flex grow flex-col'>

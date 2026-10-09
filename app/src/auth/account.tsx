@@ -1,10 +1,10 @@
 import {useEffect, useState, type ReactNode} from 'react';
-import {View} from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import {AppState} from 'react-native';
 
 import {api, unwrap} from '@/api/client';
 import {codeOf, errorMessage, type ClientErrorCode} from '@/api/errors';
 import {signOut} from '@/auth/signOut';
+import {Blank} from '@/components/Blank';
 import {Notice} from '@/components/Notice';
 import type {components} from '@/generated/api';
 
@@ -37,7 +37,14 @@ export function AccountGate({member, admin}: AccountGateProps) {
       })
       .catch((caught: unknown) => {
         if (current) {
-          setError(codeOf(caught));
+          const code = codeOf(caught);
+          setError(code);
+
+          // The apartment has moved out since the last answer: stop
+          // showing its app. Other failures keep the account shown.
+          if (code === 'UNAUTHORIZED') {
+            setAccount(null);
+          }
         }
       });
 
@@ -45,6 +52,18 @@ export function AccountGate({member, admin}: AccountGateProps) {
       current = false;
     };
   }, [attempt]);
+
+  // Asked again whenever the app returns, so a renamed organization or a
+  // moved-out apartment shows without a restart.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        setAttempt((previous) => previous + 1);
+      }
+    });
+
+    return () => subscription.remove();
+  }, []);
 
   if (account) {
     return account.role === 'admin' ? admin(account) : member(account);
@@ -54,28 +73,28 @@ export function AccountGate({member, admin}: AccountGateProps) {
   // Retrying cannot fix that.
   if (error === 'UNAUTHORIZED') {
     return (
-      <SafeAreaView className='flex-1 bg-theme-bg' edges={['top']}>
+      <Blank>
         <Notice
           title='Kontot saknar lägenhet'
           message='Ditt konto är inte kopplat till någon lägenhet. Kontakta styrelsen.'
           actionLabel='Logga ut'
           onAction={() => void signOut()}
         />
-      </SafeAreaView>
+      </Blank>
     );
   }
 
   if (error !== null) {
     return (
-      <SafeAreaView className='flex-1 bg-theme-bg' edges={['top']}>
+      <Blank>
         <Notice
           message={errorMessage(error)}
           actionLabel='Försök igen'
           onAction={() => setAttempt((previous) => previous + 1)}
         />
-      </SafeAreaView>
+      </Blank>
     );
   }
 
-  return <View className='flex-1 bg-theme-bg' />;
+  return <Blank />;
 }

@@ -2,12 +2,9 @@ import type {ReactNode} from 'react';
 
 import {errorMessage} from '@/api/errors';
 import {authClient} from '@/auth/client';
+import {Blank} from '@/components/Blank';
 import {Notice} from '@/components/Notice';
 import {LoginScreen} from '@/screens/LoginScreen';
-
-function Blank({children}: {children: ReactNode}) {
-  return <div className='flex min-h-svh flex-col bg-theme-bg'>{children}</div>;
-}
 
 // Everything below only renders with a live session, so a sign-out or an
 // expired session unmounts the app state along with it.
@@ -19,7 +16,7 @@ export function SessionGate({children}: {children: ReactNode}) {
   }
 
   if (isPending) {
-    return <Blank>{null}</Blank>;
+    return <Blank />;
   }
 
   if (error) {

@@ -5,13 +5,15 @@ import {eq, sql} from 'drizzle-orm';
 
 import {buildApp} from '../app.js';
 import {createUser} from '../auth/auth.service.js';
+import {violatedConstraint} from '../db/errors.js';
 import {db, pool} from '../db/index.js';
-import {members} from '../db/schema.js';
+import {members, organizations, pushTokens} from '../db/schema.js';
 import type {BookingRules, Resource} from '../resource/resource.dto.js';
 import type {BookingWindow, ResourceSchedule} from '../slot/slot.dto.js';
 import {
   assertTestDatabase,
   codeOf,
+  ORIGIN,
   PASSWORD,
   resetDatabase,
   seedOrganization,
@@ -118,7 +120,6 @@ test('tells the admin who it is', async () => {
   assert.deepEqual(response.json<Account>(), {
     role: 'admin',
     organizationName: SOUTH.name,
-    name: `Admin ${SOUTH.name}`,
   });
 });
 
@@ -129,35 +130,69 @@ test('rejects /account without a session', async () => {
   assert.equal(codeOf(response), 'UNAUTHORIZED');
 });
 
+// Every route an apartment uses checks the role in its handler, so each one
+// is listed here; a new member route belongs in this list too.
 test('an admin cannot use what only apartments use', async () => {
   const admin = await cookieOf('admin@north.example.com');
-  const requests = [
-    get('/resources', admin),
-    get('/bookings', admin),
-    get('/booking-window', admin),
-    get('/booking-rules', admin),
-    server.inject({
-      method: 'POST',
-      url: '/bookings',
-      headers: admin,
-      payload: {
-        resourceId: 'north-laundry',
-        date: '2030-01-01',
-        start: '08:00',
-      },
-    }),
-    server.inject({
-      method: 'POST',
-      url: '/push-tokens',
-      headers: admin,
-      payload: {token: 'ExponentPushToken[admin]'},
-    }),
+  const id = '00000000-0000-4000-8000-000000000000';
+  const slot = {
+    resourceId: 'north-laundry',
+    date: '2030-01-01',
+    start: '08:00',
+  };
+  const token = {token: 'ExponentPushToken[admin]'};
+  const requests: [string, string, Record<string, unknown>?][] = [
+    ['GET', '/resources'],
+    ['GET', '/booking-window'],
+    ['GET', '/booking-rules'],
+    ['GET', '/slots?date=2030-01-01&resourceId=north-laundry'],
+    ['GET', '/schedule?from=2030-01-01&to=2030-01-02'],
+    ['GET', '/bookings'],
+    ['POST', '/bookings', slot],
+    ['DELETE', `/bookings/${id}`],
+    ['GET', '/subscriptions'],
+    ['POST', '/subscriptions', slot],
+    ['DELETE', `/subscriptions/${id}`],
+    ['POST', '/push-tokens', token],
   ];
 
-  for (const [index, response] of (await Promise.all(requests)).entries()) {
-    assert.equal(response.statusCode, 403, `request ${index}`);
-    assert.equal(codeOf(response), 'FORBIDDEN');
+  for (const [method, url, payload] of requests) {
+    const response = await server.inject({
+      method: method as 'GET' | 'POST' | 'DELETE',
+      url,
+      headers: admin,
+      payload,
+    });
+    assert.equal(response.statusCode, 403, `${method} ${url}`);
+    assert.equal(codeOf(response), 'FORBIDDEN', `${method} ${url}`);
   }
+});
+
+// Only the fields marked input: false keep an apartment from making
+// itself admin, or moving into another organization, through Better Auth.
+test('nobody can change their own role, organization or apartment', async () => {
+  const headers = await cookieOf(northEmail('1'));
+
+  for (const field of [
+    {role: 'admin'},
+    {organizationId: SOUTH.id},
+    {memberId: ids.get('south-1') ?? ''},
+  ]) {
+    const response = await server.inject({
+      method: 'POST',
+      url: '/auth/update-user',
+      headers: {...headers, origin: ORIGIN},
+      payload: field,
+    });
+    assert.equal(response.statusCode, 400, JSON.stringify(field));
+  }
+
+  const account = await get('/account', headers);
+  assert.deepEqual(account.json<Account>(), {
+    role: 'member',
+    organizationName: NORTH.name,
+    apartment: '1',
+  });
 });
 
 test('an apartment sees only its own organization', async () => {
@@ -220,6 +255,13 @@ test('rejects an apartment that has moved out', async () => {
   assert.equal(codeOf(response), 'UNAUTHORIZED');
 });
 
+function refusedBy(constraint: string) {
+  return (error: unknown) => {
+    assert.equal(violatedConstraint(error), constraint);
+    return true;
+  };
+}
+
 test('allows only one admin per organization', async () => {
   await assert.rejects(
     createUser({
@@ -229,6 +271,7 @@ test('allows only one admin per organization', async () => {
       organizationId: NORTH.id,
       role: 'admin',
     }),
+    refusedBy('user_one_admin_per_organization'),
   );
 });
 
@@ -237,6 +280,26 @@ test('refuses an apartment account without an apartment', async () => {
     db.execute(
       sql`insert into "user" (id, name, email, role, organization_id) values ('x', 'Ingen', 'nobody@north.example.com', 'member', 'north')`,
     ),
+    refusedBy('user_role_member_check'),
+  );
+});
+
+test('refuses an admin tied to an apartment', async () => {
+  await db.insert(organizations).values({
+    id: 'east',
+    name: 'Brf Öster',
+    bookingWindowDays: 30,
+  });
+  const [apartment] = await db
+    .insert(members)
+    .values({organizationId: 'east', label: '1'})
+    .returning({id: members.id});
+
+  await assert.rejects(
+    db.execute(
+      sql`insert into "user" (id, name, email, role, organization_id, member_id) values ('y', 'Admin', 'admin@east.example.com', 'admin', 'east', ${apartment?.id})`,
+    ),
+    refusedBy('user_role_member_check'),
   );
 });
 
@@ -250,5 +313,26 @@ test("refuses an account tied to another organization's apartment", async () => 
       role: 'member',
       memberId: ids.get('north-1') ?? '',
     }),
+    refusedBy('user_member_fk'),
+  );
+});
+
+test('the admin unbinds an apartment token left on its device', async () => {
+  const token = 'ExponentPushToken[shared-phone]';
+  await db
+    .insert(pushTokens)
+    .values({token, memberId: ids.get('north-1') ?? ''});
+
+  const response = await server.inject({
+    method: 'DELETE',
+    url: '/push-tokens',
+    headers: await cookieOf('admin@north.example.com'),
+    payload: {token},
+  });
+
+  assert.equal(response.statusCode, 204);
+  assert.deepEqual(
+    await db.select().from(pushTokens).where(eq(pushTokens.token, token)),
+    [],
   );
 });

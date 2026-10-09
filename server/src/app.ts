@@ -74,7 +74,7 @@ export async function buildApp(options: FastifyServerOptions = {}) {
   await server.register(cors, {
     origin: WEB_ORIGIN ?? true,
     credentials: true,
-    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    methods: ['GET', 'HEAD', 'POST', 'DELETE'],
   });
 
   await server.register(swagger, {

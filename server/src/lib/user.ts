@@ -14,9 +14,7 @@ export type Member = {
 };
 
 export type Admin = {
-  userId: string;
   organizationId: string;
-  name: string;
 };
 
 export type SignedIn =
@@ -38,11 +36,7 @@ export async function getSignedIn(request: FastifyRequest): Promise<SignedIn> {
   if (user.role === 'admin') {
     return {
       role: 'admin',
-      admin: {
-        userId: user.id,
-        organizationId: user.organizationId,
-        name: user.name,
-      },
+      admin: {organizationId: user.organizationId},
     };
   }
 
@@ -80,14 +74,4 @@ export async function getMember(request: FastifyRequest): Promise<Member> {
   }
 
   return signedIn.member;
-}
-
-export async function getAdmin(request: FastifyRequest): Promise<Admin> {
-  const signedIn = await getSignedIn(request);
-
-  if (signedIn.role !== 'admin') {
-    throw appError('FORBIDDEN', 'Only the admin can do this');
-  }
-
-  return signedIn.admin;
 }

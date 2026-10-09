@@ -9,7 +9,6 @@ const memberAccountSchema = z.object({
 const adminAccountSchema = z.object({
   role: z.literal('admin'),
   organizationName: z.string(),
-  name: z.string(),
 });
 
 export const accountSchema = z.discriminatedUnion('role', [

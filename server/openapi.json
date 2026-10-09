@@ -69,15 +69,11 @@
           },
           "organizationName": {
             "type": "string"
-          },
-          "name": {
-            "type": "string"
           }
         },
         "required": [
           "role",
-          "organizationName",
-          "name"
+          "organizationName"
         ]
       },
       "AccountInput": {
@@ -734,15 +730,11 @@
           },
           "organizationName": {
             "type": "string"
-          },
-          "name": {
-            "type": "string"
           }
         },
         "required": [
           "role",
-          "organizationName",
-          "name"
+          "organizationName"
         ],
         "additionalProperties": false
       },

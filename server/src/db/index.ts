@@ -11,3 +11,8 @@ if (!process.env.DATABASE_URL) {
 
 export const pool = new Pool({connectionString: process.env.DATABASE_URL});
 export const db = drizzle(pool, {schema});
+
+export type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+// Either the pool or an open transaction, for writes that must commit
+// together with the caller's.
+export type Executor = typeof db | Transaction;
