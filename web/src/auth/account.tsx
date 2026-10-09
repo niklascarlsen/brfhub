@@ -13,7 +13,7 @@ export type AdminAccount = components['schemas']['AdminAccount'];
 
 type AccountGateProps = {
   member: (account: MemberAccount) => ReactNode;
-  admin: (account: AdminAccount) => ReactNode;
+  admin: (account: AdminAccount, refresh: () => void) => ReactNode;
 };
 
 // Asks the server who signed in and renders that kind of account's app:
@@ -53,12 +53,15 @@ export function AccountGate({member, admin}: AccountGateProps) {
     };
   }, [attempt]);
 
+  const refresh = () => setAttempt((previous) => previous + 1);
+
   // Asked again whenever the tab returns, so a renamed organization or a
   // moved-out apartment shows without a reload.
-  useReturnToTab(() => setAttempt((previous) => previous + 1));
+  useReturnToTab(refresh);
 
+  // A refresh keeps showing the account it has until the new one arrives.
   if (account) {
-    return account.role === 'admin' ? admin(account) : member(account);
+    return account.role === 'admin' ? admin(account, refresh) : member(account);
   }
 
   // Signed in but no apartment answers for this account: it has moved out.
@@ -82,7 +85,7 @@ export function AccountGate({member, admin}: AccountGateProps) {
         <Notice
           message={errorMessage(error)}
           actionLabel='Försök igen'
-          onAction={() => setAttempt((previous) => previous + 1)}
+          onAction={refresh}
         />
       </Blank>
     );

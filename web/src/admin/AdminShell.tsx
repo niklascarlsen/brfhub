@@ -3,8 +3,13 @@ import {useEffect} from 'react';
 import {AdminAccountContext} from '@/admin/account';
 import {AdminApartments} from '@/admin/AdminApartments';
 import {AdminOrganization} from '@/admin/AdminOrganization';
+import {AdminResources} from '@/admin/AdminResources';
 import type {AdminAccount} from '@/auth/account';
-import {PeopleOutlineIcon, SettingsOutlineIcon} from '@/components/icons';
+import {
+  GridOutlineIcon,
+  PeopleOutlineIcon,
+  SettingsOutlineIcon,
+} from '@/components/icons';
 import {TabBar} from '@/components/TabBar';
 import type {Tab} from '@/components/tabs';
 import {SHELL} from '@/desktop/layout';
@@ -15,12 +20,18 @@ import {isAdminRoute, linkProps, useRoute} from '@/lib/route';
 
 const ADMIN_TABS: readonly Tab[] = [
   {route: 'admin/lagenheter', label: 'Lägenheter', Icon: PeopleOutlineIcon},
+  {route: 'admin/resurser', label: 'Resurser', Icon: GridOutlineIcon},
   {route: 'admin/forening', label: 'Föreningen', Icon: SettingsOutlineIcon},
 ];
 
 // The admin's app. It books nothing, so none of the booking screens, push or
 // their routes are mounted here.
-export function AdminShell({account}: {account: AdminAccount}) {
+type AdminShellProps = {
+  account: AdminAccount;
+  onRefresh: () => void;
+};
+
+export function AdminShell({account, onRefresh}: AdminShellProps) {
   const isDesktop = useIsDesktop();
   const [route, navigate] = useRoute();
 
@@ -41,11 +52,17 @@ export function AdminShell({account}: {account: AdminAccount}) {
   }, [route, known, navigate]);
 
   const page =
-    route === 'admin/forening' ? <AdminOrganization /> : <AdminApartments />;
+    route === 'admin/forening' ? (
+      <AdminOrganization />
+    ) : route === 'admin/resurser' ? (
+      <AdminResources />
+    ) : (
+      <AdminApartments />
+    );
 
   if (isDesktop) {
     return (
-      <AdminAccountContext.Provider value={account}>
+      <AdminAccountContext.Provider value={{account, refresh: onRefresh}}>
         <div className='flex min-h-dvh flex-col bg-theme-bg'>
           <header
             className={`${SHELL} flex shrink-0 flex-wrap items-center justify-between gap-3 pt-5.5`}
@@ -87,7 +104,7 @@ export function AdminShell({account}: {account: AdminAccount}) {
   }
 
   return (
-    <AdminAccountContext.Provider value={account}>
+    <AdminAccountContext.Provider value={{account, refresh: onRefresh}}>
       <div className='flex h-dvh flex-col overflow-hidden bg-theme-bg pt-[env(safe-area-inset-top)]'>
         <main
           key={route}

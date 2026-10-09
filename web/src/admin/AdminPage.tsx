@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {useEffect, useRef, type ReactNode} from 'react';
 
 import {ChevronBackIcon} from '@/components/icons';
 import {SHELL} from '@/desktop/layout';
@@ -23,6 +23,17 @@ export function AdminPage({
   children,
 }: AdminPageProps) {
   const isDesktop = useIsDesktop();
+  const top = useRef<HTMLDivElement>(null);
+
+  // A step to another page starts at its top. The desktop scrolls the
+  // window, the phone layout its main element.
+  useEffect(() => {
+    if (isDesktop) {
+      window.scrollTo(0, 0);
+    } else {
+      top.current?.scrollIntoView({block: 'start'});
+    }
+  }, [isDesktop, title, back?.label]);
 
   const backLink = back ? (
     <button
@@ -50,7 +61,7 @@ export function AdminPage({
   }
 
   return (
-    <div className='flex min-h-full flex-col px-5 pt-2 pb-8'>
+    <div ref={top} className='flex min-h-full flex-col px-5 pt-2 pb-8'>
       {backLink ? <div className='mt-2'>{backLink}</div> : null}
       <h1 className='mt-4 text-[27px] font-semibold tracking-tight text-theme-ink'>
         {title}

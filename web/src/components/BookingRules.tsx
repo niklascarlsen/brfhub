@@ -5,7 +5,7 @@ import {useConfig} from '@/config';
 import type {components} from '@/generated/api';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useSlowLoad} from '@/hooks/useSlowLoad';
-import {daysBetween, timeRange} from '@/lib/dates';
+import {daysBetween, formatDayMonth, timeRange} from '@/lib/dates';
 
 type Kind = components['schemas']['BookingRules']['kinds'][number];
 
@@ -39,6 +39,35 @@ function limitOf(kind: Kind): string {
   return `Upp till ${kind.maxActive} bokningar åt gången`;
 }
 
+// Changes the admin has set up ahead: new times from a day, or a closing.
+// They lie past the booking window, so members can plan for them.
+function upcomingOf(kind: Kind): {key: string; text: string}[] {
+  const named = kind.resources.length > 1;
+
+  return kind.resources.flatMap((resource) => {
+    const lead = (sentence: string) =>
+      named ? `${resource.name}: ${sentence.toLowerCase()}` : sentence;
+    const changes = resource.changes.map((change) => ({
+      key: `${resource.id}-${change.validFrom}`,
+      text: lead(
+        `Från ${formatDayMonth(change.validFrom)} ${change.slots
+          .map((slot) => unbroken(slot.start, slot.end))
+          .join(', ')}`,
+      ),
+    }));
+
+    return resource.closesFrom
+      ? [
+          ...changes,
+          {
+            key: `${resource.id}-closes`,
+            text: lead(`Stängs ${formatDayMonth(resource.closesFrom)}`),
+          },
+        ]
+      : changes;
+  });
+}
+
 function KindRules({kind}: {kind: Kind}) {
   const times = kind.resources.map((resource) =>
     resource.slots.map((slot) => unbroken(slot.start, slot.end)).join(', '),
@@ -64,6 +93,14 @@ function KindRules({kind}: {kind: Kind}) {
           </p>
         ))
       )}
+      {upcomingOf(kind).map(({key, text}) => (
+        <p
+          key={key}
+          className='text-[13px] leading-5 tabular-nums text-theme-accent'
+        >
+          {text}
+        </p>
+      ))}
       <p className='text-xs leading-5 text-theme-muted'>{limitOf(kind)}</p>
     </div>
   );

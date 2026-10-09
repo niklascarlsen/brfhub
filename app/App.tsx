@@ -87,7 +87,9 @@ export default function App() {
               </ConfigProvider>
             </>
           )}
-          admin={(account) => <AdminShell account={account} />}
+          admin={(account, refresh) => (
+            <AdminShell account={account} onRefresh={refresh} />
+          )}
         />
         <StatusBar style='dark' />
       </SessionGate>

@@ -17,6 +17,7 @@ import {
 } from '../lib/time.js';
 import type {Member} from '../lib/user.js';
 import {getResource} from '../resource/resource.service.js';
+import {resourceOpenOn, slotInEffect} from '../resource/schedule.query.js';
 import {getBookingWindow, isWithinBookingWindow} from '../slot/slot.service.js';
 import type {Subscription} from './subscription.dto.js';
 
@@ -90,6 +91,7 @@ export async function createSubscription({
       bookedBy: bookings.memberId,
     })
     .from(resourceSlots)
+    .innerJoin(resources, eq(resources.id, resourceSlots.resourceId))
     .leftJoin(
       bookings,
       and(
@@ -103,6 +105,8 @@ export async function createSubscription({
       and(
         eq(resourceSlots.resourceId, resourceId),
         eq(resourceSlots.start, start),
+        slotInEffect(date),
+        resourceOpenOn(date),
       ),
     )
     .then((rows) => rows[0]);

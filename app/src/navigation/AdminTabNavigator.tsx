@@ -3,10 +3,12 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 import {AdminApartments} from '@/admin/AdminApartments';
 import {AdminOrganization} from '@/admin/AdminOrganization';
+import {AdminResources} from '@/admin/AdminResources';
 import {TAB_SCREEN_OPTIONS, TAB_ICON_GLYPH} from '@/navigation/tabOptions';
 
 export type AdminTabParamList = {
   Apartments: undefined;
+  Resources: undefined;
   Organization: undefined;
 };
 
@@ -26,6 +28,16 @@ export default function AdminTabNavigator() {
               size={TAB_ICON_GLYPH}
               color={color}
             />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name='Resources'
+        component={AdminResources}
+        options={{
+          title: 'Resurser',
+          tabBarIcon: ({color}) => (
+            <Ionicons name='grid-outline' size={TAB_ICON_GLYPH} color={color} />
           ),
         }}
       />

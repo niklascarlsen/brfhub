@@ -66,6 +66,8 @@ export const resources = pgTable(
     name: text('name').notNull(),
     tags: text('tags').array().notNull(),
     sortOrder: integer('sort_order').notNull(),
+    // Bookable up to the day before. Null while the resource stays open.
+    closesFrom: date('closes_from', {mode: 'string'}),
   },
   (table) => [
     unique('resources_organization_id_unique').on(
@@ -80,17 +82,23 @@ export const resources = pgTable(
   ],
 );
 
+// The slots of a resource sharing a validFrom are one version of its
+// schedule. Each day books the version with the latest validFrom on or
+// before it, so a change can be set up to start on a later day.
 export const resourceSlots = pgTable(
   'resource_slots',
   {
     resourceId: text('resource_id')
       .notNull()
       .references(() => resources.id),
+    validFrom: date('valid_from', {mode: 'string'}).notNull(),
     start: text('start').notNull(),
     end: text('end').notNull(),
     endOffsetDays: integer('end_offset_days').notNull().default(0),
   },
-  (table) => [primaryKey({columns: [table.resourceId, table.start]})],
+  (table) => [
+    primaryKey({columns: [table.resourceId, table.validFrom, table.start]}),
+  ],
 );
 
 export const bookings = pgTable(

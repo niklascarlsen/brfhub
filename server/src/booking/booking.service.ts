@@ -19,6 +19,7 @@ import {
 } from '../lib/time.js';
 import type {Member} from '../lib/user.js';
 import {getResource} from '../resource/resource.service.js';
+import {resourceOpenOn, slotInEffect} from '../resource/schedule.query.js';
 import {getBookingWindow, isWithinBookingWindow} from '../slot/slot.service.js';
 import type {Booking, CreatedBooking} from './booking.dto.js';
 import {lockApartmentBookings, stillActive} from './booking.query.js';
@@ -142,10 +143,13 @@ export async function createBooking({
       started: slotHasStarted(date, resourceSlots.start),
     })
     .from(resourceSlots)
+    .innerJoin(resources, eq(resources.id, resourceSlots.resourceId))
     .where(
       and(
         eq(resourceSlots.resourceId, resourceId),
         eq(resourceSlots.start, start),
+        slotInEffect(date),
+        resourceOpenOn(date),
       ),
     );
 

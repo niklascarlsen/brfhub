@@ -8,7 +8,12 @@ import {dropPushToken} from '@/push';
 
 // The admin's app. It books nothing, so none of the booking screens or push
 // are mounted here.
-export function AdminShell({account}: {account: AdminAccount}) {
+type AdminShellProps = {
+  account: AdminAccount;
+  onRefresh: () => void;
+};
+
+export function AdminShell({account, onRefresh}: AdminShellProps) {
   // A phone an apartment used before may still hand its push to the
   // apartment; the admin should not get those notifications.
   useEffect(() => {
@@ -18,7 +23,7 @@ export function AdminShell({account}: {account: AdminAccount}) {
   }, []);
 
   return (
-    <AdminAccountContext.Provider value={account}>
+    <AdminAccountContext.Provider value={{account, refresh: onRefresh}}>
       <NavigationContainer>
         <AdminTabNavigator />
       </NavigationContainer>

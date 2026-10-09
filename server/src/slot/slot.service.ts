@@ -17,6 +17,7 @@ import {
   slotHasStarted,
 } from '../lib/time.js';
 import type {Member} from '../lib/user.js';
+import {resourceOpenOn, slotInEffect} from '../resource/schedule.query.js';
 import {
   getResource,
   listBookableResources,
@@ -103,6 +104,8 @@ function selectSlotRows(
       and(
         eq(resources.organizationId, member.organizationId),
         resourceId ? eq(resourceSlots.resourceId, resourceId) : undefined,
+        slotInEffect(days.day),
+        resourceOpenOn(days.day),
         sql`${slotEndsAt(days.day, resourceSlots.end, resourceSlots.endOffsetDays)} > now()`,
       ),
     )

@@ -15,6 +15,8 @@ export const resourceRefSchema = z.object({
   resourceKind: resourceKindSchema,
 });
 
+const ruleSlotSchema = z.object({start: z.string(), end: z.string()});
+
 export const bookingRulesSchema = z.object({
   kinds: z
     .object({
@@ -26,7 +28,12 @@ export const bookingRulesSchema = z.object({
           id: z.string(),
           name: z.string(),
           tags: z.array(z.string()),
-          slots: z.object({start: z.string(), end: z.string()}).array(),
+          slots: ruleSlotSchema.array(),
+          // Schedules set up to start on a later day, earliest first.
+          changes: z
+            .object({validFrom: z.iso.date(), slots: ruleSlotSchema.array()})
+            .array(),
+          closesFrom: z.iso.date().nullable(),
         })
         .array(),
     })

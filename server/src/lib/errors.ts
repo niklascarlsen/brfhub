@@ -10,6 +10,9 @@ export const errorCodeSchema = z.enum([
   'SLOT_AVAILABLE',
   'APARTMENT_TAKEN',
   'EMAIL_TAKEN',
+  'CHANGE_INSIDE_WINDOW',
+  'INVALID_SCHEDULE',
+  'KIND_IN_USE',
   'NOT_FOUND',
   'UNAUTHORIZED',
   'FORBIDDEN',
@@ -51,6 +54,18 @@ const ERRORS: Record<ErrorCode, {status: number; message: string}> = {
   EMAIL_TAKEN: {
     status: 409,
     message: 'Another account already uses that email',
+  },
+  CHANGE_INSIDE_WINDOW: {
+    status: 400,
+    message: 'The change would start inside the booking window',
+  },
+  INVALID_SCHEDULE: {
+    status: 400,
+    message: 'The slots overlap or end before they start',
+  },
+  KIND_IN_USE: {
+    status: 409,
+    message: 'Resources still use that kind',
   },
   NOT_FOUND: {
     status: 404,
