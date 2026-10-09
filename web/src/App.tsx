@@ -108,7 +108,9 @@ export function App() {
               <Shell />
             </ConfigProvider>
           )}
-          admin={(account) => <AdminShell account={account} />}
+          admin={(account, refresh) => (
+            <AdminShell account={account} onRefresh={refresh} />
+          )}
         />
       </SessionGate>
     </DialogProvider>

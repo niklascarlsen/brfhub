@@ -15,6 +15,10 @@ const MESSAGES: Record<ClientErrorCode, string> = {
   SLOT_AVAILABLE: 'Tiden är ledig, boka den istället',
   APARTMENT_TAKEN: 'Det finns redan en lägenhet med det numret',
   EMAIL_TAKEN: 'E-postadressen används redan av ett annat konto',
+  CHANGE_INSIDE_WINDOW:
+    'Ändringen kan inte börja innan bokningsfönstret har passerat',
+  INVALID_SCHEDULE: 'Passen överlappar eller slutar innan de börjar',
+  KIND_IN_USE: 'Typen används fortfarande av resurser',
   NOT_FOUND: 'Hittades inte',
   UNAUTHORIZED: 'Du är inte inloggad',
   FORBIDDEN: 'Det där är inte din bokning',

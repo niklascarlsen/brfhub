@@ -1,14 +1,125 @@
 import {useState, type SubmitEvent} from 'react';
 
-import {useAdminAccount} from '@/admin/account';
+import {useAdminAccount, useRefreshAccount} from '@/admin/account';
 import {AdminPage} from '@/admin/AdminPage';
 import {PRIMARY_BUTTON, SECTION_LABEL} from '@/admin/styles';
-import {errorMessage} from '@/api/errors';
+import {api, unwrap} from '@/api/client';
+import {codeOf, errorMessage} from '@/api/errors';
 import {authClient} from '@/auth/client';
 import {Account} from '@/components/Account';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
+import {Notice} from '@/components/Notice';
+import {useFocusLoad} from '@/hooks/useFocusLoad';
 
 const MIN_PASSWORD_LENGTH = 8;
+const MAX_WINDOW_DAYS = 365;
+
+function fetchSettings() {
+  return unwrap(api.GET('/admin/organization'));
+}
+
+type SettingsFields = {name: string; bookingWindowDays: number};
+
+function SettingsForm({
+  initial,
+  onSaved,
+}: {
+  initial: SettingsFields;
+  onSaved: () => void;
+}) {
+  const [name, setName] = useState(initial.name);
+  const [days, setDays] = useState(String(initial.bookingWindowDays));
+  const [message, setMessage] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function submit(event: SubmitEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setMessage(null);
+
+    const bookingWindowDays = Number(days);
+    if (
+      !Number.isInteger(bookingWindowDays) ||
+      bookingWindowDays < 1 ||
+      bookingWindowDays > MAX_WINDOW_DAYS
+    ) {
+      setMessage(`Bokningsfönstret är 1 till ${MAX_WINDOW_DAYS} dagar`);
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await unwrap(
+        api.PATCH('/admin/organization', {
+          body: {name: name.trim(), bookingWindowDays},
+        }),
+      );
+      setMessage('Sparat.');
+      onSaved();
+    } catch (caught) {
+      setMessage(errorMessage(codeOf(caught)));
+    }
+    setSubmitting(false);
+  }
+
+  return (
+    <form
+      onSubmit={(event) => void submit(event)}
+      className='flex flex-col gap-3'
+    >
+      <FloatingLabelInput
+        label='Föreningens namn'
+        required
+        maxLength={80}
+        value={name}
+        onChange={(event) => setName(event.target.value)}
+      />
+      <FloatingLabelInput
+        label='Bokningsbart antal dagar framåt'
+        type='number'
+        inputMode='numeric'
+        min={1}
+        max={MAX_WINDOW_DAYS}
+        required
+        value={days}
+        onChange={(event) => setDays(event.target.value)}
+      />
+      <p className='text-[13px] leading-5 text-theme-muted'>
+        Ett längre fönster öppnar fler dagar direkt. Ett kortare tar inte bort
+        bokningar som redan är gjorda.
+      </p>
+      {message ? (
+        <p role='status' className='text-sm text-theme-ink'>
+          {message}
+        </p>
+      ) : null}
+      <button
+        type='submit'
+        disabled={submitting}
+        className={`${PRIMARY_BUTTON} mt-2 self-start`}
+      >
+        Spara
+      </button>
+    </form>
+  );
+}
+
+function Settings() {
+  const refresh = useRefreshAccount();
+  const {data, error, reload} = useFocusLoad(fetchSettings);
+
+  return (
+    <section aria-labelledby='settings-heading' className='mb-6.5'>
+      <h2 id='settings-heading' className={SECTION_LABEL}>
+        Inställningar
+      </h2>
+      {data ? (
+        <SettingsForm initial={data} onSaved={refresh} />
+      ) : error ? (
+        <Notice message={error} actionLabel='Försök igen' onAction={reload} />
+      ) : null}
+    </section>
+  );
+}
 
 async function signOutAdmin() {
   await authClient.signOut();
@@ -138,6 +249,7 @@ export function AdminOrganization() {
         signOutFrom={account.organizationName}
         onSignOut={signOutAdmin}
       />
+      <Settings />
       <ChangePassword />
     </AdminPage>
   );

@@ -13,6 +13,7 @@ const ICONS = {
   'chevron-back': 'ChevronBackIcon',
   'alert-circle': 'AlertCircleIcon',
   'people-outline': 'PeopleOutlineIcon',
+  'grid-outline': 'GridOutlineIcon',
   'settings-outline': 'SettingsOutlineIcon',
   add: 'AddIcon',
 };

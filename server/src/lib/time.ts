@@ -54,8 +54,13 @@ export function asDateText(value: PgColumn | SQL | SQL.Aliased): SQL<string> {
   return sql`to_char(${value}, 'YYYY-MM-DD')`;
 }
 
+// Today's date where the organizations are.
+export function todaySql(): SQL<string> {
+  return sql`(now() at time zone ${STOCKHOLM})::date`;
+}
+
 export function bookingWindowSql(days: Value<number>) {
-  const today = sql`(now() at time zone ${STOCKHOLM})::date`;
+  const today = todaySql();
 
   return {
     today: asDateText(today),

@@ -18,8 +18,10 @@ import {accountRoutes} from './account/account.route.js';
 import {apartmentRoutes} from './apartment/apartment.route.js';
 import {authRoutes} from './auth/auth.route.js';
 import {bookingRoutes} from './booking/booking.route.js';
+import {organizationRoutes} from './organization/organization.route.js';
 import {pushTokenRoutes} from './pushToken/pushToken.route.js';
 import {resourceRoutes} from './resource/resource.route.js';
+import {resourceAdminRoutes} from './resourceAdmin/resourceAdmin.route.js';
 import {slotRoutes} from './slot/slot.route.js';
 import {subscriptionRoutes} from './subscription/subscription.route.js';
 
@@ -75,7 +77,7 @@ export async function buildApp(options: FastifyServerOptions = {}) {
   await server.register(cors, {
     origin: WEB_ORIGIN ?? true,
     credentials: true,
-    methods: ['GET', 'HEAD', 'POST', 'PATCH', 'DELETE'],
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'],
   });
 
   await server.register(swagger, {
@@ -96,6 +98,8 @@ export async function buildApp(options: FastifyServerOptions = {}) {
   await server.register(authRoutes);
   await server.register(accountRoutes);
   await server.register(apartmentRoutes);
+  await server.register(resourceAdminRoutes);
+  await server.register(organizationRoutes);
   await server.register(resourceRoutes);
   await server.register(slotRoutes);
   await server.register(bookingRoutes);

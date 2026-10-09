@@ -1,8 +1,10 @@
-import {and, asc, eq} from 'drizzle-orm';
+import {and, asc, eq, gt, sql} from 'drizzle-orm';
 
 import {db} from '../db/index.js';
 import {resourceKinds, resourceSlots, resources} from '../db/schema.js';
+import {asDateText, todaySql} from '../lib/time.js';
 import type {BookingRules, Resource} from './resource.dto.js';
+import {resourceOpenOn, slotInEffect} from './schedule.query.js';
 
 const resourceFields = {
   id: resources.id,
@@ -13,11 +15,19 @@ const resourceFields = {
 
 export type BookableResource = Resource & {maxActive: number};
 
+// What members see: the organization's resources that are still open.
+function bookableIn(organizationId: string) {
+  return and(
+    eq(resources.organizationId, organizationId),
+    resourceOpenOn(todaySql()),
+  );
+}
+
 export function listResources(organizationId: string): Promise<Resource[]> {
   return db
     .select(resourceFields)
     .from(resources)
-    .where(eq(resources.organizationId, organizationId))
+    .where(bookableIn(organizationId))
     .orderBy(asc(resources.sortOrder));
 }
 
@@ -38,7 +48,7 @@ export function listBookableResources(
   organizationId: string,
 ): Promise<BookableResource[]> {
   return selectBookable()
-    .where(eq(resources.organizationId, organizationId))
+    .where(bookableIn(organizationId))
     .orderBy(asc(resources.sortOrder));
 }
 
@@ -53,12 +63,33 @@ export async function getResource(
   return row;
 }
 
+type Version = {validFrom: string; slots: {start: string; end: string}[]};
+
+// Groups slot rows, ordered by validFrom and start, into schedule versions.
+function versionsOf(
+  rows: {validFrom: string; start: string; end: string}[],
+): Version[] {
+  const versions: Version[] = [];
+
+  for (const {validFrom, start, end} of rows) {
+    const last = versions.at(-1);
+
+    if (last?.validFrom === validFrom) {
+      last.slots.push({start, end});
+    } else {
+      versions.push({validFrom, slots: [{start, end}]});
+    }
+  }
+
+  return versions;
+}
+
 // Kinds come in the order of their first resource, so the rules read in the
 // same order as the booking page.
 export async function getBookingRules(
   organizationId: string,
 ): Promise<BookingRules> {
-  const [kinds, bookable, slots] = await Promise.all([
+  const [kinds, bookable, open] = await Promise.all([
     db
       .select({
         id: resourceKinds.id,
@@ -67,17 +98,29 @@ export async function getBookingRules(
       })
       .from(resourceKinds)
       .where(eq(resourceKinds.organizationId, organizationId)),
-    listResources(organizationId),
+    db
+      .select({...resourceFields, closesFrom: resources.closesFrom})
+      .from(resources)
+      .where(bookableIn(organizationId))
+      .orderBy(asc(resources.sortOrder)),
+    // The version in effect today and every later one.
     db
       .select({
         resourceId: resourceSlots.resourceId,
+        validFrom: asDateText(resourceSlots.validFrom),
+        current: sql<boolean>`${slotInEffect(todaySql())}`,
         start: resourceSlots.start,
         end: resourceSlots.end,
       })
       .from(resourceSlots)
       .innerJoin(resources, eq(resources.id, resourceSlots.resourceId))
-      .where(eq(resources.organizationId, organizationId))
-      .orderBy(asc(resourceSlots.start)),
+      .where(
+        and(
+          eq(resources.organizationId, organizationId),
+          sql`(${slotInEffect(todaySql())} or ${gt(resourceSlots.validFrom, todaySql())})`,
+        ),
+      )
+      .orderBy(asc(resourceSlots.validFrom), asc(resourceSlots.start)),
   ]);
 
   const kindOrder = [...new Set(bookable.map((resource) => resource.kind))];
@@ -95,14 +138,20 @@ export async function getBookingRules(
           ...kind,
           resources: bookable
             .filter((resource) => resource.kind === kindId)
-            .map(({id, name, tags}) => ({
-              id,
-              name,
-              tags,
-              slots: slots
-                .filter((slot) => slot.resourceId === id)
-                .map(({start, end}) => ({start, end})),
-            })),
+            .map(({id, name, tags, closesFrom}) => {
+              const own = open.filter((row) => row.resourceId === id);
+
+              return {
+                id,
+                name,
+                tags,
+                slots: own
+                  .filter((row) => row.current)
+                  .map(({start, end}) => ({start, end})),
+                changes: versionsOf(own.filter((row) => !row.current)),
+                closesFrom,
+              };
+            }),
         },
       ];
     }),

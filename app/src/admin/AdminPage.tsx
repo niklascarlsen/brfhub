@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type {ReactNode} from 'react';
+import {useEffect, useRef, type ReactNode} from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -29,6 +29,13 @@ export function AdminPage({
   action,
   children,
 }: AdminPageProps) {
+  const scroll = useRef<ScrollView>(null);
+
+  // A step to another page starts at its top.
+  useEffect(() => {
+    scroll.current?.scrollTo({y: 0, animated: false});
+  }, [title, back?.label]);
+
   return (
     <SafeAreaView className='flex-1 bg-theme-bg' edges={['top']}>
       <KeyboardAvoidingView
@@ -36,6 +43,7 @@ export function AdminPage({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
+          ref={scroll}
           className='flex-1'
           contentContainerClassName='grow px-5 pb-8 pt-2'
           keyboardShouldPersistTaps='handled'

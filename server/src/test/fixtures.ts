@@ -38,7 +38,10 @@ type OrganizationSeed = {
   organization: typeof organizations.$inferInsert;
   kinds: Omit<typeof resourceKinds.$inferInsert, 'organizationId'>[];
   resources: Omit<typeof resources.$inferInsert, 'organizationId'>[];
-  slots: (typeof resourceSlots.$inferInsert)[];
+  // Valid since long before any test day unless a test says otherwise.
+  slots: (Omit<typeof resourceSlots.$inferInsert, 'validFrom'> & {
+    validFrom?: string;
+  })[];
   apartments: string[];
   emailOf: (apartment: string) => string;
   adminEmail: string;
@@ -66,13 +69,18 @@ export async function seedOrganization(
       );
   }
   if (seed.slots.length > 0) {
-    await db.insert(resourceSlots).values(seed.slots);
+    await db
+      .insert(resourceSlots)
+      .values(seed.slots.map((slot) => ({validFrom: '2000-01-01', ...slot})));
   }
 
-  const rows = await db
-    .insert(members)
-    .values(seed.apartments.map((label) => ({organizationId, label})))
-    .returning({id: members.id, label: members.label});
+  const rows =
+    seed.apartments.length === 0
+      ? []
+      : await db
+          .insert(members)
+          .values(seed.apartments.map((label) => ({organizationId, label})))
+          .returning({id: members.id, label: members.label});
 
   for (const row of rows) {
     await createUser({

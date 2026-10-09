@@ -268,9 +268,12 @@ try {
     .onConflictDoNothing();
   await db.insert(resourceKinds).values([...KINDS, ...OTHER_KINDS]);
   await db.insert(resources).values([...RESOURCES, ...OTHER_RESOURCES]);
-  await db
-    .insert(resourceSlots)
-    .values([...RESOURCE_SLOTS, ...OTHER_RESOURCE_SLOTS]);
+  await db.insert(resourceSlots).values(
+    [...RESOURCE_SLOTS, ...OTHER_RESOURCE_SLOTS].map((slot) => ({
+      ...slot,
+      validFrom: '2000-01-01',
+    })),
+  );
 
   const memberRows = await db
     .select({id: members.id, label: members.label})

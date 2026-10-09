@@ -3,6 +3,7 @@ import {describe, expect, test} from '@jest/globals';
 import type {BookingWindow, Slot} from '@/api/client';
 import {
   daysBetween,
+  formatDayMonth,
   formatLongDate,
   formatWhen,
   fromIsoDate,
@@ -210,6 +211,7 @@ describe('labels', () => {
   // will not show up here, only a change to the locale or options we pass.
   test('a date is written in Swedish, weekday first', () => {
     expect(formatLongDate(WINDOW.today)).toBe('torsdag 3 september');
+    expect(formatDayMonth(WINDOW.today)).toBe('3 september');
     expect(formatWhen(WINDOW.today, timeRange(SLOT.start, SLOT.end))).toBe(
       'torsdag 3 september, 07:00–10:00',
     );

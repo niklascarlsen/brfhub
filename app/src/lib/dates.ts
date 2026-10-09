@@ -97,6 +97,14 @@ export function formatLongDate(isoDate: string): string {
   });
 }
 
+// "9 november", for a day the reader already knows is near.
+export function formatDayMonth(isoDate: string): string {
+  return fromIsoDate(isoDate).toLocaleDateString('sv-SE', {
+    day: 'numeric',
+    month: 'long',
+  });
+}
+
 export function timeRange(start: string, end: string): string {
   return `${start}–${end}`;
 }

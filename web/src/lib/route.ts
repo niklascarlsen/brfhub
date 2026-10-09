@@ -1,7 +1,8 @@
 import {useCallback, useEffect, useSyncExternalStore} from 'react';
 
 export type MemberRoute = 'boka' | 'mina-tider' | 'lagenhet';
-export type AdminRoute = 'admin/lagenheter' | 'admin/forening';
+export type AdminRoute =
+  'admin/lagenheter' | 'admin/resurser' | 'admin/forening';
 export type Route = MemberRoute | AdminRoute;
 
 // Chrome on iOS scrolls the viewport if this is a hash URL.
@@ -10,6 +11,7 @@ const PATHS: Record<string, Route> = {
   '/mina-tider': 'mina-tider',
   '/lagenhet': 'lagenhet',
   '/admin/lagenheter': 'admin/lagenheter',
+  '/admin/resurser': 'admin/resurser',
   '/admin/forening': 'admin/forening',
 };
 
@@ -18,6 +20,7 @@ const TITLES: Record<Route, string> = {
   'mina-tider': 'Mina tider',
   lagenhet: 'Lägenhet',
   'admin/lagenheter': 'Lägenheter',
+  'admin/resurser': 'Resurser',
   'admin/forening': 'Föreningen',
 };
 
