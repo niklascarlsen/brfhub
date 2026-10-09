@@ -1,4 +1,5 @@
 import {api, unwrap, type BookingWindow, type Resource} from '@/api/client';
+import {AnnouncementBanner} from '@/components/Announcements';
 import {BookingHeader} from '@/components/BookingHeader';
 import {SlotList} from '@/components/SlotList';
 import {Tag} from '@/components/Tag';
@@ -51,6 +52,7 @@ export function BookingScreen({
       </div>
       <div className='min-h-0 flex-1 overflow-y-auto overscroll-y-contain scroll-smooth [-webkit-overflow-scrolling:touch]'>
         <div className='flex min-h-full w-full flex-col px-5 pb-8 pt-2'>
+          <AnnouncementBanner className='mt-2 mb-4' />
           <h1 className='text-[27px] font-semibold tracking-tight text-theme-ink'>
             {formatLongDate(date)}
           </h1>

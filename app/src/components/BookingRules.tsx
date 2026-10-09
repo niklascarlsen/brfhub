@@ -121,6 +121,13 @@ export function BookingRules() {
   if (rules) {
     body = (
       <View className='gap-2.5'>
+        {rules.text ? (
+          <View className='rounded-2xl border border-theme-line bg-theme-surface px-[18px] py-4'>
+            <Text className='font-sans text-[13px] leading-5 text-theme-ink'>
+              {rules.text}
+            </Text>
+          </View>
+        ) : null}
         {rules.kinds.map((kind) => (
           <KindRules key={kind.id} kind={kind} />
         ))}

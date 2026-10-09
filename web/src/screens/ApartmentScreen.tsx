@@ -1,5 +1,6 @@
 import {signOut} from '@/auth/signOut';
 import {Account} from '@/components/Account';
+import {AnnouncementList} from '@/components/Announcements';
 import {BookingRules} from '@/components/BookingRules';
 import {useConfig} from '@/config';
 
@@ -16,6 +17,7 @@ export function ApartmentScreen() {
           {organizationName}
         </p>
         <Account signOutFrom={`lägenhet ${apartment}`} onSignOut={signOut} />
+        <AnnouncementList />
         <BookingRules listClassName='flex flex-col gap-2.5' />
       </div>
     </div>

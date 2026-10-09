@@ -6,6 +6,7 @@ import {
   type Resource,
 } from '@/api/client';
 import {MyTimesList} from '@/components/MyTimes';
+import {AnnouncementBanner} from '@/components/Announcements';
 import {useConfig} from '@/config';
 import {DayPanel, type ResourceDay} from '@/desktop/DayPanel';
 import {SHELL} from '@/desktop/layout';
@@ -157,6 +158,7 @@ export function DesktopBooking({
           />
         ) : null}
       </PageHeader>
+      <AnnouncementBanner className={`${SHELL} pt-6`} />
       <div className={`${SHELL} flex items-start gap-7 pt-6 pb-10`}>
         <aside className='flex w-90 shrink-0 flex-col gap-5.5 xl:w-105'>
           <MonthCalendar

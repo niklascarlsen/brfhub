@@ -4,6 +4,7 @@ import {ScrollView, Text, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
 import {api, unwrap} from '@/api/client';
+import {AnnouncementBanner} from '@/components/Announcements';
 import {BookingHeader} from '@/components/BookingHeader';
 import {SlotList} from '@/components/SlotList';
 import {useConfig} from '@/config';
@@ -62,6 +63,7 @@ export function BookingScreen() {
         className='w-full flex-1'
         contentContainerClassName='w-full grow px-5 pb-8 pt-4'
       >
+        <AnnouncementBanner className='mb-4' />
         <Text className='text-[27px] font-semibold tracking-tight text-theme-ink'>
           {formatLongDate(date)}
         </Text>

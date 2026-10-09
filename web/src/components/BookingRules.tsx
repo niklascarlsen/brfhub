@@ -118,10 +118,17 @@ export function BookingRules({listClassName}: {listClassName: string}) {
   let body = null;
   if (rules) {
     body = (
-      <div className={listClassName}>
-        {rules.kinds.map((kind) => (
-          <KindRules key={kind.id} kind={kind} />
-        ))}
+      <div className='flex flex-col gap-3'>
+        {rules.text ? (
+          <p className='rounded-2xl border border-theme-line bg-theme-surface px-4.5 py-4 text-[13px] leading-5 whitespace-pre-line text-theme-ink'>
+            {rules.text}
+          </p>
+        ) : null}
+        <div className={listClassName}>
+          {rules.kinds.map((kind) => (
+            <KindRules key={kind.id} kind={kind} />
+          ))}
+        </div>
       </div>
     );
   } else if (error) {

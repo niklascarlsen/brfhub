@@ -1,7 +1,12 @@
 import {and, asc, eq, gt, sql} from 'drizzle-orm';
 
 import {db} from '../db/index.js';
-import {resourceKinds, resourceSlots, resources} from '../db/schema.js';
+import {
+  organizations,
+  resourceKinds,
+  resourceSlots,
+  resources,
+} from '../db/schema.js';
 import {asDateText, todaySql} from '../lib/time.js';
 import type {BookingRules, Resource} from './resource.dto.js';
 import {resourceOpenOn, slotInEffect} from './schedule.query.js';
@@ -89,7 +94,11 @@ function versionsOf(
 export async function getBookingRules(
   organizationId: string,
 ): Promise<BookingRules> {
-  const [kinds, bookable, open] = await Promise.all([
+  const [[organization], kinds, bookable, open] = await Promise.all([
+    db
+      .select({rulesText: organizations.rulesText})
+      .from(organizations)
+      .where(eq(organizations.id, organizationId)),
     db
       .select({
         id: resourceKinds.id,
@@ -126,6 +135,7 @@ export async function getBookingRules(
   const kindOrder = [...new Set(bookable.map((resource) => resource.kind))];
 
   return {
+    text: organization?.rulesText ?? '',
     kinds: kindOrder.flatMap((kindId) => {
       const kind = kinds.find((item) => item.id === kindId);
 

@@ -3,6 +3,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 
 import {signOut} from '@/auth/signOut';
 import {Account} from '@/components/Account';
+import {AnnouncementList} from '@/components/Announcements';
 import {BookingRules} from '@/components/BookingRules';
 import {useConfig} from '@/config';
 
@@ -22,6 +23,7 @@ export function ApartmentScreen() {
           {organizationName}
         </Text>
         <Account signOutFrom={`lägenhet ${apartment}`} onSignOut={signOut} />
+        <AnnouncementList />
         <BookingRules />
       </ScrollView>
     </SafeAreaView>

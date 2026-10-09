@@ -30,7 +30,7 @@ export async function assertTestDatabase() {
 
 export async function resetDatabase() {
   await db.execute(
-    sql`truncate organizations, members, resource_kinds, resources, resource_slots, bookings, subscriptions, push_tokens, "user" cascade`,
+    sql`truncate organizations, announcements, members, resource_kinds, resources, resource_slots, bookings, subscriptions, push_tokens, "user" cascade`,
   );
 }
 

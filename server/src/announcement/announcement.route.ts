@@ -1,0 +1,92 @@
+import type {FastifyPluginAsyncZod} from '@fastify/type-provider-zod';
+import {z} from 'zod';
+
+import {errorResponses} from '../lib/errors.js';
+import {getAdmin, getMember} from '../lib/user.js';
+import {
+  adminAnnouncementSchema,
+  announcementBodySchema,
+  announcementParamsSchema,
+  announcementSchema,
+} from './announcement.dto.js';
+import {
+  createAnnouncement,
+  deleteAnnouncement,
+  listActiveAnnouncements,
+  listAdminAnnouncements,
+  updateAnnouncement,
+} from './announcement.service.js';
+
+export const announcementRoutes: FastifyPluginAsyncZod = async (app) => {
+  app.get(
+    '/announcements',
+    {schema: {response: {200: announcementSchema.array(), ...errorResponses}}},
+    async (request) => {
+      const member = await getMember(request);
+      return listActiveAnnouncements(member.organizationId);
+    },
+  );
+
+  app.get(
+    '/admin/announcements',
+    {
+      schema: {
+        response: {200: adminAnnouncementSchema.array(), ...errorResponses},
+      },
+    },
+    async (request) => {
+      const admin = await getAdmin(request);
+      return listAdminAnnouncements(admin.organizationId);
+    },
+  );
+
+  app.post(
+    '/admin/announcements',
+    {
+      schema: {
+        body: announcementBodySchema,
+        response: {201: z.object({id: z.uuid()}), ...errorResponses},
+      },
+    },
+    async (request, reply) => {
+      const admin = await getAdmin(request);
+      const id = await createAnnouncement(admin.organizationId, request.body);
+      return reply.code(201).send({id});
+    },
+  );
+
+  app.put(
+    '/admin/announcements/:id',
+    {
+      schema: {
+        params: announcementParamsSchema,
+        body: announcementBodySchema,
+        response: {204: z.undefined(), ...errorResponses},
+      },
+    },
+    async (request, reply) => {
+      const admin = await getAdmin(request);
+      await updateAnnouncement(
+        admin.organizationId,
+        request.params.id,
+        request.body,
+      );
+      return reply.code(204).send();
+    },
+  );
+
+  app.delete(
+    '/admin/announcements/:id',
+    {
+      schema: {
+        params: announcementParamsSchema,
+        response: {204: z.undefined(), ...errorResponses},
+      },
+    },
+    async (request, reply) => {
+      const admin = await getAdmin(request);
+      await deleteAnnouncement(admin.organizationId, request.params.id);
+      return reply.code(204).send();
+    },
+  );
+};

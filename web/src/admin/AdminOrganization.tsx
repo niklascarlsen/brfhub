@@ -18,7 +18,11 @@ function fetchSettings() {
   return unwrap(api.GET('/admin/organization'));
 }
 
-type SettingsFields = {name: string; bookingWindowDays: number};
+type SettingsFields = {
+  name: string;
+  bookingWindowDays: number;
+  rulesText: string;
+};
 
 function SettingsForm({
   initial,
@@ -29,6 +33,7 @@ function SettingsForm({
 }) {
   const [name, setName] = useState(initial.name);
   const [days, setDays] = useState(String(initial.bookingWindowDays));
+  const [rulesText, setRulesText] = useState(initial.rulesText);
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -50,7 +55,7 @@ function SettingsForm({
     try {
       await unwrap(
         api.PATCH('/admin/organization', {
-          body: {name: name.trim(), bookingWindowDays},
+          body: {name: name.trim(), bookingWindowDays, rulesText},
         }),
       );
       setMessage('Sparat.');
@@ -87,6 +92,22 @@ function SettingsForm({
         Ett längre fönster öppnar fler dagar direkt. Ett kortare tar inte bort
         bokningar som redan är gjorda.
       </p>
+      <label className='mt-2 flex flex-col gap-1.5'>
+        <span className='text-[13px] font-medium text-theme-muted'>
+          Ordningsregler
+        </span>
+        <textarea
+          maxLength={4000}
+          rows={5}
+          placeholder='Till exempel: Städa efter dig. Tyst efter klockan 22.'
+          value={rulesText}
+          onChange={(event) => setRulesText(event.target.value)}
+          className='w-full rounded-xs border border-theme-edge bg-theme-surface px-4 py-3 text-base leading-6 text-theme-ink placeholder:text-theme-faint focus:border-theme-ink'
+        />
+        <span className='text-[13px] leading-5 text-theme-muted'>
+          Visas för lägenheterna ovanför tiderna och gränserna.
+        </span>
+      </label>
       {message ? (
         <p role='status' className='text-sm text-theme-ink'>
           {message}
