@@ -11,6 +11,8 @@ export type Member = {
   id: string;
   organizationId: string;
   label: string;
+  // The account signed in for the apartment.
+  userId: string;
 };
 
 export type Admin = {
@@ -63,7 +65,7 @@ export async function getSignedIn(request: FastifyRequest): Promise<SignedIn> {
     throw appError('UNAUTHORIZED', 'Unknown member');
   }
 
-  return {role: 'member', member};
+  return {role: 'member', member: {...member, userId: user.id}};
 }
 
 export async function getMember(request: FastifyRequest): Promise<Member> {
@@ -74,4 +76,14 @@ export async function getMember(request: FastifyRequest): Promise<Member> {
   }
 
   return signedIn.member;
+}
+
+export async function getAdmin(request: FastifyRequest): Promise<Admin> {
+  const signedIn = await getSignedIn(request);
+
+  if (signedIn.role !== 'admin') {
+    throw appError('FORBIDDEN', 'Only the admin can do this');
+  }
+
+  return signedIn.admin;
 }

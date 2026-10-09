@@ -30,7 +30,16 @@ export function LoginScreen() {
     setSubmitting(true);
     setError(null);
 
-    const result = await authClient.signIn.email({email, password});
+    // Better Auth throws rather than answers when the network fails.
+    const result = await authClient.signIn
+      .email({email, password})
+      .catch(() => null);
+
+    if (result === null) {
+      setError(errorMessage('NETWORK'));
+      setSubmitting(false);
+      return;
+    }
 
     if (result.error) {
       setError(loginMessage(result.error.status));

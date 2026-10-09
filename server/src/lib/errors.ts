@@ -8,6 +8,8 @@ export const errorCodeSchema = z.enum([
   'SLOT_STARTED',
   'OUTSIDE_BOOKING_WINDOW',
   'SLOT_AVAILABLE',
+  'APARTMENT_TAKEN',
+  'EMAIL_TAKEN',
   'NOT_FOUND',
   'UNAUTHORIZED',
   'FORBIDDEN',
@@ -41,6 +43,14 @@ const ERRORS: Record<ErrorCode, {status: number; message: string}> = {
   SLOT_AVAILABLE: {
     status: 409,
     message: 'Slot is free, book it instead',
+  },
+  APARTMENT_TAKEN: {
+    status: 409,
+    message: 'The organization already has an apartment with that number',
+  },
+  EMAIL_TAKEN: {
+    status: 409,
+    message: 'Another account already uses that email',
   },
   NOT_FOUND: {
     status: 404,

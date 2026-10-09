@@ -52,13 +52,22 @@ export async function seedOrganization(
   const organizationId = seed.organization.id;
 
   await db.insert(organizations).values(seed.organization);
-  await db
-    .insert(resourceKinds)
-    .values(seed.kinds.map((kind) => ({...kind, organizationId})));
-  await db
-    .insert(resources)
-    .values(seed.resources.map((resource) => ({...resource, organizationId})));
-  await db.insert(resourceSlots).values(seed.slots);
+
+  if (seed.kinds.length > 0) {
+    await db
+      .insert(resourceKinds)
+      .values(seed.kinds.map((kind) => ({...kind, organizationId})));
+  }
+  if (seed.resources.length > 0) {
+    await db
+      .insert(resources)
+      .values(
+        seed.resources.map((resource) => ({...resource, organizationId})),
+      );
+  }
+  if (seed.slots.length > 0) {
+    await db.insert(resourceSlots).values(seed.slots);
+  }
 
   const rows = await db
     .insert(members)

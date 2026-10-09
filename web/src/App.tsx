@@ -5,13 +5,14 @@ import {AccountGate} from '@/auth/account';
 import {SessionGate} from '@/auth/session';
 import {DialogProvider} from '@/components/Dialog';
 import {TabBar} from '@/components/TabBar';
+import {MEMBER_TABS} from '@/components/tabs';
 import {ConfigProvider, useConfig} from '@/config';
 import {DesktopShell} from '@/desktop/DesktopShell';
 import {isWithinBookingWindow} from '@/lib/dates';
 import {usePushPrompt} from '@/hooks/usePushPrompt';
 import {useIsDesktop} from '@/lib/media';
 import {onNotificationOpen} from '@/lib/push';
-import {startupSlot, useRoute} from '@/lib/route';
+import {isAdminRoute, startupSlot, useRoute} from '@/lib/route';
 import {ApartmentScreen} from '@/screens/ApartmentScreen';
 import {BookingScreen} from '@/screens/BookingScreen';
 import {ReservationScreen} from '@/screens/ReservationScreen';
@@ -52,6 +53,13 @@ function Shell() {
     }
   }, [isDesktop, route, navigate]);
 
+  // An admin page left in the address bar by someone who signed out.
+  useEffect(() => {
+    if (isAdminRoute(route)) {
+      navigate('boka', {replace: true});
+    }
+  }, [route, navigate]);
+
   const date = isWithinBookingWindow(chosen, bookingWindow)
     ? chosen
     : bookingWindow.today;
@@ -85,7 +93,7 @@ function Shell() {
           <ApartmentScreen />
         )}
       </main>
-      <TabBar route={route} onNavigate={navigate} />
+      <TabBar tabs={MEMBER_TABS} route={route} onNavigate={navigate} />
     </div>
   );
 }

@@ -12,6 +12,9 @@ const ICONS = {
   'chevron-forward': 'ChevronForwardIcon',
   'chevron-back': 'ChevronBackIcon',
   'alert-circle': 'AlertCircleIcon',
+  'people-outline': 'PeopleOutlineIcon',
+  'settings-outline': 'SettingsOutlineIcon',
+  add: 'AddIcon',
 };
 
 const ATTRIBUTES = {

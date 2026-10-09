@@ -1,31 +1,22 @@
-import {
-  CalendarOutlineIcon,
-  HomeOutlineIcon,
-  TimeOutlineIcon,
-} from '@/components/icons';
+import type {Tab} from '@/components/tabs';
 import {linkProps, type Route} from '@/lib/route';
 
 const ICON_SIZE = 23;
 
 type TabBarProps = {
+  tabs: readonly Tab[];
   route: Route;
   onNavigate: (route: Route) => void;
 };
 
-const TABS = [
-  {route: 'boka', label: 'Boka', Icon: CalendarOutlineIcon},
-  {route: 'mina-tider', label: 'Mina tider', Icon: TimeOutlineIcon},
-  {route: 'lagenhet', label: 'Lägenhet', Icon: HomeOutlineIcon},
-] as const;
-
-export function TabBar({route, onNavigate}: TabBarProps) {
+export function TabBar({tabs, route, onNavigate}: TabBarProps) {
   return (
     <nav
       aria-label='Huvudmeny'
       className='shrink-0 border-t border-theme-line bg-theme-bg pb-[env(safe-area-inset-bottom)]'
     >
       <div className='flex p-1.5'>
-        {TABS.map(({route: target, label, Icon}) => {
+        {tabs.map(({route: target, label, Icon}) => {
           const active = route === target;
 
           return (

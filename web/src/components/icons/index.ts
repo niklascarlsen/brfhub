@@ -6,4 +6,7 @@ export {LockClosedIcon} from '@/components/icons/LockClosedIcon';
 export {ChevronForwardIcon} from '@/components/icons/ChevronForwardIcon';
 export {ChevronBackIcon} from '@/components/icons/ChevronBackIcon';
 export {AlertCircleIcon} from '@/components/icons/AlertCircleIcon';
+export {PeopleOutlineIcon} from '@/components/icons/PeopleOutlineIcon';
+export {SettingsOutlineIcon} from '@/components/icons/SettingsOutlineIcon';
+export {AddIcon} from '@/components/icons/AddIcon';
 export type {IconProps} from '@/components/icons/types';

@@ -8,6 +8,7 @@ import {
   resourceSlots,
   resources,
   subscriptions,
+  user,
 } from '../db/schema.js';
 import {appError} from '../lib/errors.js';
 import {
@@ -20,10 +21,8 @@ import type {Member} from '../lib/user.js';
 import {getResource} from '../resource/resource.service.js';
 import {getBookingWindow, isWithinBookingWindow} from '../slot/slot.service.js';
 import type {Booking, CreatedBooking} from './booking.dto.js';
-import {stillActive} from './booking.query.js';
+import {lockApartmentBookings, stillActive} from './booking.query.js';
 import {notifySlotReleased} from './booking.notification.js';
-
-const BOOKING_LOCK_NAMESPACE = 881001;
 
 const resourceFields = {
   resourceId: resources.id,
@@ -170,9 +169,18 @@ export async function createBooking({
 
   const created = await db
     .transaction(async (tx) => {
-      await tx.execute(
-        sql`select pg_advisory_xact_lock(${BOOKING_LOCK_NAMESPACE}, hashtext(${member.id}))`,
-      );
+      await lockApartmentBookings(tx, member.id);
+
+      // The residents may have changed while this request waited for the
+      // lock: an account that no longer holds the apartment books nothing.
+      const [holder] = await tx
+        .select({id: user.id})
+        .from(user)
+        .where(and(eq(user.id, member.userId), eq(user.memberId, member.id)));
+
+      if (!holder) {
+        throw appError('UNAUTHORIZED', 'Unknown member');
+      }
 
       const active = await tx
         .select({

@@ -1,0 +1,67 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
+import type {ReactNode} from 'react';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
+
+import theme from '@/theme.json';
+
+type AdminPageProps = {
+  title: string;
+  subtitle: string;
+  back?: {label: string; onPress: () => void};
+  action?: ReactNode;
+  children: ReactNode;
+};
+
+// One admin page: a back link when it is a step down, the title, an
+// optional action under it, and the content.
+export function AdminPage({
+  title,
+  subtitle,
+  back,
+  action,
+  children,
+}: AdminPageProps) {
+  return (
+    <SafeAreaView className='flex-1 bg-theme-bg' edges={['top']}>
+      <KeyboardAvoidingView
+        className='flex-1'
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          className='flex-1'
+          contentContainerClassName='grow px-5 pb-8 pt-2'
+          keyboardShouldPersistTaps='handled'
+        >
+          {back ? (
+            <Pressable
+              onPress={back.onPress}
+              hitSlop={8}
+              className='-ml-1 mb-2 mt-1 flex-row items-center gap-1 self-start py-1 pr-2 active:opacity-60'
+            >
+              <Ionicons name='chevron-back' size={16} color={theme.muted} />
+              <Text className='text-sm font-semibold text-theme-muted'>
+                {back.label}
+              </Text>
+            </Pressable>
+          ) : null}
+          <Text className='text-[27px] font-semibold tracking-tight text-theme-ink'>
+            {title}
+          </Text>
+          <Text className='mb-6 mt-1 font-sans text-[13px] text-theme-muted'>
+            {subtitle}
+          </Text>
+          {action ? <View className='mb-6'>{action}</View> : null}
+          {children}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}

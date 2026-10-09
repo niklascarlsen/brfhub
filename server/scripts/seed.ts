@@ -141,6 +141,19 @@ const OTHER_KINDS = [
 
 const OTHER_APARTMENTS = ['1001', '1002', '1101', '1102'];
 
+// Who the admin sees living in each apartment.
+const RESIDENTS: Record<string, string> = {
+  '12': 'Anna och Erik Lind',
+  '14': 'Johan Berg',
+  '21': 'Fatima Ali',
+  '23': 'Maria och Per Holm',
+  '31': 'Lena Ek',
+  '1001': 'Oskar Nyberg',
+  '1002': 'Sofia Ström',
+  '1101': 'Ahmed och Lina Haddad',
+  '1102': 'Karin Sjö',
+};
+
 const OTHER_RESOURCES = [
   {
     id: 'andra-laundry',
@@ -306,7 +319,7 @@ try {
     await createUser({
       email: `${label}@example.com`,
       password: PASSWORD,
-      name: `Lägenhet ${label}`,
+      name: RESIDENTS[label] ?? `Lägenhet ${label}`,
       organizationId: ORGANIZATION_ID,
       role: 'member',
       memberId: memberId(label),
@@ -327,7 +340,7 @@ try {
     await createUser({
       email: `${label}@andra.example.com`,
       password: PASSWORD,
-      name: `Lägenhet ${label}`,
+      name: RESIDENTS[label] ?? `Lägenhet ${label}`,
       organizationId: OTHER_ORGANIZATION_ID,
       role: 'member',
       memberId: id,
