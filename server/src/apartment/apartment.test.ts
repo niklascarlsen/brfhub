@@ -5,7 +5,14 @@ import {eq} from 'drizzle-orm';
 
 import {buildApp} from '../app.js';
 import {db, pool} from '../db/index.js';
-import {bookings, members, subscriptions} from '../db/schema.js';
+import {
+  bookings,
+  members,
+  pushTokens,
+  subscriptions,
+  user,
+} from '../db/schema.js';
+import {createBooking} from '../booking/booking.service.js';
 import {slotEndsAt, toIsoDate} from '../lib/time.js';
 import {
   assertTestDatabase,
@@ -86,7 +93,7 @@ before(async () => {
       },
     ],
     slots: [{...SLOT, resourceId: 'north-laundry'}],
-    apartments: ['9', '12', '14', '21'],
+    apartments: ['9', '12', '14', '21', '31', '32', '33', '34'],
     emailOf: northEmail,
     adminEmail: 'admin@north.example.com',
   });
@@ -118,7 +125,7 @@ test('lists the apartments of the admin organization in number order', async () 
 
   assert.deepEqual(
     apartments.map((apartment) => apartment.label),
-    ['9', '12', '14', '21'],
+    ['9', '12', '14', '21', '31', '32', '33', '34'],
   );
   assert.equal(apartments[0]?.email, northEmail('9'));
   assert.equal(apartments[0]?.residentName, 'Lägenhet 9');
@@ -154,7 +161,7 @@ test("an admin cannot touch another organization's apartment", async () => {
 
 test('adds an apartment whose password signs in', async () => {
   const response = await call('POST', '/admin/apartments', admin, {
-    label: '31',
+    label: '41',
     residentName: 'Anna och Erik Svensson',
     email: 'Anna@Example.com',
   });
@@ -164,14 +171,14 @@ test('adds an apartment whose password signs in', async () => {
     apartment: Apartment;
     password: string;
   }>();
-  assert.equal(apartment.label, '31');
+  assert.equal(apartment.label, '41');
   assert.equal(apartment.email, 'anna@example.com');
   assert.match(password, /^[a-z2-9]{4}-[a-z2-9]{4}-[a-z2-9]{4}$/);
 
   const signedIn = await cookieOf('anna@example.com', password);
   assert.equal(signedIn.status, 200);
   const account = await call('GET', '/account', signedIn);
-  assert.equal(account.json<{apartment: string}>().apartment, '31');
+  assert.equal(account.json<{apartment: string}>().apartment, '41');
 });
 
 test('refuses a taken number or email and adds nothing', async () => {
@@ -186,7 +193,7 @@ test('refuses a taken number or email and adds nothing', async () => {
   assert.equal(codeOf(number), 'APARTMENT_TAKEN');
 
   const email = await call('POST', '/admin/apartments', admin, {
-    label: '41',
+    label: '42',
     residentName: 'Dubblett',
     email: northEmail('12'),
   });
@@ -313,4 +320,172 @@ test('removing an apartment frees its number', async () => {
     email: 'nya-12@example.com',
   });
   assert.equal(again.statusCode, 201);
+});
+
+let tokenCount = 0;
+
+async function insertToken(label: string) {
+  tokenCount += 1;
+  const token = `ExponentPushToken[${label}-${tokenCount}]`;
+  await db.insert(pushTokens).values({token, memberId: ids.get(label) ?? ''});
+  return token;
+}
+
+async function tokensOf(label: string) {
+  return db
+    .select({token: pushTokens.token})
+    .from(pushTokens)
+    .where(eq(pushTokens.memberId, ids.get(label) ?? ''));
+}
+
+test('rejects the admin routes without a session', async () => {
+  const response = await server.inject({
+    method: 'GET',
+    url: '/admin/apartments',
+  });
+  assert.equal(response.statusCode, 401);
+});
+
+test('a new name alone keeps the apartment signed in', async () => {
+  const id = ids.get('31') ?? '';
+  const signedIn = await cookieOf(northEmail('31'));
+  await insertToken('31');
+
+  const response = await call('PATCH', `/admin/apartments/${id}`, admin, {
+    residentName: 'Nytt Namn',
+  });
+  assert.equal(response.statusCode, 200);
+  assert.equal((await call('GET', '/account', signedIn)).statusCode, 200);
+  assert.equal((await tokensOf('31')).length, 1);
+});
+
+test('refuses to change to a taken number or email', async () => {
+  const id = ids.get('31') ?? '';
+  const cases = [
+    [{label: '9'}, 'APARTMENT_TAKEN'],
+    [{email: northEmail('9')}, 'EMAIL_TAKEN'],
+    [{email: 'admin@north.example.com'}, 'EMAIL_TAKEN'],
+  ] as const;
+
+  for (const [body, code] of cases) {
+    const response = await call(
+      'PATCH',
+      `/admin/apartments/${id}`,
+      admin,
+      body,
+    );
+    assert.equal(response.statusCode, 409, JSON.stringify(body));
+    assert.equal(codeOf(response), code);
+  }
+});
+
+test('a new email or password also stops the old device getting push', async () => {
+  await insertToken('32');
+  const byEmail = await call(
+    'PATCH',
+    `/admin/apartments/${ids.get('32') ?? ''}`,
+    admin,
+    {email: 'ny-32@example.com'},
+  );
+  assert.equal(byEmail.statusCode, 200);
+  assert.deepEqual(await tokensOf('32'), []);
+
+  await insertToken('31');
+  const byPassword = await call(
+    'POST',
+    `/admin/apartments/${ids.get('31') ?? ''}/reset-password`,
+    admin,
+  );
+  assert.equal(byPassword.statusCode, 200);
+  assert.deepEqual(await tokensOf('31'), []);
+});
+
+test('remembers the last sign-in after a new password', async () => {
+  const id = ids.get('33') ?? '';
+  await cookieOf(northEmail('33'));
+
+  const signedIn = (await apartmentsOf(admin)).find((item) => item.id === id);
+  assert.ok(signedIn?.lastSignInAt);
+
+  await call('POST', `/admin/apartments/${id}/reset-password`, admin);
+  const after = (await apartmentsOf(admin)).find((item) => item.id === id);
+  assert.equal(after?.lastSignInAt, signedIn.lastSignInAt);
+});
+
+test('two new residents at once leave one account on the apartment', async () => {
+  const id = ids.get('33') ?? '';
+  await insertToken('33');
+
+  const responses = await Promise.all(
+    ['first', 'second'].map((name) =>
+      call('POST', `/admin/apartments/${id}/new-resident`, admin, {
+        residentName: name,
+        email: `${name}-33@example.com`,
+      }),
+    ),
+  );
+  for (const response of responses) {
+    assert.equal(response.statusCode, 200);
+  }
+
+  const accounts = await db
+    .select({email: user.email})
+    .from(user)
+    .where(eq(user.memberId, id));
+  assert.equal(accounts.length, 1);
+  assert.deepEqual(await tokensOf('33'), []);
+  assert.equal(
+    (await apartmentsOf(admin)).filter((item) => item.id === id).length,
+    1,
+  );
+});
+
+test('an account replaced while it waited cannot book', async () => {
+  const id = ids.get('34') ?? '';
+  const [old] = await db
+    .select({userId: user.id})
+    .from(user)
+    .where(eq(user.memberId, id));
+
+  await call('POST', `/admin/apartments/${id}/new-resident`, admin, {
+    residentName: 'Efter',
+    email: 'efter-34@example.com',
+  });
+
+  await assert.rejects(
+    createBooking({
+      member: {
+        id,
+        organizationId: NORTH.id,
+        label: '34',
+        userId: old?.userId ?? '',
+      },
+      date: inDays(2),
+      start: SLOT.start,
+      resourceId: 'north-laundry',
+      replaceExisting: false,
+      log: server.log,
+    }),
+    (error: unknown) => codeOf({json: () => error as never}) === 'UNAUTHORIZED',
+  );
+  assert.deepEqual(
+    await db
+      .select({id: bookings.id})
+      .from(bookings)
+      .where(eq(bookings.memberId, id)),
+    [],
+  );
+});
+
+test('trims and lower-cases a typed email', async () => {
+  const response = await call('POST', '/admin/apartments', admin, {
+    label: '51',
+    residentName: 'Mellanslag',
+    email: '  Spaced@Example.com ',
+  });
+  assert.equal(response.statusCode, 201);
+  assert.equal(
+    response.json<{apartment: Apartment}>().apartment.email,
+    'spaced@example.com',
+  );
 });

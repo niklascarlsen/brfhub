@@ -59,7 +59,13 @@ export function ApartmentForm({
     try {
       await onSubmit(trimmed);
     } catch (caught) {
-      setError(errorMessage(codeOf(caught)));
+      const code = codeOf(caught);
+      // The server checks the email more closely than the field does.
+      setError(
+        code === 'VALIDATION'
+          ? 'Kontrollera e-postadressen'
+          : errorMessage(code),
+      );
       setSubmitting(false);
     }
   }

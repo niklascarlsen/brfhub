@@ -304,6 +304,11 @@ test('refuses an admin tied to an apartment', async () => {
 });
 
 test("refuses an account tied to another organization's apartment", async () => {
+  const [empty] = await db
+    .insert(members)
+    .values({organizationId: NORTH.id, label: 'utan konto'})
+    .returning({id: members.id});
+
   await assert.rejects(
     createUser({
       email: 'crossed@south.example.com',
@@ -311,7 +316,7 @@ test("refuses an account tied to another organization's apartment", async () => 
       name: 'Fel förening',
       organizationId: SOUTH.id,
       role: 'member',
-      memberId: ids.get('north-1') ?? '',
+      memberId: empty?.id ?? '',
     }),
     refusedBy('user_member_fk'),
   );

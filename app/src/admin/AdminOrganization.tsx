@@ -21,6 +21,8 @@ function changeMessage(code: string | undefined): string {
       return 'Det nuvarande lösenordet stämmer inte';
     case 'PASSWORD_TOO_SHORT':
       return `Det nya lösenordet måste ha minst ${MIN_PASSWORD_LENGTH} tecken`;
+    case 'PASSWORD_TOO_LONG':
+      return 'Det nya lösenordet är för långt';
     default:
       return errorMessage('UNKNOWN');
   }
@@ -51,12 +53,20 @@ function ChangePassword() {
     }
 
     setSubmitting(true);
-    const result = await authClient.changePassword({
-      currentPassword: current,
-      newPassword: next,
-      revokeOtherSessions: true,
-    });
+    // Better Auth throws rather than answers when the network fails.
+    const result = await authClient
+      .changePassword({
+        currentPassword: current,
+        newPassword: next,
+        revokeOtherSessions: true,
+      })
+      .catch(() => null);
     setSubmitting(false);
+
+    if (result === null) {
+      setMessage(errorMessage('NETWORK'));
+      return;
+    }
 
     if (result.error) {
       setMessage(changeMessage(result.error.code));

@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import {useState} from 'react';
-import {Pressable, Text, View} from 'react-native';
+import {useEffect, useState} from 'react';
+import {BackHandler, Pressable, Text, View} from 'react-native';
 
 import {useAdminAccount} from '@/admin/account';
 import {AdminPage} from '@/admin/AdminPage';
@@ -60,13 +60,13 @@ function ApartmentRow({
           numberOfLines={1}
           className='text-[15px] font-semibold tracking-tight text-theme-ink'
         >
-          {apartment.residentName ?? 'Inget konto'}
+          {apartment.residentName}
         </Text>
         <Text
           numberOfLines={1}
           className='font-sans text-[13px] text-theme-muted'
         >
-          {apartment.email ?? 'Lägg till en ny boende'}
+          {apartment.email}
         </Text>
       </View>
       <Ionicons name='chevron-forward' size={16} color={theme.faint} />
@@ -82,6 +82,24 @@ export function AdminApartments() {
   const [query, setQuery] = useState('');
 
   const toList = () => setView({kind: 'list'});
+
+  // The steps below the list are not screens of their own, so Android's
+  // back button would otherwise leave the app instead of going back.
+  useEffect(() => {
+    if (view.kind === 'list') {
+      return;
+    }
+
+    const subscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      () => {
+        setView({kind: 'list'});
+        return true;
+      },
+    );
+
+    return () => subscription.remove();
+  }, [view.kind]);
   const showPassword = (apartment: Apartment, password: string) => {
     reload();
     setView({kind: 'password', apartment, password});

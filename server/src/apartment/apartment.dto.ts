@@ -2,15 +2,14 @@ import {z} from 'zod';
 
 const labelSchema = z.string().trim().min(1).max(20);
 const residentNameSchema = z.string().trim().min(1).max(100);
-const emailSchema = z.email().trim().toLowerCase();
+// Trimmed and lower-cased before it is checked, as people type it.
+const emailSchema = z.string().trim().toLowerCase().pipe(z.email());
 
 export const apartmentSchema = z.object({
   id: z.uuid(),
   label: z.string(),
-  // Null only when the apartment has no account, after a new resident
-  // could not be added.
-  residentName: z.string().nullable(),
-  email: z.string().nullable(),
+  residentName: z.string(),
+  email: z.string(),
   lastSignInAt: z.iso.datetime().nullable(),
   upcomingBookings: z.number().int(),
 });

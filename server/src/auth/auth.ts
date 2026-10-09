@@ -1,6 +1,7 @@
 import {expo} from '@better-auth/expo';
 import {betterAuth} from 'better-auth';
 import {drizzleAdapter} from 'better-auth/adapters/drizzle';
+import {eq} from 'drizzle-orm';
 
 import {db} from '../db/index.js';
 import * as schema from '../db/schema.js';
@@ -27,6 +28,20 @@ export const auth = betterAuth({
   // Accounts are created for residents, never by them: see createUser.
   emailAndPassword: {enabled: true, disableSignUp: true},
   session: {expiresIn: 7 * DAY, updateAge: DAY},
+  // Remembered on the user, so the admin still sees it after a new
+  // password has ended every session.
+  databaseHooks: {
+    session: {
+      create: {
+        after: async (session) => {
+          await db
+            .update(schema.user)
+            .set({lastSignInAt: new Date()})
+            .where(eq(schema.user.id, session.userId));
+        },
+      },
+    },
+  },
   user: {
     additionalFields: {
       role: {type: ['member', 'admin'], required: true, input: false},

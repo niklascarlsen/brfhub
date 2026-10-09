@@ -1767,26 +1767,23 @@ export interface components {
             /** Format: uuid */
             id: string;
             label: string;
-            residentName: string | null;
-            email: string | null;
+            residentName: string;
+            email: string;
             lastSignInAt: string | null;
             upcomingBookings: number;
         };
         CreateApartmentBodyInput: {
             label: string;
             residentName: string;
-            /** Format: email */
             email: string;
         };
         UpdateApartmentBodyInput: {
             label?: string;
             residentName?: string;
-            /** Format: email */
             email?: string;
         };
         NewResidentBodyInput: {
             residentName: string;
-            /** Format: email */
             email: string;
         };
         ApartmentWithPasswordInput: {
@@ -1958,8 +1955,8 @@ export interface components {
             /** Format: uuid */
             id: string;
             label: string;
-            residentName: string | null;
-            email: string | null;
+            residentName: string;
+            email: string;
             lastSignInAt: string | null;
             upcomingBookings: number;
         };

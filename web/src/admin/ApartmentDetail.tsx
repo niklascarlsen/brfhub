@@ -76,6 +76,13 @@ export function ApartmentDetail({
 }: ApartmentDetailProps) {
   const dialog = useDialog();
   const [mode, setMode] = useState<Mode>('view');
+  // A second tap while a request runs would reset twice or remove twice.
+  const [busy, setBusy] = useState(false);
+
+  const run = (request: Promise<void>, failTitle: string) => {
+    setBusy(true);
+    request.catch(fail(failTitle)).finally(() => setBusy(false));
+  };
 
   const fail = (title: string) => (caught: unknown) =>
     dialog.alert(title, errorMessage(codeOf(caught)));
@@ -87,13 +94,17 @@ export function ApartmentDetail({
       {
         label: 'Återställ',
         onPress: () => {
-          unwrap(
-            api.POST('/admin/apartments/{id}/reset-password', {
-              params: {path: {id: apartment.id}},
-            }),
-          )
-            .then(({password}) => onPassword(apartment, password))
-            .catch(fail('Kunde inte återställa lösenordet'));
+          if (busy) {
+            return;
+          }
+          run(
+            unwrap(
+              api.POST('/admin/apartments/{id}/reset-password', {
+                params: {path: {id: apartment.id}},
+              }),
+            ).then(({password}) => onPassword(apartment, password)),
+            'Kunde inte återställa lösenordet',
+          );
         },
       },
     );
@@ -105,13 +116,17 @@ export function ApartmentDetail({
       {
         label: 'Ta bort',
         onPress: () => {
-          unwrap(
-            api.DELETE('/admin/apartments/{id}', {
-              params: {path: {id: apartment.id}},
-            }),
-          )
-            .then(onRemoved)
-            .catch(fail('Kunde inte ta bort lägenheten'));
+          if (busy) {
+            return;
+          }
+          run(
+            unwrap(
+              api.DELETE('/admin/apartments/{id}', {
+                params: {path: {id: apartment.id}},
+              }),
+            ).then(onRemoved),
+            'Kunde inte ta bort lägenheten',
+          );
         },
       },
     );
@@ -121,8 +136,8 @@ export function ApartmentDetail({
       <ApartmentForm
         initial={{
           label: apartment.label,
-          residentName: apartment.residentName ?? '',
-          email: apartment.email ?? '',
+          residentName: apartment.residentName,
+          email: apartment.email,
         }}
         withLabel
         note='Ändras e-posten loggas lägenheten ut och loggar in med den nya adressen.'
@@ -174,8 +189,8 @@ export function ApartmentDetail({
         <div
           className={`${CARD} flex flex-col divide-y divide-theme-line py-1.5`}
         >
-          <Row label='Boende' value={apartment.residentName ?? 'Inget konto'} />
-          <Row label='E-post' value={apartment.email ?? '–'} />
+          <Row label='Boende' value={apartment.residentName} />
+          <Row label='E-post' value={apartment.email} />
           <Row label='Senast inloggad' value={signedIn} />
           <Row
             label='Kommande bokningar'
@@ -186,20 +201,16 @@ export function ApartmentDetail({
       <section>
         <h2 className={SECTION_LABEL}>Åtgärder</h2>
         <div className='flex flex-col divide-y divide-theme-line overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
-          {apartment.residentName !== null ? (
-            <Action
-              label='Ändra uppgifter'
-              description='Nummer, namn och e-post'
-              onPress={() => setMode('edit')}
-            />
-          ) : null}
-          {apartment.residentName !== null ? (
-            <Action
-              label='Återställ lösenord'
-              description='När de boende har glömt det'
-              onPress={resetPassword}
-            />
-          ) : null}
+          <Action
+            label='Ändra uppgifter'
+            description='Nummer, namn och e-post'
+            onPress={() => setMode('edit')}
+          />
+          <Action
+            label='Återställ lösenord'
+            description='När de boende har glömt det'
+            onPress={resetPassword}
+          />
           <Action
             label='Ny boende'
             description='När lägenheten byter ägare'

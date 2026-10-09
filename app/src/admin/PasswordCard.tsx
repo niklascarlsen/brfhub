@@ -20,7 +20,7 @@ type PasswordCardProps = {
 export function PasswordCard({apartment, password, onDone}: PasswordCardProps) {
   const share = () => {
     void Share.share({
-      message: `Inloggning för lägenhet ${apartment.label}\nE-post: ${apartment.email ?? ''}\nLösenord: ${password}`,
+      message: `Inloggning för lägenhet ${apartment.label}\nE-post: ${apartment.email}\nLösenord: ${password}`,
     });
   };
 

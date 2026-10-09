@@ -101,6 +101,13 @@ export function ApartmentDetail({
   onRemoved,
 }: ApartmentDetailProps) {
   const [mode, setMode] = useState<Mode>('view');
+  // A second tap while a request runs would reset twice or remove twice.
+  const [busy, setBusy] = useState(false);
+
+  const run = (request: Promise<void>, failTitle: string) => {
+    setBusy(true);
+    request.catch(fail(failTitle)).finally(() => setBusy(false));
+  };
 
   const fail = (title: string) => (caught: unknown) =>
     Alert.alert(title, errorMessage(codeOf(caught)));
@@ -114,13 +121,17 @@ export function ApartmentDetail({
         {
           text: 'Återställ',
           onPress: () => {
-            unwrap(
-              api.POST('/admin/apartments/{id}/reset-password', {
-                params: {path: {id: apartment.id}},
-              }),
-            )
-              .then(({password}) => onPassword(apartment, password))
-              .catch(fail('Kunde inte återställa lösenordet'));
+            if (busy) {
+              return;
+            }
+            run(
+              unwrap(
+                api.POST('/admin/apartments/{id}/reset-password', {
+                  params: {path: {id: apartment.id}},
+                }),
+              ).then(({password}) => onPassword(apartment, password)),
+              'Kunde inte återställa lösenordet',
+            );
           },
         },
       ],
@@ -136,13 +147,17 @@ export function ApartmentDetail({
           text: 'Ta bort',
           style: 'destructive',
           onPress: () => {
-            unwrap(
-              api.DELETE('/admin/apartments/{id}', {
-                params: {path: {id: apartment.id}},
-              }),
-            )
-              .then(onRemoved)
-              .catch(fail('Kunde inte ta bort lägenheten'));
+            if (busy) {
+              return;
+            }
+            run(
+              unwrap(
+                api.DELETE('/admin/apartments/{id}', {
+                  params: {path: {id: apartment.id}},
+                }),
+              ).then(onRemoved),
+              'Kunde inte ta bort lägenheten',
+            );
           },
         },
       ],
@@ -153,8 +168,8 @@ export function ApartmentDetail({
       <ApartmentForm
         initial={{
           label: apartment.label,
-          residentName: apartment.residentName ?? '',
-          email: apartment.email ?? '',
+          residentName: apartment.residentName,
+          email: apartment.email,
         }}
         withLabel
         note='Ändras e-posten loggas lägenheten ut och loggar in med den nya adressen.'
@@ -198,15 +213,14 @@ export function ApartmentDetail({
   const signedIn = apartment.lastSignInAt
     ? formatLongDate(toIsoDate(new Date(apartment.lastSignInAt)))
     : 'Aldrig';
-  const hasAccount = apartment.residentName !== null;
 
   return (
     <View className='gap-[26px]'>
       <View>
         <Text className={SECTION_LABEL}>Uppgifter</Text>
         <View className={`${CARD} py-1.5`}>
-          <Row label='Boende' value={apartment.residentName ?? 'Inget konto'} />
-          <Row label='E-post' value={apartment.email ?? '–'} />
+          <Row label='Boende' value={apartment.residentName} />
+          <Row label='E-post' value={apartment.email} />
           <Row label='Senast inloggad' value={signedIn} />
           <Row
             label='Kommande bokningar'
@@ -218,20 +232,16 @@ export function ApartmentDetail({
       <View>
         <Text className={SECTION_LABEL}>Åtgärder</Text>
         <View className='overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
-          {hasAccount ? (
-            <Action
-              label='Ändra uppgifter'
-              description='Nummer, namn och e-post'
-              onPress={() => setMode('edit')}
-            />
-          ) : null}
-          {hasAccount ? (
-            <Action
-              label='Återställ lösenord'
-              description='När de boende har glömt det'
-              onPress={resetPassword}
-            />
-          ) : null}
+          <Action
+            label='Ändra uppgifter'
+            description='Nummer, namn och e-post'
+            onPress={() => setMode('edit')}
+          />
+          <Action
+            label='Återställ lösenord'
+            description='När de boende har glömt det'
+            onPress={resetPassword}
+          />
           <Action
             label='Ny boende'
             description='När lägenheten byter ägare'

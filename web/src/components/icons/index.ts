@@ -7,8 +7,6 @@ export {ChevronForwardIcon} from '@/components/icons/ChevronForwardIcon';
 export {ChevronBackIcon} from '@/components/icons/ChevronBackIcon';
 export {AlertCircleIcon} from '@/components/icons/AlertCircleIcon';
 export {PeopleOutlineIcon} from '@/components/icons/PeopleOutlineIcon';
-export {GridOutlineIcon} from '@/components/icons/GridOutlineIcon';
-export {MegaphoneOutlineIcon} from '@/components/icons/MegaphoneOutlineIcon';
 export {SettingsOutlineIcon} from '@/components/icons/SettingsOutlineIcon';
 export {AddIcon} from '@/components/icons/AddIcon';
 export type {IconProps} from '@/components/icons/types';

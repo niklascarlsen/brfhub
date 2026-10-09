@@ -50,10 +50,10 @@ function ApartmentRow({
       </span>
       <span className='flex min-w-0 flex-1 flex-col gap-0.5'>
         <span className='truncate text-[15px] font-semibold tracking-tight text-theme-ink'>
-          {apartment.residentName ?? 'Inget konto'}
+          {apartment.residentName}
         </span>
         <span className='truncate text-[13px] text-theme-muted'>
-          {apartment.email ?? 'Lägg till en ny boende'}
+          {apartment.email}
         </span>
       </span>
       <ChevronForwardIcon size={16} className='shrink-0 text-theme-faint' />

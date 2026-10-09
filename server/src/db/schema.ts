@@ -199,6 +199,8 @@ export const user = pgTable(
       .notNull()
       .references(() => organizations.id),
     memberId: uuid('member_id'),
+    // Kept apart from the sessions, which go when the password changes.
+    lastSignInAt: timestamp('last_sign_in_at', {withTimezone: true}),
     createdAt: timestamp('created_at', {withTimezone: true})
       .notNull()
       .defaultNow(),
@@ -217,6 +219,9 @@ export const user = pgTable(
       'user_role_member_check',
       sql`(${table.role} = 'member') = (${table.memberId} is not null)`,
     ),
+    uniqueIndex('user_one_account_per_apartment')
+      .on(table.memberId)
+      .where(sql`${table.memberId} is not null`),
     uniqueIndex('user_one_admin_per_organization')
       .on(table.organizationId)
       .where(sql`${table.role} = 'admin'`),
