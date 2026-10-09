@@ -1,5 +1,6 @@
 import {signOut} from '@/auth/signOut';
 import {Account} from '@/components/Account';
+import {AnnouncementList} from '@/components/Announcements';
 import {BookingRules} from '@/components/BookingRules';
 import {ChevronBackIcon} from '@/components/icons';
 import {useConfig} from '@/config';
@@ -29,6 +30,7 @@ export function DesktopApartment({
       <div className={`${SHELL} flex flex-col pt-7 pb-12`}>
         <div className='max-w-xl'>
           <Account signOutFrom={`lägenhet ${apartment}`} onSignOut={signOut} />
+          <AnnouncementList />
         </div>
         <BookingRules listClassName='grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3' />
       </div>

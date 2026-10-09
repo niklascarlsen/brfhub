@@ -15,6 +15,7 @@ import Fastify, {type FastifyServerOptions} from 'fastify';
 import {isAppError, sendError} from './lib/errors.js';
 import {WEB_ORIGIN} from './lib/env.js';
 import {accountRoutes} from './account/account.route.js';
+import {announcementRoutes} from './announcement/announcement.route.js';
 import {apartmentRoutes} from './apartment/apartment.route.js';
 import {authRoutes} from './auth/auth.route.js';
 import {bookingRoutes} from './booking/booking.route.js';
@@ -100,6 +101,7 @@ export async function buildApp(options: FastifyServerOptions = {}) {
   await server.register(apartmentRoutes);
   await server.register(resourceAdminRoutes);
   await server.register(organizationRoutes);
+  await server.register(announcementRoutes);
   await server.register(resourceRoutes);
   await server.register(slotRoutes);
   await server.register(bookingRoutes);

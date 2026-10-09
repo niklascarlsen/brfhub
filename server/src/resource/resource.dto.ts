@@ -18,6 +18,8 @@ export const resourceRefSchema = z.object({
 const ruleSlotSchema = z.object({start: z.string(), end: z.string()});
 
 export const bookingRulesSchema = z.object({
+  // The admin's house rules, empty when there are none.
+  text: z.string(),
   kinds: z
     .object({
       id: resourceKindSchema,

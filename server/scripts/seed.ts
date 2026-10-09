@@ -5,6 +5,7 @@ import {and, eq, inArray} from 'drizzle-orm';
 import {createUser} from '../src/auth/auth.service.js';
 import {db, pool} from '../src/db/index.js';
 import {
+  announcements,
   bookings,
   members,
   organizations,
@@ -28,6 +29,11 @@ const ORGANIZATION = {
   id: ORGANIZATION_ID,
   name: 'Brf Exempel',
   bookingWindowDays: 30,
+  rulesText: [
+    'Lämna tvättstugan städad och torka av maskinerna efter dig.',
+    'Är du sen mer än 30 minuter får nästa på tur ta över din tid.',
+    'Bastun är rökfri, och barn badar bara med en vuxen.',
+  ].join('\n\n'),
 };
 
 const KINDS = [
@@ -122,6 +128,7 @@ const OTHER_ORGANIZATION = {
   id: OTHER_ORGANIZATION_ID,
   name: 'Brf Andra',
   bookingWindowDays: 14,
+  rulesText: '',
 };
 
 const OTHER_KINDS = [
@@ -231,6 +238,9 @@ try {
   await db.transaction(async (tx) => {
     await tx.delete(bookings).where(inArray(bookings.organizationId, seeded));
     await tx
+      .delete(announcements)
+      .where(inArray(announcements.organizationId, seeded));
+    await tx
       .delete(subscriptions)
       .where(inArray(subscriptions.organizationId, seeded));
     await tx
@@ -252,10 +262,13 @@ try {
     await tx.delete(user).where(inArray(user.organizationId, seeded));
   });
 
-  await db
-    .insert(organizations)
-    .values([ORGANIZATION, OTHER_ORGANIZATION])
-    .onConflictDoNothing();
+  // The settings start over too, whatever the admin changed.
+  for (const organization of [ORGANIZATION, OTHER_ORGANIZATION]) {
+    await db
+      .insert(organizations)
+      .values(organization)
+      .onConflictDoUpdate({target: organizations.id, set: organization});
+  }
   await db
     .insert(members)
     .values([
@@ -317,6 +330,24 @@ try {
 
   await db.insert(bookings).values(SEEDED_BOOKINGS.map(toRow));
   await db.insert(subscriptions).values(SEEDED_SUBSCRIPTIONS.map(toRow));
+
+  await db.insert(announcements).values([
+    {
+      organizationId: ORGANIZATION_ID,
+      title: 'Städdag lördag',
+      body: 'Vi städar gården och förråden på lördag klockan 10. Föreningen bjuder på fika efteråt.',
+      publishedOn: dateDaysFromToday(0),
+      // One week, counting today: what the admin's "1 vecka" sets.
+      endsOn: dateDaysFromToday(6),
+    },
+    {
+      organizationId: ORGANIZATION_ID,
+      title: 'Ny torktumlare',
+      body: 'Torkrummet har fått en ny torktumlare. Rensa luddfiltret efter varje körning.',
+      publishedOn: dateDaysFromToday(-3),
+      endsOn: null,
+    },
+  ]);
 
   for (const label of APARTMENTS) {
     await createUser({

@@ -14,6 +14,7 @@ export async function getOrganizationSettings(
     .select({
       name: organizations.name,
       bookingWindowDays: organizations.bookingWindowDays,
+      rulesText: organizations.rulesText,
     })
     .from(organizations)
     .where(eq(organizations.id, organizationId));

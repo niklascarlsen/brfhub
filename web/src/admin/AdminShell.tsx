@@ -1,12 +1,14 @@
 import {useEffect} from 'react';
 
 import {AdminAccountContext} from '@/admin/account';
+import {AdminAnnouncements} from '@/admin/AdminAnnouncements';
 import {AdminApartments} from '@/admin/AdminApartments';
 import {AdminOrganization} from '@/admin/AdminOrganization';
 import {AdminResources} from '@/admin/AdminResources';
 import type {AdminAccount} from '@/auth/account';
 import {
   GridOutlineIcon,
+  MegaphoneOutlineIcon,
   PeopleOutlineIcon,
   SettingsOutlineIcon,
 } from '@/components/icons';
@@ -21,6 +23,7 @@ import {isAdminRoute, linkProps, useRoute} from '@/lib/route';
 const ADMIN_TABS: readonly Tab[] = [
   {route: 'admin/lagenheter', label: 'Lägenheter', Icon: PeopleOutlineIcon},
   {route: 'admin/resurser', label: 'Resurser', Icon: GridOutlineIcon},
+  {route: 'admin/anslag', label: 'Anslag', Icon: MegaphoneOutlineIcon},
   {route: 'admin/forening', label: 'Föreningen', Icon: SettingsOutlineIcon},
 ];
 
@@ -56,6 +59,8 @@ export function AdminShell({account, onRefresh}: AdminShellProps) {
       <AdminOrganization />
     ) : route === 'admin/resurser' ? (
       <AdminResources />
+    ) : route === 'admin/anslag' ? (
+      <AdminAnnouncements />
     ) : (
       <AdminApartments />
     );

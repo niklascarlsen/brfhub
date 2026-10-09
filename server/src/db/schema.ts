@@ -20,6 +20,8 @@ export const organizations = pgTable('organizations', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   bookingWindowDays: integer('booking_window_days').notNull(),
+  // House rules in the admin's own words, shown above the derived ones.
+  rulesText: text('rules_text').notNull().default(''),
 });
 
 export const members = pgTable(
@@ -176,6 +178,35 @@ export const subscriptions = pgTable(
       table.start,
     ),
     index('subscriptions_member_ends_at_idx').on(table.memberId, table.endsAt),
+  ],
+);
+
+// Shown to the organization's apartments from publishedOn through endsOn,
+// or until removed when endsOn is null.
+export const announcements = pgTable(
+  'announcements',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    title: text('title').notNull(),
+    body: text('body').notNull(),
+    publishedOn: date('published_on', {mode: 'string'}).notNull(),
+    endsOn: date('ends_on', {mode: 'string'}),
+    createdAt: timestamp('created_at', {withTimezone: true})
+      .notNull()
+      .defaultNow(),
+    // An edit shows the announcement again to apartments that hid it.
+    updatedAt: timestamp('updated_at', {withTimezone: true})
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index('announcements_organization_published_idx').on(
+      table.organizationId,
+      table.publishedOn,
+    ),
   ],
 );
 

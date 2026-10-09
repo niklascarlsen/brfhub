@@ -109,6 +109,12 @@ export function timeRange(start: string, end: string): string {
   return `${start}–${end}`;
 }
 
+// Word joiners around the dash keep a range on one line, so a list of
+// ranges only wraps between them.
+export function unbrokenRange(start: string, end: string): string {
+  return timeRange(start, end).replace('–', '\u2060–\u2060');
+}
+
 export function formatWhen(date: string, time: string): string {
   return `${formatLongDate(date)}, ${time}`;
 }

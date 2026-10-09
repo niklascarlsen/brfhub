@@ -5,7 +5,7 @@ import {useConfig} from '@/config';
 import type {components} from '@/generated/api';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useSlowLoad} from '@/hooks/useSlowLoad';
-import {daysBetween, formatDayMonth, timeRange} from '@/lib/dates';
+import {daysBetween, formatDayMonth, unbrokenRange} from '@/lib/dates';
 
 type Kind = components['schemas']['BookingRules']['kinds'][number];
 
@@ -21,12 +21,6 @@ function joinNames(names: string[]): string {
   }
 
   return `${names.slice(0, -1).join(', ')} och ${names[names.length - 1]}`;
-}
-
-// Word joiners around the dash keep a range on one line, so the list only
-// wraps between ranges.
-function unbroken(start: string, end: string): string {
-  return timeRange(start, end).replace('–', '\u2060–\u2060');
 }
 
 function limitOf(kind: Kind): string {
@@ -51,7 +45,7 @@ function upcomingOf(kind: Kind): {key: string; text: string}[] {
       key: `${resource.id}-${change.validFrom}`,
       text: lead(
         `Från ${formatDayMonth(change.validFrom)} ${change.slots
-          .map((slot) => unbroken(slot.start, slot.end))
+          .map((slot) => unbrokenRange(slot.start, slot.end))
           .join(', ')}`,
       ),
     }));
@@ -70,7 +64,9 @@ function upcomingOf(kind: Kind): {key: string; text: string}[] {
 
 function KindRules({kind}: {kind: Kind}) {
   const times = kind.resources.map((resource) =>
-    resource.slots.map((slot) => unbroken(slot.start, slot.end)).join(', '),
+    resource.slots
+      .map((slot) => unbrokenRange(slot.start, slot.end))
+      .join(', '),
   );
   const sharedTimes = times.every((item) => item === times[0]);
 
@@ -118,10 +114,17 @@ export function BookingRules({listClassName}: {listClassName: string}) {
   let body = null;
   if (rules) {
     body = (
-      <div className={listClassName}>
-        {rules.kinds.map((kind) => (
-          <KindRules key={kind.id} kind={kind} />
-        ))}
+      <div className='flex flex-col gap-3'>
+        {rules.text ? (
+          <p className='rounded-2xl border border-theme-line bg-theme-surface px-4.5 py-4 text-[13px] leading-5 whitespace-pre-line wrap-break-word text-theme-ink'>
+            {rules.text}
+          </p>
+        ) : null}
+        <div className={listClassName}>
+          {rules.kinds.map((kind) => (
+            <KindRules key={kind.id} kind={kind} />
+          ))}
+        </div>
       </div>
     );
   } else if (error) {

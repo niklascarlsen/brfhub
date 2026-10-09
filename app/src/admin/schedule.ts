@@ -1,8 +1,8 @@
 import type {AdminKind, SlotInput} from '@/api/client';
-import {timeRange} from '@/lib/dates';
+import {unbrokenRange} from '@/lib/dates';
 
 export function slotsText(slots: SlotInput[]): string {
-  return slots.map((slot) => timeRange(slot.start, slot.end)).join(', ');
+  return slots.map((slot) => unbrokenRange(slot.start, slot.end)).join(', ');
 }
 
 export function limitText(kind: AdminKind): string {

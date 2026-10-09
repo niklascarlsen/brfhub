@@ -3,11 +3,13 @@ import {z} from 'zod';
 export const organizationSettingsSchema = z.object({
   name: z.string(),
   bookingWindowDays: z.number().int(),
+  rulesText: z.string(),
 });
 
 export const updateOrganizationBodySchema = z.object({
   name: z.string().trim().min(1).max(80).optional(),
   bookingWindowDays: z.number().int().min(1).max(365).optional(),
+  rulesText: z.string().trim().max(4000).optional(),
 });
 
 export type OrganizationSettings = z.infer<typeof organizationSettingsSchema>;

@@ -31,7 +31,7 @@ export function PasswordCard({apartment, password, onDone}: PasswordCardProps) {
         <span className='text-sm font-semibold text-theme-muted'>
           Lösenord för lägenhet {apartment.label}
         </span>
-        <span className='font-mono text-[26px] font-semibold tracking-wide text-theme-ink select-all'>
+        <span className='text-[26px] font-semibold tracking-wide text-theme-ink select-all'>
           {password}
         </span>
         <p className='text-[13px] leading-5 text-theme-muted'>
@@ -48,7 +48,7 @@ export function PasswordCard({apartment, password, onDone}: PasswordCardProps) {
       </div>
       <div className='flex flex-wrap gap-2.5'>
         <button type='button' onClick={copyLogin} className={SECONDARY_BUTTON}>
-          {copy === 'copied' ? 'Kopierat' : 'Kopiera inloggningen'}
+          {copy === 'copied' ? 'Inloggningen kopierad' : 'Kopiera inloggningen'}
         </button>
         <button type='button' onClick={onDone} className={PRIMARY_BUTTON}>
           Klar

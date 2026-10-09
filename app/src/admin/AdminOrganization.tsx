@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {Pressable, Text, View} from 'react-native';
+import {Pressable, Text, TextInput, View} from 'react-native';
 
 import {useAdminAccount, useRefreshAccount} from '@/admin/account';
 import {AdminPage} from '@/admin/AdminPage';
@@ -11,6 +11,7 @@ import {Account} from '@/components/Account';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {Notice} from '@/components/Notice';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
+import theme from '@/theme.json';
 
 const MIN_PASSWORD_LENGTH = 8;
 const MAX_WINDOW_DAYS = 365;
@@ -19,7 +20,11 @@ function fetchSettings() {
   return unwrap(api.GET('/admin/organization'));
 }
 
-type SettingsFields = {name: string; bookingWindowDays: number};
+type SettingsFields = {
+  name: string;
+  bookingWindowDays: number;
+  rulesText: string;
+};
 
 function SettingsForm({
   initial,
@@ -30,6 +35,7 @@ function SettingsForm({
 }) {
   const [name, setName] = useState(initial.name);
   const [days, setDays] = useState(String(initial.bookingWindowDays));
+  const [rulesText, setRulesText] = useState(initial.rulesText);
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -50,7 +56,7 @@ function SettingsForm({
     try {
       await unwrap(
         api.PATCH('/admin/organization', {
-          body: {name: name.trim(), bookingWindowDays},
+          body: {name: name.trim(), bookingWindowDays, rulesText},
         }),
       );
       setMessage('Sparat.');
@@ -80,6 +86,26 @@ function SettingsForm({
         Ett längre fönster öppnar fler dagar direkt. Ett kortare tar inte bort
         bokningar som redan är gjorda.
       </Text>
+      <View className='mt-2 gap-1.5'>
+        <Text className='text-[13px] font-medium text-theme-muted'>
+          Ordningsregler
+        </Text>
+        <TextInput
+          value={rulesText}
+          onChangeText={setRulesText}
+          multiline
+          maxLength={4000}
+          textAlignVertical='top'
+          placeholder='Till exempel: Städa efter dig. Tyst efter klockan 22.'
+          placeholderTextColor={theme.faint}
+          accessibilityLabel='Ordningsregler'
+          className='min-h-[120px] rounded-sm border border-theme-edge bg-theme-surface px-4 py-3 text-base text-theme-ink'
+          style={{fontFamily: 'Merriweather_400Regular', color: theme.ink}}
+        />
+        <Text className='font-sans text-[13px] leading-5 text-theme-muted'>
+          Visas för lägenheterna ovanför tiderna och gränserna.
+        </Text>
+      </View>
       {message ? (
         <Text
           accessibilityRole='alert'
@@ -107,7 +133,13 @@ function Settings() {
     <View className='mb-[26px]'>
       <Text className={SECTION_LABEL}>Inställningar</Text>
       {data ? (
-        <SettingsForm initial={data} onSaved={refresh} />
+        // Saved elsewhere since it was opened: start over from what the
+        // server has, so a save cannot put the old values back.
+        <SettingsForm
+          key={JSON.stringify(data)}
+          initial={data}
+          onSaved={refresh}
+        />
       ) : error ? (
         <Notice message={error} actionLabel='Försök igen' onAction={reload} />
       ) : null}

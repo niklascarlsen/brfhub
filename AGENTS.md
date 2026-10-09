@@ -29,9 +29,9 @@ files are committed; `npm run generate` in `web/` rewrites them, and `dev`,
   It drops and re-pushes the test schema every run, since `drizzle-kit push`
   silently keeps the old schema there when it wants to prompt.
 - `npm run db:up` — Postgres in Docker, dev on :5433 and test on :5434.
-- `npm run db:seed` — resets bookings, subscriptions, resources and accounts
-  of the two seeded organizations; others, such as ones made with
-  `org:create`, are left alone. Brf Exempel signs in as
+- `npm run db:seed` — resets bookings, subscriptions, resources, accounts,
+  announcements and settings of the two seeded organizations; others, such
+  as ones made with `org:create`, are left alone. Brf Exempel signs in as
   `<number>@example.com`, Brf Andra as `<number>@andra.example.com`, and each
   admin as `admin@` on the same domain, all with password `password`. Members
   and push tokens survive, so the app stays registered. It wipes bookings I
