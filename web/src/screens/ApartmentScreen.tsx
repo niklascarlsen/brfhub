@@ -1,3 +1,4 @@
+import {signOut} from '@/auth/signOut';
 import {Account} from '@/components/Account';
 import {BookingRules} from '@/components/BookingRules';
 import {useConfig} from '@/config';
@@ -14,7 +15,7 @@ export function ApartmentScreen() {
         <p className='mt-1 mb-6 text-[13px] text-theme-muted'>
           {organizationName}
         </p>
-        <Account />
+        <Account signOutFrom={`lägenhet ${apartment}`} onSignOut={signOut} />
         <BookingRules listClassName='flex flex-col gap-2.5' />
       </div>
     </div>

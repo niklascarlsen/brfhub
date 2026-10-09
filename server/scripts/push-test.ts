@@ -3,16 +3,44 @@ import 'dotenv/config';
 import {and, asc, eq, isNull, ne, not} from 'drizzle-orm';
 
 import {db, pool} from '../src/db/index.js';
-import {bookings, members, pushTokens, resources} from '../src/db/schema.js';
+import {
+  bookings,
+  members,
+  pushTokens,
+  resources,
+  user,
+} from '../src/db/schema.js';
 import {slotHasStarted} from '../src/lib/time.js';
-import {ORGANIZATION_ID} from '../src/lib/user.js';
 
 const API_URL = process.env.API_URL ?? 'http://localhost:3000';
-const WATCHER = '12';
+// npm run push:test -- [organization] [watching apartment]
+const ORGANIZATION_ID = process.argv[2] ?? 'demo';
+const WATCHER = process.argv[3] ?? '12';
 // The accounts seed.ts creates.
 const PASSWORD = 'password';
 
 const sessions = new Map<string, string>();
+
+async function emailOf(apartment: string): Promise<string> {
+  const [row] = await db
+    .select({email: user.email})
+    .from(user)
+    .innerJoin(members, eq(members.id, user.memberId))
+    .where(
+      and(
+        eq(members.organizationId, ORGANIZATION_ID),
+        eq(members.label, apartment),
+      ),
+    );
+
+  if (!row) {
+    throw new Error(
+      `No account for apartment ${apartment} in ${ORGANIZATION_ID}`,
+    );
+  }
+
+  return row.email;
+}
 
 async function signIn(apartment: string): Promise<string> {
   const known = sessions.get(apartment);
@@ -29,7 +57,7 @@ async function signIn(apartment: string): Promise<string> {
       origin: process.env.WEB_ORIGIN ?? API_URL,
     },
     body: JSON.stringify({
-      email: `${apartment}@example.com`,
+      email: await emailOf(apartment),
       password: PASSWORD,
     }),
   });

@@ -1,5 +1,7 @@
 import {useEffect, useState} from 'react';
 
+import {AdminShell} from '@/admin/AdminShell';
+import {AccountGate} from '@/auth/account';
 import {SessionGate} from '@/auth/session';
 import {DialogProvider} from '@/components/Dialog';
 import {TabBar} from '@/components/TabBar';
@@ -92,9 +94,14 @@ export function App() {
   return (
     <DialogProvider>
       <SessionGate>
-        <ConfigProvider>
-          <Shell />
-        </ConfigProvider>
+        <AccountGate
+          member={(account) => (
+            <ConfigProvider account={account}>
+              <Shell />
+            </ConfigProvider>
+          )}
+          admin={(account) => <AdminShell account={account} />}
+        />
       </SessionGate>
     </DialogProvider>
   );

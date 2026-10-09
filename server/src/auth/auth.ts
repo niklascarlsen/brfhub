@@ -29,6 +29,8 @@ export const auth = betterAuth({
   session: {expiresIn: 7 * DAY, updateAge: DAY},
   user: {
     additionalFields: {
+      role: {type: ['member', 'admin'], required: true, input: false},
+      organizationId: {type: 'string', required: true, input: false},
       memberId: {type: 'string', required: false, input: false},
     },
   },

@@ -10,7 +10,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 
 import {api, unwrap, type BookingWindow, type Resource} from '@/api/client';
 import {codeOf, errorMessage, type ClientErrorCode} from '@/api/errors';
-import {signOut} from '@/auth/signOut';
+import type {MemberAccount} from '@/auth/account';
 import {Notice} from '@/components/Notice';
 
 // Refetched whenever the app returns: the window's dates move at midnight, and
@@ -35,21 +35,20 @@ export function useConfig(): Config {
 }
 
 async function fetchConfig() {
-  const [window, resources, me] = await Promise.all([
+  const [window, resources] = await Promise.all([
     unwrap(api.GET('/booking-window')),
     unwrap(api.GET('/resources')),
-    unwrap(api.GET('/me')),
   ]);
 
-  return {
-    window,
-    resources,
-    apartment: me.apartment,
-    organizationName: me.organizationName,
-  };
+  return {window, resources};
 }
 
-export function ConfigProvider({children}: {children: ReactNode}) {
+type ConfigProviderProps = {
+  account: MemberAccount;
+  children: ReactNode;
+};
+
+export function ConfigProvider({account, children}: ConfigProviderProps) {
   const [loaded, setLoaded] = useState<Awaited<
     ReturnType<typeof fetchConfig>
   > | null>(null);
@@ -90,21 +89,6 @@ export function ConfigProvider({children}: {children: ReactNode}) {
   }, []);
 
   if (loaded === null) {
-    // Signed in but no apartment answers for this account: it has not been
-    // linked yet, or the apartment has moved out. Retrying cannot fix that.
-    if (error === 'UNAUTHORIZED') {
-      return (
-        <SafeAreaView className='flex-1 bg-theme-bg' edges={['top']}>
-          <Notice
-            title='Kontot saknar lägenhet'
-            message='Ditt konto är inte kopplat till någon lägenhet. Kontakta styrelsen.'
-            actionLabel='Logga ut'
-            onAction={() => void signOut()}
-          />
-        </SafeAreaView>
-      );
-    }
-
     if (error !== null) {
       return (
         <SafeAreaView className='flex-1 bg-theme-bg' edges={['top']}>
@@ -140,8 +124,8 @@ export function ConfigProvider({children}: {children: ReactNode}) {
       value={{
         window: loaded.window,
         resources: [first, ...rest],
-        apartment: loaded.apartment,
-        organizationName: loaded.organizationName,
+        apartment: account.apartment,
+        organizationName: account.organizationName,
       }}
     >
       {children}

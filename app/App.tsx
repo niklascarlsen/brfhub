@@ -16,6 +16,8 @@ import {useCallback, useEffect, useRef} from 'react';
 import {View} from 'react-native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 
+import {AdminShell} from '@/admin/AdminShell';
+import {AccountGate} from '@/auth/account';
 import {SessionGate} from '@/auth/session';
 import {ConfigProvider} from '@/config';
 import AppTabNavigator, {
@@ -25,8 +27,8 @@ import {onNotificationTap, onPushTokenChange, registerPushToken} from '@/push';
 
 const navigationRef = createNavigationContainerRef<AppTabParamList>();
 
-// Registers the device once someone is signed in; the token is tied to
-// their apartment on the server.
+// Registers the device once an apartment is signed in; the token is tied
+// to the apartment on the server.
 function PushRegistration() {
   useEffect(() => {
     void registerPushToken();
@@ -74,13 +76,20 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <SessionGate>
-        <PushRegistration />
-        <ConfigProvider>
-          <NavigationContainer ref={navigationRef} onReady={onReady}>
-            <AppTabNavigator />
-            <StatusBar style='dark' />
-          </NavigationContainer>
-        </ConfigProvider>
+        <AccountGate
+          member={(account) => (
+            <>
+              <PushRegistration />
+              <ConfigProvider account={account}>
+                <NavigationContainer ref={navigationRef} onReady={onReady}>
+                  <AppTabNavigator />
+                </NavigationContainer>
+              </ConfigProvider>
+            </>
+          )}
+          admin={(account) => <AdminShell account={account} />}
+        />
+        <StatusBar style='dark' />
       </SessionGate>
     </SafeAreaProvider>
   );

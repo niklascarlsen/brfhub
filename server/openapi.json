@@ -40,6 +40,56 @@
           "code"
         ]
       },
+      "MemberAccountInput": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "const": "member"
+          },
+          "organizationName": {
+            "type": "string"
+          },
+          "apartment": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "organizationName",
+          "apartment"
+        ]
+      },
+      "AdminAccountInput": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "const": "admin"
+          },
+          "organizationName": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "organizationName",
+          "name"
+        ]
+      },
+      "AccountInput": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/MemberAccountInput"
+          },
+          {
+            "$ref": "#/components/schemas/AdminAccountInput"
+          }
+        ]
+      },
       "ResourceInput": {
         "type": "object",
         "properties": {
@@ -286,21 +336,6 @@
           "date",
           "start",
           "resourceId"
-        ]
-      },
-      "MeInput": {
-        "type": "object",
-        "properties": {
-          "apartment": {
-            "type": "string"
-          },
-          "organizationName": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "apartment",
-          "organizationName"
         ]
       },
       "PushTokenBodyInput": {
@@ -669,6 +704,58 @@
         ],
         "additionalProperties": false
       },
+      "MemberAccount": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "const": "member"
+          },
+          "organizationName": {
+            "type": "string"
+          },
+          "apartment": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "organizationName",
+          "apartment"
+        ],
+        "additionalProperties": false
+      },
+      "AdminAccount": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "const": "admin"
+          },
+          "organizationName": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "organizationName",
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "Account": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/MemberAccount"
+          },
+          {
+            "$ref": "#/components/schemas/AdminAccount"
+          }
+        ]
+      },
       "Resource": {
         "type": "object",
         "properties": {
@@ -922,22 +1009,6 @@
           "date",
           "start",
           "resourceId"
-        ],
-        "additionalProperties": false
-      },
-      "Me": {
-        "type": "object",
-        "properties": {
-          "apartment": {
-            "type": "string"
-          },
-          "organizationName": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "apartment",
-          "organizationName"
         ],
         "additionalProperties": false
       },
@@ -1287,7 +1358,7 @@
     }
   },
   "paths": {
-    "/me": {
+    "/account": {
       "get": {
         "responses": {
           "200": {
@@ -1295,7 +1366,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Me"
+                  "$ref": "#/components/schemas/Account"
                 }
               }
             }

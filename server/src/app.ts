@@ -14,9 +14,9 @@ import Fastify, {type FastifyServerOptions} from 'fastify';
 
 import {isAppError, sendError} from './lib/errors.js';
 import {WEB_ORIGIN} from './lib/env.js';
+import {accountRoutes} from './account/account.route.js';
 import {authRoutes} from './auth/auth.route.js';
 import {bookingRoutes} from './booking/booking.route.js';
-import {memberRoutes} from './member/member.route.js';
 import {pushTokenRoutes} from './pushToken/pushToken.route.js';
 import {resourceRoutes} from './resource/resource.route.js';
 import {slotRoutes} from './slot/slot.route.js';
@@ -74,7 +74,7 @@ export async function buildApp(options: FastifyServerOptions = {}) {
   await server.register(cors, {
     origin: WEB_ORIGIN ?? true,
     credentials: true,
-    methods: ['GET', 'HEAD', 'POST', 'DELETE'],
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'],
   });
 
   await server.register(swagger, {
@@ -93,7 +93,7 @@ export async function buildApp(options: FastifyServerOptions = {}) {
   await server.register(swaggerUi, {routePrefix: '/docs'});
 
   await server.register(authRoutes);
-  await server.register(memberRoutes);
+  await server.register(accountRoutes);
   await server.register(resourceRoutes);
   await server.register(slotRoutes);
   await server.register(bookingRoutes);

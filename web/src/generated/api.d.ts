@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/me": {
+    "/account": {
         parameters: {
             query?: never;
             header?: never;
@@ -26,7 +26,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Me"];
+                        "application/json": components["schemas"]["Account"];
                     };
                 };
                 /** @description Default Response */
@@ -1231,6 +1231,19 @@ export interface components {
             /** @enum {string} */
             code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "SLOT_STARTED" | "OUTSIDE_BOOKING_WINDOW" | "SLOT_AVAILABLE" | "NOT_FOUND" | "UNAUTHORIZED" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
         };
+        MemberAccountInput: {
+            /** @constant */
+            role: "member";
+            organizationName: string;
+            apartment: string;
+        };
+        AdminAccountInput: {
+            /** @constant */
+            role: "admin";
+            organizationName: string;
+            name: string;
+        };
+        AccountInput: components["schemas"]["MemberAccountInput"] | components["schemas"]["AdminAccountInput"];
         ResourceInput: {
             id: string;
             name: string;
@@ -1290,10 +1303,6 @@ export interface components {
             start: string;
             resourceId: string;
             replaceExisting?: boolean;
-        };
-        MeInput: {
-            apartment: string;
-            organizationName: string;
         };
         PushTokenBodyInput: {
             token: string;
@@ -1381,6 +1390,19 @@ export interface components {
             /** @enum {string} */
             code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "SLOT_STARTED" | "OUTSIDE_BOOKING_WINDOW" | "SLOT_AVAILABLE" | "NOT_FOUND" | "UNAUTHORIZED" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
         };
+        MemberAccount: {
+            /** @constant */
+            role: "member";
+            organizationName: string;
+            apartment: string;
+        };
+        AdminAccount: {
+            /** @constant */
+            role: "admin";
+            organizationName: string;
+            name: string;
+        };
+        Account: components["schemas"]["MemberAccount"] | components["schemas"]["AdminAccount"];
         Resource: {
             id: string;
             name: string;
@@ -1440,10 +1462,6 @@ export interface components {
             start: string;
             resourceId: string;
             replaceExisting?: boolean;
-        };
-        Me: {
-            apartment: string;
-            organizationName: string;
         };
         PushTokenBody: {
             token: string;

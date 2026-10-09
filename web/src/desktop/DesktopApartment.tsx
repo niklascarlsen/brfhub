@@ -1,3 +1,4 @@
+import {signOut} from '@/auth/signOut';
 import {Account} from '@/components/Account';
 import {BookingRules} from '@/components/BookingRules';
 import {ChevronBackIcon} from '@/components/icons';
@@ -27,7 +28,7 @@ export function DesktopApartment({
       {/* Account keeps its own bottom margin from the mobile screen. */}
       <div className={`${SHELL} flex flex-col pt-7 pb-12`}>
         <div className='max-w-xl'>
-          <Account />
+          <Account signOutFrom={`lägenhet ${apartment}`} onSignOut={signOut} />
         </div>
         <BookingRules listClassName='grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3' />
       </div>
