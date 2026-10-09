@@ -11,6 +11,7 @@ export const errorCodeSchema = z.enum([
   'APARTMENT_TAKEN',
   'EMAIL_TAKEN',
   'CHANGE_INSIDE_WINDOW',
+  'ENDS_IN_PAST',
   'INVALID_SCHEDULE',
   'KIND_IN_USE',
   'NOT_FOUND',
@@ -58,6 +59,10 @@ const ERRORS: Record<ErrorCode, {status: number; message: string}> = {
   CHANGE_INSIDE_WINDOW: {
     status: 400,
     message: 'The change would start inside the booking window',
+  },
+  ENDS_IN_PAST: {
+    status: 400,
+    message: 'The announcement would end before today',
   },
   INVALID_SCHEDULE: {
     status: 400,

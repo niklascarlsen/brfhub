@@ -4,7 +4,7 @@ import {z} from 'zod';
 import {errorResponses} from '../lib/errors.js';
 import {getAdmin, getMember} from '../lib/user.js';
 import {
-  adminAnnouncementSchema,
+  adminAnnouncementsSchema,
   announcementBodySchema,
   announcementParamsSchema,
   announcementSchema,
@@ -31,7 +31,7 @@ export const announcementRoutes: FastifyPluginAsyncZod = async (app) => {
     '/admin/announcements',
     {
       schema: {
-        response: {200: adminAnnouncementSchema.array(), ...errorResponses},
+        response: {200: adminAnnouncementsSchema, ...errorResponses},
       },
     },
     async (request) => {

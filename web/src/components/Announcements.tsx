@@ -2,7 +2,7 @@ import {useEffect, useState} from 'react';
 
 import {api, unwrap, type Announcement} from '@/api/client';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
-import {dismiss, readDismissed} from '@/lib/dismissed';
+import {readDismissed, saveDismissed} from '@/lib/dismissed';
 import {formatDayMonth} from '@/lib/dates';
 
 function fetchAnnouncements() {
@@ -14,6 +14,12 @@ function fetchAnnouncements() {
 function useAnnouncements(): Announcement[] {
   const {data} = useFocusLoad(fetchAnnouncements);
   return data ?? [];
+}
+
+// An edited announcement counts as new, so it shows again on a device
+// that hid it.
+function keyOf(announcement: Announcement): string {
+  return `${announcement.id}:${announcement.updatedAt}`;
 }
 
 // The newest announcement the apartment has not hidden on this device.
@@ -28,15 +34,21 @@ export function AnnouncementBanner({className}: {className?: string}) {
   const shown =
     dismissed === null
       ? undefined
-      : announcements.find((item) => !dismissed.includes(item.id));
+      : announcements.find((item) => !dismissed.includes(keyOf(item)));
 
   if (!shown) {
     return null;
   }
 
+  // Only what is still current is kept, so the list stays short.
   const hide = () => {
-    setDismissed((previous) => [shown.id, ...(previous ?? [])]);
-    void dismiss(shown.id);
+    const current = new Set(announcements.map(keyOf));
+    const next = [
+      keyOf(shown),
+      ...(dismissed ?? []).filter((key) => current.has(key)),
+    ];
+    setDismissed(next);
+    void saveDismissed(next);
   };
 
   return (
@@ -46,10 +58,10 @@ export function AnnouncementBanner({className}: {className?: string}) {
         className='flex items-start gap-3 rounded-2xl border border-theme-line bg-theme-mist px-4.5 py-3.5'
       >
         <div className='flex min-w-0 flex-1 flex-col gap-1'>
-          <h2 className='text-[15px] font-semibold tracking-tight text-theme-ink'>
+          <h2 className='text-[15px] font-semibold tracking-tight wrap-break-word text-theme-ink'>
             {shown.title}
           </h2>
-          <p className='text-[13px] leading-5 whitespace-pre-line text-theme-ink'>
+          <p className='line-clamp-4 text-[13px] leading-5 whitespace-pre-line wrap-break-word text-theme-ink'>
             {shown.body}
           </p>
         </div>
@@ -91,10 +103,10 @@ export function AnnouncementList() {
             <span className='text-xs text-theme-muted'>
               {formatDayMonth(announcement.publishedOn)}
             </span>
-            <h3 className='text-[15px] font-semibold tracking-tight text-theme-ink'>
+            <h3 className='text-[15px] font-semibold tracking-tight wrap-break-word text-theme-ink'>
               {announcement.title}
             </h3>
-            <p className='text-[13px] leading-5 whitespace-pre-line text-theme-ink'>
+            <p className='text-[13px] leading-5 whitespace-pre-line wrap-break-word text-theme-ink'>
               {announcement.body}
             </p>
           </article>

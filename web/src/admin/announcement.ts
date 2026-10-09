@@ -10,6 +10,11 @@ export const DURATIONS = [
 
 export type Duration = (typeof DURATIONS)[number]['days'];
 
+// Durations count from today, or from a first day still ahead.
+export function startOf(publishedOn: string, today: string): string {
+  return publishedOn > today ? publishedOn : today;
+}
+
 // The last day shown, counting the day it is published as the first.
 export function endsOnAfter(publishedOn: string, days: number): string {
   const date = fromIsoDate(publishedOn);

@@ -4,7 +4,7 @@ import {Pressable, Text, View} from 'react-native';
 import {api, unwrap, type Announcement} from '@/api/client';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {formatDayMonth} from '@/lib/dates';
-import {dismiss, readDismissed} from '@/lib/dismissed';
+import {readDismissed, saveDismissed} from '@/lib/dismissed';
 
 function fetchAnnouncements() {
   return unwrap(api.GET('/announcements'));
@@ -15,6 +15,12 @@ function fetchAnnouncements() {
 function useAnnouncements(): Announcement[] {
   const {data} = useFocusLoad(fetchAnnouncements);
   return data ?? [];
+}
+
+// An edited announcement counts as new, so it shows again on a device
+// that hid it.
+function keyOf(announcement: Announcement): string {
+  return `${announcement.id}:${announcement.updatedAt}`;
 }
 
 // The newest announcement the apartment has not hidden on this device.
@@ -29,15 +35,21 @@ export function AnnouncementBanner({className}: {className?: string}) {
   const shown =
     dismissed === null
       ? undefined
-      : announcements.find((item) => !dismissed.includes(item.id));
+      : announcements.find((item) => !dismissed.includes(keyOf(item)));
 
   if (!shown) {
     return null;
   }
 
+  // Only what is still current is kept, so the list stays short.
   const hide = () => {
-    setDismissed((previous) => [shown.id, ...(previous ?? [])]);
-    void dismiss(shown.id);
+    const current = new Set(announcements.map(keyOf));
+    const next = [
+      keyOf(shown),
+      ...(dismissed ?? []).filter((key) => current.has(key)),
+    ];
+    setDismissed(next);
+    void saveDismissed(next);
   };
 
   return (
@@ -49,7 +61,10 @@ export function AnnouncementBanner({className}: {className?: string}) {
         <Text className='text-[15px] font-semibold tracking-tight text-theme-ink'>
           {shown.title}
         </Text>
-        <Text className='font-sans text-[13px] leading-5 text-theme-ink'>
+        <Text
+          numberOfLines={4}
+          className='font-sans text-[13px] leading-5 text-theme-ink'
+        >
           {shown.body}
         </Text>
       </View>

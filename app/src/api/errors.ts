@@ -17,6 +17,7 @@ const MESSAGES: Record<ClientErrorCode, string> = {
   EMAIL_TAKEN: 'E-postadressen används redan av ett annat konto',
   CHANGE_INSIDE_WINDOW:
     'Ändringen kan inte börja innan bokningsfönstret har passerat',
+  ENDS_IN_PAST: 'Slutdagen har redan passerat',
   INVALID_SCHEDULE: 'Passen överlappar eller slutar innan de börjar',
   KIND_IN_USE: 'Typen används fortfarande av resurser',
   NOT_FOUND: 'Hittades inte',

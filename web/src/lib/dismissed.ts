@@ -14,11 +14,11 @@ export async function readDismissed(): Promise<string[]> {
   }
 }
 
-export async function dismiss(id: string): Promise<void> {
-  const ids = [id, ...(await readDismissed())].slice(0, KEEP);
-
+// The caller passes the whole list, so two quick hides cannot overwrite
+// each other.
+export async function saveDismissed(keys: string[]): Promise<void> {
   try {
-    localStorage.setItem(KEY, JSON.stringify(ids));
+    localStorage.setItem(KEY, JSON.stringify(keys.slice(0, KEEP)));
   } catch {
     // Private mode or blocked storage: it shows again next time.
   }

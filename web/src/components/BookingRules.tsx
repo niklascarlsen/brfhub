@@ -120,7 +120,7 @@ export function BookingRules({listClassName}: {listClassName: string}) {
     body = (
       <div className='flex flex-col gap-3'>
         {rules.text ? (
-          <p className='rounded-2xl border border-theme-line bg-theme-surface px-4.5 py-4 text-[13px] leading-5 whitespace-pre-line text-theme-ink'>
+          <p className='rounded-2xl border border-theme-line bg-theme-surface px-4.5 py-4 text-[13px] leading-5 whitespace-pre-line wrap-break-word text-theme-ink'>
             {rules.text}
           </p>
         ) : null}

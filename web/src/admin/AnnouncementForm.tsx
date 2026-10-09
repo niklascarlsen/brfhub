@@ -1,6 +1,11 @@
 import {useState, type SubmitEvent} from 'react';
 
-import {DURATIONS, durationOf, endsOnAfter} from '@/admin/announcement';
+import {
+  DURATIONS,
+  durationOf,
+  endsOnAfter,
+  startOf,
+} from '@/admin/announcement';
 import {PRIMARY_BUTTON, SECONDARY_BUTTON} from '@/admin/styles';
 import {codeOf, errorMessage} from '@/api/errors';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
@@ -9,12 +14,12 @@ import {formatLongDate} from '@/lib/dates';
 export type AnnouncementFields = {
   title: string;
   body: string;
-  publishedOn: string;
   endsOn: string | null;
 };
 
 type AnnouncementFormProps = {
-  initial: AnnouncementFields;
+  initial: AnnouncementFields & {publishedOn: string};
+  today: string;
   submitLabel: string;
   onSubmit: (fields: AnnouncementFields) => Promise<void>;
   onCancel: () => void;
@@ -23,6 +28,7 @@ type AnnouncementFormProps = {
 
 export function AnnouncementForm({
   initial,
+  today,
   submitLabel,
   onSubmit,
   onCancel,
@@ -33,7 +39,10 @@ export function AnnouncementForm({
   const [endsOn, setEndsOn] = useState(initial.endsOn);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const duration = durationOf(initial.publishedOn, endsOn);
+  // A new duration counts from today, also when an older announcement is
+  // given more days.
+  const start = startOf(initial.publishedOn, today);
+  const duration = durationOf(start, endsOn);
 
   async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -44,7 +53,6 @@ export function AnnouncementForm({
       await onSubmit({
         title: title.trim(),
         body: body.trim(),
-        publishedOn: initial.publishedOn,
         endsOn,
       });
     } catch (caught) {
@@ -90,11 +98,7 @@ export function AnnouncementForm({
                 type='button'
                 aria-pressed={selected}
                 onClick={() =>
-                  setEndsOn(
-                    days === null
-                      ? null
-                      : endsOnAfter(initial.publishedOn, days),
-                  )
+                  setEndsOn(days === null ? null : endsOnAfter(start, days))
                 }
                 className={`h-10 rounded-full border px-4 text-sm font-semibold transition-colors ${
                   selected
@@ -118,7 +122,13 @@ export function AnnouncementForm({
         </p>
       ) : null}
       <div className='mt-2 flex flex-wrap gap-2.5'>
-        <button type='submit' disabled={submitting} className={PRIMARY_BUTTON}>
+        <button
+          type='submit'
+          disabled={
+            submitting || title.trim().length === 0 || body.trim().length === 0
+          }
+          className={PRIMARY_BUTTON}
+        >
           {submitLabel}
         </button>
         <button type='button' onClick={onCancel} className={SECONDARY_BUTTON}>

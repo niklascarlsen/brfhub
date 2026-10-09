@@ -29,6 +29,7 @@
               "APARTMENT_TAKEN",
               "EMAIL_TAKEN",
               "CHANGE_INSIDE_WINDOW",
+              "ENDS_IN_PAST",
               "INVALID_SCHEDULE",
               "KIND_IN_USE",
               "NOT_FOUND",
@@ -121,6 +122,11 @@
                 "type": "null"
               }
             ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
           }
         },
         "required": [
@@ -128,7 +134,8 @@
           "title",
           "body",
           "publishedOn",
-          "endsOn"
+          "endsOn",
+          "updatedAt"
         ]
       },
       "AdminAnnouncementInput": {
@@ -162,6 +169,11 @@
               }
             ]
           },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -177,7 +189,28 @@
           "body",
           "publishedOn",
           "endsOn",
+          "updatedAt",
           "status"
+        ]
+      },
+      "AdminAnnouncementsInput": {
+        "type": "object",
+        "properties": {
+          "today": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "announcements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminAnnouncementInput"
+            }
+          }
+        },
+        "required": [
+          "today",
+          "announcements"
         ]
       },
       "AnnouncementBodyInput": {
@@ -192,11 +225,6 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 2000
-          },
-          "publishedOn": {
-            "type": "string",
-            "format": "date",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
           },
           "endsOn": {
             "anyOf": [
@@ -214,7 +242,6 @@
         "required": [
           "title",
           "body",
-          "publishedOn",
           "endsOn"
         ]
       },
@@ -1336,6 +1363,7 @@
               "APARTMENT_TAKEN",
               "EMAIL_TAKEN",
               "CHANGE_INSIDE_WINDOW",
+              "ENDS_IN_PAST",
               "INVALID_SCHEDULE",
               "KIND_IN_USE",
               "NOT_FOUND",
@@ -1431,6 +1459,11 @@
                 "type": "null"
               }
             ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
           }
         },
         "required": [
@@ -1438,7 +1471,8 @@
           "title",
           "body",
           "publishedOn",
-          "endsOn"
+          "endsOn",
+          "updatedAt"
         ],
         "additionalProperties": false
       },
@@ -1473,6 +1507,11 @@
               }
             ]
           },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -1488,7 +1527,29 @@
           "body",
           "publishedOn",
           "endsOn",
+          "updatedAt",
           "status"
+        ],
+        "additionalProperties": false
+      },
+      "AdminAnnouncements": {
+        "type": "object",
+        "properties": {
+          "today": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "announcements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminAnnouncement"
+            }
+          }
+        },
+        "required": [
+          "today",
+          "announcements"
         ],
         "additionalProperties": false
       },
@@ -1504,11 +1565,6 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 2000
-          },
-          "publishedOn": {
-            "type": "string",
-            "format": "date",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
           },
           "endsOn": {
             "anyOf": [
@@ -1526,7 +1582,6 @@
         "required": [
           "title",
           "body",
-          "publishedOn",
           "endsOn"
         ],
         "additionalProperties": false
@@ -4475,10 +4530,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AdminAnnouncement"
-                  }
+                  "$ref": "#/components/schemas/AdminAnnouncements"
                 }
               }
             }

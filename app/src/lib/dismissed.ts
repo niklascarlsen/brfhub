@@ -19,11 +19,11 @@ export async function readDismissed(): Promise<string[]> {
   }
 }
 
-export async function dismiss(id: string): Promise<void> {
-  const ids = [id, ...(await readDismissed())].slice(0, KEEP);
-
+// The caller passes the whole list, so two quick hides cannot overwrite
+// each other.
+export async function saveDismissed(keys: string[]): Promise<void> {
   try {
-    await SecureStore.setItemAsync(KEY, JSON.stringify(ids));
+    await SecureStore.setItemAsync(KEY, JSON.stringify(keys.slice(0, KEEP)));
   } catch {
     // It shows again next time.
   }

@@ -337,7 +337,8 @@ try {
       title: 'Städdag lördag',
       body: 'Vi städar gården och förråden på lördag klockan 10. Föreningen bjuder på fika efteråt.',
       publishedOn: dateDaysFromToday(0),
-      endsOn: dateDaysFromToday(7),
+      // One week, counting today: what the admin's "1 vecka" sets.
+      endsOn: dateDaysFromToday(6),
     },
     {
       organizationId: ORGANIZATION_ID,

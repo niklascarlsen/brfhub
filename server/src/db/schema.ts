@@ -197,6 +197,10 @@ export const announcements = pgTable(
     createdAt: timestamp('created_at', {withTimezone: true})
       .notNull()
       .defaultNow(),
+    // An edit shows the announcement again to apartments that hid it.
+    updatedAt: timestamp('updated_at', {withTimezone: true})
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     index('announcements_organization_published_idx').on(

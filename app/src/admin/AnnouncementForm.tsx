@@ -1,7 +1,12 @@
 import {useState} from 'react';
 import {Pressable, Text, TextInput, View} from 'react-native';
 
-import {DURATIONS, durationOf, endsOnAfter} from '@/admin/announcement';
+import {
+  DURATIONS,
+  durationOf,
+  endsOnAfter,
+  startOf,
+} from '@/admin/announcement';
 import {
   PRIMARY_BUTTON,
   PRIMARY_LABEL,
@@ -16,12 +21,12 @@ import theme from '@/theme.json';
 export type AnnouncementFields = {
   title: string;
   body: string;
-  publishedOn: string;
   endsOn: string | null;
 };
 
 type AnnouncementFormProps = {
-  initial: AnnouncementFields;
+  initial: AnnouncementFields & {publishedOn: string};
+  today: string;
   submitLabel: string;
   onSubmit: (fields: AnnouncementFields) => Promise<void>;
   onCancel: () => void;
@@ -30,6 +35,7 @@ type AnnouncementFormProps = {
 
 export function AnnouncementForm({
   initial,
+  today,
   submitLabel,
   onSubmit,
   onCancel,
@@ -40,7 +46,10 @@ export function AnnouncementForm({
   const [endsOn, setEndsOn] = useState(initial.endsOn);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const duration = durationOf(initial.publishedOn, endsOn);
+  // A new duration counts from today, also when an older announcement is
+  // given more days.
+  const start = startOf(initial.publishedOn, today);
+  const duration = durationOf(start, endsOn);
 
   async function submit() {
     setSubmitting(true);
@@ -50,7 +59,6 @@ export function AnnouncementForm({
       await onSubmit({
         title: title.trim(),
         body: body.trim(),
-        publishedOn: initial.publishedOn,
         endsOn,
       });
     } catch (caught) {
@@ -92,11 +100,7 @@ export function AnnouncementForm({
                 key={label}
                 accessibilityState={{selected}}
                 onPress={() =>
-                  setEndsOn(
-                    days === null
-                      ? null
-                      : endsOnAfter(initial.publishedOn, days),
-                  )
+                  setEndsOn(days === null ? null : endsOnAfter(start, days))
                 }
                 className={`h-10 justify-center rounded-full border px-4 ${
                   selected

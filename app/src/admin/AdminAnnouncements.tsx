@@ -12,7 +12,7 @@ import {Notice} from '@/components/Notice';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useSlowLoad} from '@/hooks/useSlowLoad';
-import {formatDayMonth, toIsoDate} from '@/lib/dates';
+import {formatDayMonth} from '@/lib/dates';
 import theme from '@/theme.json';
 
 function fetchAnnouncements() {
@@ -44,16 +44,17 @@ export function AdminAnnouncements() {
   const toList = () => setScreen({kind: 'list'});
   const back = {label: 'Anslag', onPress: toList};
 
-  if (screen.kind === 'add') {
+  if (data && screen.kind === 'add') {
     return (
       <AdminPage title='Nytt anslag' subtitle={organizationName} back={back}>
         <AnnouncementForm
           initial={{
             title: '',
             body: '',
-            publishedOn: toIsoDate(new Date()),
+            publishedOn: data.today,
             endsOn: null,
           }}
+          today={data.today}
           submitLabel='Publicera'
           onCancel={toList}
           onSubmit={async (fields) => {
@@ -68,15 +69,18 @@ export function AdminAnnouncements() {
 
   const edited =
     screen.kind === 'edit'
-      ? data?.find((announcement) => announcement.id === screen.id)
+      ? data?.announcements.find(
+          (announcement) => announcement.id === screen.id,
+        )
       : undefined;
 
-  if (edited) {
+  if (data && edited) {
     return (
       <AdminPage title={edited.title} subtitle={organizationName} back={back}>
         <AnnouncementForm
           key={edited.id}
           initial={edited}
+          today={data.today}
           submitLabel='Spara'
           onCancel={toList}
           onSubmit={async (fields) => {
@@ -127,7 +131,7 @@ export function AdminAnnouncements() {
   let body = null;
   if (data) {
     body =
-      data.length === 0 ? (
+      data.announcements.length === 0 ? (
         <Text className='font-sans text-sm leading-5 text-theme-muted'>
           Inga anslag än. Ett anslag visas överst för alla lägenheter, till
           exempel om en städdag eller ett stopp i tvättstugan.
@@ -135,7 +139,9 @@ export function AdminAnnouncements() {
       ) : (
         <View className='gap-[26px]'>
           {GROUPS.map(({status, label}) => {
-            const own = data.filter((item) => item.status === status);
+            const own = data.announcements.filter(
+              (item) => item.status === status,
+            );
 
             if (own.length === 0) {
               return null;

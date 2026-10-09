@@ -1852,7 +1852,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["AdminAnnouncement"][];
+                        "application/json": components["schemas"]["AdminAnnouncements"];
                     };
                 };
                 /** @description Default Response */
@@ -3301,7 +3301,7 @@ export interface components {
             statusCode: number;
             message: string;
             /** @enum {string} */
-            code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "SLOT_STARTED" | "OUTSIDE_BOOKING_WINDOW" | "SLOT_AVAILABLE" | "APARTMENT_TAKEN" | "EMAIL_TAKEN" | "CHANGE_INSIDE_WINDOW" | "INVALID_SCHEDULE" | "KIND_IN_USE" | "NOT_FOUND" | "UNAUTHORIZED" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
+            code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "SLOT_STARTED" | "OUTSIDE_BOOKING_WINDOW" | "SLOT_AVAILABLE" | "APARTMENT_TAKEN" | "EMAIL_TAKEN" | "CHANGE_INSIDE_WINDOW" | "ENDS_IN_PAST" | "INVALID_SCHEDULE" | "KIND_IN_USE" | "NOT_FOUND" | "UNAUTHORIZED" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
         };
         MemberAccountInput: {
             /** @constant */
@@ -3323,6 +3323,8 @@ export interface components {
             /** Format: date */
             publishedOn: string;
             endsOn: string | null;
+            /** Format: date-time */
+            updatedAt: string;
         };
         AdminAnnouncementInput: {
             /** Format: uuid */
@@ -3332,14 +3334,19 @@ export interface components {
             /** Format: date */
             publishedOn: string;
             endsOn: string | null;
+            /** Format: date-time */
+            updatedAt: string;
             /** @enum {string} */
             status: "scheduled" | "active" | "ended";
+        };
+        AdminAnnouncementsInput: {
+            /** Format: date */
+            today: string;
+            announcements: components["schemas"]["AdminAnnouncementInput"][];
         };
         AnnouncementBodyInput: {
             title: string;
             body: string;
-            /** Format: date */
-            publishedOn: string;
             endsOn: string | null;
         };
         ApartmentInput: {
@@ -3598,7 +3605,7 @@ export interface components {
             statusCode: number;
             message: string;
             /** @enum {string} */
-            code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "SLOT_STARTED" | "OUTSIDE_BOOKING_WINDOW" | "SLOT_AVAILABLE" | "APARTMENT_TAKEN" | "EMAIL_TAKEN" | "CHANGE_INSIDE_WINDOW" | "INVALID_SCHEDULE" | "KIND_IN_USE" | "NOT_FOUND" | "UNAUTHORIZED" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
+            code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "SLOT_STARTED" | "OUTSIDE_BOOKING_WINDOW" | "SLOT_AVAILABLE" | "APARTMENT_TAKEN" | "EMAIL_TAKEN" | "CHANGE_INSIDE_WINDOW" | "ENDS_IN_PAST" | "INVALID_SCHEDULE" | "KIND_IN_USE" | "NOT_FOUND" | "UNAUTHORIZED" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
         };
         MemberAccount: {
             /** @constant */
@@ -3620,6 +3627,8 @@ export interface components {
             /** Format: date */
             publishedOn: string;
             endsOn: string | null;
+            /** Format: date-time */
+            updatedAt: string;
         };
         AdminAnnouncement: {
             /** Format: uuid */
@@ -3629,14 +3638,19 @@ export interface components {
             /** Format: date */
             publishedOn: string;
             endsOn: string | null;
+            /** Format: date-time */
+            updatedAt: string;
             /** @enum {string} */
             status: "scheduled" | "active" | "ended";
+        };
+        AdminAnnouncements: {
+            /** Format: date */
+            today: string;
+            announcements: components["schemas"]["AdminAnnouncement"][];
         };
         AnnouncementBody: {
             title: string;
             body: string;
-            /** Format: date */
-            publishedOn: string;
             endsOn: string | null;
         };
         Apartment: {
