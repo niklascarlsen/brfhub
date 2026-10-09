@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import {useState} from 'react';
-import {Alert, Pressable, Text, View} from 'react-native';
+import {useEffect, useState} from 'react';
+import {Alert, BackHandler, Pressable, Text, View} from 'react-native';
 
 import {useAdminAccount} from '@/admin/account';
 import {AdminPage} from '@/admin/AdminPage';
@@ -32,7 +32,7 @@ type Screen =
   | {kind: 'add-resource'}
   | {kind: 'add-kind'}
   | {kind: 'edit-kind'; id: string}
-  | {kind: 'resource'; id: string};
+  | {kind: 'resource'; id: string; name: string};
 
 // What a row says besides the current times: a change or closing ahead.
 function statusOf(resource: AdminResource, today: string): string | null {
@@ -93,6 +93,24 @@ export function AdminResources() {
 
   const toList = () => setScreen({kind: 'list'});
   const back = {label: 'Resurser', onPress: toList};
+
+  // The steps below the list are not screens of their own, so Android's
+  // back button would otherwise leave the tab instead of going back.
+  useEffect(() => {
+    if (screen.kind === 'list') {
+      return;
+    }
+
+    const subscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      () => {
+        setScreen({kind: 'list'});
+        return true;
+      },
+    );
+
+    return () => subscription.remove();
+  }, [screen.kind]);
 
   if (data && screen.kind === 'add-kind') {
     return (
@@ -186,7 +204,7 @@ export function AdminResources() {
               api.POST('/admin/resources', {body: fields}),
             );
             reload();
-            setScreen({kind: 'resource', id});
+            setScreen({kind: 'resource', id, name: fields.name});
           }}
         />
       </AdminPage>
@@ -207,6 +225,16 @@ export function AdminResources() {
           data={data}
           onChanged={reload}
         />
+      </AdminPage>
+    );
+  }
+
+  // A resource just added shows under its name until the list that has it
+  // arrives, instead of the list flashing by.
+  if (screen.kind === 'resource') {
+    return (
+      <AdminPage title={screen.name} subtitle={organizationName} back={back}>
+        {null}
       </AdminPage>
     );
   }
@@ -255,7 +283,11 @@ export function AdminResources() {
                       status={statusOf(resource, data.today)}
                       last={index === own.length - 1}
                       onPress={() =>
-                        setScreen({kind: 'resource', id: resource.id})
+                        setScreen({
+                          kind: 'resource',
+                          id: resource.id,
+                          name: resource.name,
+                        })
                       }
                     />
                   ))}

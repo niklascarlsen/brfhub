@@ -2,12 +2,18 @@ import {randomUUID} from 'node:crypto';
 
 import {and, asc, eq, gte, max, sql} from 'drizzle-orm';
 
-import {db} from '../db/index.js';
-import {resourceKinds, resourceSlots, resources} from '../db/schema.js';
+import {db, type Executor} from '../db/index.js';
+import {
+  bookings,
+  organizations,
+  resourceKinds,
+  resourceSlots,
+  resources,
+  subscriptions,
+} from '../db/schema.js';
 import {appError} from '../lib/errors.js';
 import {asDateText, todaySql} from '../lib/time.js';
 import {slotInEffect} from '../resource/schedule.query.js';
-import {getBookingWindow} from '../slot/slot.service.js';
 import type {
   AdminResources,
   CreateKindBody,
@@ -55,28 +61,61 @@ export function assertValidSlots(slots: SlotInput[]): void {
   }
 }
 
-function addDays(isoDate: string, days: number): string {
-  const date = new Date(`${isoDate}T00:00:00Z`);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
-}
-
 // Everything up to the end of the booking window is promised to members,
-// so a change that can touch bookings starts the day after it at the
-// earliest.
-async function earliestChange(organizationId: string) {
-  const window = await getBookingWindow(organizationId);
-  return {today: window.today, earliestChange: addDays(window.to, 1)};
+// and so is any later day booked or watched before the window was made
+// shorter. A change that can touch bookings starts the day after all of
+// them at the earliest.
+async function changeDates(executor: Executor, organizationId: string) {
+  const today = todaySql();
+  const promised = sql`greatest(
+    ${today} + make_interval(days => ${organizations.bookingWindowDays}),
+    (select max(${bookings.date}) from ${bookings}
+      where ${bookings.organizationId} = ${organizationId}),
+    (select max(${subscriptions.date}) from ${subscriptions}
+      where ${subscriptions.organizationId} = ${organizationId})
+  )`;
+
+  const [row] = await executor
+    .select({
+      today: asDateText(today),
+      earliestChange: asDateText(sql`${promised} + interval '1 day'`),
+    })
+    .from(organizations)
+    .where(eq(organizations.id, organizationId));
+
+  if (!row) {
+    throw new Error(`Unknown organization ${organizationId}`);
+  }
+
+  return row;
 }
 
-async function assertAfterWindow(organizationId: string, day: string) {
-  const {earliestChange: earliest} = await earliestChange(organizationId);
-
+function assertFrom(day: string, earliest: string) {
   if (day < earliest) {
     throw appError(
       'CHANGE_INSIDE_WINDOW',
       `The change can start on ${earliest} at the earliest`,
     );
+  }
+}
+
+// Held for the rest of the transaction, so two changes to one resource's
+// schedule or closing never interleave.
+async function lockResource(
+  executor: Executor,
+  organizationId: string,
+  id: string,
+) {
+  const [resource] = await executor
+    .select({id: resources.id})
+    .from(resources)
+    .where(
+      and(eq(resources.organizationId, organizationId), eq(resources.id, id)),
+    )
+    .for('update');
+
+  if (!resource) {
+    throw appError('NOT_FOUND', 'Unknown resource');
   }
 }
 
@@ -113,7 +152,7 @@ export async function listAdminResources(
   organizationId: string,
 ): Promise<AdminResources> {
   const [dates, kinds, rows, slots] = await Promise.all([
-    earliestChange(organizationId),
+    changeDates(db, organizationId),
     db
       .select({
         id: resourceKinds.id,
@@ -253,7 +292,7 @@ export async function createResource(
   assertValidSlots(body.slots);
 
   const id = randomUUID();
-  const {today} = await earliestChange(organizationId);
+  const {today} = await changeDates(db, organizationId);
 
   await db.transaction(async (tx) => {
     const [last] = await tx
@@ -298,23 +337,26 @@ export async function updateResource(
     return;
   }
 
+  // Like a lower limit, a new kind's limit applies to new bookings; the
+  // ones already made stand.
   await db.update(resources).set(body).where(eq(resources.id, id));
 }
 
-// Replaces any version that starts after the window, since nobody can
-// have booked from it yet.
+// Replaces any version not yet promised, since nobody can have booked
+// from it yet.
 export async function putSchedule(
   organizationId: string,
   id: string,
   validFrom: string,
   slots: SlotInput[],
 ) {
-  await assertResource(organizationId, id);
   assertValidSlots(slots);
-  await assertAfterWindow(organizationId, validFrom);
-  const {earliestChange: earliest} = await earliestChange(organizationId);
 
   await db.transaction(async (tx) => {
+    await lockResource(tx, organizationId, id);
+    const {earliestChange: earliest} = await changeDates(tx, organizationId);
+    assertFrom(validFrom, earliest);
+
     await tx
       .delete(resourceSlots)
       .where(
@@ -323,6 +365,27 @@ export async function putSchedule(
           gte(resourceSlots.validFrom, earliest),
         ),
       );
+
+    // The night slot of the day before may run into the new first slot.
+    const [night] = await tx
+      .select({end: resourceSlots.end})
+      .from(resourceSlots)
+      .where(
+        and(
+          eq(resourceSlots.resourceId, id),
+          eq(resourceSlots.endOffsetDays, 1),
+          slotInEffect(sql`(${validFrom}::date - 1)`),
+        ),
+      );
+    const first = Math.min(...slots.map((slot) => minutesOf(slot.start)));
+
+    if (night && minutesOf(night.end) > first) {
+      throw appError(
+        'INVALID_SCHEDULE',
+        'The night slot before the change overlaps its first slot',
+      );
+    }
+
     await tx
       .insert(resourceSlots)
       .values(slots.map((slot) => ({...slot, resourceId: id, validFrom})));
@@ -334,22 +397,25 @@ export async function deleteSchedule(
   id: string,
   validFrom: string,
 ) {
-  await assertResource(organizationId, id);
-  await assertAfterWindow(organizationId, validFrom);
+  await db.transaction(async (tx) => {
+    await lockResource(tx, organizationId, id);
+    const {earliestChange: earliest} = await changeDates(tx, organizationId);
+    assertFrom(validFrom, earliest);
 
-  const removed = await db
-    .delete(resourceSlots)
-    .where(
-      and(
-        eq(resourceSlots.resourceId, id),
-        eq(resourceSlots.validFrom, validFrom),
-      ),
-    )
-    .returning({start: resourceSlots.start});
+    const removed = await tx
+      .delete(resourceSlots)
+      .where(
+        and(
+          eq(resourceSlots.resourceId, id),
+          eq(resourceSlots.validFrom, validFrom),
+        ),
+      )
+      .returning({start: resourceSlots.start});
 
-  if (removed.length === 0) {
-    throw appError('NOT_FOUND', 'No schedule starts that day');
-  }
+    if (removed.length === 0) {
+      throw appError('NOT_FOUND', 'No schedule starts that day');
+    }
+  });
 }
 
 export async function closeResource(
@@ -357,20 +423,25 @@ export async function closeResource(
   id: string,
   closesFrom: string,
 ) {
-  await assertResource(organizationId, id);
-  await assertAfterWindow(organizationId, closesFrom);
+  await db.transaction(async (tx) => {
+    await lockResource(tx, organizationId, id);
+    const {earliestChange: earliest} = await changeDates(tx, organizationId);
+    assertFrom(closesFrom, earliest);
 
-  await db.update(resources).set({closesFrom}).where(eq(resources.id, id));
+    await tx.update(resources).set({closesFrom}).where(eq(resources.id, id));
+  });
 }
 
 // Opening adds days to book and takes none away, so it applies at once.
 export async function reopenResource(organizationId: string, id: string) {
-  await assertResource(organizationId, id);
+  await db.transaction(async (tx) => {
+    await lockResource(tx, organizationId, id);
 
-  await db
-    .update(resources)
-    .set({closesFrom: null})
-    .where(eq(resources.id, id));
+    await tx
+      .update(resources)
+      .set({closesFrom: null})
+      .where(eq(resources.id, id));
+  });
 }
 
 export async function orderResources(organizationId: string, ids: string[]) {

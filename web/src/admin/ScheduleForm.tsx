@@ -1,5 +1,6 @@
 import {useState, type SubmitEvent} from 'react';
 
+import {slotsProblem} from '@/admin/schedule';
 import {SlotsEditor} from '@/admin/SlotsEditor';
 import {PRIMARY_BUTTON, SECONDARY_BUTTON} from '@/admin/styles';
 import type {SlotInput} from '@/api/client';
@@ -25,6 +26,13 @@ export function ScheduleForm({
 
   async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
+    const problem = slotsProblem(slots);
+
+    if (problem) {
+      setError(problem);
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
 

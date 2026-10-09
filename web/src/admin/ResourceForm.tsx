@@ -1,5 +1,6 @@
 import {useState, type SubmitEvent} from 'react';
 
+import {slotsProblem} from '@/admin/schedule';
 import {SlotsEditor} from '@/admin/SlotsEditor';
 import {PRIMARY_BUTTON, SECONDARY_BUTTON, SECTION_LABEL} from '@/admin/styles';
 import type {AdminKind, SlotInput} from '@/api/client';
@@ -48,6 +49,13 @@ export function ResourceForm({
 
   async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
+    const problem = withSlots ? slotsProblem(slots) : null;
+
+    if (problem) {
+      setError(problem);
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
 

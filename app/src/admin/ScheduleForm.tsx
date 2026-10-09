@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import {Pressable, Text, View} from 'react-native';
 
+import {slotsProblem} from '@/admin/schedule';
 import {SlotsEditor} from '@/admin/SlotsEditor';
 import {
   PRIMARY_BUTTON,
@@ -30,6 +31,13 @@ export function ScheduleForm({
   const [submitting, setSubmitting] = useState(false);
 
   async function submit() {
+    const problem = slotsProblem(slots);
+
+    if (problem) {
+      setError(problem);
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
 

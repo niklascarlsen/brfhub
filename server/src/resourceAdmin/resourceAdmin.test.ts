@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import {after, before, test} from 'node:test';
 
-import {eq} from 'drizzle-orm';
+import {and, eq} from 'drizzle-orm';
 
 import {buildApp} from '../app.js';
 import {db, pool} from '../db/index.js';
-import {resources} from '../db/schema.js';
+import {resourceSlots, resources} from '../db/schema.js';
 import type {BookingRules, Resource} from '../resource/resource.dto.js';
 import type {BookingWindow, Slots} from '../slot/slot.dto.js';
 import {
@@ -347,12 +347,25 @@ test("an admin cannot touch another organization's resources", async () => {
     call('PUT', `/admin/resources/${LAUNDRY}/closing`, southAdmin, {
       closesFrom: earliestChange,
     }),
+    call('DELETE', `/admin/resources/${LAUNDRY}/closing`, southAdmin),
+    call(
+      'DELETE',
+      `/admin/resources/${LAUNDRY}/schedule/${earliestChange}`,
+      southAdmin,
+    ),
     call('PATCH', '/admin/kinds/laundry', southAdmin, {maxActive: 5}),
+    call('DELETE', '/admin/kinds/laundry', southAdmin),
   ];
 
   for (const [index, response] of (await Promise.all(requests)).entries()) {
     assert.equal(response.statusCode, 404, `request ${index}`);
   }
+
+  const order = await call('PUT', '/admin/resources/order', southAdmin, {
+    ids: [LAUNDRY],
+  });
+  assert.equal(order.statusCode, 400);
+  assert.equal(codeOf(order), 'VALIDATION');
 
   assert.deepEqual((await adminView(southAdmin)).resources, []);
 });
@@ -367,4 +380,218 @@ test('the window length changes at once', async () => {
     await call('GET', '/booking-window', member)
   ).json<BookingWindow>();
   assert.equal(window.to, addDays(window.today, 14));
+});
+
+test('an apartment cannot use what only the admin uses', async () => {
+  const {earliestChange} = await adminView();
+  const requests: [
+    'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+    string,
+    Record<string, unknown>?,
+  ][] = [
+    ['GET', '/admin/resources'],
+    ['GET', '/admin/organization'],
+    ['PATCH', '/admin/organization', {bookingWindowDays: 60}],
+    ['POST', '/admin/kinds', {name: 'Gästrum', maxActive: 1}],
+    ['PATCH', '/admin/kinds/laundry', {maxActive: 5}],
+    ['DELETE', '/admin/kinds/laundry'],
+    [
+      'POST',
+      '/admin/resources',
+      {
+        name: 'Gästrum',
+        kindId: 'laundry',
+        tags: [],
+        slots: [slot('08:00', '09:00')],
+      },
+    ],
+    ['PATCH', `/admin/resources/${LAUNDRY}`, {name: 'Min'}],
+    ['PUT', '/admin/resources/order', {ids: [LAUNDRY]}],
+    [
+      'PUT',
+      `/admin/resources/${LAUNDRY}/schedule`,
+      {validFrom: earliestChange, slots: [slot('08:00', '09:00')]},
+    ],
+    ['DELETE', `/admin/resources/${LAUNDRY}/schedule/${earliestChange}`],
+    [
+      'PUT',
+      `/admin/resources/${LAUNDRY}/closing`,
+      {closesFrom: earliestChange},
+    ],
+    ['DELETE', `/admin/resources/${LAUNDRY}/closing`],
+  ];
+
+  for (const [method, url, payload] of requests) {
+    const response = await call(method, url, member, payload);
+    assert.equal(response.statusCode, 403, `${method} ${url}`);
+    assert.equal(codeOf(response), 'FORBIDDEN', `${method} ${url}`);
+  }
+});
+
+test('the order must list every resource once', async () => {
+  const listed = (await adminView()).resources.map((resource) => resource.id);
+
+  for (const ids of [listed.slice(1), [...listed, listed[0]]]) {
+    const response = await call('PUT', '/admin/resources/order', admin, {
+      ids,
+    });
+    assert.equal(response.statusCode, 400, JSON.stringify(ids));
+    assert.equal(codeOf(response), 'VALIDATION');
+  }
+});
+
+test('removes a kind no resource uses', async () => {
+  const kind = await call('POST', '/admin/kinds', admin, {
+    name: 'Gästrum',
+    maxActive: 1,
+  });
+  const id = kind.json<{id: string}>().id;
+
+  const removed = await call('DELETE', `/admin/kinds/${id}`, admin);
+  assert.equal(removed.statusCode, 204);
+  assert.ok(!(await adminView()).kinds.some((entry) => entry.id === id));
+});
+
+test('a schedule in reach cannot be removed', async () => {
+  const response = await call(
+    'DELETE',
+    `/admin/resources/${LAUNDRY}/schedule/2000-01-01`,
+    admin,
+  );
+  assert.equal(response.statusCode, 400);
+  assert.equal(codeOf(response), 'CHANGE_INSIDE_WINDOW');
+});
+
+test('a closing not yet in reach can be undone', async () => {
+  const {earliestChange} = await adminView();
+  await call('PUT', `/admin/resources/${LAUNDRY}/closing`, admin, {
+    closesFrom: earliestChange,
+  });
+
+  const undone = await call(
+    'DELETE',
+    `/admin/resources/${LAUNDRY}/closing`,
+    admin,
+  );
+  assert.equal(undone.statusCode, 204);
+  const laundry = (await adminView()).resources.find(
+    (resource) => resource.id === LAUNDRY,
+  );
+  assert.equal(laundry?.closesFrom, null);
+});
+
+// A night slot already bookable ends on the first day of the change.
+test('a night slot may not run into the first slot of the next schedule', async () => {
+  await db.insert(resourceSlots).values({
+    resourceId: LAUNDRY,
+    validFrom: '2000-01-01',
+    start: '20:00',
+    end: '07:00',
+    endOffsetDays: 1,
+  });
+  const {earliestChange} = await adminView();
+
+  try {
+    const overlapping = await call(
+      'PUT',
+      `/admin/resources/${LAUNDRY}/schedule`,
+      admin,
+      {validFrom: earliestChange, slots: [slot('06:00', '10:00')]},
+    );
+    assert.equal(overlapping.statusCode, 400);
+    assert.equal(codeOf(overlapping), 'INVALID_SCHEDULE');
+
+    const after = await call(
+      'PUT',
+      `/admin/resources/${LAUNDRY}/schedule`,
+      admin,
+      {validFrom: earliestChange, slots: [slot('07:00', '10:00')]},
+    );
+    assert.equal(after.statusCode, 204);
+  } finally {
+    await call(
+      'DELETE',
+      `/admin/resources/${LAUNDRY}/schedule/${earliestChange}`,
+      admin,
+    );
+    await db
+      .delete(resourceSlots)
+      .where(
+        and(
+          eq(resourceSlots.resourceId, LAUNDRY),
+          eq(resourceSlots.start, '20:00'),
+        ),
+      );
+  }
+});
+
+test('two changes at once leave one schedule ahead', async () => {
+  const {earliestChange} = await adminView();
+
+  const responses = await Promise.all(
+    [slot('07:00', '09:00'), slot('09:00', '11:00')].map((only, index) =>
+      call('PUT', `/admin/resources/${LAUNDRY}/schedule`, admin, {
+        validFrom: addDays(earliestChange, index),
+        slots: [only],
+      }),
+    ),
+  );
+  assert.deepEqual(
+    responses.map((response) => response.statusCode),
+    [204, 204],
+  );
+
+  const laundry = (await adminView()).resources.find(
+    (resource) => resource.id === LAUNDRY,
+  );
+  assert.equal(laundry?.schedules.length, 2);
+
+  await call(
+    'DELETE',
+    `/admin/resources/${LAUNDRY}/schedule/${laundry?.schedules[1]?.validFrom}`,
+    admin,
+  );
+});
+
+// Days booked under a longer window stay promised after it is shortened.
+test('a shorter window keeps the days already booked from changing', async () => {
+  const window = (
+    await call('GET', '/booking-window', member)
+  ).json<BookingWindow>();
+  const booked = await call('POST', '/bookings', member, {
+    resourceId: LAUNDRY,
+    date: window.to,
+    start: '08:00',
+  });
+  assert.equal(booked.statusCode, 201);
+
+  await call('PATCH', '/admin/organization', admin, {bookingWindowDays: 3});
+
+  try {
+    const {today, earliestChange} = await adminView();
+    assert.equal(earliestChange, addDays(window.to, 1));
+
+    const schedule = await call(
+      'PUT',
+      `/admin/resources/${LAUNDRY}/schedule`,
+      admin,
+      {validFrom: addDays(today, 4), slots: [slot('09:00', '13:00')]},
+    );
+    assert.equal(codeOf(schedule), 'CHANGE_INSIDE_WINDOW');
+
+    const closing = await call(
+      'PUT',
+      `/admin/resources/${LAUNDRY}/closing`,
+      admin,
+      {closesFrom: addDays(today, 4)},
+    );
+    assert.equal(codeOf(closing), 'CHANGE_INSIDE_WINDOW');
+
+    await call('DELETE', `/bookings/${booked.json<{id: string}>().id}`, member);
+    assert.equal((await adminView()).earliestChange, addDays(today, 4));
+  } finally {
+    await call('PATCH', '/admin/organization', admin, {
+      bookingWindowDays: NORTH.bookingWindowDays,
+    });
+  }
 });

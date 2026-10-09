@@ -26,7 +26,7 @@ type Screen =
   | {kind: 'add-resource'}
   | {kind: 'add-kind'}
   | {kind: 'edit-kind'; id: string}
-  | {kind: 'resource'; id: string};
+  | {kind: 'resource'; id: string; name: string};
 
 // What a row says besides the current times: a change or closing ahead.
 function statusOf(resource: AdminResource, today: string): string | null {
@@ -175,7 +175,7 @@ export function AdminResources() {
               api.POST('/admin/resources', {body: fields}),
             );
             reload();
-            setScreen({kind: 'resource', id});
+            setScreen({kind: 'resource', id, name: fields.name});
           }}
         />
       </AdminPage>
@@ -196,6 +196,16 @@ export function AdminResources() {
           data={data}
           onChanged={reload}
         />
+      </AdminPage>
+    );
+  }
+
+  // A resource just added shows under its name until the list that has it
+  // arrives, instead of the list flashing by.
+  if (screen.kind === 'resource') {
+    return (
+      <AdminPage title={screen.name} subtitle={organizationName} back={back}>
+        {null}
       </AdminPage>
     );
   }
@@ -241,7 +251,11 @@ export function AdminResources() {
                       resource={resource}
                       status={statusOf(resource, data.today)}
                       onPress={() =>
-                        setScreen({kind: 'resource', id: resource.id})
+                        setScreen({
+                          kind: 'resource',
+                          id: resource.id,
+                          name: resource.name,
+                        })
                       }
                     />
                   ))}

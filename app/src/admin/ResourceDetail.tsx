@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import {useState} from 'react';
-import {Alert, Pressable, Text, View} from 'react-native';
+import {useEffect, useState} from 'react';
+import {Alert, BackHandler, Pressable, Text, View} from 'react-native';
 
 import {ResourceForm} from '@/admin/ResourceForm';
 import {ScheduleForm} from '@/admin/ScheduleForm';
@@ -60,9 +60,21 @@ function Action({
   );
 }
 
-function Button({label, onPress}: {label: string; onPress: () => void}) {
+function Button({
+  label,
+  disabled = false,
+  onPress,
+}: {
+  label: string;
+  disabled?: boolean;
+  onPress: () => void;
+}) {
   return (
-    <Pressable onPress={onPress} className={SECONDARY_BUTTON}>
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      className={SECONDARY_BUTTON}
+    >
       <Text className={SECONDARY_LABEL}>{label}</Text>
     </Pressable>
   );
@@ -74,6 +86,24 @@ export function ResourceDetail({
   onChanged,
 }: ResourceDetailProps) {
   const [mode, setMode] = useState<Mode>('view');
+
+  // Back from a form returns to the resource, not to the list. Registered
+  // after the list's handler, so it is asked first.
+  useEffect(() => {
+    if (mode === 'view') {
+      return;
+    }
+
+    const subscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      () => {
+        setMode('view');
+        return true;
+      },
+    );
+
+    return () => subscription.remove();
+  }, [mode]);
   const {kinds, earliestChange, today} = data;
   const kind = kinds.find((item) => item.id === resource.kindId);
   const [current, ...later] = resource.schedules;
@@ -83,19 +113,45 @@ export function ResourceDetail({
   const fail = (title: string) => (caught: unknown) =>
     Alert.alert(title, errorMessage(codeOf(caught)));
 
-  const move = (by: number) => {
-    const ids = data.resources.map((item) => item.id);
-    const from = ids.indexOf(resource.id);
-    const to = from + by;
+  const [busy, setBusy] = useState(false);
 
-    if (to < 0 || to >= ids.length) {
+  const run = (request: () => Promise<unknown>, failTitle: string) => {
+    if (busy) {
       return;
     }
 
-    [ids[from], ids[to]] = [ids[to] ?? '', ids[from] ?? ''];
-    unwrap(api.PUT('/admin/resources/order', {body: {ids}}))
+    setBusy(true);
+    request()
       .then(onChanged)
-      .catch(fail('Kunde inte flytta resursen'));
+      .catch(fail(failTitle))
+      .finally(() => setBusy(false));
+  };
+
+  // Members see the resources grouped by kind, so a move swaps places with
+  // the neighbour of the same kind.
+  const siblings = data.resources.filter(
+    (item) => item.kindId === resource.kindId,
+  );
+  const position = siblings.findIndex((item) => item.id === resource.id);
+
+  const move = (by: number) => {
+    const neighbour = siblings[position + by];
+
+    if (!neighbour) {
+      return;
+    }
+
+    const ids = data.resources.map((item) =>
+      item.id === resource.id
+        ? neighbour.id
+        : item.id === neighbour.id
+          ? resource.id
+          : item.id,
+    );
+    run(
+      () => unwrap(api.PUT('/admin/resources/order', {body: {ids}})),
+      'Kunde inte flytta resursen',
+    );
   };
 
   const removeChange = (validFrom: string) =>
@@ -108,13 +164,15 @@ export function ResourceDetail({
           text: 'Ta bort',
           style: 'destructive',
           onPress: () => {
-            unwrap(
-              api.DELETE('/admin/resources/{id}/schedule/{validFrom}', {
-                params: {path: {id: resource.id, validFrom}},
-              }),
-            )
-              .then(onChanged)
-              .catch(fail('Kunde inte ta bort ändringen'));
+            run(
+              () =>
+                unwrap(
+                  api.DELETE('/admin/resources/{id}/schedule/{validFrom}', {
+                    params: {path: {id: resource.id, validFrom}},
+                  }),
+                ),
+              'Kunde inte ta bort ändringen',
+            );
           },
         },
       ],
@@ -130,28 +188,31 @@ export function ResourceDetail({
           text: 'Stäng',
           style: 'destructive',
           onPress: () => {
-            unwrap(
-              api.PUT('/admin/resources/{id}/closing', {
-                params: {path: {id: resource.id}},
-                body: {closesFrom: earliestChange},
-              }),
-            )
-              .then(onChanged)
-              .catch(fail('Kunde inte stänga resursen'));
+            run(
+              () =>
+                unwrap(
+                  api.PUT('/admin/resources/{id}/closing', {
+                    params: {path: {id: resource.id}},
+                    body: {closesFrom: earliestChange},
+                  }),
+                ),
+              'Kunde inte stänga resursen',
+            );
           },
         },
       ],
     );
 
-  const reopen = () => {
-    unwrap(
-      api.DELETE('/admin/resources/{id}/closing', {
-        params: {path: {id: resource.id}},
-      }),
-    )
-      .then(onChanged)
-      .catch(fail('Kunde inte öppna resursen'));
-  };
+  const reopen = () =>
+    run(
+      () =>
+        unwrap(
+          api.DELETE('/admin/resources/{id}/closing', {
+            params: {path: {id: resource.id}},
+          }),
+        ),
+      closed ? 'Kunde inte öppna resursen' : 'Kunde inte ångra stängningen',
+    );
 
   if (mode === 'edit') {
     return (
@@ -278,12 +339,28 @@ export function ResourceDetail({
         </View>
       </View>
       <View className='flex-row flex-wrap gap-2.5'>
-        <Button label='Flytta upp' onPress={() => move(-1)} />
-        <Button label='Flytta ner' onPress={() => move(1)} />
+        {siblings.length > 1 ? (
+          <>
+            <Button
+              label='Flytta upp'
+              disabled={busy || position === 0}
+              onPress={() => move(-1)}
+            />
+            <Button
+              label='Flytta ner'
+              disabled={busy || position === siblings.length - 1}
+              onPress={() => move(1)}
+            />
+          </>
+        ) : null}
         {resource.closesFrom ? (
-          <Button label='Öppna igen' onPress={reopen} />
+          <Button
+            label={closed ? 'Öppna igen' : 'Ångra stängningen'}
+            disabled={busy}
+            onPress={reopen}
+          />
         ) : (
-          <Button label='Stäng resursen' onPress={close} />
+          <Button label='Stäng resursen' disabled={busy} onPress={close} />
         )}
       </View>
     </View>
