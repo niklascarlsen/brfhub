@@ -3,6 +3,7 @@ import {useState, type SubmitEvent} from 'react';
 import {PRIMARY_BUTTON, SECONDARY_BUTTON} from '@/admin/styles';
 import {codeOf, errorMessage} from '@/api/errors';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
+import {useMessages} from '@/i18n/LocaleProvider';
 
 export type ApartmentFields = {
   label: string;
@@ -28,6 +29,7 @@ export function ApartmentForm({
   onSubmit,
   onCancel,
 }: ApartmentFormProps) {
+  const t = useMessages();
   const [fields, setFields] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -51,8 +53,8 @@ export function ApartmentForm({
       // The server checks the email more closely than the field does.
       setError(
         code === 'VALIDATION'
-          ? 'Kontrollera e-postadressen'
-          : errorMessage(code),
+          ? t.admin.apartmentForm.checkEmail
+          : errorMessage(code, t),
       );
       setSubmitting(false);
     }
@@ -65,7 +67,7 @@ export function ApartmentForm({
     >
       {withLabel ? (
         <FloatingLabelInput
-          label='Lägenhetsnummer'
+          label={t.admin.apartmentForm.number}
           name='label'
           required
           maxLength={20}
@@ -74,7 +76,7 @@ export function ApartmentForm({
         />
       ) : null}
       <FloatingLabelInput
-        label='De boendes namn'
+        label={t.admin.apartmentForm.residentName}
         name='residentName'
         autoComplete='off'
         required
@@ -83,7 +85,7 @@ export function ApartmentForm({
         onChange={(event) => set('residentName')(event.target.value)}
       />
       <FloatingLabelInput
-        label='E-post'
+        label={t.login.email}
         type='email'
         name='email'
         autoComplete='off'
@@ -106,7 +108,7 @@ export function ApartmentForm({
           {submitLabel}
         </button>
         <button type='button' onClick={onCancel} className={SECONDARY_BUTTON}>
-          Avbryt
+          {t.common.cancel}
         </button>
       </div>
     </form>

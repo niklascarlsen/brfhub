@@ -11,6 +11,7 @@ import {Skeleton, SkeletonBar} from '@/components/Skeleton';
 import {Tag} from '@/components/Tag';
 import {addDays, formatHeadingDate, relativeDay} from '@/desktop/weeks';
 import {useSlowLoad} from '@/hooks/useSlowLoad';
+import {useMessages} from '@/i18n/LocaleProvider';
 import {timeRange} from '@/lib/dates';
 import {isLocked, slotAppearance} from '@/lib/slots';
 
@@ -65,7 +66,8 @@ function SlotChip({
   slot: Slot;
   onSelect: (slot: Slot) => void;
 }) {
-  const {surface, label, tone, mark} = slotAppearance(slot);
+  const t = useMessages();
+  const {surface, label, tone, mark} = slotAppearance(slot, t);
   const locked = isLocked(slot);
 
   return (
@@ -132,6 +134,7 @@ export function DayPanel({
   const previousButton = useRef<HTMLButtonElement>(null);
   const nextButton = useRef<HTMLButtonElement>(null);
   const showSkeleton = useSlowLoad(day === null && error === null);
+  const t = useMessages();
 
   // Stepping onto the first or last day disables the button under the
   // cursor. Hand focus to the one that stays enabled.
@@ -153,10 +156,10 @@ export function DayPanel({
 
   let freeLabel = null;
   if (free !== undefined) {
-    freeLabel = free === 1 ? '1 ledigt pass' : `${free} lediga pass`;
+    freeLabel = t.booking.freeSlots(free);
   }
 
-  const eyebrow = [relativeDay(isoDate, bookingWindow.today), freeLabel]
+  const eyebrow = [relativeDay(isoDate, bookingWindow.today, t), freeLabel]
     .filter(Boolean)
     .join(' · ');
 
@@ -166,12 +169,12 @@ export function DayPanel({
         <div className='flex min-w-0 flex-col gap-0.5'>
           <span className='h-5 text-[13px] text-theme-muted'>{eyebrow}</span>
           <h2 className='text-[26px] font-semibold tracking-tight text-theme-ink'>
-            {formatHeadingDate(isoDate)}
+            {formatHeadingDate(isoDate, t)}
           </h2>
         </div>
         <div className='flex shrink-0 gap-2'>
           <DayNavButton
-            label='Föregående dag'
+            label={t.booking.previousDay}
             disabled={isoDate <= bookingWindow.from}
             onClick={() => step(-1)}
             ref={previousButton}
@@ -179,7 +182,7 @@ export function DayPanel({
             <ChevronBackIcon size={16} />
           </DayNavButton>
           <DayNavButton
-            label='Nästa dag'
+            label={t.booking.nextDay}
             disabled={isoDate >= bookingWindow.to}
             onClick={() => step(1)}
             ref={nextButton}
@@ -192,7 +195,7 @@ export function DayPanel({
         error ? (
           <Notice
             message={error}
-            actionLabel='Försök igen'
+            actionLabel={t.common.retry}
             onAction={onRetry}
           />
         ) : showSkeleton ? (
@@ -203,7 +206,7 @@ export function DayPanel({
           {error ? (
             <NoticeBar
               message={error}
-              actionLabel='Försök igen'
+              actionLabel={t.common.retry}
               onAction={onRetry}
             />
           ) : null}
@@ -223,7 +226,7 @@ export function DayPanel({
               </div>
               {entry.slots.length === 0 ? (
                 <p className='text-[13px] text-theme-muted'>
-                  Inga tider kvar den här dagen
+                  {t.booking.noSlotsLeft}
                 </p>
               ) : (
                 <div className='flex flex-wrap gap-2'>

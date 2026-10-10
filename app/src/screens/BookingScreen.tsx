@@ -11,6 +11,7 @@ import {useConfig} from '@/config';
 import {useBookingActions} from '@/hooks/useBookingActions';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useResetWhenChanged} from '@/hooks/useResetWhenChanged';
+import {useMessages} from '@/i18n/LocaleProvider';
 import {formatLongDate, isWithinBookingWindow} from '@/lib/dates';
 import type {AppTabParamList} from '@/navigation/AppTabNavigator';
 
@@ -22,6 +23,7 @@ function fetchDay(isoDate: string, resourceId: string) {
 
 export function BookingScreen() {
   const {window, resources} = useConfig();
+  const t = useMessages();
   const route = useRoute<RouteProp<AppTabParamList, 'Booking'>>();
   const routeDate = route.params?.date;
   const routeResourceId = route.params?.resourceId;
@@ -65,7 +67,7 @@ export function BookingScreen() {
       >
         <AnnouncementBanner className='mb-4' />
         <Text className='text-[27px] font-semibold tracking-tight text-theme-ink'>
-          {formatLongDate(date)}
+          {formatLongDate(date, t)}
         </Text>
         {resource.tags.length > 0 ? (
           <View className='mt-2 mb-1 flex-row flex-wrap gap-[6px]'>

@@ -6,6 +6,7 @@ import {PRIMARY_BUTTON, SECONDARY_BUTTON, SECTION_LABEL} from '@/admin/styles';
 import type {AdminKind, SlotInput} from '@/api/client';
 import {codeOf, errorMessage} from '@/api/errors';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
+import {useMessages} from '@/i18n/LocaleProvider';
 
 export type ResourceFields = {
   name: string;
@@ -40,6 +41,7 @@ export function ResourceForm({
   onSubmit,
   onCancel,
 }: ResourceFormProps) {
+  const t = useMessages();
   const [name, setName] = useState(initial.name);
   const [kindId, setKindId] = useState(initial.kindId);
   const [tags, setTags] = useState(initial.tags.join(', '));
@@ -49,7 +51,7 @@ export function ResourceForm({
 
   async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    const problem = withSlots ? slotsProblem(slots) : null;
+    const problem = withSlots ? slotsProblem(slots, t) : null;
 
     if (problem) {
       setError(problem);
@@ -62,7 +64,7 @@ export function ResourceForm({
     try {
       await onSubmit({name: name.trim(), kindId, tags: tagsOf(tags), slots});
     } catch (caught) {
-      setError(errorMessage(codeOf(caught)));
+      setError(errorMessage(codeOf(caught), t));
       setSubmitting(false);
     }
   }
@@ -73,7 +75,7 @@ export function ResourceForm({
       className='flex flex-col gap-3'
     >
       <FloatingLabelInput
-        label='Namn, till exempel Tvättstuga 1'
+        label={t.admin.resourceForm.name}
         required
         maxLength={40}
         value={name}
@@ -81,7 +83,7 @@ export function ResourceForm({
       />
       <fieldset className='flex flex-col gap-2'>
         <legend className='mb-2 text-[13px] font-medium text-theme-muted'>
-          Typ
+          {t.admin.resource.kind}
         </legend>
         <div className='flex flex-wrap gap-2'>
           {kinds.map((kind) => {
@@ -106,13 +108,13 @@ export function ResourceForm({
         </div>
       </fieldset>
       <FloatingLabelInput
-        label='Taggar, åtskilda med komma'
+        label={t.admin.resourceForm.tags}
         value={tags}
         onChange={(event) => setTags(event.target.value)}
       />
       {withSlots ? (
         <section className='mt-3'>
-          <h2 className={SECTION_LABEL}>Pass</h2>
+          <h2 className={SECTION_LABEL}>{t.admin.resourceForm.slots}</h2>
           <SlotsEditor slots={slots} onChange={setSlots} />
         </section>
       ) : null}
@@ -130,7 +132,7 @@ export function ResourceForm({
           {submitLabel}
         </button>
         <button type='button' onClick={onCancel} className={SECONDARY_BUTTON}>
-          Avbryt
+          {t.common.cancel}
         </button>
       </div>
     </form>

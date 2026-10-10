@@ -15,6 +15,7 @@ import {
 } from '@/admin/styles';
 import {codeOf, errorMessage} from '@/api/errors';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
+import {useMessages} from '@/i18n/LocaleProvider';
 import {formatLongDate} from '@/lib/dates';
 import theme from '@/theme.json';
 
@@ -41,6 +42,7 @@ export function AnnouncementForm({
   onCancel,
   onDelete,
 }: AnnouncementFormProps) {
+  const t = useMessages();
   const [title, setTitle] = useState(initial.title);
   const [body, setBody] = useState(initial.body);
   const [endsOn, setEndsOn] = useState(initial.endsOn);
@@ -62,7 +64,7 @@ export function AnnouncementForm({
         endsOn,
       });
     } catch (caught) {
-      setError(errorMessage(codeOf(caught)));
+      setError(errorMessage(codeOf(caught), t));
       setSubmitting(false);
     }
   }
@@ -70,34 +72,38 @@ export function AnnouncementForm({
   return (
     <View className='gap-3'>
       <FloatingLabelInput
-        label='Rubrik'
+        label={t.admin.announcementForm.title}
         value={title}
         onChangeText={setTitle}
         maxLength={100}
         autoCapitalize='sentences'
       />
       <View className='gap-1.5'>
-        <Text className='text-[13px] font-medium text-theme-muted'>Text</Text>
+        <Text className='text-[13px] font-medium text-theme-muted'>
+          {t.admin.announcementForm.body}
+        </Text>
         <TextInput
           value={body}
           onChangeText={setBody}
           multiline
           maxLength={2000}
           textAlignVertical='top'
-          accessibilityLabel='Text'
+          accessibilityLabel={t.admin.announcementForm.body}
           className='min-h-[132px] rounded-sm border border-theme-edge bg-theme-surface px-4 py-3 text-base text-theme-ink'
           style={{fontFamily: 'Merriweather_400Regular', color: theme.ink}}
         />
       </View>
       <View className='gap-2'>
-        <Text className='text-[13px] font-medium text-theme-muted'>Visas</Text>
+        <Text className='text-[13px] font-medium text-theme-muted'>
+          {t.admin.announcementForm.shownFor}
+        </Text>
         <View className='flex-row flex-wrap gap-2'>
           {DURATIONS.map(({label, days}) => {
             const selected = duration === days;
 
             return (
               <Pressable
-                key={label}
+                key={String(days)}
                 accessibilityState={{selected}}
                 onPress={() =>
                   setEndsOn(days === null ? null : endsOnAfter(start, days))
@@ -113,15 +119,17 @@ export function AnnouncementForm({
                     selected ? 'text-theme-surface' : 'text-theme-ink'
                   }`}
                 >
-                  {label}
+                  {label(t)}
                 </Text>
               </Pressable>
             );
           })}
         </View>
         <Text className='font-sans text-[13px] leading-5 text-theme-muted'>
-          Från {formatLongDate(initial.publishedOn)}
-          {endsOn ? ` till och med ${formatLongDate(endsOn)}` : ''}.
+          {t.admin.announcementForm.shown(
+            formatLongDate(initial.publishedOn, t),
+            endsOn ? formatLongDate(endsOn, t) : null,
+          )}
         </Text>
       </View>
       {error ? (
@@ -143,11 +151,11 @@ export function AnnouncementForm({
           <Text className={PRIMARY_LABEL}>{submitLabel}</Text>
         </Pressable>
         <Pressable onPress={onCancel} className={SECONDARY_BUTTON}>
-          <Text className={SECONDARY_LABEL}>Avbryt</Text>
+          <Text className={SECONDARY_LABEL}>{t.common.cancel}</Text>
         </Pressable>
         {onDelete ? (
           <Pressable onPress={onDelete} className={SECONDARY_BUTTON}>
-            <Text className={SECONDARY_LABEL}>Ta bort</Text>
+            <Text className={SECONDARY_LABEL}>{t.admin.remove}</Text>
           </Pressable>
         ) : null}
       </View>

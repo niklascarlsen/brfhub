@@ -1,4 +1,5 @@
 import type {Slot} from '@/api/client';
+import type {Messages} from '@/i18n/catalog';
 import {exhaustive} from '@/lib/exhaustive';
 
 type Appearance = {
@@ -10,13 +11,13 @@ type Appearance = {
   chevron: boolean;
 };
 
-export function slotAppearance(slot: Slot): Appearance {
+export function slotAppearance(slot: Slot, t: Messages): Appearance {
   switch (slot.status) {
     case 'mine':
       return {
         surface: 'border border-transparent bg-theme-mist',
         time: 'text-theme-ink',
-        label: 'Din tid',
+        label: t.slots.mine,
         tone: 'font-semibold text-theme-accent',
         mark: 'dot',
         chevron: false,
@@ -26,7 +27,7 @@ export function slotAppearance(slot: Slot): Appearance {
         ? {
             surface: 'border border-theme-accent bg-theme-surface',
             time: 'text-theme-ink',
-            label: 'Ledig nu',
+            label: t.slots.freeNow,
             tone: 'font-semibold text-theme-accent',
             mark: null,
             chevron: true,
@@ -34,7 +35,7 @@ export function slotAppearance(slot: Slot): Appearance {
         : {
             surface: 'border border-theme-line bg-theme-surface',
             time: 'text-theme-ink',
-            label: 'Ledig',
+            label: t.slots.free,
             tone: 'font-medium text-theme-muted',
             mark: null,
             chevron: true,
@@ -43,7 +44,7 @@ export function slotAppearance(slot: Slot): Appearance {
       return {
         surface: 'border border-transparent bg-theme-sunk',
         time: 'text-theme-faint',
-        label: 'Drop-in',
+        label: t.slots.dropIn,
         tone: 'font-medium text-theme-faint',
         mark: 'lock',
         chevron: false,
@@ -52,7 +53,7 @@ export function slotAppearance(slot: Slot): Appearance {
       return {
         surface: 'border border-transparent bg-theme-sunk',
         time: 'text-theme-faint',
-        label: slot.subscriptionId ? 'I kö' : 'Upptagen',
+        label: slot.subscriptionId ? t.slots.queued : t.slots.taken,
         tone: slot.subscriptionId
           ? 'font-medium text-theme-accent'
           : 'font-medium text-theme-faint',

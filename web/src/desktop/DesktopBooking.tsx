@@ -15,6 +15,7 @@ import {PageHeader} from '@/desktop/PageHeader';
 import {formatHeadingDate, relativeDay} from '@/desktop/weeks';
 import {useBookingActions} from '@/hooks/useBookingActions';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
+import {useMessages} from '@/i18n/LocaleProvider';
 import {fromIsoDate, getWeekdayLabel, timeRange} from '@/lib/dates';
 
 export type BookingProps = {
@@ -74,9 +75,11 @@ function NextBooking({
   todayIso: string;
   onSelectDate: (isoDate: string) => void;
 }) {
+  const t = useMessages();
   const day = fromIsoDate(booking.date);
   const when =
-    relativeDay(booking.date, todayIso) ?? formatHeadingDate(booking.date);
+    relativeDay(booking.date, todayIso, t) ??
+    formatHeadingDate(booking.date, t);
 
   return (
     <button
@@ -86,7 +89,7 @@ function NextBooking({
     >
       <span className='flex h-10 w-10 flex-col items-center justify-center rounded-xl bg-theme-surface leading-none'>
         <span className='text-[9px] font-bold text-theme-accent uppercase'>
-          {getWeekdayLabel(day)}
+          {getWeekdayLabel(day, t)}
         </span>
         <span className='text-[15px] font-semibold tabular-nums text-theme-ink'>
           {day.getDate()}
@@ -94,7 +97,7 @@ function NextBooking({
       </span>
       <span className='flex flex-col gap-0.5'>
         <span className='text-xs font-bold text-theme-accent'>
-          Din nästa tid
+          {t.booking.nextTime}
         </span>
         <span className='text-sm font-semibold text-theme-ink'>
           {when}, {timeRange(booking.start, booking.end)} ·{' '}
@@ -112,6 +115,7 @@ export function DesktopBooking({
   onSelectDate,
 }: BookingProps) {
   const {apartment} = useConfig();
+  const t = useMessages();
 
   const {
     data: overview,
@@ -147,8 +151,8 @@ export function DesktopBooking({
   return (
     <>
       <PageHeader
-        eyebrow={formatHeadingDate(bookingWindow.today)}
-        title={`Hej, lägenhet ${apartment}`}
+        eyebrow={formatHeadingDate(bookingWindow.today, t)}
+        title={t.booking.greeting(apartment)}
       >
         {nextBooking ? (
           <NextBooking
@@ -173,7 +177,7 @@ export function DesktopBooking({
                 id='my-times-heading'
                 className='mb-3 ml-0.5 text-[27px] font-semibold tracking-tight text-theme-ink'
               >
-                Mina tider
+                {t.tabs.myTimes}
               </h2>
               <MyTimesList
                 times={overview?.times ?? null}

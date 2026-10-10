@@ -3,23 +3,26 @@ import {useState, type SubmitEvent} from 'react';
 import {errorMessage} from '@/api/errors';
 import {authClient} from '@/auth/client';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
+import type {Messages} from '@/i18n/catalog';
+import {useMessages} from '@/i18n/LocaleProvider';
 
 // The rate limiter answers 429 without a code, so status is what tells
 // the cases apart.
-function loginMessage(status: number): string {
+function loginMessage(status: number, t: Messages): string {
   switch (status) {
     case 401:
-      return 'Fel e-post eller lösenord';
+      return t.login.wrongCredentials;
     case 429:
-      return 'För många försök, vänta en stund';
+      return t.login.tooManyAttempts;
     case 403:
-      return 'Servern tillåter inte den här adressen';
+      return t.login.originRefused;
     default:
-      return errorMessage('NETWORK');
+      return errorMessage('NETWORK', t);
   }
 }
 
 export function LoginScreen() {
+  const t = useMessages();
   const [email, setEmail] = useState('12@example.com');
   const [password, setPassword] = useState('password');
   const [error, setError] = useState<string | null>(null);
@@ -36,13 +39,13 @@ export function LoginScreen() {
       .catch(() => null);
 
     if (result === null) {
-      setError(errorMessage('NETWORK'));
+      setError(errorMessage('NETWORK', t));
       setSubmitting(false);
       return;
     }
 
     if (result.error) {
-      setError(loginMessage(result.error.status));
+      setError(loginMessage(result.error.status, t));
       setSubmitting(false);
     }
     // On success useSession updates and the gate unmounts this screen.
@@ -56,14 +59,14 @@ export function LoginScreen() {
           className='flex w-full flex-col lg:w-120 lg:p-2'
         >
           <h1 className='mb-1 text-[27px] font-semibold tracking-tight text-theme-ink'>
-            Logga in
+            {t.login.title}
           </h1>
           <p className='mb-6 text-sm leading-5 text-theme-muted'>
-            Med e-posten för lägenheten eller föreningens admin.
+            {t.login.intro}
           </p>
           <FloatingLabelInput
             className='mb-3'
-            label='E-post'
+            label={t.login.email}
             type='email'
             name='email'
             autoComplete='email'
@@ -75,7 +78,7 @@ export function LoginScreen() {
           />
           <FloatingLabelInput
             className='mb-5'
-            label='Lösenord'
+            label={t.login.password}
             type='password'
             name='password'
             autoComplete='current-password'
@@ -93,7 +96,7 @@ export function LoginScreen() {
             disabled={submitting}
             className='h-14 rounded-xs bg-theme-ink text-base font-semibold tracking-tight text-theme-surface transition-opacity hover:opacity-90 active:opacity-70 disabled:opacity-50'
           >
-            Logga in
+            {t.login.submit}
           </button>
         </form>
       </main>

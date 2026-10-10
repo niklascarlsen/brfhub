@@ -7,6 +7,7 @@ import {TimeCard, TimeCardSkeleton} from '@/components/TimeCard';
 import {useBookingActions} from '@/hooks/useBookingActions';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useSlowLoad} from '@/hooks/useSlowLoad';
+import {useMessages} from '@/i18n/LocaleProvider';
 
 function TimesSection({
   title,
@@ -65,13 +66,18 @@ export function MyTimesList({
 }) {
   const {confirmBookable, confirmCancel, confirmRelease, confirmUnsubscribe} =
     useBookingActions(reload);
+  const t = useMessages();
 
   const showSkeleton = useSlowLoad(times === null && error === null);
 
   if (!times) {
     if (error) {
       return (
-        <Notice message={error} actionLabel='Försök igen' onAction={reload} />
+        <Notice
+          message={error}
+          actionLabel={t.common.retry}
+          onAction={reload}
+        />
       );
     }
 
@@ -90,12 +96,9 @@ export function MyTimesList({
 
   if (bookings.length === 0 && subscriptions.length === 0) {
     return error ? (
-      <Notice message={error} actionLabel='Försök igen' onAction={reload} />
+      <Notice message={error} actionLabel={t.common.retry} onAction={reload} />
     ) : (
-      <Notice
-        title='Här var det tomt.'
-        message='När du tar en lucka eller ställer dig i kö dyker den upp här.'
-      />
+      <Notice title={t.times.emptyTitle} message={t.times.emptyMessage} />
     );
   }
 
@@ -104,11 +107,11 @@ export function MyTimesList({
       {error ? (
         <NoticeBar
           message={error}
-          actionLabel='Försök igen'
+          actionLabel={t.common.retry}
           onAction={reload}
         />
       ) : null}
-      <TimesSection title='Bokningar' count={bookings.length}>
+      <TimesSection title={t.times.bookings} count={bookings.length}>
         {bookings.map((entry) => {
           if (entry.released) {
             return (
@@ -118,7 +121,7 @@ export function MyTimesList({
                 start={entry.start}
                 end={entry.end}
                 resourceName={entry.resourceName}
-                badge={{label: 'Avslutad', tone: 'muted'}}
+                badge={{label: t.times.ended, tone: 'muted'}}
               />
             );
           }
@@ -131,7 +134,7 @@ export function MyTimesList({
               end={entry.end}
               resourceName={entry.resourceName}
               badge={null}
-              actionLabel={entry.started ? 'Jag är klar' : 'Avboka'}
+              actionLabel={entry.started ? t.times.done : t.times.cancel}
               onAction={() =>
                 entry.started ? confirmRelease(entry) : confirmCancel(entry)
               }
@@ -139,7 +142,7 @@ export function MyTimesList({
           );
         })}
       </TimesSection>
-      <TimesSection title='Reserv' count={subscriptions.length}>
+      <TimesSection title={t.times.queue} count={subscriptions.length}>
         {subscriptions.map((entry) => {
           const bookable = entry.available && !entry.started;
           const activeSameKind =
@@ -156,19 +159,19 @@ export function MyTimesList({
               resourceName={entry.resourceName}
               badge={
                 entry.available && entry.started
-                  ? {label: 'Drop-in', tone: 'accent'}
+                  ? {label: t.times.dropIn, tone: 'accent'}
                   : entry.available
-                    ? {label: 'Ledig nu', tone: 'accent'}
-                    : {label: 'Reserv', tone: 'muted'}
+                    ? {label: t.times.freeNow, tone: 'accent'}
+                    : {label: t.times.queue, tone: 'muted'}
               }
-              actionLabel={bookable ? 'Boka' : 'Lämna kön'}
+              actionLabel={bookable ? t.times.book : t.times.leaveQueue}
               actionTone={bookable ? 'solid' : 'outline'}
               onAction={() =>
                 bookable
                   ? confirmBookable(entry, activeSameKind)
                   : confirmUnsubscribe(entry)
               }
-              secondaryLabel={bookable ? 'Lämna kön' : undefined}
+              secondaryLabel={bookable ? t.times.leaveQueue : undefined}
               onSecondary={
                 bookable ? () => confirmUnsubscribe(entry) : undefined
               }

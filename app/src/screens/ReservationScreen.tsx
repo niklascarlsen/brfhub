@@ -9,8 +9,11 @@ import {TimeCard, TimeCardSkeleton} from '@/components/TimeCard';
 import {useBookingActions} from '@/hooks/useBookingActions';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useSlowLoad} from '@/hooks/useSlowLoad';
+import {useMessages} from '@/i18n/LocaleProvider';
 
 function TimesPage({children}: {children: ReactNode}) {
+  const t = useMessages();
+
   return (
     <SafeAreaView className='flex-1 bg-theme-bg' edges={['top']}>
       <ScrollView
@@ -18,7 +21,7 @@ function TimesPage({children}: {children: ReactNode}) {
         contentContainerClassName='grow px-5 pb-8 pt-2'
       >
         <Text className='mb-6 text-[27px] font-semibold tracking-tight text-theme-ink'>
-          Mina tider
+          {t.tabs.myTimes}
         </Text>
         {children}
       </ScrollView>
@@ -67,6 +70,7 @@ export function ReservationScreen() {
 
   const {confirmBookable, confirmCancel, confirmRelease, confirmUnsubscribe} =
     useBookingActions(reload);
+  const t = useMessages();
 
   const showSkeleton = useSlowLoad(times === null && error === null);
 
@@ -74,7 +78,11 @@ export function ReservationScreen() {
     return (
       <TimesPage>
         {error ? (
-          <Notice message={error} actionLabel='Försök igen' onAction={reload} />
+          <Notice
+            message={error}
+            actionLabel={t.common.retry}
+            onAction={reload}
+          />
         ) : showSkeleton ? (
           <Skeleton>
             <SkeletonBar className='mb-2.5 ml-0.5 h-3 w-[88px]' />
@@ -94,12 +102,13 @@ export function ReservationScreen() {
     return (
       <TimesPage>
         {error ? (
-          <Notice message={error} actionLabel='Försök igen' onAction={reload} />
-        ) : (
           <Notice
-            title='Här var det tomt.'
-            message='När du tar en lucka eller ställer dig i kö dyker den upp här.'
+            message={error}
+            actionLabel={t.common.retry}
+            onAction={reload}
           />
+        ) : (
+          <Notice title={t.times.emptyTitle} message={t.times.emptyMessage} />
         )}
       </TimesPage>
     );
@@ -110,11 +119,11 @@ export function ReservationScreen() {
       {error ? (
         <NoticeBar
           message={error}
-          actionLabel='Försök igen'
+          actionLabel={t.common.retry}
           onAction={reload}
         />
       ) : null}
-      <TimesSection title='Bokningar' count={bookings.length}>
+      <TimesSection title={t.times.bookings} count={bookings.length}>
         {bookings.map((entry) => {
           if (entry.released) {
             return (
@@ -124,7 +133,7 @@ export function ReservationScreen() {
                 start={entry.start}
                 end={entry.end}
                 resourceName={entry.resourceName}
-                badge={{label: 'Avslutad', tone: 'muted'}}
+                badge={{label: t.times.ended, tone: 'muted'}}
               />
             );
           }
@@ -137,7 +146,7 @@ export function ReservationScreen() {
               end={entry.end}
               resourceName={entry.resourceName}
               badge={null}
-              actionLabel={entry.started ? 'Jag är klar' : 'Avboka'}
+              actionLabel={entry.started ? t.times.done : t.times.cancel}
               onAction={() =>
                 entry.started ? confirmRelease(entry) : confirmCancel(entry)
               }
@@ -145,7 +154,7 @@ export function ReservationScreen() {
           );
         })}
       </TimesSection>
-      <TimesSection title='Reserv' count={subscriptions.length}>
+      <TimesSection title={t.times.queue} count={subscriptions.length}>
         {subscriptions.map((entry) => {
           const bookable = entry.available && !entry.started;
           const activeSameKind =
@@ -162,19 +171,19 @@ export function ReservationScreen() {
               resourceName={entry.resourceName}
               badge={
                 entry.available && entry.started
-                  ? {label: 'Drop-in', tone: 'accent'}
+                  ? {label: t.times.dropIn, tone: 'accent'}
                   : entry.available
-                    ? {label: 'Ledig nu', tone: 'accent'}
-                    : {label: 'Reserv', tone: 'muted'}
+                    ? {label: t.times.freeNow, tone: 'accent'}
+                    : {label: t.times.queue, tone: 'muted'}
               }
-              actionLabel={bookable ? 'Boka' : 'Lämna kön'}
+              actionLabel={bookable ? t.times.book : t.times.leaveQueue}
               actionTone={bookable ? 'solid' : 'outline'}
               onAction={() =>
                 bookable
                   ? confirmBookable(entry, activeSameKind)
                   : confirmUnsubscribe(entry)
               }
-              secondaryLabel={bookable ? 'Lämna kön' : undefined}
+              secondaryLabel={bookable ? t.times.leaveQueue : undefined}
               onSecondary={
                 bookable ? () => confirmUnsubscribe(entry) : undefined
               }

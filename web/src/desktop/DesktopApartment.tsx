@@ -6,6 +6,7 @@ import {ChevronBackIcon} from '@/components/icons';
 import {useConfig} from '@/config';
 import {SHELL} from '@/desktop/layout';
 import {PageHeader} from '@/desktop/PageHeader';
+import {useMessages} from '@/i18n/LocaleProvider';
 import {linkProps, type Route} from '@/lib/route';
 
 export function DesktopApartment({
@@ -14,22 +15,29 @@ export function DesktopApartment({
   onNavigate: (route: Route) => void;
 }) {
   const {apartment, organizationName} = useConfig();
+  const t = useMessages();
 
   return (
     <>
-      <PageHeader eyebrow={organizationName} title={`Lägenhet ${apartment}`}>
+      <PageHeader
+        eyebrow={organizationName}
+        title={t.apartment.title(apartment)}
+      >
         <a
           {...linkProps('book', onNavigate)}
           className='flex h-11 items-center gap-2 rounded-full bg-theme-ink pr-5 pl-4 text-sm font-semibold text-theme-surface transition-opacity hover:opacity-90'
         >
           <ChevronBackIcon size={16} />
-          Till bokningen
+          {t.apartment.backToBooking}
         </a>
       </PageHeader>
       {/* Account keeps its own bottom margin from the mobile screen. */}
       <div className={`${SHELL} flex flex-col pt-7 pb-12`}>
         <div className='max-w-xl'>
-          <Account signOutFrom={`lägenhet ${apartment}`} onSignOut={signOut} />
+          <Account
+            signOutFrom={t.apartment.signOutFrom(apartment)}
+            onSignOut={signOut}
+          />
           <AnnouncementList />
         </div>
         <BookingRules listClassName='grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3' />

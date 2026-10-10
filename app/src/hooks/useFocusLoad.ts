@@ -2,11 +2,12 @@ import {useFocusEffect} from '@react-navigation/native';
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {AppState} from 'react-native';
 
-import {codeOf, errorMessage} from '@/api/errors';
+import {codeOf, errorMessage, type ClientErrorCode} from '@/api/errors';
+import {useMessages} from '@/i18n/LocaleProvider';
 
 export function useFocusLoad<T>(load: () => Promise<T>, identity?: string) {
   const [loaded, setLoaded] = useState<{key: string; value: T} | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ClientErrorCode | null>(null);
   const [attempt, setAttempt] = useState(0);
   const reload = () => setAttempt((previous) => previous + 1);
 
@@ -42,7 +43,7 @@ export function useFocusLoad<T>(load: () => Promise<T>, identity?: string) {
         })
         .catch((caught: unknown) => {
           if (current) {
-            setError(errorMessage(codeOf(caught)));
+            setError(codeOf(caught));
           }
         });
 
@@ -54,9 +55,11 @@ export function useFocusLoad<T>(load: () => Promise<T>, identity?: string) {
     }, [scope, attempt]),
   );
 
+  const t = useMessages();
+
   return {
     data: loaded?.key === scope ? loaded.value : null,
-    error,
+    error: error === null ? null : errorMessage(error, t),
     reload,
   };
 }

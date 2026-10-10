@@ -12,6 +12,7 @@ import {codeOf, errorMessage, type ClientErrorCode} from '@/api/errors';
 import type {MemberAccount} from '@/auth/account';
 import {Blank} from '@/components/Blank';
 import {Notice} from '@/components/Notice';
+import {useMessages} from '@/i18n/LocaleProvider';
 
 // Refetched whenever the app returns: the window's dates move at midnight, and
 // the device clock cannot tell what the server's day is.
@@ -49,6 +50,7 @@ type ConfigProviderProps = {
 };
 
 export function ConfigProvider({account, children}: ConfigProviderProps) {
+  const t = useMessages();
   const [loaded, setLoaded] = useState<Awaited<
     ReturnType<typeof fetchConfig>
   > | null>(null);
@@ -93,8 +95,8 @@ export function ConfigProvider({account, children}: ConfigProviderProps) {
       return (
         <Blank>
           <Notice
-            message={errorMessage(error)}
-            actionLabel='Försök igen'
+            message={errorMessage(error, t)}
+            actionLabel={t.common.retry}
             onAction={reload}
           />
         </Blank>
@@ -110,9 +112,9 @@ export function ConfigProvider({account, children}: ConfigProviderProps) {
     return (
       <Blank>
         <Notice
-          title='Inget att boka'
-          message='Det finns inga utrymmen att boka just nu.'
-          actionLabel='Försök igen'
+          title={t.account.nothingToBookTitle}
+          message={t.account.nothingToBookMessage}
+          actionLabel={t.common.retry}
           onAction={reload}
         />
       </Blank>

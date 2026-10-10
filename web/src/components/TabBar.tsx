@@ -1,4 +1,5 @@
 import type {Tab} from '@/components/tabs';
+import {useMessages} from '@/i18n/LocaleProvider';
 import {linkProps, type Route} from '@/lib/route';
 
 const ICON_SIZE = 23;
@@ -10,9 +11,11 @@ type TabBarProps = {
 };
 
 export function TabBar({tabs, route, onNavigate}: TabBarProps) {
+  const t = useMessages();
+
   return (
     <nav
-      aria-label='Huvudmeny'
+      aria-label={t.tabs.mainMenu}
       className='shrink-0 border-t border-theme-line bg-theme-bg pb-[env(safe-area-inset-bottom)]'
     >
       <div className='flex p-1.5'>
@@ -32,7 +35,7 @@ export function TabBar({tabs, route, onNavigate}: TabBarProps) {
             >
               <Icon size={ICON_SIZE} />
               <span className='mt-px text-[11px] font-semibold leading-none'>
-                {label}
+                {label(t)}
               </span>
             </a>
           );

@@ -13,6 +13,7 @@ import {
 import type {AdminKind, SlotInput} from '@/api/client';
 import {codeOf, errorMessage} from '@/api/errors';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
+import {useMessages} from '@/i18n/LocaleProvider';
 
 export type ResourceFields = {
   name: string;
@@ -47,6 +48,7 @@ export function ResourceForm({
   onSubmit,
   onCancel,
 }: ResourceFormProps) {
+  const t = useMessages();
   const [name, setName] = useState(initial.name);
   const [kindId, setKindId] = useState(initial.kindId);
   const [tags, setTags] = useState(initial.tags.join(', '));
@@ -55,7 +57,7 @@ export function ResourceForm({
   const [submitting, setSubmitting] = useState(false);
 
   async function submit() {
-    const problem = withSlots ? slotsProblem(slots) : null;
+    const problem = withSlots ? slotsProblem(slots, t) : null;
 
     if (problem) {
       setError(problem);
@@ -68,7 +70,7 @@ export function ResourceForm({
     try {
       await onSubmit({name: name.trim(), kindId, tags: tagsOf(tags), slots});
     } catch (caught) {
-      setError(errorMessage(codeOf(caught)));
+      setError(errorMessage(codeOf(caught), t));
       setSubmitting(false);
     }
   }
@@ -76,14 +78,16 @@ export function ResourceForm({
   return (
     <View className='gap-3'>
       <FloatingLabelInput
-        label='Namn, till exempel Tvättstuga 1'
+        label={t.admin.resourceForm.name}
         value={name}
         onChangeText={setName}
         maxLength={40}
         autoCapitalize='sentences'
       />
       <View className='gap-2'>
-        <Text className='text-[13px] font-medium text-theme-muted'>Typ</Text>
+        <Text className='text-[13px] font-medium text-theme-muted'>
+          {t.admin.resource.kind}
+        </Text>
         <View className='flex-row flex-wrap gap-2'>
           {kinds.map((kind) => {
             const selected = kind.id === kindId;
@@ -112,13 +116,13 @@ export function ResourceForm({
         </View>
       </View>
       <FloatingLabelInput
-        label='Taggar, åtskilda med komma'
+        label={t.admin.resourceForm.tags}
         value={tags}
         onChangeText={setTags}
       />
       {withSlots ? (
         <View className='mt-3'>
-          <Text className={SECTION_LABEL}>Pass</Text>
+          <Text className={SECTION_LABEL}>{t.admin.resourceForm.slots}</Text>
           <SlotsEditor slots={slots} onChange={setSlots} />
         </View>
       ) : null}
@@ -139,7 +143,7 @@ export function ResourceForm({
           <Text className={PRIMARY_LABEL}>{submitLabel}</Text>
         </Pressable>
         <Pressable onPress={onCancel} className={SECONDARY_BUTTON}>
-          <Text className={SECONDARY_LABEL}>Avbryt</Text>
+          <Text className={SECONDARY_LABEL}>{t.common.cancel}</Text>
         </Pressable>
       </View>
     </View>

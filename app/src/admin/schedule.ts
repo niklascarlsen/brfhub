@@ -1,14 +1,15 @@
 import type {AdminKind, SlotInput} from '@/api/client';
+import type {Messages} from '@/i18n/catalog';
 import {unbrokenRange} from '@/lib/dates';
 
 export function slotsText(slots: SlotInput[]): string {
   return slots.map((slot) => unbrokenRange(slot.start, slot.end)).join(', ');
 }
 
-export function limitText(kind: AdminKind): string {
+export function limitText(kind: AdminKind, t: Messages): string {
   return kind.maxActive === 1
-    ? 'En bokning åt gången'
-    : `Upp till ${kind.maxActive} bokningar åt gången`;
+    ? t.rules.oneBooking
+    : t.rules.upToBookings(kind.maxActive);
 }
 
 function minutesOf(time: string): number {
@@ -20,13 +21,13 @@ const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 // What the admin can fix before the server is asked. Overlaps are left to
 // the server, which knows the schedule the change follows.
-export function slotsProblem(slots: SlotInput[]): string | null {
+export function slotsProblem(slots: SlotInput[], t: Messages): string | null {
   if (slots.length === 0) {
-    return 'Lägg till minst ett pass';
+    return t.admin.schedule.noSlots;
   }
 
   if (slots.some((slot) => !TIME.test(slot.start) || !TIME.test(slot.end))) {
-    return 'Skriv tiderna som 08:00';
+    return t.admin.schedule.timeFormat;
   }
 
   if (
@@ -36,7 +37,7 @@ export function slotsProblem(slots: SlotInput[]): string | null {
         minutesOf(slot.end) <= minutesOf(slot.start),
     )
   ) {
-    return 'Ett pass slutar innan det börjar. Slutar det efter midnatt, välj nästa dag.';
+    return t.admin.schedule.endsBeforeStart;
   }
 
   return null;

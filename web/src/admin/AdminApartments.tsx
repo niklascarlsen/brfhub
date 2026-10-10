@@ -13,6 +13,7 @@ import {Notice} from '@/components/Notice';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useSlowLoad} from '@/hooks/useSlowLoad';
+import {useMessages} from '@/i18n/LocaleProvider';
 
 function fetchApartments() {
   return unwrap(api.GET('/admin/apartments'));
@@ -63,6 +64,7 @@ function ApartmentRow({
 
 export function AdminApartments() {
   const {organizationName} = useAdminAccount();
+  const t = useMessages();
   const {data: apartments, error, reload} = useFocusLoad(fetchApartments);
   const showSkeleton = useSlowLoad(apartments === null && error === null);
   const [view, setView] = useState<Screen>({kind: 'list'});
@@ -77,15 +79,15 @@ export function AdminApartments() {
   if (view.kind === 'add') {
     return (
       <AdminPage
-        title='Ny lägenhet'
+        title={t.admin.apartments.newTitle}
         subtitle={organizationName}
-        back={{label: 'Lägenheter', onPress: toList}}
+        back={{label: t.tabs.apartments, onPress: toList}}
       >
         <ApartmentForm
           initial={{label: '', residentName: '', email: ''}}
           withLabel
-          note='Lägenheten får ett lösenord som visas en gång, efter att du har sparat.'
-          submitLabel='Lägg till'
+          note={t.admin.apartments.newNote}
+          submitLabel={t.admin.apartments.add}
           onCancel={toList}
           onSubmit={async (fields) => {
             const result = await unwrap(
@@ -101,7 +103,7 @@ export function AdminApartments() {
   if (view.kind === 'password') {
     return (
       <AdminPage
-        title={`Lägenhet ${view.apartment.label}`}
+        title={t.apartment.title(view.apartment.label)}
         subtitle={organizationName}
       >
         <PasswordCard
@@ -119,9 +121,9 @@ export function AdminApartments() {
     if (apartment) {
       return (
         <AdminPage
-          title={`Lägenhet ${apartment.label}`}
+          title={t.apartment.title(apartment.label)}
           subtitle={organizationName}
-          back={{label: 'Lägenheter', onPress: toList}}
+          back={{label: t.tabs.apartments, onPress: toList}}
         >
           <ApartmentDetail
             key={apartment.id}
@@ -144,19 +146,19 @@ export function AdminApartments() {
   if (apartments && shown) {
     body =
       apartments.length === 0 ? (
-        <p className='text-sm text-theme-muted'>
-          Inga lägenheter än. Lägg till den första.
-        </p>
+        <p className='text-sm text-theme-muted'>{t.admin.apartments.none}</p>
       ) : (
         <div className='flex flex-col gap-4'>
           <FloatingLabelInput
-            label='Sök nummer, namn eller e-post'
+            label={t.admin.apartments.search}
             type='search'
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
           {shown.length === 0 ? (
-            <p className='text-sm text-theme-muted'>Ingen lägenhet matchar.</p>
+            <p className='text-sm text-theme-muted'>
+              {t.admin.apartments.noMatch}
+            </p>
           ) : (
             <div className='flex flex-col divide-y divide-theme-line overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
               {shown.map((apartment) => (
@@ -172,7 +174,7 @@ export function AdminApartments() {
       );
   } else if (error) {
     body = (
-      <Notice message={error} actionLabel='Försök igen' onAction={reload} />
+      <Notice message={error} actionLabel={t.common.retry} onAction={reload} />
     );
   } else if (showSkeleton) {
     body = (
@@ -187,12 +189,12 @@ export function AdminApartments() {
   }
 
   const count = apartments
-    ? `${apartments.length} ${apartments.length === 1 ? 'lägenhet' : 'lägenheter'}`
+    ? t.admin.apartments.count(apartments.length)
     : organizationName;
 
   return (
     <AdminPage
-      title='Lägenheter'
+      title={t.tabs.apartments}
       subtitle={apartments ? `${organizationName} · ${count}` : count}
       action={
         <button
@@ -201,7 +203,7 @@ export function AdminApartments() {
           className={PRIMARY_BUTTON}
         >
           <AddIcon size={18} />
-          Lägg till lägenhet
+          {t.admin.apartments.addApartment}
         </button>
       }
     >

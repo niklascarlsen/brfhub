@@ -16,15 +16,32 @@ import {TabBar} from '@/components/TabBar';
 import type {Tab} from '@/components/tabs';
 import {SHELL} from '@/desktop/layout';
 import {OrganizationMark} from '@/desktop/OrganizationMark';
+import {useMessages} from '@/i18n/LocaleProvider';
 import {useIsDesktop} from '@/lib/media';
 import {dropPushSubscription} from '@/lib/push';
 import {isAdminRoute, linkProps, useRoute} from '@/lib/route';
 
 const ADMIN_TABS: readonly Tab[] = [
-  {route: 'admin/apartments', label: 'Lägenheter', Icon: PeopleOutlineIcon},
-  {route: 'admin/resources', label: 'Resurser', Icon: GridOutlineIcon},
-  {route: 'admin/announcements', label: 'Anslag', Icon: MegaphoneOutlineIcon},
-  {route: 'admin/organization', label: 'Föreningen', Icon: SettingsOutlineIcon},
+  {
+    route: 'admin/apartments',
+    label: (t) => t.tabs.apartments,
+    Icon: PeopleOutlineIcon,
+  },
+  {
+    route: 'admin/resources',
+    label: (t) => t.tabs.resources,
+    Icon: GridOutlineIcon,
+  },
+  {
+    route: 'admin/announcements',
+    label: (t) => t.tabs.announcements,
+    Icon: MegaphoneOutlineIcon,
+  },
+  {
+    route: 'admin/organization',
+    label: (t) => t.tabs.organization,
+    Icon: SettingsOutlineIcon,
+  },
 ];
 
 // The admin's app. It books nothing, so none of the booking screens, push or
@@ -35,6 +52,7 @@ type AdminShellProps = {
 };
 
 export function AdminShell({account, onRefresh}: AdminShellProps) {
+  const t = useMessages();
   const isDesktop = useIsDesktop();
   const [route, navigate] = useRoute();
 
@@ -78,7 +96,10 @@ export function AdminShell({account, onRefresh}: AdminShellProps) {
             >
               <OrganizationMark name={account.organizationName} />
             </a>
-            <nav className='flex items-center gap-2' aria-label='Huvudmeny'>
+            <nav
+              className='flex items-center gap-2'
+              aria-label={t.tabs.mainMenu}
+            >
               {ADMIN_TABS.map(({route: target, label, Icon}) => {
                 const active = route === target;
 
@@ -94,7 +115,7 @@ export function AdminShell({account, onRefresh}: AdminShellProps) {
                     }`}
                   >
                     <Icon size={17} className='-translate-y-px' />
-                    {label}
+                    {label(t)}
                   </a>
                 );
               })}

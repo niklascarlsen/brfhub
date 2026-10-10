@@ -4,6 +4,7 @@ import {DesktopApartment} from '@/desktop/DesktopApartment';
 import {DesktopBooking, type BookingProps} from '@/desktop/DesktopBooking';
 import {SHELL} from '@/desktop/layout';
 import {OrganizationMark} from '@/desktop/OrganizationMark';
+import {useMessages} from '@/i18n/LocaleProvider';
 import {linkProps, type Route} from '@/lib/route';
 
 type DesktopShellProps = BookingProps & {
@@ -17,6 +18,7 @@ export function DesktopShell({
   ...booking
 }: DesktopShellProps) {
   const {apartment, organizationName} = useConfig();
+  const t = useMessages();
 
   const onApartment = route === 'apartment';
 
@@ -31,7 +33,7 @@ export function DesktopShell({
         >
           <OrganizationMark name={organizationName} />
         </a>
-        <nav className='flex items-center gap-2' aria-label='Huvudmeny'>
+        <nav className='flex items-center gap-2' aria-label={t.tabs.mainMenu}>
           <a
             {...linkProps('book', onNavigate)}
             aria-current={onApartment ? undefined : 'page'}
@@ -42,7 +44,7 @@ export function DesktopShell({
             }`}
           >
             <CalendarOutlineIcon size={17} className='-translate-y-px' />
-            Boka
+            {t.tabs.book}
           </a>
           <a
             {...linkProps('apartment', onNavigate)}
@@ -56,7 +58,7 @@ export function DesktopShell({
             <span className='flex h-8 min-w-8 items-center justify-center rounded-full bg-theme-accent px-1.5 text-xs font-bold text-theme-surface tabular-nums'>
               {apartment}
             </span>
-            Lägenhet
+            {t.tabs.apartment}
           </a>
         </nav>
       </header>

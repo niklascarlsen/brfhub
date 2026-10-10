@@ -4,6 +4,7 @@
 import {useEffect} from 'react';
 
 import {useDialog} from '@/components/Dialog';
+import {useMessages} from '@/i18n/LocaleProvider';
 import {
   enablePush,
   markPushPromptShown,
@@ -12,6 +13,7 @@ import {
 
 export function usePushPrompt() {
   const dialog = useDialog();
+  const t = useMessages();
 
   useEffect(() => {
     let current = true;
@@ -24,26 +26,19 @@ export function usePushPrompt() {
 
         markPushPromptShown();
 
-        dialog.confirm(
-          'Notiser',
-          'Vill du få en notis när en tid du köar för blir ledig?',
-          {
-            label: 'Slå på',
-            onPress: () => {
-              enablePush().catch(() => {
-                dialog.alert(
-                  'Kunde inte slå på notiser',
-                  'Tillåt notiser för den här appen i webbläsarens inställningar.',
-                );
-              });
-            },
+        dialog.confirm(t.push.promptTitle, t.push.promptMessage, {
+          label: t.push.turnOn,
+          onPress: () => {
+            enablePush().catch(() => {
+              dialog.alert(t.push.failedTitle, t.push.failedMessage);
+            });
           },
-        );
+        });
       })
       .catch(() => {});
 
     return () => {
       current = false;
     };
-  }, [dialog]);
+  }, [dialog, t]);
 }

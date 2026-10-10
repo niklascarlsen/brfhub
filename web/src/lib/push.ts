@@ -56,7 +56,7 @@ function tokenOf(subscription: PushSubscription): string {
   const {endpoint, keys} = subscription.toJSON();
 
   if (!endpoint || !keys?.p256dh || !keys.auth) {
-    throw new Error('Prenumerationen saknar nycklar');
+    throw new Error('The subscription has no keys');
   }
 
   return JSON.stringify({
@@ -119,7 +119,7 @@ export function markPushPromptShown(): void {
 // inside a user gesture.
 export async function enablePush(): Promise<void> {
   if ((await Notification.requestPermission()) !== 'granted') {
-    throw new Error('Notiser nekades');
+    throw new Error('Notifications were denied');
   }
 
   const registration = await navigator.serviceWorker.ready;

@@ -3,20 +3,25 @@ import {Account} from '@/components/Account';
 import {AnnouncementList} from '@/components/Announcements';
 import {BookingRules} from '@/components/BookingRules';
 import {useConfig} from '@/config';
+import {useMessages} from '@/i18n/LocaleProvider';
 
 export function ApartmentScreen() {
   const {apartment, organizationName} = useConfig();
+  const t = useMessages();
 
   return (
     <div className='min-h-0 flex-1 overflow-y-auto overscroll-y-contain scroll-smooth [-webkit-overflow-scrolling:touch]'>
       <div className='flex min-h-full flex-col px-5 pt-2 pb-8'>
         <h1 className='mt-4 text-[27px] font-semibold tracking-tight text-theme-ink'>
-          Lägenhet {apartment}
+          {t.apartment.title(apartment)}
         </h1>
         <p className='mt-1 mb-6 text-[13px] text-theme-muted'>
           {organizationName}
         </p>
-        <Account signOutFrom={`lägenhet ${apartment}`} onSignOut={signOut} />
+        <Account
+          signOutFrom={t.apartment.signOutFrom(apartment)}
+          onSignOut={signOut}
+        />
         <AnnouncementList />
         <BookingRules listClassName='flex flex-col gap-2.5' />
       </div>

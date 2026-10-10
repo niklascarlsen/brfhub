@@ -9,6 +9,7 @@ import {
 } from '@/admin/styles';
 import {codeOf, errorMessage} from '@/api/errors';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
+import {useMessages} from '@/i18n/LocaleProvider';
 
 export type ApartmentFields = {
   label: string;
@@ -34,6 +35,7 @@ export function ApartmentForm({
   onSubmit,
   onCancel,
 }: ApartmentFormProps) {
+  const t = useMessages();
   const [fields, setFields] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -63,8 +65,8 @@ export function ApartmentForm({
       // The server checks the email more closely than the field does.
       setError(
         code === 'VALIDATION'
-          ? 'Kontrollera e-postadressen'
-          : errorMessage(code),
+          ? t.admin.apartmentForm.checkEmail
+          : errorMessage(code, t),
       );
       setSubmitting(false);
     }
@@ -74,7 +76,7 @@ export function ApartmentForm({
     <View className='gap-3'>
       {withLabel ? (
         <FloatingLabelInput
-          label='Lägenhetsnummer'
+          label={t.admin.apartmentForm.number}
           value={fields.label}
           onChangeText={set('label')}
           maxLength={20}
@@ -83,7 +85,7 @@ export function ApartmentForm({
         />
       ) : null}
       <FloatingLabelInput
-        label='De boendes namn'
+        label={t.admin.apartmentForm.residentName}
         value={fields.residentName}
         onChangeText={set('residentName')}
         maxLength={100}
@@ -92,7 +94,7 @@ export function ApartmentForm({
         returnKeyType='next'
       />
       <FloatingLabelInput
-        label='E-post'
+        label={t.login.email}
         value={fields.email}
         onChangeText={set('email')}
         autoCapitalize='none'
@@ -123,7 +125,7 @@ export function ApartmentForm({
           <Text className={PRIMARY_LABEL}>{submitLabel}</Text>
         </Pressable>
         <Pressable onPress={onCancel} className={SECONDARY_BUTTON}>
-          <Text className={SECONDARY_LABEL}>Avbryt</Text>
+          <Text className={SECONDARY_LABEL}>{t.common.cancel}</Text>
         </Pressable>
       </View>
     </View>

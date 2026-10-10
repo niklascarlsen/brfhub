@@ -1,11 +1,12 @@
+import type {Messages} from '@/i18n/catalog';
 import {fromIsoDate, toIsoDate} from '@/lib/dates';
 
 // How long an announcement shows, as the admin thinks of it.
 export const DURATIONS = [
-  {label: 'Tills vidare', days: null},
-  {label: '1 vecka', days: 7},
-  {label: '2 veckor', days: 14},
-  {label: '1 månad', days: 30},
+  {label: (t: Messages) => t.admin.announcements.untilFurther, days: null},
+  {label: (t: Messages) => t.admin.announcements.oneWeek, days: 7},
+  {label: (t: Messages) => t.admin.announcements.twoWeeks, days: 14},
+  {label: (t: Messages) => t.admin.announcements.oneMonth, days: 30},
 ] as const;
 
 export type Duration = (typeof DURATIONS)[number]['days'];

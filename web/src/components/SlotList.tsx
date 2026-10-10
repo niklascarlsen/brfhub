@@ -3,6 +3,7 @@ import {Notice, NoticeBar} from '@/components/Notice';
 import {TimeSlotListSkeleton, TimeSlotRow} from '@/components/TimeSlotRow';
 import {useRovingList} from '@/hooks/useRovingList';
 import {useSlowLoad} from '@/hooks/useSlowLoad';
+import {useMessages} from '@/i18n/LocaleProvider';
 import {isLocked} from '@/lib/slots';
 
 const FALLBACK_SKELETON_ROWS = 4;
@@ -24,6 +25,7 @@ function SlotRows({
   resourceId: string;
   onSelect: (slot: Slot) => void;
 }) {
+  const t = useMessages();
   const roving = useRovingList({
     count: slots.length,
     orientation: 'vertical',
@@ -38,7 +40,7 @@ function SlotRows({
   return (
     <div
       role='toolbar'
-      aria-label='Tider den här dagen'
+      aria-label={t.booking.slotsOfDay}
       aria-orientation={roving.orientation}
       onKeyDown={roving.onKeyDown}
       className='flex flex-col gap-2.25'
@@ -63,6 +65,7 @@ export function SlotList({
   onSelect,
 }: SlotListProps) {
   const showSkeleton = useSlowLoad(slots === null && error === null);
+  const t = useMessages();
 
   if (slots && slots.length > 0) {
     return (
@@ -70,7 +73,7 @@ export function SlotList({
         {error ? (
           <NoticeBar
             message={error}
-            actionLabel='Försök igen'
+            actionLabel={t.common.retry}
             onAction={onRetry}
           />
         ) : null}
@@ -81,12 +84,12 @@ export function SlotList({
 
   if (error) {
     return (
-      <Notice message={error} actionLabel='Försök igen' onAction={onRetry} />
+      <Notice message={error} actionLabel={t.common.retry} onAction={onRetry} />
     );
   }
 
   if (slots) {
-    return <Notice message='Inga tider kvar den här dagen' />;
+    return <Notice message={t.booking.noSlotsLeft} />;
   }
 
   return showSkeleton ? (

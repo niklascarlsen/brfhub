@@ -18,13 +18,13 @@ type ReleasedSlotData = {
   resourceId: string;
 };
 
-async function ensureSlotChannel(): Promise<void> {
+async function ensureSlotChannel(name: string): Promise<void> {
   if (Platform.OS !== 'android') {
     return;
   }
 
   await Notifications.setNotificationChannelAsync('slots', {
-    name: 'Lediga tider',
+    name,
     importance: Notifications.AndroidImportance.HIGH,
   });
 }
@@ -73,9 +73,11 @@ export async function dropPushToken(): Promise<void> {
   }
 }
 
-export async function registerPushToken(): Promise<void> {
+// The channel name is what Android shows in the app's notification
+// settings, in the language the app is shown in.
+export async function registerPushToken(channelName: string): Promise<void> {
   try {
-    await ensureSlotChannel();
+    await ensureSlotChannel(channelName);
 
     const existing = await Notifications.getPermissionsAsync();
     const granted =

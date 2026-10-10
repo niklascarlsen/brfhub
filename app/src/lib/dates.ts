@@ -1,20 +1,5 @@
 import type {BookingWindow} from '@/api/client';
-
-const WEEKDAYS = ['sön', 'mån', 'tis', 'ons', 'tor', 'fre', 'lör'];
-const MONTHS = [
-  'jan',
-  'feb',
-  'mar',
-  'apr',
-  'maj',
-  'jun',
-  'jul',
-  'aug',
-  'sep',
-  'okt',
-  'nov',
-  'dec',
-];
+import type {Messages} from '@/i18n/catalog';
 
 export function toIsoDate(date: Date): string {
   const year = date.getFullYear();
@@ -49,8 +34,12 @@ export function daysBetween(from: string, to: string): Date[] {
   return days;
 }
 
-function formatMonthHeading(date: Date, currentYear: number): string {
-  const month = MONTHS[date.getMonth()];
+function formatMonthHeading(
+  date: Date,
+  currentYear: number,
+  t: Messages,
+): string {
+  const month = getMonthLabel(date, t);
   const includeYear = date.getFullYear() !== currentYear;
 
   return includeYear ? `${month} ${date.getFullYear()}` : month;
@@ -59,6 +48,7 @@ function formatMonthHeading(date: Date, currentYear: number): string {
 export function groupDaysByMonth(
   days: Date[],
   todayIso: string,
+  t: Messages,
 ): {key: string; label: string; days: Date[]}[] {
   const currentYear = fromIsoDate(todayIso).getFullYear();
   const groups: {key: string; label: string; days: Date[]}[] = [];
@@ -72,7 +62,7 @@ export function groupDaysByMonth(
     } else {
       groups.push({
         key,
-        label: formatMonthHeading(day, currentYear),
+        label: formatMonthHeading(day, currentYear, t),
         days: [day],
       });
     }
@@ -81,16 +71,16 @@ export function groupDaysByMonth(
   return groups;
 }
 
-export function getWeekdayLabel(date: Date): string {
-  return WEEKDAYS[date.getDay()];
+export function getWeekdayLabel(date: Date, t: Messages): string {
+  return t.dates.weekdays[date.getDay()];
 }
 
-export function getMonthLabel(date: Date): string {
-  return MONTHS[date.getMonth()];
+export function getMonthLabel(date: Date, t: Messages): string {
+  return t.dates.months[date.getMonth()];
 }
 
-export function formatLongDate(isoDate: string): string {
-  return fromIsoDate(isoDate).toLocaleDateString('sv-SE', {
+export function formatLongDate(isoDate: string, t: Messages): string {
+  return fromIsoDate(isoDate).toLocaleDateString(t.dates.locale, {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -98,8 +88,8 @@ export function formatLongDate(isoDate: string): string {
 }
 
 // "9 november", for a day the reader already knows is near.
-export function formatDayMonth(isoDate: string): string {
-  return fromIsoDate(isoDate).toLocaleDateString('sv-SE', {
+export function formatDayMonth(isoDate: string, t: Messages): string {
+  return fromIsoDate(isoDate).toLocaleDateString(t.dates.locale, {
     day: 'numeric',
     month: 'long',
   });
@@ -115,6 +105,6 @@ export function unbrokenRange(start: string, end: string): string {
   return timeRange(start, end).replace('–', '\u2060–\u2060');
 }
 
-export function formatWhen(date: string, time: string): string {
-  return `${formatLongDate(date)}, ${time}`;
+export function formatWhen(date: string, time: string, t: Messages): string {
+  return `${formatLongDate(date, t)}, ${time}`;
 }

@@ -5,6 +5,7 @@ import {SlotList} from '@/components/SlotList';
 import {Tag} from '@/components/Tag';
 import {useBookingActions} from '@/hooks/useBookingActions';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
+import {useMessages} from '@/i18n/LocaleProvider';
 import {formatLongDate} from '@/lib/dates';
 
 function fetchDay(isoDate: string, resourceId: string) {
@@ -30,6 +31,7 @@ export function BookingScreen({
   date,
   onSelectDate,
 }: BookingScreenProps) {
+  const t = useMessages();
   const {
     data: day,
     error,
@@ -54,7 +56,7 @@ export function BookingScreen({
         <div className='flex min-h-full w-full flex-col px-5 pb-8 pt-2'>
           <AnnouncementBanner className='mt-2 mb-4' />
           <h1 className='text-[27px] font-semibold tracking-tight text-theme-ink'>
-            {formatLongDate(date)}
+            {formatLongDate(date, t)}
           </h1>
           {resource.tags.length > 0 ? (
             <div className='my-1 flex flex-wrap gap-1.5'>

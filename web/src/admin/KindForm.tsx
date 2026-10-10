@@ -3,6 +3,7 @@ import {useState, type SubmitEvent} from 'react';
 import {PRIMARY_BUTTON, SECONDARY_BUTTON} from '@/admin/styles';
 import {codeOf, errorMessage} from '@/api/errors';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
+import {useMessages} from '@/i18n/LocaleProvider';
 
 export type KindFields = {name: string; maxActive: number};
 
@@ -23,6 +24,7 @@ export function KindForm({
   onCancel,
   onDelete,
 }: KindFormProps) {
+  const t = useMessages();
   const [name, setName] = useState(initial.name);
   const [maxActive, setMaxActive] = useState(initial.maxActive);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +38,7 @@ export function KindForm({
     try {
       await onSubmit({name: name.trim(), maxActive});
     } catch (caught) {
-      setError(errorMessage(codeOf(caught)));
+      setError(errorMessage(codeOf(caught), t));
       setSubmitting(false);
     }
   }
@@ -52,7 +54,7 @@ export function KindForm({
       className='flex flex-col gap-3'
     >
       <FloatingLabelInput
-        label='Namn, till exempel Tvätt'
+        label={t.admin.kindForm.name}
         required
         maxLength={40}
         value={name}
@@ -61,16 +63,16 @@ export function KindForm({
       <div className='flex items-center justify-between gap-4 rounded-2xl border border-theme-line bg-theme-surface px-4.5 py-3'>
         <span className='flex flex-col gap-0.5'>
           <span className='text-[15px] font-semibold tracking-tight text-theme-ink'>
-            Bokningar åt gången
+            {t.admin.kindForm.limit}
           </span>
           <span className='text-[13px] leading-5 text-theme-muted'>
-            Per lägenhet, för alla resurser av typen tillsammans
+            {t.admin.kindForm.limitHint}
           </span>
         </span>
         <span className='flex items-center gap-3'>
           <button
             type='button'
-            aria-label='Färre'
+            aria-label={t.admin.kindForm.fewer}
             onClick={() => step(-1)}
             disabled={maxActive <= 1}
             className='h-10 w-10 rounded-full border border-theme-edge text-lg text-theme-ink transition-colors hover:bg-theme-sunk disabled:opacity-35'
@@ -82,7 +84,7 @@ export function KindForm({
           </span>
           <button
             type='button'
-            aria-label='Fler'
+            aria-label={t.admin.kindForm.more}
             onClick={() => step(1)}
             disabled={maxActive >= MAX_ACTIVE}
             className='h-10 w-10 rounded-full border border-theme-edge text-lg text-theme-ink transition-colors hover:bg-theme-sunk disabled:opacity-35'
@@ -92,7 +94,7 @@ export function KindForm({
         </span>
       </div>
       <p className='text-[13px] leading-5 text-theme-muted'>
-        En ändrad gräns gäller nya bokningar. De som redan är gjorda står kvar.
+        {t.admin.kindForm.limitNote}
       </p>
       {error ? (
         <p role='alert' className='text-sm text-theme-ink'>
@@ -104,7 +106,7 @@ export function KindForm({
           {submitLabel}
         </button>
         <button type='button' onClick={onCancel} className={SECONDARY_BUTTON}>
-          Avbryt
+          {t.common.cancel}
         </button>
         {onDelete ? (
           <button
@@ -112,7 +114,7 @@ export function KindForm({
             onClick={onDelete}
             className={`${SECONDARY_BUTTON} ml-auto`}
           >
-            Ta bort typen
+            {t.admin.kindForm.remove}
           </button>
         ) : null}
       </div>

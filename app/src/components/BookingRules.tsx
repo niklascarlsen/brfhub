@@ -5,6 +5,8 @@ import {Notice} from '@/components/Notice';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
 import {useConfig} from '@/config';
 import type {components} from '@/generated/api';
+import type {Messages} from '@/i18n/catalog';
+import {useMessages} from '@/i18n/LocaleProvider';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useSlowLoad} from '@/hooks/useSlowLoad';
 import {daysBetween, formatDayMonth, unbrokenRange} from '@/lib/dates';
@@ -16,27 +18,27 @@ function fetchRules() {
 }
 
 // "A, B och C". Intl.ListFormat is missing on Hermes, so it is spelled out.
-function joinNames(names: string[]): string {
+function joinNames(names: string[], t: Messages): string {
   if (names.length < 2) {
     return names.join('');
   }
 
-  return `${names.slice(0, -1).join(', ')} och ${names[names.length - 1]}`;
+  return t.rules.joinList(names.slice(0, -1).join(', '), names.at(-1) ?? '');
 }
 
-function limitOf(kind: Kind): string {
+function limitOf(kind: Kind, t: Messages): string {
   if (kind.maxActive === 1) {
     return kind.resources.length > 1
-      ? 'En bokning åt gången, för alla tillsammans'
-      : 'En bokning åt gången';
+      ? t.rules.oneBookingShared
+      : t.rules.oneBooking;
   }
 
-  return `Upp till ${kind.maxActive} bokningar åt gången`;
+  return t.rules.upToBookings(kind.maxActive);
 }
 
 // Changes the admin has set up ahead: new times from a day, or a closing.
 // They lie past the booking window, so members can plan for them.
-function upcomingOf(kind: Kind): {key: string; text: string}[] {
+function upcomingOf(kind: Kind, t: Messages): {key: string; text: string}[] {
   const named = kind.resources.length > 1;
 
   return kind.resources.flatMap((resource) => {
@@ -45,9 +47,12 @@ function upcomingOf(kind: Kind): {key: string; text: string}[] {
     const changes = resource.changes.map((change) => ({
       key: `${resource.id}-${change.validFrom}`,
       text: lead(
-        `Från ${formatDayMonth(change.validFrom)} ${change.slots
-          .map((slot) => unbrokenRange(slot.start, slot.end))
-          .join(', ')}`,
+        t.rules.changesFrom(
+          formatDayMonth(change.validFrom, t),
+          change.slots
+            .map((slot) => unbrokenRange(slot.start, slot.end))
+            .join(', '),
+        ),
       ),
     }));
 
@@ -56,7 +61,7 @@ function upcomingOf(kind: Kind): {key: string; text: string}[] {
           ...changes,
           {
             key: `${resource.id}-closes`,
-            text: lead(`Stängs ${formatDayMonth(resource.closesFrom)}`),
+            text: lead(t.rules.closes(formatDayMonth(resource.closesFrom, t))),
           },
         ]
       : changes;
@@ -64,6 +69,7 @@ function upcomingOf(kind: Kind): {key: string; text: string}[] {
 }
 
 function KindRules({kind}: {kind: Kind}) {
+  const t = useMessages();
   const times = kind.resources.map((resource) =>
     resource.slots
       .map((slot) => unbrokenRange(slot.start, slot.end))
@@ -74,7 +80,10 @@ function KindRules({kind}: {kind: Kind}) {
   return (
     <View className='gap-2 rounded-2xl border border-theme-line bg-theme-surface px-[18px] py-4'>
       <Text className='text-[15px] font-semibold tracking-tight text-theme-ink'>
-        {joinNames(kind.resources.map((resource) => resource.name))}
+        {joinNames(
+          kind.resources.map((resource) => resource.name),
+          t,
+        )}
       </Text>
       {sharedTimes ? (
         <Text className='font-sans text-[13px] leading-5 text-theme-ink'>
@@ -90,7 +99,7 @@ function KindRules({kind}: {kind: Kind}) {
           </Text>
         ))
       )}
-      {upcomingOf(kind).map(({key, text}) => (
+      {upcomingOf(kind, t).map(({key, text}) => (
         <Text
           key={key}
           className='font-sans text-[13px] leading-5 text-theme-accent'
@@ -99,7 +108,7 @@ function KindRules({kind}: {kind: Kind}) {
         </Text>
       ))}
       <Text className='font-sans text-xs leading-5 text-theme-muted'>
-        {limitOf(kind)}
+        {limitOf(kind, t)}
       </Text>
     </View>
   );
@@ -108,6 +117,7 @@ function KindRules({kind}: {kind: Kind}) {
 // The rules the server enforces, derived from the resources it books.
 export function BookingRules() {
   const {window: bookingWindow} = useConfig();
+  const t = useMessages();
   const {data: rules, error, reload} = useFocusLoad(fetchRules);
   const showSkeleton = useSlowLoad(rules === null && error === null);
   const daysAhead =
@@ -131,7 +141,7 @@ export function BookingRules() {
     );
   } else if (error) {
     body = (
-      <Notice message={error} actionLabel='Försök igen' onAction={reload} />
+      <Notice message={error} actionLabel={t.common.retry} onAction={reload} />
     );
   } else if (showSkeleton) {
     body = (
@@ -158,10 +168,10 @@ export function BookingRules() {
           accessibilityRole='header'
           className='text-[11px] font-bold uppercase tracking-[1px] text-theme-muted'
         >
-          Regler
+          {t.rules.heading}
         </Text>
         <Text className='font-sans text-xs text-theme-muted'>
-          Bokningsbart {daysAhead} dagar framåt
+          {t.rules.bookableDaysAhead(daysAhead)}
         </Text>
       </View>
       {body}

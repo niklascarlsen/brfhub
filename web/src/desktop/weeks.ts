@@ -1,3 +1,4 @@
+import type {Messages} from '@/i18n/catalog';
 import {formatLongDate, fromIsoDate, toIsoDate} from '@/lib/dates';
 
 const DAYS_PER_WEEK = 7;
@@ -36,27 +37,37 @@ function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-export function formatHeadingDate(isoDate: string): string {
-  return capitalize(formatLongDate(isoDate));
+// Column headings for calendarWeeks, Monday first.
+export function weekdayHeadings(t: Messages): string[] {
+  const [sunday, ...rest] = t.dates.weekdays;
+  return [...rest, sunday].map((day) => capitalize(day ?? ''));
+}
+
+export function formatHeadingDate(isoDate: string, t: Messages): string {
+  return capitalize(formatLongDate(isoDate, t));
 }
 
 // "Oktober – november", or a single month when the range stays in one.
-export function formatMonthSpan(from: string, to: string): string {
+export function formatMonthSpan(from: string, to: string, t: Messages): string {
   const month = (isoDate: string) =>
-    fromIsoDate(isoDate).toLocaleDateString('sv-SE', {month: 'long'});
+    fromIsoDate(isoDate).toLocaleDateString(t.dates.locale, {month: 'long'});
   const first = month(from);
   const last = month(to);
 
   return capitalize(first === last ? first : `${first} – ${last}`);
 }
 
-export function relativeDay(isoDate: string, todayIso: string): string | null {
+export function relativeDay(
+  isoDate: string,
+  todayIso: string,
+  t: Messages,
+): string | null {
   if (isoDate === todayIso) {
-    return 'Idag';
+    return t.dates.today;
   }
 
   if (isoDate === addDays(todayIso, 1)) {
-    return 'Imorgon';
+    return t.dates.tomorrow;
   }
 
   return null;

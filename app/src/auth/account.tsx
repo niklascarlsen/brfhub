@@ -7,6 +7,7 @@ import {signOut} from '@/auth/signOut';
 import {Blank} from '@/components/Blank';
 import {Notice} from '@/components/Notice';
 import type {components} from '@/generated/api';
+import {useMessages} from '@/i18n/LocaleProvider';
 
 export type MemberAccount = components['schemas']['MemberAccount'];
 export type AdminAccount = components['schemas']['AdminAccount'];
@@ -19,6 +20,7 @@ type AccountGateProps = {
 // Asks the server who signed in and renders that kind of account's app:
 // an apartment books, the admin manages the organization.
 export function AccountGate({member, admin}: AccountGateProps) {
+  const t = useMessages();
   const [account, setAccount] = useState<
     components['schemas']['Account'] | null
   >(null);
@@ -78,9 +80,9 @@ export function AccountGate({member, admin}: AccountGateProps) {
     return (
       <Blank>
         <Notice
-          title='Kontot saknar lägenhet'
-          message='Ditt konto är inte kopplat till någon lägenhet. Kontakta styrelsen.'
-          actionLabel='Logga ut'
+          title={t.account.noApartmentTitle}
+          message={t.account.noApartmentMessage}
+          actionLabel={t.account.signOut}
           onAction={() => void signOut()}
         />
       </Blank>
@@ -91,8 +93,8 @@ export function AccountGate({member, admin}: AccountGateProps) {
     return (
       <Blank>
         <Notice
-          message={errorMessage(error)}
-          actionLabel='Försök igen'
+          message={errorMessage(error, t)}
+          actionLabel={t.common.retry}
           onAction={refresh}
         />
       </Blank>

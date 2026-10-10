@@ -2,6 +2,7 @@ import type {Resource} from '@/api/client';
 import {Tag} from '@/components/Tag';
 import {useRevealSelected} from '@/hooks/useRevealSelected';
 import {useRovingList} from '@/hooks/useRovingList';
+import {useMessages} from '@/i18n/LocaleProvider';
 
 type ResourcePickerProps = {
   resources: Resource[];
@@ -18,6 +19,7 @@ export function ResourcePicker({
   className = '',
   showTags = false,
 }: ResourcePickerProps) {
+  const t = useMessages();
   const scroller = useRevealSelected(selectedId);
   const selected = resources.find((resource) => resource.id === selectedId);
   const anyTagged =
@@ -38,7 +40,7 @@ export function ResourcePicker({
       <div
         ref={scroller}
         role='toolbar'
-        aria-label='Välj utrymme'
+        aria-label={t.booking.chooseResource}
         aria-orientation={roving.orientation}
         onKeyDown={roving.onKeyDown}
         className='flex scroll-px-5 gap-2 overflow-x-auto px-5 py-1 [scrollbar-width:none] lg:flex-wrap lg:overflow-visible lg:px-0 [&::-webkit-scrollbar]:hidden'

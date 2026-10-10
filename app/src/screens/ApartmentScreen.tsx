@@ -6,9 +6,11 @@ import {Account} from '@/components/Account';
 import {AnnouncementList} from '@/components/Announcements';
 import {BookingRules} from '@/components/BookingRules';
 import {useConfig} from '@/config';
+import {useMessages} from '@/i18n/LocaleProvider';
 
 export function ApartmentScreen() {
   const {apartment, organizationName} = useConfig();
+  const t = useMessages();
 
   return (
     <SafeAreaView className='flex-1 bg-theme-bg' edges={['top']}>
@@ -17,12 +19,15 @@ export function ApartmentScreen() {
         contentContainerClassName='grow px-5 pb-8 pt-2'
       >
         <Text className='text-[27px] font-semibold tracking-tight text-theme-ink'>
-          Lägenhet {apartment}
+          {t.apartment.title(apartment)}
         </Text>
         <Text className='mb-6 mt-1 font-sans text-[13px] text-theme-muted'>
           {organizationName}
         </Text>
-        <Account signOutFrom={`lägenhet ${apartment}`} onSignOut={signOut} />
+        <Account
+          signOutFrom={t.apartment.signOutFrom(apartment)}
+          onSignOut={signOut}
+        />
         <AnnouncementList />
         <BookingRules />
       </ScrollView>

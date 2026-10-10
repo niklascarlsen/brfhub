@@ -11,6 +11,8 @@ import {Account} from '@/components/Account';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {Notice} from '@/components/Notice';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
+import type {Messages} from '@/i18n/catalog';
+import {useMessages} from '@/i18n/LocaleProvider';
 import theme from '@/theme.json';
 
 const MIN_PASSWORD_LENGTH = 8;
@@ -33,6 +35,7 @@ function SettingsForm({
   initial: SettingsFields;
   onSaved: () => void;
 }) {
+  const t = useMessages();
   const [name, setName] = useState(initial.name);
   const [days, setDays] = useState(String(initial.bookingWindowDays));
   const [rulesText, setRulesText] = useState(initial.rulesText);
@@ -48,7 +51,7 @@ function SettingsForm({
       bookingWindowDays < 1 ||
       bookingWindowDays > MAX_WINDOW_DAYS
     ) {
-      setMessage(`Bokningsfönstret är 1 till ${MAX_WINDOW_DAYS} dagar`);
+      setMessage(t.admin.organization.windowRange(MAX_WINDOW_DAYS));
       return;
     }
 
@@ -59,10 +62,10 @@ function SettingsForm({
           body: {name: name.trim(), bookingWindowDays, rulesText},
         }),
       );
-      setMessage('Sparat.');
+      setMessage(t.admin.organization.saved);
       onSaved();
     } catch (caught) {
-      setMessage(errorMessage(codeOf(caught)));
+      setMessage(errorMessage(codeOf(caught), t));
     }
     setSubmitting(false);
   }
@@ -70,25 +73,24 @@ function SettingsForm({
   return (
     <View className='gap-3'>
       <FloatingLabelInput
-        label='Föreningens namn'
+        label={t.admin.organization.name}
         value={name}
         onChangeText={setName}
         maxLength={80}
       />
       <FloatingLabelInput
-        label='Bokningsbart antal dagar framåt'
+        label={t.admin.organization.windowDays}
         value={days}
         onChangeText={setDays}
         keyboardType='number-pad'
         maxLength={3}
       />
       <Text className='font-sans text-[13px] leading-5 text-theme-muted'>
-        Ett längre fönster öppnar fler dagar direkt. Ett kortare tar inte bort
-        bokningar som redan är gjorda.
+        {t.admin.organization.windowNote}
       </Text>
       <View className='mt-2 gap-1.5'>
         <Text className='text-[13px] font-medium text-theme-muted'>
-          Ordningsregler
+          {t.admin.organization.rules}
         </Text>
         <TextInput
           value={rulesText}
@@ -96,14 +98,14 @@ function SettingsForm({
           multiline
           maxLength={4000}
           textAlignVertical='top'
-          placeholder='Till exempel: Städa efter dig. Tyst efter klockan 22.'
+          placeholder={t.admin.organization.rulesPlaceholder}
           placeholderTextColor={theme.faint}
-          accessibilityLabel='Ordningsregler'
+          accessibilityLabel={t.admin.organization.rules}
           className='min-h-[120px] rounded-sm border border-theme-edge bg-theme-surface px-4 py-3 text-base text-theme-ink'
           style={{fontFamily: 'Merriweather_400Regular', color: theme.ink}}
         />
         <Text className='font-sans text-[13px] leading-5 text-theme-muted'>
-          Visas för lägenheterna ovanför tiderna och gränserna.
+          {t.admin.organization.rulesNote}
         </Text>
       </View>
       {message ? (
@@ -119,19 +121,20 @@ function SettingsForm({
         disabled={submitting || name.trim().length === 0}
         className={`${PRIMARY_BUTTON} mt-2 self-start`}
       >
-        <Text className={PRIMARY_LABEL}>Spara</Text>
+        <Text className={PRIMARY_LABEL}>{t.admin.save}</Text>
       </Pressable>
     </View>
   );
 }
 
 function Settings() {
+  const t = useMessages();
   const refresh = useRefreshAccount();
   const {data, error, reload} = useFocusLoad(fetchSettings);
 
   return (
     <View className='mb-[26px]'>
-      <Text className={SECTION_LABEL}>Inställningar</Text>
+      <Text className={SECTION_LABEL}>{t.admin.organization.settings}</Text>
       {data ? (
         // Saved elsewhere since it was opened: start over from what the
         // server has, so a save cannot put the old values back.
@@ -141,7 +144,11 @@ function Settings() {
           onSaved={refresh}
         />
       ) : error ? (
-        <Notice message={error} actionLabel='Försök igen' onAction={reload} />
+        <Notice
+          message={error}
+          actionLabel={t.common.retry}
+          onAction={reload}
+        />
       ) : null}
     </View>
   );
@@ -151,22 +158,23 @@ async function signOutAdmin() {
   await authClient.signOut();
 }
 
-function changeMessage(code: string | undefined): string {
+function changeMessage(code: string | undefined, t: Messages): string {
   switch (code) {
     case 'INVALID_PASSWORD':
-      return 'Det nuvarande lösenordet stämmer inte';
+      return t.admin.organization.wrongPassword;
     case 'PASSWORD_TOO_SHORT':
-      return `Det nya lösenordet måste ha minst ${MIN_PASSWORD_LENGTH} tecken`;
+      return t.admin.organization.passwordTooShort(MIN_PASSWORD_LENGTH);
     case 'PASSWORD_TOO_LONG':
-      return 'Det nya lösenordet är för långt';
+      return t.admin.organization.passwordTooLong;
     default:
-      return errorMessage('UNKNOWN');
+      return errorMessage('UNKNOWN', t);
   }
 }
 
 // The admin account is shared by the board, so a new password is how it is
 // handed over: every other device signed in to it is signed out.
 function ChangePassword() {
+  const t = useMessages();
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [repeat, setRepeat] = useState('');
@@ -180,11 +188,11 @@ function ChangePassword() {
     setMessage(null);
 
     if (next.length < MIN_PASSWORD_LENGTH) {
-      setMessage(changeMessage('PASSWORD_TOO_SHORT'));
+      setMessage(changeMessage('PASSWORD_TOO_SHORT', t));
       return;
     }
     if (next !== repeat) {
-      setMessage('De nya lösenorden är inte lika');
+      setMessage(t.admin.organization.passwordsDiffer);
       return;
     }
 
@@ -200,27 +208,29 @@ function ChangePassword() {
     setSubmitting(false);
 
     if (result === null) {
-      setMessage(errorMessage('NETWORK'));
+      setMessage(errorMessage('NETWORK', t));
       return;
     }
 
     if (result.error) {
-      setMessage(changeMessage(result.error.code));
+      setMessage(changeMessage(result.error.code, t));
       return;
     }
 
     setCurrent('');
     setNext('');
     setRepeat('');
-    setMessage('Lösenordet är bytt. Alla andra enheter har loggats ut.');
+    setMessage(t.admin.organization.passwordChanged);
   }
 
   return (
     <View>
-      <Text className={SECTION_LABEL}>Byt lösenord</Text>
+      <Text className={SECTION_LABEL}>
+        {t.admin.organization.changePassword}
+      </Text>
       <View className='gap-3'>
         <FloatingLabelInput
-          label='Nuvarande lösenord'
+          label={t.admin.organization.currentPassword}
           value={current}
           onChangeText={setCurrent}
           secureTextEntry
@@ -228,7 +238,7 @@ function ChangePassword() {
           textContentType='password'
         />
         <FloatingLabelInput
-          label='Nytt lösenord'
+          label={t.admin.organization.newPassword}
           value={next}
           onChangeText={setNext}
           secureTextEntry
@@ -236,7 +246,7 @@ function ChangePassword() {
           textContentType='newPassword'
         />
         <FloatingLabelInput
-          label='Nytt lösenord igen'
+          label={t.admin.organization.repeatPassword}
           value={repeat}
           onChangeText={setRepeat}
           secureTextEntry
@@ -244,7 +254,7 @@ function ChangePassword() {
           textContentType='newPassword'
         />
         <Text className='font-sans text-[13px] leading-5 text-theme-muted'>
-          Byt lösenord när styrelsen byts. Alla andra enheter loggas ut.
+          {t.admin.organization.passwordNote}
         </Text>
         {message ? (
           <Text
@@ -259,7 +269,9 @@ function ChangePassword() {
           disabled={!canSubmit}
           className={`${PRIMARY_BUTTON} mt-2 self-start`}
         >
-          <Text className={PRIMARY_LABEL}>Byt lösenord</Text>
+          <Text className={PRIMARY_LABEL}>
+            {t.admin.organization.changePassword}
+          </Text>
         </Pressable>
       </View>
     </View>
@@ -268,9 +280,10 @@ function ChangePassword() {
 
 export function AdminOrganization() {
   const account = useAdminAccount();
+  const t = useMessages();
 
   return (
-    <AdminPage title='Föreningen' subtitle={account.organizationName}>
+    <AdminPage title={t.tabs.organization} subtitle={account.organizationName}>
       <Account
         signOutFrom={account.organizationName}
         onSignOut={signOutAdmin}

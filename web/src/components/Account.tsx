@@ -1,8 +1,9 @@
 import {authClient} from '@/auth/client';
 import {useDialog} from '@/components/Dialog';
+import {useMessages} from '@/i18n/LocaleProvider';
 
 type AccountProps = {
-  // Completes "Vill du logga ut från …?".
+  // Completes the sign-out question, such as "lägenhet 12".
   signOutFrom: string;
   onSignOut: () => Promise<void>;
 };
@@ -10,10 +11,11 @@ type AccountProps = {
 export function Account({signOutFrom, onSignOut}: AccountProps) {
   const {data: session} = authClient.useSession();
   const dialog = useDialog();
+  const t = useMessages();
 
   const confirmSignOut = () =>
-    dialog.confirm('Logga ut', `Vill du logga ut från ${signOutFrom}?`, {
-      label: 'Logga ut',
+    dialog.confirm(t.account.signOut, t.account.signOutQuestion(signOutFrom), {
+      label: t.account.signOut,
       onPress: () => {
         void onSignOut();
       },
@@ -22,12 +24,12 @@ export function Account({signOutFrom, onSignOut}: AccountProps) {
   return (
     <div className='mb-6.5'>
       <p className='mb-2.5 ml-0.5 text-[11px] font-bold uppercase tracking-[1px] text-theme-muted'>
-        Konto
+        {t.account.heading}
       </p>
       <div className='flex items-center gap-3.5 rounded-2xl border border-theme-line bg-theme-surface px-4.5 py-4'>
         <div className='flex min-w-0 flex-1 flex-col gap-1'>
           <span className='text-sm font-semibold text-theme-muted'>
-            Inloggad som
+            {t.account.signedInAs}
           </span>
           <span className='truncate text-[17px] font-semibold tracking-tight text-theme-ink'>
             {session?.user.email}
@@ -38,7 +40,7 @@ export function Account({signOutFrom, onSignOut}: AccountProps) {
           onClick={confirmSignOut}
           className='h-11 shrink-0 rounded-full border border-theme-edge bg-theme-surface px-5 text-sm font-semibold tracking-tight text-theme-ink transition-colors hover:bg-theme-sunk active:opacity-70'
         >
-          Logga ut
+          {t.account.signOut}
         </button>
       </div>
     </div>

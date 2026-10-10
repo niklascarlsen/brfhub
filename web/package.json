@@ -12,10 +12,10 @@
     "generate": "node scripts/generate-theme.mjs && node scripts/generate-icons.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "dates:check": "diff ../app/src/lib/dates.ts src/lib/dates.ts",
+    "shared:check": "diff ../app/src/lib/dates.ts src/lib/dates.ts && diff ../app/src/i18n/sv.ts src/i18n/sv.ts && diff ../app/src/i18n/catalog.ts src/i18n/catalog.ts",
     "format": "prettier --write .",
     "precheck": "npm run generate",
-    "check": "prettier --check . && npm run typecheck && npm run lint && npm run dates:check"
+    "check": "prettier --check . && npm run typecheck && npm run lint && npm run shared:check"
   },
   "dependencies": {
     "@fontsource-variable/merriweather": "^5.3.0",

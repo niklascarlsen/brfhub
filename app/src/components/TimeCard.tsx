@@ -1,6 +1,7 @@
 import {Pressable, Text, View} from 'react-native';
 
 import {SkeletonBar} from '@/components/Skeleton';
+import {useMessages} from '@/i18n/LocaleProvider';
 import {formatLongDate, timeRange} from '@/lib/dates';
 
 type Badge = {label: string; tone: 'accent' | 'muted'};
@@ -32,6 +33,7 @@ export function TimeCard({
   secondaryLabel,
   onSecondary,
 }: TimeCardProps) {
+  const t = useMessages();
   const solid = actionTone === 'solid';
 
   return (
@@ -68,7 +70,7 @@ export function TimeCard({
           {timeRange(start, end)}
         </Text>
         <Text className='text-[13px] font-medium text-theme-muted'>
-          {formatLongDate(date)}
+          {formatLongDate(date, t)}
         </Text>
       </View>
       {actionLabel && onAction ? (

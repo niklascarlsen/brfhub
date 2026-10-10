@@ -2,6 +2,7 @@ import {useEffect, useState} from 'react';
 
 import {api, unwrap, type Announcement} from '@/api/client';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
+import {useMessages} from '@/i18n/LocaleProvider';
 import {readDismissed, saveDismissed} from '@/lib/dismissed';
 import {formatDayMonth} from '@/lib/dates';
 
@@ -25,6 +26,7 @@ function keyOf(announcement: Announcement): string {
 // The newest announcement the apartment has not hidden on this device.
 export function AnnouncementBanner({className}: {className?: string}) {
   const announcements = useAnnouncements();
+  const t = useMessages();
   const [dismissed, setDismissed] = useState<string[] | null>(null);
 
   useEffect(() => {
@@ -54,7 +56,7 @@ export function AnnouncementBanner({className}: {className?: string}) {
   return (
     <div className={className}>
       <section
-        aria-label='Anslag'
+        aria-label={t.announcements.heading}
         className='flex items-start gap-3 rounded-2xl border border-theme-line bg-theme-mist px-4.5 py-3.5'
       >
         <div className='flex min-w-0 flex-1 flex-col gap-1'>
@@ -70,7 +72,7 @@ export function AnnouncementBanner({className}: {className?: string}) {
           onClick={hide}
           className='-mr-1.5 shrink-0 rounded-full px-2 py-1 text-[13px] font-semibold text-theme-muted transition-colors hover:text-theme-ink'
         >
-          Dölj
+          {t.announcements.hide}
         </button>
       </section>
     </div>
@@ -81,6 +83,7 @@ export function AnnouncementBanner({className}: {className?: string}) {
 // wants to read one again.
 export function AnnouncementList() {
   const announcements = useAnnouncements();
+  const t = useMessages();
 
   if (announcements.length === 0) {
     return null;
@@ -92,7 +95,7 @@ export function AnnouncementList() {
         id='announcements-heading'
         className='mb-2.5 ml-0.5 text-[11px] font-bold uppercase tracking-[1px] text-theme-muted'
       >
-        Anslag
+        {t.announcements.heading}
       </h2>
       <div className='flex flex-col gap-2.5'>
         {announcements.map((announcement) => (
@@ -101,7 +104,7 @@ export function AnnouncementList() {
             className='flex flex-col gap-1 rounded-2xl border border-theme-line bg-theme-surface px-4.5 py-4'
           >
             <span className='text-xs text-theme-muted'>
-              {formatDayMonth(announcement.publishedOn)}
+              {formatDayMonth(announcement.publishedOn, t)}
             </span>
             <h3 className='text-[15px] font-semibold tracking-tight wrap-break-word text-theme-ink'>
               {announcement.title}

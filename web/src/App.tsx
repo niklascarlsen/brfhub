@@ -8,6 +8,7 @@ import {TabBar} from '@/components/TabBar';
 import {MEMBER_TABS} from '@/components/tabs';
 import {ConfigProvider, useConfig} from '@/config';
 import {DesktopShell} from '@/desktop/DesktopShell';
+import {LocaleProvider} from '@/i18n/LocaleProvider';
 import {isWithinBookingWindow} from '@/lib/dates';
 import {usePushPrompt} from '@/hooks/usePushPrompt';
 import {useIsDesktop} from '@/lib/media';
@@ -100,19 +101,21 @@ function Shell() {
 
 export function App() {
   return (
-    <DialogProvider>
-      <SessionGate>
-        <AccountGate
-          member={(account) => (
-            <ConfigProvider account={account}>
-              <Shell />
-            </ConfigProvider>
-          )}
-          admin={(account, refresh) => (
-            <AdminShell account={account} onRefresh={refresh} />
-          )}
-        />
-      </SessionGate>
-    </DialogProvider>
+    <LocaleProvider>
+      <DialogProvider>
+        <SessionGate>
+          <AccountGate
+            member={(account) => (
+              <ConfigProvider account={account}>
+                <Shell />
+              </ConfigProvider>
+            )}
+            admin={(account, refresh) => (
+              <AdminShell account={account} onRefresh={refresh} />
+            )}
+          />
+        </SessionGate>
+      </DialogProvider>
+    </LocaleProvider>
   );
 }

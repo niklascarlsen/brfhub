@@ -4,6 +4,7 @@ import type {Slot} from '@/api/client';
 import {Notice, NoticeBar} from '@/components/Notice';
 import {TimeSlotListSkeleton, TimeSlotRow} from '@/components/TimeSlotRow';
 import {useSlowLoad} from '@/hooks/useSlowLoad';
+import {useMessages} from '@/i18n/LocaleProvider';
 
 const FALLBACK_SKELETON_ROWS = 4;
 
@@ -16,6 +17,7 @@ type SlotListProps = {
 
 export function SlotList({slots, error, onRetry, onSelect}: SlotListProps) {
   const showSkeleton = useSlowLoad(slots === null && error === null);
+  const t = useMessages();
 
   if (slots && slots.length > 0) {
     return (
@@ -23,7 +25,7 @@ export function SlotList({slots, error, onRetry, onSelect}: SlotListProps) {
         {error ? (
           <NoticeBar
             message={error}
-            actionLabel='Försök igen'
+            actionLabel={t.common.retry}
             onAction={onRetry}
           />
         ) : null}
@@ -42,12 +44,12 @@ export function SlotList({slots, error, onRetry, onSelect}: SlotListProps) {
 
   if (error) {
     return (
-      <Notice message={error} actionLabel='Försök igen' onAction={onRetry} />
+      <Notice message={error} actionLabel={t.common.retry} onAction={onRetry} />
     );
   }
 
   if (slots) {
-    return <Notice message='Inga tider kvar den här dagen' />;
+    return <Notice message={t.booking.noSlotsLeft} />;
   }
 
   return showSkeleton ? (

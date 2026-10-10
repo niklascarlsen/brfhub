@@ -9,6 +9,7 @@ import {
 import {PRIMARY_BUTTON, SECONDARY_BUTTON} from '@/admin/styles';
 import {codeOf, errorMessage} from '@/api/errors';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
+import {useMessages} from '@/i18n/LocaleProvider';
 import {formatLongDate} from '@/lib/dates';
 
 export type AnnouncementFields = {
@@ -34,6 +35,7 @@ export function AnnouncementForm({
   onCancel,
   onDelete,
 }: AnnouncementFormProps) {
+  const t = useMessages();
   const [title, setTitle] = useState(initial.title);
   const [body, setBody] = useState(initial.body);
   const [endsOn, setEndsOn] = useState(initial.endsOn);
@@ -56,7 +58,7 @@ export function AnnouncementForm({
         endsOn,
       });
     } catch (caught) {
-      setError(errorMessage(codeOf(caught)));
+      setError(errorMessage(codeOf(caught), t));
       setSubmitting(false);
     }
   }
@@ -67,14 +69,16 @@ export function AnnouncementForm({
       className='flex flex-col gap-3'
     >
       <FloatingLabelInput
-        label='Rubrik'
+        label={t.admin.announcementForm.title}
         required
         maxLength={100}
         value={title}
         onChange={(event) => setTitle(event.target.value)}
       />
       <label className='flex flex-col gap-1.5'>
-        <span className='text-[13px] font-medium text-theme-muted'>Text</span>
+        <span className='text-[13px] font-medium text-theme-muted'>
+          {t.admin.announcementForm.body}
+        </span>
         <textarea
           required
           maxLength={2000}
@@ -86,7 +90,7 @@ export function AnnouncementForm({
       </label>
       <fieldset className='flex flex-col gap-2'>
         <legend className='mb-2 text-[13px] font-medium text-theme-muted'>
-          Visas
+          {t.admin.announcementForm.shownFor}
         </legend>
         <div className='flex flex-wrap gap-2'>
           {DURATIONS.map(({label, days}) => {
@@ -94,7 +98,7 @@ export function AnnouncementForm({
 
             return (
               <button
-                key={label}
+                key={String(days)}
                 type='button'
                 aria-pressed={selected}
                 onClick={() =>
@@ -106,14 +110,16 @@ export function AnnouncementForm({
                     : 'border-theme-edge bg-theme-surface text-theme-ink hover:bg-theme-sunk'
                 }`}
               >
-                {label}
+                {label(t)}
               </button>
             );
           })}
         </div>
         <span className='text-[13px] leading-5 text-theme-muted'>
-          Från {formatLongDate(initial.publishedOn)}
-          {endsOn ? ` till och med ${formatLongDate(endsOn)}` : ''}.
+          {t.admin.announcementForm.shown(
+            formatLongDate(initial.publishedOn, t),
+            endsOn ? formatLongDate(endsOn, t) : null,
+          )}
         </span>
       </fieldset>
       {error ? (
@@ -132,7 +138,7 @@ export function AnnouncementForm({
           {submitLabel}
         </button>
         <button type='button' onClick={onCancel} className={SECONDARY_BUTTON}>
-          Avbryt
+          {t.common.cancel}
         </button>
         {onDelete ? (
           <button
@@ -140,7 +146,7 @@ export function AnnouncementForm({
             onClick={onDelete}
             className={`${SECONDARY_BUTTON} ml-auto`}
           >
-            Ta bort
+            {t.admin.remove}
           </button>
         ) : null}
       </div>

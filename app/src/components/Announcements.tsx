@@ -3,6 +3,7 @@ import {Pressable, Text, View} from 'react-native';
 
 import {api, unwrap, type Announcement} from '@/api/client';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
+import {useMessages} from '@/i18n/LocaleProvider';
 import {formatDayMonth} from '@/lib/dates';
 import {readDismissed, saveDismissed} from '@/lib/dismissed';
 
@@ -26,6 +27,7 @@ function keyOf(announcement: Announcement): string {
 // The newest announcement the apartment has not hidden on this device.
 export function AnnouncementBanner({className}: {className?: string}) {
   const announcements = useAnnouncements();
+  const t = useMessages();
   const [dismissed, setDismissed] = useState<string[] | null>(null);
 
   useEffect(() => {
@@ -54,7 +56,7 @@ export function AnnouncementBanner({className}: {className?: string}) {
 
   return (
     <View
-      accessibilityLabel='Anslag'
+      accessibilityLabel={t.announcements.heading}
       className={`flex-row items-start gap-3 rounded-2xl border border-theme-line bg-theme-mist px-[18px] py-3.5 ${className ?? ''}`}
     >
       <View className='min-w-0 flex-1 gap-1'>
@@ -73,7 +75,9 @@ export function AnnouncementBanner({className}: {className?: string}) {
         hitSlop={8}
         className='-mr-1 px-1 active:opacity-60'
       >
-        <Text className='text-[13px] font-semibold text-theme-muted'>Dölj</Text>
+        <Text className='text-[13px] font-semibold text-theme-muted'>
+          {t.announcements.hide}
+        </Text>
       </Pressable>
     </View>
   );
@@ -83,6 +87,7 @@ export function AnnouncementBanner({className}: {className?: string}) {
 // wants to read one again.
 export function AnnouncementList() {
   const announcements = useAnnouncements();
+  const t = useMessages();
 
   if (announcements.length === 0) {
     return null;
@@ -91,7 +96,7 @@ export function AnnouncementList() {
   return (
     <View className='mb-[26px]'>
       <Text className='mb-2.5 ml-0.5 text-[11px] font-bold uppercase tracking-[1px] text-theme-muted'>
-        Anslag
+        {t.announcements.heading}
       </Text>
       <View className='gap-2.5'>
         {announcements.map((announcement) => (
@@ -100,7 +105,7 @@ export function AnnouncementList() {
             className='gap-1 rounded-2xl border border-theme-line bg-theme-surface px-[18px] py-4'
           >
             <Text className='font-sans text-xs text-theme-muted'>
-              {formatDayMonth(announcement.publishedOn)}
+              {formatDayMonth(announcement.publishedOn, t)}
             </Text>
             <Text className='text-[15px] font-semibold tracking-tight text-theme-ink'>
               {announcement.title}

@@ -89,8 +89,9 @@ Physical iPhone with a free Apple ID (no paid developer account):
   rewrite only shows up once it is deployed.
 - `npm run generate` — rewrites the generated theme and icons, see Generated
   types. Runs by itself before `dev`, `build` and `check`.
-- `npm run check` — Prettier, TypeScript, ESLint and a diff of
-  `src/lib/dates.ts` against the app's copy.
+- `npm run check` — Prettier, TypeScript, ESLint and a diff of the files
+  shared with the app (`src/lib/dates.ts`, `src/i18n/sv.ts`,
+  `src/i18n/catalog.ts`) against the app's copies.
 
 I keep the `server/` and `web/` dev servers running while testing. Never kill
 them (`pkill`, by port); check what is listening with
@@ -108,8 +109,13 @@ pick up changes without a restart.
   it renders the calendar and day view in `src/desktop/`, which loads the whole
   booking window for every resource in one `/schedule` request.
 - `src/lib/dates.ts` is the same file in both clients, kept honest by web's
-  `dates:check`. Its tests live in `app/`, so add helpers there. What only the
+  `shared:check`. Its tests live in `app/`, so add helpers there. What only the
   desktop calendar needs goes in `web/src/desktop/weeks.ts`.
+- Every visible string lives in `src/i18n/sv.ts`, the same file in both
+  clients and also checked by `shared:check`. Components read it with
+  `useMessages()`; helpers outside components take it as a `t: Messages`
+  argument. Never write UI text inline. Text from the organization (names,
+  rules, announcements, tags) is not translated.
 - `web/` is on Tailwind v4 (CSS-first, tokens in `@theme`); `app/` stays on the
   v3 LTS that NativeWind needs. Do not copy config between them.
 - Match the app's result, not its layout mechanism. Anything sized from the

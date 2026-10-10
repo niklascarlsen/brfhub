@@ -2,6 +2,7 @@ import {Fragment, useMemo} from 'react';
 
 import {useRevealSelected} from '@/hooks/useRevealSelected';
 import {useRovingList} from '@/hooks/useRovingList';
+import {useMessages} from '@/i18n/LocaleProvider';
 import {getWeekdayLabel, groupDaysByMonth, toIsoDate} from '@/lib/dates';
 
 type DatePickerProps = {
@@ -20,7 +21,8 @@ export function DatePicker({
   todayIso,
   onSelect,
 }: DatePickerProps) {
-  const months = groupDaysByMonth(days, todayIso);
+  const t = useMessages();
+  const months = groupDaysByMonth(days, todayIso, t);
   const scroller = useRevealSelected(selectedIso);
 
   const positions = useMemo(
@@ -39,7 +41,7 @@ export function DatePicker({
     <div
       ref={scroller}
       role='toolbar'
-      aria-label='Välj dag'
+      aria-label={t.calendar.chooseDay}
       aria-orientation={roving.orientation}
       onKeyDown={roving.onKeyDown}
       className='w-full shrink-0 scroll-px-5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
@@ -75,7 +77,7 @@ export function DatePicker({
                     ) : null}
                   </span>
                   <span className='text-xs font-medium text-theme-muted'>
-                    {getWeekdayLabel(day)}
+                    {getWeekdayLabel(day, t)}
                   </span>
                   <span
                     className={`mt-1.5 flex ${CIRCLE} items-center justify-center rounded-full transition-colors ${

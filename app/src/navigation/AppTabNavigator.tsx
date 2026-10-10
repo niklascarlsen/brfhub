@@ -1,6 +1,7 @@
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
+import {useMessages} from '@/i18n/LocaleProvider';
 import {ApartmentScreen} from '@/screens/ApartmentScreen';
 import {BookingScreen} from '@/screens/BookingScreen';
 import {ReservationScreen} from '@/screens/ReservationScreen';
@@ -15,13 +16,15 @@ export type AppTabParamList = {
 const Tab = createBottomTabNavigator<AppTabParamList>();
 
 export default function AppTabNavigator() {
+  const t = useMessages();
+
   return (
     <Tab.Navigator screenOptions={TAB_SCREEN_OPTIONS}>
       <Tab.Screen
         name='Booking'
         component={BookingScreen}
         options={{
-          title: 'Boka',
+          title: t.tabs.book,
           tabBarIcon: ({color}) => (
             <Ionicons
               name='calendar-outline'
@@ -35,7 +38,7 @@ export default function AppTabNavigator() {
         name='Reservation'
         component={ReservationScreen}
         options={{
-          title: 'Mina tider',
+          title: t.tabs.myTimes,
           tabBarIcon: ({color}) => (
             <Ionicons name='time-outline' size={TAB_ICON_GLYPH} color={color} />
           ),
@@ -45,7 +48,7 @@ export default function AppTabNavigator() {
         name='Apartment'
         component={ApartmentScreen}
         options={{
-          title: 'Lägenhet',
+          title: t.tabs.apartment,
           tabBarIcon: ({color}) => (
             <Ionicons name='home-outline' size={TAB_ICON_GLYPH} color={color} />
           ),

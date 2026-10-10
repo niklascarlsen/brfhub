@@ -1,5 +1,8 @@
 import {useCallback, useEffect, useSyncExternalStore} from 'react';
 
+import type {Messages} from '@/i18n/catalog';
+import {useMessages} from '@/i18n/LocaleProvider';
+
 export type MemberRoute = 'book' | 'my-times' | 'apartment';
 export type AdminRoute =
   | 'admin/apartments'
@@ -19,14 +22,14 @@ const PATHS: Record<string, Route> = {
   '/admin/organization': 'admin/organization',
 };
 
-const TITLES: Record<Route, string> = {
-  book: 'Boka',
-  'my-times': 'Mina tider',
-  apartment: 'Lägenhet',
-  'admin/apartments': 'Lägenheter',
-  'admin/resources': 'Resurser',
-  'admin/announcements': 'Anslag',
-  'admin/organization': 'Föreningen',
+const TITLES: Record<Route, (t: Messages) => string> = {
+  book: (t) => t.tabs.book,
+  'my-times': (t) => t.tabs.myTimes,
+  apartment: (t) => t.tabs.apartment,
+  'admin/apartments': (t) => t.tabs.apartments,
+  'admin/resources': (t) => t.tabs.resources,
+  'admin/announcements': (t) => t.tabs.announcements,
+  'admin/organization': (t) => t.tabs.organization,
 };
 
 export function isAdminRoute(route: Route): route is AdminRoute {
@@ -95,16 +98,17 @@ type Navigate = (route: Route, options?: {replace?: boolean}) => void;
 
 export function useRoute(): [Route, Navigate] {
   const route = useSyncExternalStore(subscribe, readRoute);
+  const t = useMessages();
 
   // An unknown path, such as /, settles on the path of the route it falls
   // back to.
   useEffect(() => {
-    document.title = TITLES[route];
+    document.title = TITLES[route](t);
 
     if (window.location.pathname !== hrefOf(route)) {
       window.history.replaceState(null, '', hrefOf(route));
     }
-  }, [route]);
+  }, [route, t]);
 
   const navigate = useCallback<Navigate>((next, options) => {
     if (readRoute() === next) {

@@ -2,6 +2,7 @@ import type {Slot} from '@/api/client';
 import {ChevronForwardIcon, LockClosedIcon} from '@/components/icons';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
 import type {RovingItemProps} from '@/hooks/useRovingList';
+import {useMessages} from '@/i18n/LocaleProvider';
 import {timeRange} from '@/lib/dates';
 import {isLocked, slotAppearance} from '@/lib/slots';
 
@@ -13,7 +14,8 @@ type TimeSlotRowProps = {
 
 export function TimeSlotRow({slot, onPress, itemProps}: TimeSlotRowProps) {
   const locked = isLocked(slot);
-  const {surface, time, label, tone, mark, chevron} = slotAppearance(slot);
+  const t = useMessages();
+  const {surface, time, label, tone, mark, chevron} = slotAppearance(slot, t);
 
   return (
     <button

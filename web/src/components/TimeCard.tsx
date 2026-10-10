@@ -1,4 +1,5 @@
 import {SkeletonBar} from '@/components/Skeleton';
+import {useMessages} from '@/i18n/LocaleProvider';
 import {formatLongDate, timeRange} from '@/lib/dates';
 
 type Badge = {label: string; tone: 'accent' | 'muted'};
@@ -83,6 +84,8 @@ export function TimeCard({
   badge,
   ...actions
 }: TimeCardProps) {
+  const t = useMessages();
+
   return (
     <div className={`${SHELL} gap-3.5 px-4.5 py-4`}>
       <div className='flex min-w-0 flex-1 flex-col gap-1'>
@@ -98,7 +101,7 @@ export function TimeCard({
           {timeRange(start, end)}
         </span>
         <span className='text-[13px] font-medium text-theme-muted'>
-          {formatLongDate(date)}
+          {formatLongDate(date, t)}
         </span>
       </div>
       <Actions {...actions} />

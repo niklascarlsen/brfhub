@@ -1,6 +1,7 @@
 import {describe, expect, test} from '@jest/globals';
 
 import {nextSlot, slotsProblem} from '@/admin/schedule';
+import {sv} from '@/i18n/sv';
 import type {SlotInput} from '@/api/client';
 
 const slot = (
@@ -16,25 +17,25 @@ const slot = (
 describe('slotsProblem', () => {
   test('accepts a day of slots and a night slot', () => {
     expect(
-      slotsProblem([slot('08:00', '20:00'), slot('20:00', '08:00', 1)]),
+      slotsProblem([slot('08:00', '20:00'), slot('20:00', '08:00', 1)], sv),
     ).toBeNull();
   });
 
   test('asks for at least one slot', () => {
-    expect(slotsProblem([])).toBe('Lägg till minst ett pass');
+    expect(slotsProblem([], sv)).toBe('Lägg till minst ett pass');
   });
 
   test('refuses a time that is not a time of day', () => {
     for (const time of ['', '8:00', '25:00', '12:60']) {
-      expect(slotsProblem([slot(time, '12:00')])).toBe(
+      expect(slotsProblem([slot(time, '12:00')], sv)).toBe(
         'Skriv tiderna som 08:00',
       );
     }
   });
 
   test('refuses a slot that ends before it starts on the same day', () => {
-    expect(slotsProblem([slot('20:00', '02:00')])).toMatch(/nästa dag/);
-    expect(slotsProblem([slot('10:00', '10:00')])).toMatch(/nästa dag/);
+    expect(slotsProblem([slot('20:00', '02:00')], sv)).toMatch(/nästa dag/);
+    expect(slotsProblem([slot('10:00', '10:00')], sv)).toMatch(/nästa dag/);
   });
 });
 

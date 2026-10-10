@@ -20,6 +20,8 @@ import {Notice} from '@/components/Notice';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useSlowLoad} from '@/hooks/useSlowLoad';
+import type {Messages} from '@/i18n/catalog';
+import {useMessages} from '@/i18n/LocaleProvider';
 import {formatDayMonth} from '@/lib/dates';
 import theme from '@/theme.json';
 
@@ -35,15 +37,21 @@ type Screen =
   | {kind: 'resource'; id: string; name: string};
 
 // What a row says besides the current times: a change or closing ahead.
-function statusOf(resource: AdminResource, today: string): string | null {
+function statusOf(
+  resource: AdminResource,
+  today: string,
+  t: Messages,
+): string | null {
   if (resource.closesFrom !== null) {
     return resource.closesFrom <= today
-      ? 'Stängd'
-      : `Stängs ${formatDayMonth(resource.closesFrom)}`;
+      ? t.admin.resources.closed
+      : t.rules.closes(formatDayMonth(resource.closesFrom, t));
   }
 
   const next = resource.schedules[1];
-  return next ? `Nya tider ${formatDayMonth(next.validFrom)}` : null;
+  return next
+    ? t.admin.resources.newTimes(formatDayMonth(next.validFrom, t))
+    : null;
 }
 
 function ResourceRow({
@@ -57,6 +65,7 @@ function ResourceRow({
   onPress: () => void;
   last: boolean;
 }) {
+  const t = useMessages();
   const current = resource.schedules[0];
 
   return (
@@ -74,7 +83,7 @@ function ResourceRow({
           {resource.name}
         </Text>
         <Text className='font-sans text-[13px] text-theme-muted'>
-          {current ? slotsText(current.slots) : 'Inga pass'}
+          {current ? slotsText(current.slots) : t.admin.resources.noSlots}
         </Text>
         {status ? (
           <Text className='font-sans text-xs text-theme-accent'>{status}</Text>
@@ -87,12 +96,13 @@ function ResourceRow({
 
 export function AdminResources() {
   const {organizationName} = useAdminAccount();
+  const t = useMessages();
   const {data, error, reload} = useFocusLoad(fetchResources);
   const showSkeleton = useSlowLoad(data === null && error === null);
   const [screen, setScreen] = useState<Screen>({kind: 'list'});
 
   const toList = () => setScreen({kind: 'list'});
-  const back = {label: 'Resurser', onPress: toList};
+  const back = {label: t.tabs.resources, onPress: toList};
 
   // The steps below the list are not screens of their own, so Android's
   // back button would otherwise leave the tab instead of going back.
@@ -114,10 +124,14 @@ export function AdminResources() {
 
   if (data && screen.kind === 'add-kind') {
     return (
-      <AdminPage title='Ny typ' subtitle={organizationName} back={back}>
+      <AdminPage
+        title={t.admin.resources.newKind}
+        subtitle={organizationName}
+        back={back}
+      >
         <KindForm
           initial={{name: '', maxActive: 1}}
-          submitLabel='Lägg till'
+          submitLabel={t.admin.apartments.add}
           onCancel={toList}
           onSubmit={async (fields) => {
             await unwrap(api.POST('/admin/kinds', {body: fields}));
@@ -147,7 +161,7 @@ export function AdminResources() {
       >
         <KindForm
           initial={editedKind}
-          submitLabel='Spara'
+          submitLabel={t.admin.save}
           onCancel={toList}
           onSubmit={async (fields) => {
             await unwrap(
@@ -174,8 +188,8 @@ export function AdminResources() {
                     })
                     .catch((caught: unknown) =>
                       Alert.alert(
-                        'Kunde inte ta bort typen',
-                        errorMessage(codeOf(caught)),
+                        t.admin.resources.removeKindFailed,
+                        errorMessage(codeOf(caught), t),
                       ),
                     );
                 }
@@ -187,7 +201,11 @@ export function AdminResources() {
 
   if (data && screen.kind === 'add-resource') {
     return (
-      <AdminPage title='Ny resurs' subtitle={organizationName} back={back}>
+      <AdminPage
+        title={t.admin.resources.newResource}
+        subtitle={organizationName}
+        back={back}
+      >
         <ResourceForm
           kinds={data.kinds}
           initial={{
@@ -197,7 +215,7 @@ export function AdminResources() {
             slots: [{start: '08:00', end: '11:00', endOffsetDays: 0}],
           }}
           withSlots
-          submitLabel='Lägg till'
+          submitLabel={t.admin.apartments.add}
           onCancel={toList}
           onSubmit={async (fields) => {
             const {id} = await unwrap(
@@ -245,8 +263,7 @@ export function AdminResources() {
       <View className='gap-[26px]'>
         {data.kinds.length === 0 ? (
           <Text className='font-sans text-sm leading-5 text-theme-muted'>
-            Börja med en typ, som Tvätt eller Bastu. Typen bestämmer hur många
-            bokningar en lägenhet får ha åt gången.
+            {t.admin.resources.startWithKind}
           </Text>
         ) : null}
         {data.kinds.map((kind) => {
@@ -266,13 +283,13 @@ export function AdminResources() {
                   className='active:opacity-60'
                 >
                   <Text className='font-sans text-xs text-theme-muted'>
-                    {limitText(kind)} · Ändra
+                    {limitText(kind, t)} · {t.admin.resources.edit}
                   </Text>
                 </Pressable>
               </View>
               {own.length === 0 ? (
                 <Text className='ml-0.5 font-sans text-[13px] text-theme-muted'>
-                  Inga resurser av den här typen.
+                  {t.admin.resources.noneOfKind}
                 </Text>
               ) : (
                 <View className='overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
@@ -280,7 +297,7 @@ export function AdminResources() {
                     <ResourceRow
                       key={resource.id}
                       resource={resource}
-                      status={statusOf(resource, data.today)}
+                      status={statusOf(resource, data.today, t)}
                       last={index === own.length - 1}
                       onPress={() =>
                         setScreen({
@@ -300,7 +317,7 @@ export function AdminResources() {
     );
   } else if (error) {
     body = (
-      <Notice message={error} actionLabel='Försök igen' onAction={reload} />
+      <Notice message={error} actionLabel={t.common.retry} onAction={reload} />
     );
   } else if (showSkeleton) {
     body = (
@@ -318,7 +335,7 @@ export function AdminResources() {
 
   return (
     <AdminPage
-      title='Resurser'
+      title={t.tabs.resources}
       subtitle={organizationName}
       action={
         data ? (
@@ -329,7 +346,9 @@ export function AdminResources() {
                 className={PRIMARY_BUTTON}
               >
                 <Ionicons name='add' size={18} color={theme.surface} />
-                <Text className={PRIMARY_LABEL}>Ny resurs</Text>
+                <Text className={PRIMARY_LABEL}>
+                  {t.admin.resources.newResource}
+                </Text>
               </Pressable>
             ) : null}
             <Pressable
@@ -342,7 +361,7 @@ export function AdminResources() {
                 color={hasKinds ? theme.ink : theme.surface}
               />
               <Text className={hasKinds ? SECONDARY_LABEL : PRIMARY_LABEL}>
-                Ny typ
+                {t.admin.resources.newKind}
               </Text>
             </Pressable>
           </View>

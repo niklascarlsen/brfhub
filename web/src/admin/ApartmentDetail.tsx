@@ -6,6 +6,8 @@ import {api, unwrap, type Apartment} from '@/api/client';
 import {codeOf, errorMessage} from '@/api/errors';
 import {useDialog} from '@/components/Dialog';
 import {ChevronForwardIcon} from '@/components/icons';
+import type {Messages} from '@/i18n/catalog';
+import {useMessages} from '@/i18n/LocaleProvider';
 import {formatLongDate} from '@/lib/dates';
 
 type ApartmentDetailProps = {
@@ -15,16 +17,10 @@ type ApartmentDetailProps = {
   onRemoved: () => void;
 };
 
-function bookingsWord(count: number): string {
-  return count === 1 ? '1 kommande bokning' : `${count} kommande bokningar`;
-}
-
 // What the admin is told before anything that cancels the apartment's
 // bookings, since those are times someone else is counting on.
-function cancelNote(apartment: Apartment): string {
-  return apartment.upcomingBookings === 0
-    ? 'Lägenheten har inga kommande bokningar.'
-    : `Lägenhetens ${bookingsWord(apartment.upcomingBookings)} avbokas, och den som köar får en notis.`;
+function cancelNote(apartment: Apartment, t: Messages): string {
+  return t.admin.apartment.cancelNote(apartment.upcomingBookings);
 }
 
 function Row({label, value}: {label: string; value: string}) {
@@ -75,6 +71,7 @@ export function ApartmentDetail({
   onRemoved,
 }: ApartmentDetailProps) {
   const dialog = useDialog();
+  const t = useMessages();
   const [mode, setMode] = useState<Mode>('view');
   // A second tap while a request runs would reset twice or remove twice.
   const [busy, setBusy] = useState(false);
@@ -85,14 +82,14 @@ export function ApartmentDetail({
   };
 
   const fail = (title: string) => (caught: unknown) =>
-    dialog.alert(title, errorMessage(codeOf(caught)));
+    dialog.alert(title, errorMessage(codeOf(caught), t));
 
   const resetPassword = () =>
     dialog.confirm(
-      'Återställ lösenord',
-      `Lägenhet ${apartment.label} får ett nytt lösenord och loggas ut på alla enheter.`,
+      t.admin.apartment.resetPassword,
+      t.admin.apartment.resetQuestion(apartment.label),
       {
-        label: 'Återställ',
+        label: t.admin.apartment.reset,
         onPress: () => {
           if (busy) {
             return;
@@ -103,7 +100,7 @@ export function ApartmentDetail({
                 params: {path: {id: apartment.id}},
               }),
             ).then(({password}) => onPassword(apartment, password)),
-            'Kunde inte återställa lösenordet',
+            t.admin.apartment.resetFailed,
           );
         },
       },
@@ -111,10 +108,10 @@ export function ApartmentDetail({
 
   const remove = () =>
     dialog.confirm(
-      'Ta bort lägenheten',
-      `${cancelNote(apartment)} Kontot tas bort och numret kan användas igen.`,
+      t.admin.apartment.remove,
+      t.admin.apartment.removeQuestion(cancelNote(apartment, t)),
       {
-        label: 'Ta bort',
+        label: t.admin.remove,
         onPress: () => {
           if (busy) {
             return;
@@ -125,7 +122,7 @@ export function ApartmentDetail({
                 params: {path: {id: apartment.id}},
               }),
             ).then(onRemoved),
-            'Kunde inte ta bort lägenheten',
+            t.admin.apartment.removeFailed,
           );
         },
       },
@@ -140,8 +137,8 @@ export function ApartmentDetail({
           email: apartment.email,
         }}
         withLabel
-        note='Ändras e-posten loggas lägenheten ut och loggar in med den nya adressen.'
-        submitLabel='Spara'
+        note={t.admin.apartment.editNote}
+        submitLabel={t.admin.save}
         onCancel={() => setMode('view')}
         onSubmit={async (fields) => {
           await unwrap(
@@ -162,8 +159,8 @@ export function ApartmentDetail({
       <ApartmentForm
         initial={{label: apartment.label, residentName: '', email: ''}}
         withLabel={false}
-        note={`${cancelNote(apartment)} Det gamla kontot tas bort och de nya boende får ett eget lösenord.`}
-        submitLabel='Byt boende'
+        note={t.admin.apartment.newResidentNote(cancelNote(apartment, t))}
+        submitLabel={t.admin.apartment.replaceResident}
         onCancel={() => setMode('view')}
         onSubmit={async ({residentName, email}) => {
           const result = await unwrap(
@@ -179,41 +176,44 @@ export function ApartmentDetail({
   }
 
   const signedIn = apartment.lastSignInOn
-    ? formatLongDate(apartment.lastSignInOn)
-    : 'Aldrig';
+    ? formatLongDate(apartment.lastSignInOn, t)
+    : t.admin.apartment.never;
 
   return (
     <div className='flex flex-col gap-6.5'>
       <section>
-        <h2 className={SECTION_LABEL}>Uppgifter</h2>
+        <h2 className={SECTION_LABEL}>{t.admin.apartment.details}</h2>
         <div
           className={`${CARD} flex flex-col divide-y divide-theme-line py-1.5`}
         >
-          <Row label='Boende' value={apartment.residentName} />
-          <Row label='E-post' value={apartment.email} />
-          <Row label='Senast inloggad' value={signedIn} />
           <Row
-            label='Kommande bokningar'
+            label={t.admin.apartment.resident}
+            value={apartment.residentName}
+          />
+          <Row label={t.login.email} value={apartment.email} />
+          <Row label={t.admin.apartment.lastSignIn} value={signedIn} />
+          <Row
+            label={t.admin.apartment.upcomingBookings}
             value={String(apartment.upcomingBookings)}
           />
         </div>
       </section>
       <section>
-        <h2 className={SECTION_LABEL}>Åtgärder</h2>
+        <h2 className={SECTION_LABEL}>{t.admin.apartment.actions}</h2>
         <div className='flex flex-col divide-y divide-theme-line overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
           <Action
-            label='Ändra uppgifter'
-            description='Nummer, namn och e-post'
+            label={t.admin.apartment.editDetails}
+            description={t.admin.apartment.editDetailsHint}
             onPress={() => setMode('edit')}
           />
           <Action
-            label='Återställ lösenord'
-            description='När de boende har glömt det'
+            label={t.admin.apartment.resetPassword}
+            description={t.admin.apartment.resetPasswordHint}
             onPress={resetPassword}
           />
           <Action
-            label='Ny boende'
-            description='När lägenheten byter ägare'
+            label={t.admin.apartment.newResident}
+            description={t.admin.apartment.newResidentHint}
             onPress={() => setMode('new-resident')}
           />
         </div>
@@ -223,7 +223,7 @@ export function ApartmentDetail({
         onClick={remove}
         className={`${SECONDARY_BUTTON} self-start`}
       >
-        Ta bort lägenheten
+        {t.admin.apartment.remove}
       </button>
     </div>
   );

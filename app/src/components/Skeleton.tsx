@@ -1,10 +1,13 @@
 import {useEffect, useState, type ReactNode} from 'react';
 import {Animated, View} from 'react-native';
 
+import {useMessages} from '@/i18n/LocaleProvider';
+
 const PULSE_MS = 700;
 const DIMMED_OPACITY = 0.45;
 
 export function Skeleton({children}: {children: ReactNode}) {
+  const t = useMessages();
   const [opacity] = useState(() => new Animated.Value(1));
 
   useEffect(() => {
@@ -29,7 +32,11 @@ export function Skeleton({children}: {children: ReactNode}) {
   }, [opacity]);
 
   return (
-    <Animated.View style={{opacity}} accessible accessibilityLabel='Laddar'>
+    <Animated.View
+      style={{opacity}}
+      accessible
+      accessibilityLabel={t.common.loading}
+    >
       <View
         accessibilityElementsHidden
         importantForAccessibility='no-hide-descendants'

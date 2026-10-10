@@ -6,6 +6,7 @@ import {nextSlot} from '@/admin/schedule';
 import {SECONDARY_BUTTON, SECONDARY_LABEL} from '@/admin/styles';
 import type {SlotInput} from '@/api/client';
 import theme from '@/theme.json';
+import {useMessages} from '@/i18n/LocaleProvider';
 
 type SlotsEditorProps = {
   slots: SlotInput[];
@@ -61,6 +62,7 @@ function TimeField({
 }
 
 export function SlotsEditor({slots, onChange}: SlotsEditorProps) {
+  const t = useMessages();
   const update = (index: number, change: Partial<SlotInput>) =>
     onChange(
       slots.map((slot, at) => (at === index ? {...slot, ...change} : slot)),
@@ -77,12 +79,12 @@ export function SlotsEditor({slots, onChange}: SlotsEditorProps) {
         >
           <View className='flex-row gap-2.5'>
             <TimeField
-              label='Börjar'
+              label={t.admin.slots.starts}
               value={slot.start}
               onChange={(start) => update(index, {start})}
             />
             <TimeField
-              label='Slutar'
+              label={t.admin.slots.ends}
               value={slot.end}
               onChange={(end) => update(index, {end})}
             />
@@ -99,7 +101,7 @@ export function SlotsEditor({slots, onChange}: SlotsEditorProps) {
                 ios_backgroundColor={theme.track}
               />
               <Text className='font-sans text-[13px] text-theme-ink'>
-                Slutar nästa dag
+                {t.admin.slots.endsNextDay}
               </Text>
             </View>
             <Pressable
@@ -109,7 +111,7 @@ export function SlotsEditor({slots, onChange}: SlotsEditorProps) {
               className='px-2 py-1 active:opacity-60 disabled:opacity-35'
             >
               <Text className='text-[13px] font-semibold text-theme-muted'>
-                Ta bort
+                {t.admin.remove}
               </Text>
             </Pressable>
           </View>
@@ -121,7 +123,7 @@ export function SlotsEditor({slots, onChange}: SlotsEditorProps) {
         className={`${SECONDARY_BUTTON} self-start`}
       >
         <Ionicons name='add' size={18} color={theme.ink} />
-        <Text className={SECONDARY_LABEL}>Lägg till pass</Text>
+        <Text className={SECONDARY_LABEL}>{t.admin.slots.add}</Text>
       </Pressable>
     </View>
   );

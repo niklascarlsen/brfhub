@@ -9,6 +9,8 @@ import {
   type ReactNode,
 } from 'react';
 
+import {useMessages} from '@/i18n/LocaleProvider';
+
 type DialogAction = {
   label: string;
   destructive?: boolean;
@@ -42,6 +44,7 @@ export function useDialog(): DialogApi {
 }
 
 export function DialogProvider({children}: {children: ReactNode}) {
+  const t = useMessages();
   const [request, setRequest] = useState<DialogRequest | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const pressedBackdrop = useRef(false);
@@ -119,7 +122,7 @@ export function DialogProvider({children}: {children: ReactNode}) {
                   onClick={close}
                   className={`${BUTTON} border border-theme-edge bg-theme-surface text-theme-ink transition-colors hover:bg-theme-sunk`}
                 >
-                  Avbryt
+                  {t.common.cancel}
                 </button>
               ) : null}
               <button
@@ -127,7 +130,7 @@ export function DialogProvider({children}: {children: ReactNode}) {
                 onClick={press}
                 className={`${BUTTON} bg-theme-ink text-theme-surface transition-opacity hover:opacity-90`}
               >
-                {request.action?.label ?? 'OK'}
+                {request.action?.label ?? t.common.ok}
               </button>
             </div>
           </div>

@@ -18,6 +18,7 @@ import {
   type AdminResources,
 } from '@/api/client';
 import {codeOf, errorMessage} from '@/api/errors';
+import {useMessages} from '@/i18n/LocaleProvider';
 import {formatDayMonth, formatLongDate} from '@/lib/dates';
 import theme from '@/theme.json';
 
@@ -85,6 +86,7 @@ export function ResourceDetail({
   data,
   onChanged,
 }: ResourceDetailProps) {
+  const t = useMessages();
   const [mode, setMode] = useState<Mode>('view');
 
   // Back from a form returns to the resource, not to the list. Registered
@@ -111,7 +113,7 @@ export function ResourceDetail({
   const closed = resource.closesFrom !== null && resource.closesFrom <= today;
 
   const fail = (title: string) => (caught: unknown) =>
-    Alert.alert(title, errorMessage(codeOf(caught)));
+    Alert.alert(title, errorMessage(codeOf(caught), t));
 
   const [busy, setBusy] = useState(false);
 
@@ -150,18 +152,18 @@ export function ResourceDetail({
     );
     run(
       () => unwrap(api.PUT('/admin/resources/order', {body: {ids}})),
-      'Kunde inte flytta resursen',
+      t.admin.resource.moveFailed,
     );
   };
 
   const removeChange = (validFrom: string) =>
     Alert.alert(
-      'Ta bort ändringen',
-      `Tiderna från ${formatLongDate(validFrom)} tas bort, och de nuvarande gäller vidare.`,
+      t.admin.resource.removeChange,
+      t.admin.resource.removeChangeQuestion(formatLongDate(validFrom, t)),
       [
-        {text: 'Avbryt', style: 'cancel'},
+        {text: t.common.cancel, style: 'cancel'},
         {
-          text: 'Ta bort',
+          text: t.admin.remove,
           style: 'destructive',
           onPress: () => {
             run(
@@ -171,7 +173,7 @@ export function ResourceDetail({
                     params: {path: {id: resource.id, validFrom}},
                   }),
                 ),
-              'Kunde inte ta bort ändringen',
+              t.admin.resource.removeChangeFailed,
             );
           },
         },
@@ -180,12 +182,15 @@ export function ResourceDetail({
 
   const close = () =>
     Alert.alert(
-      'Stäng resursen',
-      `${resource.name} går att boka till och med dagen före ${formatLongDate(earliestChange)}. Bokningar fram till dess står kvar.`,
+      t.admin.resource.close,
+      t.admin.resource.closeQuestion(
+        resource.name,
+        formatLongDate(earliestChange, t),
+      ),
       [
-        {text: 'Avbryt', style: 'cancel'},
+        {text: t.common.cancel, style: 'cancel'},
         {
-          text: 'Stäng',
+          text: t.admin.resource.closeAction,
           style: 'destructive',
           onPress: () => {
             run(
@@ -196,7 +201,7 @@ export function ResourceDetail({
                     body: {closesFrom: earliestChange},
                   }),
                 ),
-              'Kunde inte stänga resursen',
+              t.admin.resource.closeFailed,
             );
           },
         },
@@ -211,7 +216,7 @@ export function ResourceDetail({
             params: {path: {id: resource.id}},
           }),
         ),
-      closed ? 'Kunde inte öppna resursen' : 'Kunde inte ångra stängningen',
+      closed ? t.admin.resource.reopenFailed : t.admin.resource.undoCloseFailed,
     );
 
   if (mode === 'edit') {
@@ -220,7 +225,7 @@ export function ResourceDetail({
         kinds={kinds}
         initial={{...resource, slots: []}}
         withSlots={false}
-        submitLabel='Spara'
+        submitLabel={t.admin.save}
         onCancel={() => setMode('view')}
         onSubmit={async ({name, kindId, tags}) => {
           await unwrap(
@@ -259,12 +264,14 @@ export function ResourceDetail({
   return (
     <View className='gap-[26px]'>
       <View>
-        <Text className={SECTION_LABEL}>Tider</Text>
+        <Text className={SECTION_LABEL}>{t.admin.resource.times}</Text>
         <View className={`${CARD} py-1.5`}>
           <View className='gap-0.5 py-2.5'>
-            <Text className='font-sans text-[13px] text-theme-muted'>Nu</Text>
+            <Text className='font-sans text-[13px] text-theme-muted'>
+              {t.admin.resource.now}
+            </Text>
             <Text className='font-sans text-sm text-theme-ink'>
-              {current ? slotsText(current.slots) : 'Inga pass'}
+              {current ? slotsText(current.slots) : t.admin.resources.noSlots}
             </Text>
           </View>
           {later.map((schedule) => (
@@ -274,7 +281,7 @@ export function ResourceDetail({
             >
               <View className='min-w-0 flex-1 gap-0.5'>
                 <Text className='font-sans text-[13px] text-theme-accent'>
-                  Från {formatDayMonth(schedule.validFrom)}
+                  {t.admin.resource.from(formatDayMonth(schedule.validFrom, t))}
                 </Text>
                 <Text className='font-sans text-sm text-theme-ink'>
                   {slotsText(schedule.slots)}
@@ -287,7 +294,7 @@ export function ResourceDetail({
                   className='active:opacity-60'
                 >
                   <Text className='text-[13px] font-semibold text-theme-muted'>
-                    Ta bort
+                    {t.admin.remove}
                   </Text>
                 </Pressable>
               ) : null}
@@ -296,25 +303,30 @@ export function ResourceDetail({
           {resource.closesFrom ? (
             <View className='border-t border-theme-line py-2.5'>
               <Text className='font-sans text-[13px] text-theme-accent'>
-                {closed ? 'Stängd sedan' : 'Stängs'}{' '}
-                {formatDayMonth(resource.closesFrom)}
+                {closed
+                  ? t.admin.resource.closedSince(
+                      formatDayMonth(resource.closesFrom, t),
+                    )
+                  : t.rules.closes(formatDayMonth(resource.closesFrom, t))}
               </Text>
             </View>
           ) : null}
         </View>
       </View>
       <View>
-        <Text className={SECTION_LABEL}>Uppgifter</Text>
+        <Text className={SECTION_LABEL}>{t.admin.apartment.details}</Text>
         <View className={`${CARD} py-1.5`}>
           <View className='flex-row items-baseline justify-between gap-4 border-b border-theme-line py-2.5'>
-            <Text className='font-sans text-[13px] text-theme-muted'>Typ</Text>
+            <Text className='font-sans text-[13px] text-theme-muted'>
+              {t.admin.resource.kind}
+            </Text>
             <Text className='min-w-0 flex-1 text-right font-sans text-sm text-theme-ink'>
-              {kind ? `${kind.name} · ${limitText(kind)}` : '–'}
+              {kind ? `${kind.name} · ${limitText(kind, t)}` : '–'}
             </Text>
           </View>
           <View className='flex-row items-baseline justify-between gap-4 py-2.5'>
             <Text className='font-sans text-[13px] text-theme-muted'>
-              Taggar
+              {t.admin.resource.tags}
             </Text>
             <Text className='min-w-0 flex-1 text-right font-sans text-sm text-theme-ink'>
               {resource.tags.length > 0 ? resource.tags.join(', ') : '–'}
@@ -323,16 +335,18 @@ export function ResourceDetail({
         </View>
       </View>
       <View>
-        <Text className={SECTION_LABEL}>Åtgärder</Text>
+        <Text className={SECTION_LABEL}>{t.admin.apartment.actions}</Text>
         <View className='overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
           <Action
-            label='Ändra tider'
-            description={`Gäller från ${formatDayMonth(earliestChange)}, efter bokningsfönstret`}
+            label={t.admin.resource.editTimes}
+            description={t.admin.resource.editTimesHint(
+              formatDayMonth(earliestChange, t),
+            )}
             onPress={() => setMode('schedule')}
           />
           <Action
-            label='Ändra uppgifter'
-            description='Namn, typ och taggar'
+            label={t.admin.apartment.editDetails}
+            description={t.admin.resource.editDetailsHint}
             onPress={() => setMode('edit')}
             last
           />
@@ -342,12 +356,12 @@ export function ResourceDetail({
         {siblings.length > 1 ? (
           <>
             <Button
-              label='Flytta upp'
+              label={t.admin.resource.moveUp}
               disabled={busy || position === 0}
               onPress={() => move(-1)}
             />
             <Button
-              label='Flytta ner'
+              label={t.admin.resource.moveDown}
               disabled={busy || position === siblings.length - 1}
               onPress={() => move(1)}
             />
@@ -355,12 +369,18 @@ export function ResourceDetail({
         ) : null}
         {resource.closesFrom ? (
           <Button
-            label={closed ? 'Öppna igen' : 'Ångra stängningen'}
+            label={
+              closed ? t.admin.resource.reopen : t.admin.resource.undoClose
+            }
             disabled={busy}
             onPress={reopen}
           />
         ) : (
-          <Button label='Stäng resursen' disabled={busy} onPress={close} />
+          <Button
+            label={t.admin.resource.close}
+            disabled={busy}
+            onPress={close}
+          />
         )}
       </View>
     </View>

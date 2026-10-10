@@ -14,6 +14,7 @@ import {
   toIsoDate,
   unbrokenRange,
 } from '@/lib/dates';
+import {sv} from '@/i18n/sv';
 
 // Shaped by the generated types, so a server schema change breaks the build
 // here too. The dates themselves are arbitrary: these are pure functions.
@@ -61,6 +62,7 @@ describe.each(WINDOWS)('a $length day window, $from to $to', (window) => {
     const groups = groupDaysByMonth(
       daysBetween(window.from, window.to),
       window.today,
+      sv,
     );
 
     expect(groups.flatMap((group) => group.days).map(toIsoDate)).toEqual(
@@ -121,6 +123,7 @@ describe('groupDaysByMonth', () => {
     const groups = groupDaysByMonth(
       daysBetween(WINDOW.from, WINDOW.to),
       WINDOW.today,
+      sv,
     );
 
     expect(groups.map((group) => group.label)).toEqual(['sep', 'okt']);
@@ -131,6 +134,7 @@ describe('groupDaysByMonth', () => {
     const groups = groupDaysByMonth(
       daysBetween('2026-12-15', '2027-01-15'),
       '2026-12-15',
+      sv,
     );
 
     expect(groups.map((group) => group.label)).toEqual(['dec', 'jan 2027']);
@@ -143,6 +147,7 @@ describe('groupDaysByMonth', () => {
     const groups = groupDaysByMonth(
       daysBetween(`${serverYear}-12-30`, `${serverYear + 1}-01-02`),
       `${serverYear}-12-20`,
+      sv,
     );
 
     expect(groups.map((group) => group.label)).toEqual([
@@ -152,7 +157,7 @@ describe('groupDaysByMonth', () => {
   });
 
   test('has nothing to group when there are no days', () => {
-    expect(groupDaysByMonth([], WINDOW.today)).toEqual([]);
+    expect(groupDaysByMonth([], WINDOW.today, sv)).toEqual([]);
   });
 });
 
@@ -192,7 +197,7 @@ describe('labels', () => {
   test('every weekday maps to its Swedish short form', () => {
     const week = isoDaysIn('2026-08-31', '2026-09-06');
 
-    expect(week.map((day) => getWeekdayLabel(fromIsoDate(day)))).toEqual([
+    expect(week.map((day) => getWeekdayLabel(fromIsoDate(day), sv))).toEqual([
       'mån',
       'tis',
       'ons',
@@ -217,9 +222,9 @@ describe('labels', () => {
   // app runs on Hermes, whose ICU is its own: a wording difference on device
   // will not show up here, only a change to the locale or options we pass.
   test('a date is written in Swedish, weekday first', () => {
-    expect(formatLongDate(WINDOW.today)).toBe('torsdag 3 september');
-    expect(formatDayMonth(WINDOW.today)).toBe('3 september');
-    expect(formatWhen(WINDOW.today, timeRange(SLOT.start, SLOT.end))).toBe(
+    expect(formatLongDate(WINDOW.today, sv)).toBe('torsdag 3 september');
+    expect(formatDayMonth(WINDOW.today, sv)).toBe('3 september');
+    expect(formatWhen(WINDOW.today, timeRange(SLOT.start, SLOT.end), sv)).toBe(
       'torsdag 3 september, 07:00–10:00',
     );
   });
@@ -228,7 +233,9 @@ describe('labels', () => {
     for (const day of isoDaysIn(WINDOW.from, WINDOW.to)) {
       const dayOfMonth = fromIsoDate(day).getDate();
 
-      expect(formatLongDate(day)).toMatch(new RegExp(`\\b${dayOfMonth}\\b`));
+      expect(formatLongDate(day, sv)).toMatch(
+        new RegExp(`\\b${dayOfMonth}\\b`),
+      );
     }
   });
 });

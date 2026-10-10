@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 
 import {useRevealSelected} from '@/hooks/useRevealSelected';
+import {useMessages} from '@/i18n/LocaleProvider';
 import {getWeekdayLabel, groupDaysByMonth, toIsoDate} from '@/lib/dates';
 
 type DatePickerProps = {
@@ -30,12 +31,13 @@ export function DatePicker({
   todayIso,
   onSelect,
 }: DatePickerProps) {
+  const t = useMessages();
   const {width} = useWindowDimensions();
   const dayWidth =
     (width - HORIZONTAL_PADDING * 2 - DAY_GAP * (DAYS_VISIBLE - 1)) /
     DAYS_VISIBLE;
   const circleSize = Math.round(dayWidth * CIRCLE_RATIO);
-  const months = groupDaysByMonth(days, todayIso);
+  const months = groupDaysByMonth(days, todayIso, t);
   const {scrollProps, itemLayout} = useRevealSelected(selectedIso);
 
   return (
@@ -76,7 +78,7 @@ export function DatePicker({
                   ) : null}
                 </View>
                 <Text className='text-xs font-medium text-theme-muted'>
-                  {getWeekdayLabel(day)}
+                  {getWeekdayLabel(day, t)}
                 </Text>
                 <View
                   style={{width: circleSize, height: circleSize}}

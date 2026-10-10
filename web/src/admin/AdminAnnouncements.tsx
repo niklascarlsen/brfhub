@@ -12,6 +12,8 @@ import {Notice} from '@/components/Notice';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useSlowLoad} from '@/hooks/useSlowLoad';
+import type {Messages} from '@/i18n/catalog';
+import {useMessages} from '@/i18n/LocaleProvider';
 import {formatDayMonth} from '@/lib/dates';
 
 function fetchAnnouncements() {
@@ -21,32 +23,40 @@ function fetchAnnouncements() {
 type Screen = {kind: 'list'} | {kind: 'add'} | {kind: 'edit'; id: string};
 
 const GROUPS = [
-  {status: 'active', label: 'Visas nu'},
-  {status: 'scheduled', label: 'Kommande'},
-  {status: 'ended', label: 'Avslutade'},
+  {status: 'active', label: (t: Messages) => t.admin.announcements.active},
+  {
+    status: 'scheduled',
+    label: (t: Messages) => t.admin.announcements.scheduled,
+  },
+  {status: 'ended', label: (t: Messages) => t.admin.announcements.ended},
 ] as const;
 
-function periodOf(announcement: AdminAnnouncement): string {
-  const from = formatDayMonth(announcement.publishedOn);
+function periodOf(announcement: AdminAnnouncement, t: Messages): string {
+  const from = formatDayMonth(announcement.publishedOn, t);
 
   return announcement.endsOn
-    ? `${from} till ${formatDayMonth(announcement.endsOn)}`
-    : `Från ${from}, tills vidare`;
+    ? t.admin.announcements.period(from, formatDayMonth(announcement.endsOn, t))
+    : t.admin.announcements.openPeriod(from);
 }
 
 export function AdminAnnouncements() {
   const {organizationName} = useAdminAccount();
+  const t = useMessages();
   const dialog = useDialog();
   const {data, error, reload} = useFocusLoad(fetchAnnouncements);
   const showSkeleton = useSlowLoad(data === null && error === null);
   const [screen, setScreen] = useState<Screen>({kind: 'list'});
 
   const toList = () => setScreen({kind: 'list'});
-  const back = {label: 'Anslag', onPress: toList};
+  const back = {label: t.tabs.announcements, onPress: toList};
 
   if (data && screen.kind === 'add') {
     return (
-      <AdminPage title='Nytt anslag' subtitle={organizationName} back={back}>
+      <AdminPage
+        title={t.admin.announcements.new}
+        subtitle={organizationName}
+        back={back}
+      >
         <AnnouncementForm
           initial={{
             title: '',
@@ -55,7 +65,7 @@ export function AdminAnnouncements() {
             endsOn: null,
           }}
           today={data.today}
-          submitLabel='Publicera'
+          submitLabel={t.admin.announcements.publish}
           onCancel={toList}
           onSubmit={async (fields) => {
             await unwrap(api.POST('/admin/announcements', {body: fields}));
@@ -81,7 +91,7 @@ export function AdminAnnouncements() {
           key={edited.id}
           initial={edited}
           today={data.today}
-          submitLabel='Spara'
+          submitLabel={t.admin.save}
           onCancel={toList}
           onSubmit={async (fields) => {
             await unwrap(
@@ -95,10 +105,10 @@ export function AdminAnnouncements() {
           }}
           onDelete={() =>
             dialog.confirm(
-              'Ta bort anslaget',
-              `”${edited.title}” tas bort och visas inte längre.`,
+              t.admin.announcements.remove,
+              t.admin.announcements.removeQuestion(edited.title),
               {
-                label: 'Ta bort',
+                label: t.admin.remove,
                 onPress: () => {
                   unwrap(
                     api.DELETE('/admin/announcements/{id}', {
@@ -111,8 +121,8 @@ export function AdminAnnouncements() {
                     })
                     .catch((caught: unknown) =>
                       dialog.alert(
-                        'Kunde inte ta bort anslaget',
-                        errorMessage(codeOf(caught)),
+                        t.admin.announcements.removeFailed,
+                        errorMessage(codeOf(caught), t),
                       ),
                     );
                 },
@@ -129,8 +139,7 @@ export function AdminAnnouncements() {
     body =
       data.announcements.length === 0 ? (
         <p className='text-sm leading-5 text-theme-muted'>
-          Inga anslag än. Ett anslag visas överst för alla lägenheter, till
-          exempel om en städdag eller ett stopp i tvättstugan.
+          {t.admin.announcements.none}
         </p>
       ) : (
         <div className='flex flex-col gap-6.5'>
@@ -145,7 +154,7 @@ export function AdminAnnouncements() {
 
             return (
               <section key={status}>
-                <h2 className={SECTION_LABEL}>{label}</h2>
+                <h2 className={SECTION_LABEL}>{label(t)}</h2>
                 <div className='flex flex-col divide-y divide-theme-line overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
                   {own.map((announcement) => (
                     <button
@@ -161,7 +170,7 @@ export function AdminAnnouncements() {
                           {announcement.title}
                         </span>
                         <span className='truncate text-[13px] text-theme-muted'>
-                          {periodOf(announcement)}
+                          {periodOf(announcement, t)}
                         </span>
                       </span>
                       <ChevronForwardIcon
@@ -178,7 +187,7 @@ export function AdminAnnouncements() {
       );
   } else if (error) {
     body = (
-      <Notice message={error} actionLabel='Försök igen' onAction={reload} />
+      <Notice message={error} actionLabel={t.common.retry} onAction={reload} />
     );
   } else if (showSkeleton) {
     body = (
@@ -194,7 +203,7 @@ export function AdminAnnouncements() {
 
   return (
     <AdminPage
-      title='Anslag'
+      title={t.tabs.announcements}
       subtitle={organizationName}
       action={
         <button
@@ -203,7 +212,7 @@ export function AdminAnnouncements() {
           className={PRIMARY_BUTTON}
         >
           <AddIcon size={18} />
-          Nytt anslag
+          {t.admin.announcements.new}
         </button>
       }
     >

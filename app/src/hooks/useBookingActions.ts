@@ -9,6 +9,8 @@ import {
   type Slot,
 } from '@/api/client';
 import {codeOf, errorMessage, type ClientErrorCode} from '@/api/errors';
+import type {Messages} from '@/i18n/catalog';
+import {useMessages} from '@/i18n/LocaleProvider';
 import {formatWhen, timeRange} from '@/lib/dates';
 import {exhaustive} from '@/lib/exhaustive';
 
@@ -28,17 +30,18 @@ function shouldReload(code: ClientErrorCode) {
   }
 }
 
-function whenOf({date, start, end, resourceName}: Times) {
-  return `${resourceName}, ${formatWhen(date, timeRange(start, end))}`;
+function whenOf({date, start, end, resourceName}: Times, t: Messages) {
+  return `${resourceName}, ${formatWhen(date, timeRange(start, end), t)}`;
 }
 
 function confirm(
   title: string,
   message: string,
   action: {label: string; destructive?: boolean; onPress: () => void},
+  t: Messages,
 ) {
   Alert.alert(title, message, [
-    {text: 'Avbryt', style: 'cancel'},
+    {text: t.common.cancel, style: 'cancel'},
     action.destructive
       ? {text: action.label, style: 'destructive', onPress: action.onPress}
       : {text: action.label, isPreferred: true, onPress: action.onPress},
@@ -46,6 +49,8 @@ function confirm(
 }
 
 export function useBookingActions(onChange?: () => void) {
+  const t = useMessages();
+
   async function mutate(failTitle: string, request: () => Promise<unknown>) {
     try {
       await request();
@@ -55,12 +60,12 @@ export function useBookingActions(onChange?: () => void) {
       if (shouldReload(code)) {
         onChange?.();
       }
-      Alert.alert(failTitle, errorMessage(code));
+      Alert.alert(failTitle, errorMessage(code, t));
     }
   }
 
   async function book(target: Bookable, replaceExisting = false) {
-    await mutate('Kunde inte boka', () =>
+    await mutate(t.booking.bookFailed, () =>
       unwrap(
         api.POST('/bookings', {
           body: {
@@ -75,7 +80,7 @@ export function useBookingActions(onChange?: () => void) {
   }
 
   async function subscribe(target: Bookable) {
-    await mutate('Kunde inte köa', () =>
+    await mutate(t.booking.queueFailed, () =>
       unwrap(
         api.POST('/subscriptions', {
           body: {
@@ -89,84 +94,98 @@ export function useBookingActions(onChange?: () => void) {
   }
 
   async function unsubscribe(id: string) {
-    await mutate('Kunde inte lämna kön', () =>
+    await mutate(t.booking.leaveQueueFailed, () =>
       unwrap(api.DELETE('/subscriptions/{id}', {params: {path: {id}}})),
     );
   }
 
   async function cancel(id: string) {
-    await mutate('Kunde inte avboka', () =>
+    await mutate(t.booking.cancelFailed, () =>
       unwrap(api.DELETE('/bookings/{id}', {params: {path: {id}}})),
     );
   }
 
   async function release(id: string) {
-    await mutate('Kunde inte öppna tiden', () =>
+    await mutate(t.booking.releaseFailed, () =>
       unwrap(api.DELETE('/bookings/{id}', {params: {path: {id}}})),
     );
   }
 
   function confirmSwap(target: Bookable) {
-    confirm('Du har redan en bokning', `Vill du byta till ${whenOf(target)}?`, {
-      label: 'Byt',
-      onPress: () => {
-        void book(target, true);
+    confirm(
+      t.booking.alreadyBookedTitle,
+      t.booking.swapQuestion(whenOf(target, t)),
+      {
+        label: t.booking.swap,
+        onPress: () => {
+          void book(target, true);
+        },
       },
-    });
+      t,
+    );
   }
 
   function confirmSubscribe(target: Bookable) {
     confirm(
-      'Ställ dig i kö',
-      `Vi meddelar dig om ${whenOf(target)} blir ledig. Först till kvarn gäller.`,
+      t.booking.queueTitle,
+      t.booking.queueQuestion(whenOf(target, t)),
       {
-        label: 'Ställ mig i kö',
+        label: t.booking.queueMe,
         onPress: () => {
           void subscribe(target);
         },
       },
+      t,
     );
   }
 
   function confirmUnsubscribe(subscription: Identified) {
-    confirm('Lämna kön', `Vill du lämna kön för ${whenOf(subscription)}?`, {
-      label: 'Lämna kön',
-      destructive: true,
-      onPress: () => {
-        void unsubscribe(subscription.id);
+    confirm(
+      t.times.leaveQueue,
+      t.booking.leaveQueueQuestion(whenOf(subscription, t)),
+      {
+        label: t.times.leaveQueue,
+        destructive: true,
+        onPress: () => {
+          void unsubscribe(subscription.id);
+        },
       },
-    });
+      t,
+    );
   }
 
   function confirmCancel(booking: Identified) {
-    confirm('Avboka tid', `Vill du avboka ${whenOf(booking)}?`, {
-      label: 'Avboka',
-      destructive: true,
-      onPress: () => {
-        void cancel(booking.id);
+    confirm(
+      t.booking.cancelTitle,
+      t.booking.cancelQuestion(whenOf(booking, t)),
+      {
+        label: t.times.cancel,
+        destructive: true,
+        onPress: () => {
+          void cancel(booking.id);
+        },
       },
-    });
+      t,
+    );
   }
 
   function confirmRelease(booking: Identified) {
     confirm(
-      'Öppna för drop-in',
-      `Andra kan ta ${whenOf(booking)} som drop-in. Du kan inte boka en ny tid förrän luckan är slut.`,
+      t.booking.releaseTitle,
+      t.booking.releaseQuestion(whenOf(booking, t)),
       {
-        label: 'Jag är klar',
+        label: t.times.done,
         onPress: () => {
           void release(booking.id);
         },
       },
+      t,
     );
   }
 
   function confirmBookable(target: Bookable, active: ActiveBooking | null) {
     if (active?.released) {
-      Alert.alert(
-        'Du har redan en bokning',
-        'Du kan inte boka en ny tid förrän luckan är slut.',
-      );
+      Alert.alert(t.booking.alreadyBookedTitle, t.booking.releasedBlocks);
       return;
     }
 
@@ -175,12 +194,17 @@ export function useBookingActions(onChange?: () => void) {
       return;
     }
 
-    confirm('Boka tid', `Vill du boka ${whenOf(target)}?`, {
-      label: 'Boka',
-      onPress: () => {
-        void book(target);
+    confirm(
+      t.booking.bookTitle,
+      t.booking.bookQuestion(whenOf(target, t)),
+      {
+        label: t.times.book,
+        onPress: () => {
+          void book(target);
+        },
       },
-    });
+      t,
+    );
   }
 
   function confirmBook(

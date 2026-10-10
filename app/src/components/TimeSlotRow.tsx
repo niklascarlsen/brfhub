@@ -3,6 +3,8 @@ import {Pressable, Text, View} from 'react-native';
 
 import type {Slot} from '@/api/client';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
+import type {Messages} from '@/i18n/catalog';
+import {useMessages} from '@/i18n/LocaleProvider';
 import {timeRange} from '@/lib/dates';
 import {exhaustive} from '@/lib/exhaustive';
 import theme from '@/theme.json';
@@ -23,13 +25,13 @@ type Appearance = {
 
 const tabularNums = {fontVariant: ['tabular-nums' as const]};
 
-function appearanceOf(slot: Slot): Appearance {
+function appearanceOf(slot: Slot, t: Messages): Appearance {
   switch (slot.status) {
     case 'mine':
       return {
         surface: 'bg-theme-mist',
         time: 'text-theme-ink',
-        label: 'Din tid',
+        label: t.slots.mine,
         tone: 'font-semibold text-theme-accent',
         mark: 'dot',
         chevron: false,
@@ -39,7 +41,7 @@ function appearanceOf(slot: Slot): Appearance {
         ? {
             surface: 'border border-theme-accent bg-theme-surface',
             time: 'text-theme-ink',
-            label: 'Ledig nu',
+            label: t.slots.freeNow,
             tone: 'font-semibold text-theme-accent',
             mark: null,
             chevron: true,
@@ -47,7 +49,7 @@ function appearanceOf(slot: Slot): Appearance {
         : {
             surface: 'border border-theme-line bg-theme-surface',
             time: 'text-theme-ink',
-            label: 'Ledig',
+            label: t.slots.free,
             tone: 'font-medium text-theme-muted',
             mark: null,
             chevron: true,
@@ -56,7 +58,7 @@ function appearanceOf(slot: Slot): Appearance {
       return {
         surface: 'bg-theme-sunk',
         time: 'text-theme-faint',
-        label: 'Drop-in',
+        label: t.slots.dropIn,
         tone: 'font-medium text-theme-faint',
         mark: 'lock',
         chevron: false,
@@ -65,7 +67,7 @@ function appearanceOf(slot: Slot): Appearance {
       return {
         surface: 'bg-theme-sunk',
         time: 'text-theme-faint',
-        label: slot.subscriptionId ? 'I kö' : 'Upptagen',
+        label: slot.subscriptionId ? t.slots.queued : t.slots.taken,
         tone: slot.subscriptionId
           ? 'font-medium text-theme-accent'
           : 'font-medium text-theme-faint',
@@ -80,7 +82,8 @@ function appearanceOf(slot: Slot): Appearance {
 export function TimeSlotRow({slot, onPress}: TimeSlotRowProps) {
   const {status} = slot;
   const locked = status === 'walkin' || (status === 'booked' && slot.started);
-  const {surface, time, label, tone, mark, chevron} = appearanceOf(slot);
+  const t = useMessages();
+  const {surface, time, label, tone, mark, chevron} = appearanceOf(slot, t);
 
   return (
     <Pressable
