@@ -23,7 +23,11 @@ function keyOf(announcement: Announcement): string {
   return `${announcement.id}:${announcement.updatedAt}`;
 }
 
-// The newest announcement the apartment has not hidden on this device.
+// How far each announcement waiting behind the shown one peeks out.
+const PEEK = {down: 6, inset: 10};
+
+// The newest announcement the apartment has not hidden on this device,
+// with up to two edges below it when more are waiting.
 export function AnnouncementBanner({className}: {className?: string}) {
   const announcements = useAnnouncements();
   const t = useMessages();
@@ -33,10 +37,12 @@ export function AnnouncementBanner({className}: {className?: string}) {
     void readDismissed().then(setDismissed);
   }, []);
 
-  const shown =
+  const waiting =
     dismissed === null
-      ? undefined
-      : announcements.find((item) => !dismissed.includes(keyOf(item)));
+      ? []
+      : announcements.filter((item) => !dismissed.includes(keyOf(item)));
+  const shown = waiting[0];
+  const behind = Math.min(waiting.length - 1, 2);
 
   if (!shown) {
     return null;
@@ -55,26 +61,44 @@ export function AnnouncementBanner({className}: {className?: string}) {
 
   return (
     <div className={className}>
-      <section
-        aria-label={t.announcements.heading}
-        className='flex items-start gap-3 rounded-2xl border border-theme-line bg-theme-mist px-4.5 py-3.5'
-      >
-        <div className='flex min-w-0 flex-1 flex-col gap-1'>
-          <h2 className='text-[15px] font-semibold tracking-tight wrap-break-word text-theme-ink'>
-            {shown.title}
-          </h2>
-          <p className='line-clamp-4 text-[13px] leading-5 whitespace-pre-line wrap-break-word text-theme-ink'>
-            {shown.body}
-          </p>
-        </div>
-        <button
-          type='button'
-          onClick={hide}
-          className='-mr-1.5 shrink-0 rounded-full px-2 py-1 text-[13px] font-semibold text-theme-muted transition-colors hover:text-theme-ink'
+      <div className='relative' style={{paddingBottom: behind * PEEK.down}}>
+        {[2, 1]
+          .filter((depth) => depth <= behind)
+          .map((depth) => (
+            <div
+              key={depth}
+              aria-hidden
+              className='absolute rounded-2xl border border-theme-line bg-theme-mist'
+              style={{
+                top: depth * PEEK.down,
+                bottom: (behind - depth) * PEEK.down,
+                left: depth * PEEK.inset,
+                right: depth * PEEK.inset,
+                opacity: 1 - depth * 0.3,
+              }}
+            />
+          ))}
+        <section
+          aria-label={t.announcements.heading}
+          className='relative flex items-start gap-3 rounded-2xl border border-theme-line bg-theme-mist px-4.5 py-3.5'
         >
-          {t.announcements.hide}
-        </button>
-      </section>
+          <div className='flex min-w-0 flex-1 flex-col gap-1'>
+            <h2 className='text-[15px] font-semibold tracking-tight wrap-break-word text-theme-ink'>
+              {shown.title}
+            </h2>
+            <p className='line-clamp-4 text-[13px] leading-5 whitespace-pre-line wrap-break-word text-theme-ink'>
+              {shown.body}
+            </p>
+          </div>
+          <button
+            type='button'
+            onClick={hide}
+            className='-mr-1.5 shrink-0 rounded-full px-2 py-1 text-[13px] font-semibold text-theme-muted transition-colors hover:text-theme-ink'
+          >
+            {t.announcements.hide}
+          </button>
+        </section>
+      </div>
     </div>
   );
 }
