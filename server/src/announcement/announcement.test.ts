@@ -6,6 +6,7 @@ import {eq} from 'drizzle-orm';
 import {buildApp} from '../app.js';
 import {db, pool} from '../db/index.js';
 import {announcements} from '../db/schema.js';
+import {addDays} from '../lib/time.js';
 import type {BookingRules} from '../resource/resource.dto.js';
 import type {BookingWindow} from '../slot/slot.dto.js';
 import {
@@ -23,12 +24,6 @@ let southAdmin: {cookie: string};
 let member: {cookie: string};
 let southMember: {cookie: string};
 let today: string;
-
-function addDays(isoDate: string, days: number): string {
-  const date = new Date(`${isoDate}T00:00:00Z`);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
-}
 
 function call(
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
@@ -86,7 +81,12 @@ before(async () => {
 
   for (const id of ['north', 'south']) {
     await seedOrganization({
-      organization: {id, name: `Brf ${id}`, bookingWindowDays: 10},
+      organization: {
+        id,
+        name: `Brf ${id}`,
+        timeZone: 'Europe/Stockholm',
+        bookingWindowDays: 10,
+      },
       kinds: [],
       resources: [],
       slots: [],

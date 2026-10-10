@@ -11,7 +11,7 @@ import {
 } from '@/admin/styles';
 import {api, unwrap, type Apartment} from '@/api/client';
 import {codeOf, errorMessage} from '@/api/errors';
-import {formatLongDate, toIsoDate} from '@/lib/dates';
+import {formatLongDate} from '@/lib/dates';
 import theme from '@/theme.json';
 
 type ApartmentDetailProps = {
@@ -210,8 +210,8 @@ export function ApartmentDetail({
     );
   }
 
-  const signedIn = apartment.lastSignInAt
-    ? formatLongDate(toIsoDate(new Date(apartment.lastSignInAt)))
+  const signedIn = apartment.lastSignInOn
+    ? formatLongDate(apartment.lastSignInOn)
     : 'Aldrig';
 
   return (

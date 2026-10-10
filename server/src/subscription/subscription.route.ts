@@ -27,7 +27,7 @@ export const subscriptionRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request) => {
       const member = await getMember(request);
-      return listSubscriptions(member.id);
+      return listSubscriptions(member);
     },
   );
 

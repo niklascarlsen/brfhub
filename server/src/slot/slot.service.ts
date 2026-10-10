@@ -28,7 +28,10 @@ import type {BookingWindow, ResourceSchedule, Slot, Slots} from './slot.dto.js';
 export async function getBookingWindow(
   organizationId: string,
 ): Promise<BookingWindow> {
-  const {today, from, to} = bookingWindowSql(organizations.bookingWindowDays);
+  const {today, from, to} = bookingWindowSql(
+    organizations.timeZone,
+    organizations.bookingWindowDays,
+  );
   const [row] = await db
     .select({today, from, to})
     .from(organizations)
@@ -74,7 +77,7 @@ function selectSlotRows(
       date: asDateText(days.day),
       start: resourceSlots.start,
       end: resourceSlots.end,
-      started: slotHasStarted(days.day, resourceSlots.start),
+      started: slotHasStarted(member.timeZone, days.day, resourceSlots.start),
       bookingId: bookings.id,
       bookingMemberId: bookings.memberId,
       subscriptionId: subscriptions.id,
@@ -106,7 +109,7 @@ function selectSlotRows(
         resourceId ? eq(resourceSlots.resourceId, resourceId) : undefined,
         slotInEffect(days.day),
         resourceOpenOn(days.day),
-        sql`${slotEndsAt(days.day, resourceSlots.end, resourceSlots.endOffsetDays)} > now()`,
+        sql`${slotEndsAt(member.timeZone, days.day, resourceSlots.end, resourceSlots.endOffsetDays)} > now()`,
       ),
     )
     .orderBy(asc(resources.sortOrder), asc(days.day), asc(resourceSlots.start));
@@ -240,7 +243,7 @@ export async function listSchedule({
   await assertWithinBookingWindow(member.organizationId, from, to);
 
   const [bookable, rows, activeByKind] = await Promise.all([
-    listBookableResources(member.organizationId),
+    listBookableResources(member),
     selectSlotRows(member, from, to),
     selectActiveByKind(member.id),
   ]);

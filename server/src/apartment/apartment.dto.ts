@@ -10,7 +10,7 @@ export const apartmentSchema = z.object({
   label: z.string(),
   residentName: z.string(),
   email: z.string(),
-  lastSignInAt: z.iso.datetime().nullable(),
+  lastSignInOn: z.iso.date().nullable(),
   upcomingBookings: z.number().int(),
 });
 

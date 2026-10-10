@@ -4,20 +4,23 @@ import type {FastifyRequest} from 'fastify';
 
 import {auth} from '../auth/auth.js';
 import {db} from '../db/index.js';
-import {members} from '../db/schema.js';
+import {members, organizations} from '../db/schema.js';
 import {appError} from './errors.js';
 
-export type Member = {
-  id: string;
+// What every request in an organization needs to know about it.
+export type Organization = {
   organizationId: string;
+  timeZone: string;
+};
+
+export type Member = Organization & {
+  id: string;
   label: string;
   // The account signed in for the apartment.
   userId: string;
 };
 
-export type Admin = {
-  organizationId: string;
-};
+export type Admin = Organization;
 
 export type SignedIn =
   {role: 'member'; member: Member} | {role: 'admin'; admin: Admin};
@@ -36,9 +39,21 @@ export async function getSignedIn(request: FastifyRequest): Promise<SignedIn> {
   const {user} = session;
 
   if (user.role === 'admin') {
+    const [organization] = await db
+      .select({timeZone: organizations.timeZone})
+      .from(organizations)
+      .where(eq(organizations.id, user.organizationId));
+
+    if (!organization) {
+      throw new Error(`Unknown organization ${user.organizationId}`);
+    }
+
     return {
       role: 'admin',
-      admin: {organizationId: user.organizationId},
+      admin: {
+        organizationId: user.organizationId,
+        timeZone: organization.timeZone,
+      },
     };
   }
 
@@ -50,9 +65,11 @@ export async function getSignedIn(request: FastifyRequest): Promise<SignedIn> {
     .select({
       id: members.id,
       organizationId: members.organizationId,
+      timeZone: organizations.timeZone,
       label: members.label,
     })
     .from(members)
+    .innerJoin(organizations, eq(organizations.id, members.organizationId))
     .where(
       and(
         eq(members.organizationId, user.organizationId),

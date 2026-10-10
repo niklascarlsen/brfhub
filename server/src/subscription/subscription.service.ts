@@ -34,7 +34,7 @@ function stillActive(memberId: string) {
   );
 }
 
-export function listSubscriptions(memberId: string): Promise<Subscription[]> {
+export function listSubscriptions(member: Member): Promise<Subscription[]> {
   return db
     .select({
       id: subscriptions.id,
@@ -43,7 +43,11 @@ export function listSubscriptions(memberId: string): Promise<Subscription[]> {
       end: subscriptions.end,
       endsAt: asIsoText(subscriptions.endsAt),
       available: sql<boolean>`${bookings.id} is null`,
-      started: slotHasStarted(subscriptions.date, subscriptions.start),
+      started: slotHasStarted(
+        member.timeZone,
+        subscriptions.date,
+        subscriptions.start,
+      ),
       ...resourceFields,
     })
     .from(subscriptions)
@@ -57,7 +61,7 @@ export function listSubscriptions(memberId: string): Promise<Subscription[]> {
         isNull(bookings.releasedAt),
       ),
     )
-    .where(stillActive(memberId))
+    .where(stillActive(member.id))
     .orderBy(
       asc(subscriptions.date),
       asc(subscriptions.start),
@@ -86,8 +90,13 @@ export async function createSubscription({
       start: resourceSlots.start,
       end: resourceSlots.end,
       endOffsetDays: resourceSlots.endOffsetDays,
-      ended: slotHasEnded(date, resourceSlots.end, resourceSlots.endOffsetDays),
-      started: slotHasStarted(date, resourceSlots.start),
+      ended: slotHasEnded(
+        member.timeZone,
+        date,
+        resourceSlots.end,
+        resourceSlots.endOffsetDays,
+      ),
+      started: slotHasStarted(member.timeZone, date, resourceSlots.start),
       bookedBy: bookings.memberId,
     })
     .from(resourceSlots)
@@ -137,6 +146,12 @@ export async function createSubscription({
     throw appError('HAS_ACTIVE_BOOKING');
   }
 
+  const endsAt = slotEndsAt(
+    member.timeZone,
+    date,
+    slot.end,
+    slot.endOffsetDays,
+  );
   const [row] = await db
     .insert(subscriptions)
     .values({
@@ -146,7 +161,7 @@ export async function createSubscription({
       start: slot.start,
       end: slot.end,
       resourceId,
-      endsAt: slotEndsAt(date, slot.end, slot.endOffsetDays),
+      endsAt,
     })
     .onConflictDoUpdate({
       target: [
@@ -155,7 +170,7 @@ export async function createSubscription({
         subscriptions.date,
         subscriptions.start,
       ],
-      set: {endsAt: slotEndsAt(date, slot.end, slot.endOffsetDays)},
+      set: {endsAt},
     })
     .returning({
       id: subscriptions.id,

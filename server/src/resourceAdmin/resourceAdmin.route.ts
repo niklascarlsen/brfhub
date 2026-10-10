@@ -40,7 +40,7 @@ export const resourceAdminRoutes: FastifyPluginAsyncZod = async (app) => {
     {schema: {response: {200: adminResourcesSchema, ...errorResponses}}},
     async (request) => {
       const admin = await getAdmin(request);
-      return listAdminResources(admin.organizationId);
+      return listAdminResources(admin);
     },
   );
 

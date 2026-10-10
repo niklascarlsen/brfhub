@@ -9,6 +9,7 @@ import {db, type Transaction} from '../db/index.js';
 import {
   bookings,
   members,
+  organizations,
   pushTokens,
   resources,
   subscriptions,
@@ -16,7 +17,8 @@ import {
 } from '../db/schema.js';
 import {appError} from '../lib/errors.js';
 import {generatePassword} from '../lib/password.js';
-import {asIsoText, slotHasStarted} from '../lib/time.js';
+import {asDateText, slotHasStarted} from '../lib/time.js';
+import type {Organization} from '../lib/user.js';
 import type {
   Apartment,
   CreateApartmentBody,
@@ -59,11 +61,13 @@ function selectApartments(organizationId: string, only?: SQL) {
       label: members.label,
       residentName: user.name,
       email: user.email,
-      lastSignInAt: sql<string | null>`case when ${user.lastSignInAt} is null
-        then null else ${asIsoText(user.lastSignInAt)} end`,
+      // The day it was in the organization, which the admin reads it in.
+      lastSignInOn: sql<string | null>`case when ${user.lastSignInAt} is null
+        then null else ${asDateText(sql`${user.lastSignInAt} at time zone ${organizations.timeZone}`)} end`,
       upcomingBookings: sql<number>`coalesce(${upcoming.count}, 0)`,
     })
     .from(members)
+    .innerJoin(organizations, eq(organizations.id, members.organizationId))
     .innerJoin(user, eq(user.memberId, members.id))
     .leftJoin(upcoming, eq(upcoming.memberId, members.id))
     .where(
@@ -247,6 +251,7 @@ type ReleasedSlot = Parameters<typeof notifySlotReleased>[0];
 // freed slots are returned to announce once the transaction has committed.
 async function releaseBookings(
   tx: Transaction,
+  timeZone: string,
   memberId: string,
 ): Promise<ReleasedSlot[]> {
   const upcoming = await tx
@@ -257,7 +262,7 @@ async function releaseBookings(
       end: bookings.end,
       resourceId: bookings.resourceId,
       resourceName: resources.name,
-      started: slotHasStarted(bookings.date, bookings.start),
+      started: slotHasStarted(timeZone, bookings.date, bookings.start),
       released: sql<boolean>`${bookings.releasedAt} is not null`,
     })
     .from(bookings)
@@ -298,20 +303,22 @@ async function clearResident(tx: Transaction, memberId: string) {
 // or loses the one-time password to a client timeout.
 function announceFreed(
   freed: ReleasedSlot[],
-  memberId: string,
+  releasedBy: Parameters<typeof notifySlotReleased>[1],
   log: FastifyBaseLogger,
 ) {
   void (async () => {
     for (const slot of freed) {
-      await notifySlotReleased(slot, memberId, log).catch((error: unknown) => {
-        log.error({err: error}, 'could not announce a freed slot');
-      });
+      await notifySlotReleased(slot, releasedBy, log).catch(
+        (error: unknown) => {
+          log.error({err: error}, 'could not announce a freed slot');
+        },
+      );
     }
   })();
 }
 
 export async function replaceResident(
-  organizationId: string,
+  {organizationId, timeZone}: Organization,
   id: string,
   body: NewResidentBody,
   log: FastifyBaseLogger,
@@ -321,7 +328,7 @@ export async function replaceResident(
   const freed = await db
     .transaction(async (tx) => {
       await lockApartment(tx, organizationId, id);
-      const released = await releaseBookings(tx, id);
+      const released = await releaseBookings(tx, timeZone, id);
       await clearResident(tx, id);
       await createUser(
         {
@@ -339,19 +346,19 @@ export async function replaceResident(
     })
     .catch(rethrowTaken);
 
-  announceFreed(freed, id, log);
+  announceFreed(freed, {id, timeZone}, log);
 
   return {apartment: await getApartment(organizationId, id), password};
 }
 
 export async function removeApartment(
-  organizationId: string,
+  {organizationId, timeZone}: Organization,
   id: string,
   log: FastifyBaseLogger,
 ): Promise<void> {
   const freed = await db.transaction(async (tx) => {
     await lockApartment(tx, organizationId, id);
-    const released = await releaseBookings(tx, id);
+    const released = await releaseBookings(tx, timeZone, id);
     await clearResident(tx, id);
     await tx
       .update(members)
@@ -361,5 +368,5 @@ export async function removeApartment(
     return released;
   });
 
-  announceFreed(freed, id, log);
+  announceFreed(freed, {id, timeZone}, log);
 }

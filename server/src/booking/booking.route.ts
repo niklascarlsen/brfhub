@@ -24,7 +24,7 @@ export const bookingRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request) => {
       const member = await getMember(request);
-      return listBookings(member.id);
+      return listBookings(member);
     },
   );
 
@@ -68,7 +68,7 @@ export const bookingRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request, reply) => {
       const member = await getMember(request);
-      await deleteBooking(request.params.id, member.id, request.log);
+      await deleteBooking(request.params.id, member, request.log);
       return reply.code(204).send();
     },
   );

@@ -6,7 +6,7 @@ import {sql} from 'drizzle-orm';
 import {buildApp} from '../app.js';
 import {db, pool} from '../db/index.js';
 import {bookings, pushTokens, subscriptions} from '../db/schema.js';
-import {slotEndsAt, toIsoDate} from '../lib/time.js';
+import {addDays, isoDateIn, slotEndsAt} from '../lib/time.js';
 import type {BookingRules, Resource} from '../resource/resource.dto.js';
 import type {ResourceSchedule, Slots} from '../slot/slot.dto.js';
 import type {Subscription} from '../subscription/subscription.dto.js';
@@ -32,6 +32,7 @@ const ORGANIZATION_ID = 'test';
 const ORGANIZATION = {
   id: ORGANIZATION_ID,
   name: 'Testföreningen',
+  timeZone: 'Europe/Stockholm',
   bookingWindowDays: 30,
 };
 
@@ -102,10 +103,7 @@ const NEIGHBOUR = '21';
 const UNKNOWN_ID = '00000000-0000-4000-8000-000000000000';
 
 function dateInDays(days: number): string {
-  const date = new Date();
-  date.setHours(0, 0, 0, 0);
-  date.setDate(date.getDate() + days);
-  return toIsoDate(date);
+  return addDays(isoDateIn(ORGANIZATION.timeZone), days);
 }
 
 const bookableDate = dateInDays(3);
@@ -249,7 +247,12 @@ async function insertStartedBooking(
       start: ALL_DAY.start,
       end: ALL_DAY.end,
       resourceId,
-      endsAt: slotEndsAt(today, ALL_DAY.end, ALL_DAY.endOffsetDays),
+      endsAt: slotEndsAt(
+        ORGANIZATION.timeZone,
+        today,
+        ALL_DAY.end,
+        ALL_DAY.endOffsetDays,
+      ),
     })
     .returning({id: bookings.id});
 
@@ -457,7 +460,12 @@ test('keeps the queue after a drop-in so the subscriber can leave', async () => 
     start: ALL_DAY.start,
     end: ALL_DAY.end,
     resourceId: LAUNDRY_1,
-    endsAt: slotEndsAt(today, ALL_DAY.end, ALL_DAY.endOffsetDays),
+    endsAt: slotEndsAt(
+      ORGANIZATION.timeZone,
+      today,
+      ALL_DAY.end,
+      ALL_DAY.endOffsetDays,
+    ),
   });
 
   await cancel(TENANT, id);

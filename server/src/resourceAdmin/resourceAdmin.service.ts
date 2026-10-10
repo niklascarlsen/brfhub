@@ -13,6 +13,7 @@ import {
 } from '../db/schema.js';
 import {appError} from '../lib/errors.js';
 import {asDateText, todaySql} from '../lib/time.js';
+import type {Organization} from '../lib/user.js';
 import {slotInEffect} from '../resource/schedule.query.js';
 import type {
   AdminResources,
@@ -66,7 +67,7 @@ export function assertValidSlots(slots: SlotInput[]): void {
 // shorter. A change that can touch bookings starts the day after all of
 // them at the earliest.
 async function changeDates(executor: Executor, organizationId: string) {
-  const today = todaySql();
+  const today = todaySql(organizations.timeZone);
   const promised = sql`greatest(
     ${today} + make_interval(days => ${organizations.bookingWindowDays}),
     (select max(${bookings.date}) from ${bookings}
@@ -148,9 +149,11 @@ async function assertResource(organizationId: string, id: string) {
   }
 }
 
-export async function listAdminResources(
-  organizationId: string,
-): Promise<AdminResources> {
+export async function listAdminResources({
+  organizationId,
+  timeZone,
+}: Organization): Promise<AdminResources> {
+  const today = todaySql(timeZone);
   const [dates, kinds, rows, slots] = await Promise.all([
     changeDates(db, organizationId),
     db
@@ -186,7 +189,7 @@ export async function listAdminResources(
       .where(
         and(
           eq(resources.organizationId, organizationId),
-          sql`(${slotInEffect(todaySql())} or ${resourceSlots.validFrom} > ${todaySql()})`,
+          sql`(${slotInEffect(today)} or ${resourceSlots.validFrom} > ${today})`,
         ),
       )
       .orderBy(asc(resourceSlots.validFrom), asc(resourceSlots.start)),
