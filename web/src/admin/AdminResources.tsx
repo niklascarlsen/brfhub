@@ -102,7 +102,7 @@ export function AdminResources() {
       >
         <KindForm
           initial={{name: '', maxActive: 1}}
-          submitLabel={t.admin.apartments.add}
+          submitLabel={t.admin.add}
           onCancel={toList}
           onSubmit={async (fields) => {
             await unwrap(api.POST('/admin/kinds', {body: fields}));
@@ -186,7 +186,7 @@ export function AdminResources() {
             slots: [{start: '08:00', end: '11:00', endOffsetDays: 0}],
           }}
           withSlots
-          submitLabel={t.admin.apartments.add}
+          submitLabel={t.admin.add}
           onCancel={toList}
           onSubmit={async (fields) => {
             const {id} = await unwrap(

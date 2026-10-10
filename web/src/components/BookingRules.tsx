@@ -22,7 +22,10 @@ function joinNames(names: string[], t: Messages): string {
     return names.join('');
   }
 
-  return t.rules.joinList(names.slice(0, -1).join(', '), names.at(-1) ?? '');
+  return t.rules.joinList(
+    names.slice(0, -1).join(', '),
+    names[names.length - 1],
+  );
 }
 
 function limitOf(kind: Kind, t: Messages): string {

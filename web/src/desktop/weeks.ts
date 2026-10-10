@@ -40,7 +40,7 @@ function capitalize(text: string): string {
 // Column headings for calendarWeeks, Monday first.
 export function weekdayHeadings(t: Messages): string[] {
   const [sunday, ...rest] = t.dates.weekdays;
-  return [...rest, sunday].map((day) => capitalize(day ?? ''));
+  return [...rest, sunday].map(capitalize);
 }
 
 export function formatHeadingDate(isoDate: string, t: Messages): string {

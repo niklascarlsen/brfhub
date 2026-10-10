@@ -6,7 +6,6 @@ import {api, unwrap, type Apartment} from '@/api/client';
 import {codeOf, errorMessage} from '@/api/errors';
 import {useDialog} from '@/components/Dialog';
 import {ChevronForwardIcon} from '@/components/icons';
-import type {Messages} from '@/i18n/catalog';
 import {useMessages} from '@/i18n/LocaleProvider';
 import {formatLongDate} from '@/lib/dates';
 
@@ -16,12 +15,6 @@ type ApartmentDetailProps = {
   onPassword: (apartment: Apartment, password: string) => void;
   onRemoved: () => void;
 };
-
-// What the admin is told before anything that cancels the apartment's
-// bookings, since those are times someone else is counting on.
-function cancelNote(apartment: Apartment, t: Messages): string {
-  return t.admin.apartment.cancelNote(apartment.upcomingBookings);
-}
 
 function Row({label, value}: {label: string; value: string}) {
   return (
@@ -109,7 +102,9 @@ export function ApartmentDetail({
   const remove = () =>
     dialog.confirm(
       t.admin.apartment.remove,
-      t.admin.apartment.removeQuestion(cancelNote(apartment, t)),
+      t.admin.apartment.removeQuestion(
+        t.admin.apartment.cancelNote(apartment.upcomingBookings),
+      ),
       {
         label: t.admin.remove,
         onPress: () => {
@@ -159,7 +154,9 @@ export function ApartmentDetail({
       <ApartmentForm
         initial={{label: apartment.label, residentName: '', email: ''}}
         withLabel={false}
-        note={t.admin.apartment.newResidentNote(cancelNote(apartment, t))}
+        note={t.admin.apartment.newResidentNote(
+          t.admin.apartment.cancelNote(apartment.upcomingBookings),
+        )}
         submitLabel={t.admin.apartment.replaceResident}
         onCancel={() => setMode('view')}
         onSubmit={async ({residentName, email}) => {
@@ -182,7 +179,7 @@ export function ApartmentDetail({
   return (
     <div className='flex flex-col gap-6.5'>
       <section>
-        <h2 className={SECTION_LABEL}>{t.admin.apartment.details}</h2>
+        <h2 className={SECTION_LABEL}>{t.admin.details}</h2>
         <div
           className={`${CARD} flex flex-col divide-y divide-theme-line py-1.5`}
         >
@@ -190,7 +187,7 @@ export function ApartmentDetail({
             label={t.admin.apartment.resident}
             value={apartment.residentName}
           />
-          <Row label={t.login.email} value={apartment.email} />
+          <Row label={t.common.email} value={apartment.email} />
           <Row label={t.admin.apartment.lastSignIn} value={signedIn} />
           <Row
             label={t.admin.apartment.upcomingBookings}
@@ -199,10 +196,10 @@ export function ApartmentDetail({
         </div>
       </section>
       <section>
-        <h2 className={SECTION_LABEL}>{t.admin.apartment.actions}</h2>
+        <h2 className={SECTION_LABEL}>{t.admin.actions}</h2>
         <div className='flex flex-col divide-y divide-theme-line overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
           <Action
-            label={t.admin.apartment.editDetails}
+            label={t.admin.editDetails}
             description={t.admin.apartment.editDetailsHint}
             onPress={() => setMode('edit')}
           />

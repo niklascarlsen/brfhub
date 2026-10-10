@@ -68,7 +68,7 @@ export function LoginScreen() {
         </Text>
         <FloatingLabelInput
           className='mb-3'
-          label={t.login.email}
+          label={t.common.email}
           value={email}
           onChangeText={setEmail}
           autoCapitalize='none'

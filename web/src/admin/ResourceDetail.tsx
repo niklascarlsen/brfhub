@@ -260,7 +260,7 @@ export function ResourceDetail({
         </div>
       </section>
       <section>
-        <h2 className={SECTION_LABEL}>{t.admin.apartment.details}</h2>
+        <h2 className={SECTION_LABEL}>{t.admin.details}</h2>
         <div
           className={`${CARD} flex flex-col divide-y divide-theme-line py-1.5`}
         >
@@ -283,7 +283,7 @@ export function ResourceDetail({
         </div>
       </section>
       <section>
-        <h2 className={SECTION_LABEL}>{t.admin.apartment.actions}</h2>
+        <h2 className={SECTION_LABEL}>{t.admin.actions}</h2>
         <div className='flex flex-col divide-y divide-theme-line overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
           <Action
             label={t.admin.resource.editTimes}
@@ -293,7 +293,7 @@ export function ResourceDetail({
             onPress={() => setMode('schedule')}
           />
           <Action
-            label={t.admin.apartment.editDetails}
+            label={t.admin.editDetails}
             description={t.admin.resource.editDetailsHint}
             onPress={() => setMode('edit')}
           />

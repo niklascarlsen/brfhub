@@ -11,7 +11,6 @@ import {
 } from '@/admin/styles';
 import {api, unwrap, type Apartment} from '@/api/client';
 import {codeOf, errorMessage} from '@/api/errors';
-import type {Messages} from '@/i18n/catalog';
 import {useMessages} from '@/i18n/LocaleProvider';
 import {formatLongDate} from '@/lib/dates';
 import theme from '@/theme.json';
@@ -22,12 +21,6 @@ type ApartmentDetailProps = {
   onPassword: (apartment: Apartment, password: string) => void;
   onRemoved: () => void;
 };
-
-// What the admin is told before anything that cancels the apartment's
-// bookings, since those are times someone else is counting on.
-function cancelNote(apartment: Apartment, t: Messages): string {
-  return t.admin.apartment.cancelNote(apartment.upcomingBookings);
-}
 
 function Row({
   label,
@@ -137,7 +130,9 @@ export function ApartmentDetail({
   const remove = () =>
     Alert.alert(
       t.admin.apartment.remove,
-      t.admin.apartment.removeQuestion(cancelNote(apartment, t)),
+      t.admin.apartment.removeQuestion(
+        t.admin.apartment.cancelNote(apartment.upcomingBookings),
+      ),
       [
         {text: t.common.cancel, style: 'cancel'},
         {
@@ -191,7 +186,9 @@ export function ApartmentDetail({
       <ApartmentForm
         initial={{label: apartment.label, residentName: '', email: ''}}
         withLabel={false}
-        note={t.admin.apartment.newResidentNote(cancelNote(apartment, t))}
+        note={t.admin.apartment.newResidentNote(
+          t.admin.apartment.cancelNote(apartment.upcomingBookings),
+        )}
         submitLabel={t.admin.apartment.replaceResident}
         onCancel={() => setMode('view')}
         onSubmit={async ({residentName, email}) => {
@@ -214,13 +211,13 @@ export function ApartmentDetail({
   return (
     <View className='gap-[26px]'>
       <View>
-        <Text className={SECTION_LABEL}>{t.admin.apartment.details}</Text>
+        <Text className={SECTION_LABEL}>{t.admin.details}</Text>
         <View className={`${CARD} py-1.5`}>
           <Row
             label={t.admin.apartment.resident}
             value={apartment.residentName}
           />
-          <Row label={t.login.email} value={apartment.email} />
+          <Row label={t.common.email} value={apartment.email} />
           <Row label={t.admin.apartment.lastSignIn} value={signedIn} />
           <Row
             label={t.admin.apartment.upcomingBookings}
@@ -230,10 +227,10 @@ export function ApartmentDetail({
         </View>
       </View>
       <View>
-        <Text className={SECTION_LABEL}>{t.admin.apartment.actions}</Text>
+        <Text className={SECTION_LABEL}>{t.admin.actions}</Text>
         <View className='overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
           <Action
-            label={t.admin.apartment.editDetails}
+            label={t.admin.editDetails}
             description={t.admin.apartment.editDetailsHint}
             onPress={() => setMode('edit')}
           />

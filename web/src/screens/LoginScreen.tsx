@@ -66,7 +66,7 @@ export function LoginScreen() {
           </p>
           <FloatingLabelInput
             className='mb-3'
-            label={t.login.email}
+            label={t.common.email}
             type='email'
             name='email'
             autoComplete='email'

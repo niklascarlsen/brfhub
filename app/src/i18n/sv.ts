@@ -27,6 +27,7 @@ export const sv = {
     retry: 'Försök igen',
     cancel: 'Avbryt',
     ok: 'OK',
+    email: 'E-post',
     loading: 'Laddar',
   },
   errors: {
@@ -55,7 +56,6 @@ export const sv = {
   login: {
     title: 'Logga in',
     intro: 'Med e-posten för lägenheten eller föreningens admin.',
-    email: 'E-post',
     password: 'Lösenord',
     submit: 'Logga in',
     wrongCredentials: 'Fel e-post eller lösenord',
@@ -166,13 +166,16 @@ export const sv = {
       'Tillåt notiser för den här appen i webbläsarens inställningar.',
   },
   admin: {
+    add: 'Lägg till',
     save: 'Spara',
     remove: 'Ta bort',
+    details: 'Uppgifter',
+    actions: 'Åtgärder',
+    editDetails: 'Ändra uppgifter',
     apartments: {
       newTitle: 'Ny lägenhet',
       newNote:
         'Lägenheten får ett lösenord som visas en gång, efter att du har sparat.',
-      add: 'Lägg till',
       addApartment: 'Lägg till lägenhet',
       none: 'Inga lägenheter än. Lägg till den första.',
       search: 'Sök nummer, namn eller e-post',
@@ -211,12 +214,9 @@ export const sv = {
         `${cancelNote} Det gamla kontot tas bort och de nya boende får ett eget lösenord.`,
       replaceResident: 'Byt boende',
       never: 'Aldrig',
-      details: 'Uppgifter',
       resident: 'Boende',
       lastSignIn: 'Senast inloggad',
       upcomingBookings: 'Kommande bokningar',
-      actions: 'Åtgärder',
-      editDetails: 'Ändra uppgifter',
       editDetailsHint: 'Nummer, namn och e-post',
       newResident: 'Ny boende',
       newResidentHint: 'När lägenheten byter ägare',

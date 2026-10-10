@@ -85,7 +85,7 @@ export function ApartmentForm({
         onChange={(event) => set('residentName')(event.target.value)}
       />
       <FloatingLabelInput
-        label={t.login.email}
+        label={t.common.email}
         type='email'
         name='email'
         autoComplete='off'

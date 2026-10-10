@@ -94,7 +94,7 @@ export function ApartmentForm({
         returnKeyType='next'
       />
       <FloatingLabelInput
-        label={t.login.email}
+        label={t.common.email}
         value={fields.email}
         onChangeText={set('email')}
         autoCapitalize='none'

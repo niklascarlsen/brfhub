@@ -314,7 +314,7 @@ export function ResourceDetail({
         </View>
       </View>
       <View>
-        <Text className={SECTION_LABEL}>{t.admin.apartment.details}</Text>
+        <Text className={SECTION_LABEL}>{t.admin.details}</Text>
         <View className={`${CARD} py-1.5`}>
           <View className='flex-row items-baseline justify-between gap-4 border-b border-theme-line py-2.5'>
             <Text className='font-sans text-[13px] text-theme-muted'>
@@ -335,7 +335,7 @@ export function ResourceDetail({
         </View>
       </View>
       <View>
-        <Text className={SECTION_LABEL}>{t.admin.apartment.actions}</Text>
+        <Text className={SECTION_LABEL}>{t.admin.actions}</Text>
         <View className='overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
           <Action
             label={t.admin.resource.editTimes}
@@ -345,7 +345,7 @@ export function ResourceDetail({
             onPress={() => setMode('schedule')}
           />
           <Action
-            label={t.admin.apartment.editDetails}
+            label={t.admin.editDetails}
             description={t.admin.resource.editDetailsHint}
             onPress={() => setMode('edit')}
             last

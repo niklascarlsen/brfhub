@@ -87,7 +87,7 @@ export function AdminApartments() {
           initial={{label: '', residentName: '', email: ''}}
           withLabel
           note={t.admin.apartments.newNote}
-          submitLabel={t.admin.apartments.add}
+          submitLabel={t.admin.add}
           onCancel={toList}
           onSubmit={async (fields) => {
             const result = await unwrap(
