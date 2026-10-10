@@ -24,7 +24,11 @@ function keyOf(announcement: Announcement): string {
   return `${announcement.id}:${announcement.updatedAt}`;
 }
 
-// The newest announcement the apartment has not hidden on this device.
+// How far each announcement waiting behind the shown one peeks out.
+const PEEK = {down: 6, inset: 10};
+
+// The newest announcement the apartment has not hidden on this device,
+// with up to two edges below it when more are waiting.
 export function AnnouncementBanner({className}: {className?: string}) {
   const announcements = useAnnouncements();
   const t = useMessages();
@@ -34,10 +38,12 @@ export function AnnouncementBanner({className}: {className?: string}) {
     void readDismissed().then(setDismissed);
   }, []);
 
-  const shown =
+  const waiting =
     dismissed === null
-      ? undefined
-      : announcements.find((item) => !dismissed.includes(keyOf(item)));
+      ? []
+      : announcements.filter((item) => !dismissed.includes(keyOf(item)));
+  const shown = waiting[0];
+  const behind = Math.min(waiting.length - 1, 2);
 
   if (!shown) {
     return null;
@@ -55,30 +61,49 @@ export function AnnouncementBanner({className}: {className?: string}) {
   };
 
   return (
-    <View
-      accessibilityLabel={t.announcements.heading}
-      className={`flex-row items-start gap-3 rounded-2xl border border-theme-line bg-theme-mist px-[18px] py-3.5 ${className ?? ''}`}
-    >
-      <View className='min-w-0 flex-1 gap-1'>
-        <Text className='text-[15px] font-semibold tracking-tight text-theme-ink'>
-          {shown.title}
-        </Text>
-        <Text
-          numberOfLines={4}
-          className='font-sans text-[13px] leading-5 text-theme-ink'
+    <View className={className}>
+      <View style={{paddingBottom: behind * PEEK.down}}>
+        {[2, 1]
+          .filter((depth) => depth <= behind)
+          .map((depth) => (
+            <View
+              key={depth}
+              className='absolute rounded-2xl border border-theme-line bg-theme-mist'
+              style={{
+                top: depth * PEEK.down,
+                bottom: (behind - depth) * PEEK.down,
+                left: depth * PEEK.inset,
+                right: depth * PEEK.inset,
+                opacity: 1 - depth * 0.3,
+              }}
+            />
+          ))}
+        <View
+          accessibilityLabel={t.announcements.heading}
+          className='flex-row items-start gap-3 rounded-2xl border border-theme-line bg-theme-mist px-[18px] py-3.5'
         >
-          {shown.body}
-        </Text>
+          <View className='min-w-0 flex-1 gap-1'>
+            <Text className='text-[15px] font-semibold tracking-tight text-theme-ink'>
+              {shown.title}
+            </Text>
+            <Text
+              numberOfLines={4}
+              className='font-sans text-[13px] leading-5 text-theme-ink'
+            >
+              {shown.body}
+            </Text>
+          </View>
+          <Pressable
+            onPress={hide}
+            hitSlop={8}
+            className='-mr-1 px-1 active:opacity-60'
+          >
+            <Text className='text-[13px] font-semibold text-theme-muted'>
+              {t.announcements.hide}
+            </Text>
+          </Pressable>
+        </View>
       </View>
-      <Pressable
-        onPress={hide}
-        hitSlop={8}
-        className='-mr-1 px-1 active:opacity-60'
-      >
-        <Text className='text-[13px] font-semibold text-theme-muted'>
-          {t.announcements.hide}
-        </Text>
-      </Pressable>
     </View>
   );
 }
