@@ -17,7 +17,7 @@ import {
 } from '../db/schema.js';
 import {appError} from '../lib/errors.js';
 import {generatePassword} from '../lib/password.js';
-import {asDateText, slotHasStarted} from '../lib/time.js';
+import {slotHasStarted} from '../lib/time.js';
 import type {Organization} from '../lib/user.js';
 import type {
   Apartment,
@@ -62,8 +62,9 @@ function selectApartments(organizationId: string, only?: SQL) {
       residentName: user.name,
       email: user.email,
       // The day it was in the organization, which the admin reads it in.
-      lastSignInOn: sql<string | null>`case when ${user.lastSignInAt} is null
-        then null else ${asDateText(sql`${user.lastSignInAt} at time zone ${organizations.timeZone}`)} end`,
+      lastSignInOn: sql<
+        string | null
+      >`to_char(${user.lastSignInAt} at time zone ${organizations.timeZone}, 'YYYY-MM-DD')`,
       upcomingBookings: sql<number>`coalesce(${upcoming.count}, 0)`,
     })
     .from(members)

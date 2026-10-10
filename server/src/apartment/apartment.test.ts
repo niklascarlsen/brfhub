@@ -409,6 +409,9 @@ test('a new email or password also stops the old device getting push', async () 
 
 test('remembers the last sign-in after a new password', async () => {
   const id = ids.get('33') ?? '';
+  const never = (await apartmentsOf(admin)).find((item) => item.id === id);
+  assert.equal(never?.lastSignInOn, null);
+
   await cookieOf(northEmail('33'));
 
   const signedIn = (await apartmentsOf(admin)).find((item) => item.id === id);
