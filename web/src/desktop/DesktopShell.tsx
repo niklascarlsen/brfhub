@@ -18,7 +18,7 @@ export function DesktopShell({
 }: DesktopShellProps) {
   const {apartment, organizationName} = useConfig();
 
-  const onApartment = route === 'lagenhet';
+  const onApartment = route === 'apartment';
 
   return (
     <div className='flex min-h-dvh flex-col bg-theme-bg'>
@@ -26,14 +26,14 @@ export function DesktopShell({
         className={`${SHELL} flex shrink-0 flex-wrap items-center justify-between gap-3 pt-5.5`}
       >
         <a
-          {...linkProps('boka', onNavigate)}
+          {...linkProps('book', onNavigate)}
           className='flex items-center gap-2.5 rounded-xl py-1 pr-2 text-theme-ink'
         >
           <OrganizationMark name={organizationName} />
         </a>
         <nav className='flex items-center gap-2' aria-label='Huvudmeny'>
           <a
-            {...linkProps('boka', onNavigate)}
+            {...linkProps('book', onNavigate)}
             aria-current={onApartment ? undefined : 'page'}
             className={`flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold transition-colors ${
               onApartment
@@ -45,7 +45,7 @@ export function DesktopShell({
             Boka
           </a>
           <a
-            {...linkProps('lagenhet', onNavigate)}
+            {...linkProps('apartment', onNavigate)}
             aria-current={onApartment ? 'page' : undefined}
             className={`flex h-10 items-center gap-2 rounded-full border pr-3.5 pl-1 text-sm font-semibold transition-colors ${
               onApartment

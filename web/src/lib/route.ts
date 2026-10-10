@@ -1,29 +1,32 @@
 import {useCallback, useEffect, useSyncExternalStore} from 'react';
 
-export type MemberRoute = 'boka' | 'mina-tider' | 'lagenhet';
+export type MemberRoute = 'book' | 'my-times' | 'apartment';
 export type AdminRoute =
-  'admin/lagenheter' | 'admin/resurser' | 'admin/anslag' | 'admin/forening';
+  | 'admin/apartments'
+  | 'admin/resources'
+  | 'admin/announcements'
+  | 'admin/organization';
 export type Route = MemberRoute | AdminRoute;
 
 // Chrome on iOS scrolls the viewport if this is a hash URL.
 const PATHS: Record<string, Route> = {
-  '/boka': 'boka',
-  '/mina-tider': 'mina-tider',
-  '/lagenhet': 'lagenhet',
-  '/admin/lagenheter': 'admin/lagenheter',
-  '/admin/resurser': 'admin/resurser',
-  '/admin/anslag': 'admin/anslag',
-  '/admin/forening': 'admin/forening',
+  '/book': 'book',
+  '/my-times': 'my-times',
+  '/apartment': 'apartment',
+  '/admin/apartments': 'admin/apartments',
+  '/admin/resources': 'admin/resources',
+  '/admin/announcements': 'admin/announcements',
+  '/admin/organization': 'admin/organization',
 };
 
 const TITLES: Record<Route, string> = {
-  boka: 'Boka',
-  'mina-tider': 'Mina tider',
-  lagenhet: 'Lägenhet',
-  'admin/lagenheter': 'Lägenheter',
-  'admin/resurser': 'Resurser',
-  'admin/anslag': 'Anslag',
-  'admin/forening': 'Föreningen',
+  book: 'Boka',
+  'my-times': 'Mina tider',
+  apartment: 'Lägenhet',
+  'admin/apartments': 'Lägenheter',
+  'admin/resources': 'Resurser',
+  'admin/announcements': 'Anslag',
+  'admin/organization': 'Föreningen',
 };
 
 export function isAdminRoute(route: Route): route is AdminRoute {
@@ -34,7 +37,7 @@ export function hrefOf(route: Route): string {
   return `/${route}`;
 }
 
-// A notification opened in a new window lands on /boka?date=..&resource=..
+// A notification opened in a new window lands on /book?date=..&resource=..
 // The slot is read once at startup and the params are removed from the
 // url so a reload does not jump back to it.
 export type OpenedSlot = {date: string | null; resourceId: string | null};
@@ -73,7 +76,7 @@ function takeStartupSlot(): OpenedSlot {
 export const startupSlot = takeStartupSlot();
 
 function readRoute(): Route {
-  return PATHS[window.location.pathname] ?? 'boka';
+  return PATHS[window.location.pathname] ?? 'book';
 }
 
 const readers = new Set<() => void>();

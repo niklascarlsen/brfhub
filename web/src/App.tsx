@@ -40,7 +40,7 @@ function Shell() {
           setResourceId(slot.resourceId);
         }
 
-        navigate('boka');
+        navigate('book');
       }),
     [navigate],
   );
@@ -48,15 +48,15 @@ function Shell() {
   // Desktop lists the apartment's times on the booking page and has no
   // page of its own for them.
   useEffect(() => {
-    if (isDesktop && route === 'mina-tider') {
-      navigate('boka', {replace: true});
+    if (isDesktop && route === 'my-times') {
+      navigate('book', {replace: true});
     }
   }, [isDesktop, route, navigate]);
 
   // An admin page left in the address bar by someone who signed out.
   useEffect(() => {
     if (isAdminRoute(route)) {
-      navigate('boka', {replace: true});
+      navigate('book', {replace: true});
     }
   }, [route, navigate]);
 
@@ -85,9 +85,9 @@ function Shell() {
         key={route}
         className='flex min-h-0 flex-1 flex-col overflow-hidden'
       >
-        {route === 'boka' ? (
+        {route === 'book' ? (
           <BookingScreen {...booking} />
-        ) : route === 'mina-tider' ? (
+        ) : route === 'my-times' ? (
           <ReservationScreen />
         ) : (
           <ApartmentScreen />

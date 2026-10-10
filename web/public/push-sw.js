@@ -16,7 +16,7 @@ self.addEventListener('push', (event) => {
 // The payload data matches what the app reads from a tapped notification.
 function slotUrl(data) {
   if (!data || !data.date || !data.resourceId) {
-    return '/boka';
+    return '/book';
   }
 
   const params = new URLSearchParams({
@@ -24,7 +24,7 @@ function slotUrl(data) {
     resource: data.resourceId,
   });
 
-  return `/boka?${params}`;
+  return `/book?${params}`;
 }
 
 // Reuse an open window when there is one, the app then jumps to the slot

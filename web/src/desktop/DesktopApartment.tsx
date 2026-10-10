@@ -19,7 +19,7 @@ export function DesktopApartment({
     <>
       <PageHeader eyebrow={organizationName} title={`Lägenhet ${apartment}`}>
         <a
-          {...linkProps('boka', onNavigate)}
+          {...linkProps('book', onNavigate)}
           className='flex h-11 items-center gap-2 rounded-full bg-theme-ink pr-5 pl-4 text-sm font-semibold text-theme-surface transition-opacity hover:opacity-90'
         >
           <ChevronBackIcon size={16} />

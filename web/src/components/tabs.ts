@@ -15,7 +15,7 @@ export type Tab = {
 };
 
 export const MEMBER_TABS: readonly Tab[] = [
-  {route: 'boka', label: 'Boka', Icon: CalendarOutlineIcon},
-  {route: 'mina-tider', label: 'Mina tider', Icon: TimeOutlineIcon},
-  {route: 'lagenhet', label: 'Lägenhet', Icon: HomeOutlineIcon},
+  {route: 'book', label: 'Boka', Icon: CalendarOutlineIcon},
+  {route: 'my-times', label: 'Mina tider', Icon: TimeOutlineIcon},
+  {route: 'apartment', label: 'Lägenhet', Icon: HomeOutlineIcon},
 ];

@@ -21,10 +21,10 @@ import {dropPushSubscription} from '@/lib/push';
 import {isAdminRoute, linkProps, useRoute} from '@/lib/route';
 
 const ADMIN_TABS: readonly Tab[] = [
-  {route: 'admin/lagenheter', label: 'Lägenheter', Icon: PeopleOutlineIcon},
-  {route: 'admin/resurser', label: 'Resurser', Icon: GridOutlineIcon},
-  {route: 'admin/anslag', label: 'Anslag', Icon: MegaphoneOutlineIcon},
-  {route: 'admin/forening', label: 'Föreningen', Icon: SettingsOutlineIcon},
+  {route: 'admin/apartments', label: 'Lägenheter', Icon: PeopleOutlineIcon},
+  {route: 'admin/resources', label: 'Resurser', Icon: GridOutlineIcon},
+  {route: 'admin/announcements', label: 'Anslag', Icon: MegaphoneOutlineIcon},
+  {route: 'admin/organization', label: 'Föreningen', Icon: SettingsOutlineIcon},
 ];
 
 // The admin's app. It books nothing, so none of the booking screens, push or
@@ -50,16 +50,16 @@ export function AdminShell({account, onRefresh}: AdminShellProps) {
   const known = ADMIN_TABS.some((tab) => tab.route === route);
   useEffect(() => {
     if (!isAdminRoute(route) || !known) {
-      navigate('admin/lagenheter', {replace: true});
+      navigate('admin/apartments', {replace: true});
     }
   }, [route, known, navigate]);
 
   const page =
-    route === 'admin/forening' ? (
+    route === 'admin/organization' ? (
       <AdminOrganization />
-    ) : route === 'admin/resurser' ? (
+    ) : route === 'admin/resources' ? (
       <AdminResources />
-    ) : route === 'admin/anslag' ? (
+    ) : route === 'admin/announcements' ? (
       <AdminAnnouncements />
     ) : (
       <AdminApartments />
@@ -73,7 +73,7 @@ export function AdminShell({account, onRefresh}: AdminShellProps) {
             className={`${SHELL} flex shrink-0 flex-wrap items-center justify-between gap-3 pt-5.5`}
           >
             <a
-              {...linkProps('admin/lagenheter', navigate)}
+              {...linkProps('admin/apartments', navigate)}
               className='flex items-center gap-2.5 rounded-xl py-1 pr-2 text-theme-ink'
             >
               <OrganizationMark name={account.organizationName} />
