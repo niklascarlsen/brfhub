@@ -49,9 +49,14 @@ export function FloatingLabelInput({
   }, [floated, progress]);
 
   return (
-    <Pressable onPress={() => inputRef.current?.focus()} className={className}>
+    <Pressable
+      onPress={() => inputRef.current?.focus()}
+      // VoiceOver reaches the field itself rather than a group around it.
+      accessible={false}
+      className={className}
+    >
       <View
-        className={`h-[52px] justify-end rounded-sm border bg-theme-surface pb-2 ${
+        className={`h-[52px] justify-end rounded-sm border bg-theme-surface pb-[5px] ${
           focused ? 'border-theme-ink' : 'border-theme-edge'
         }`}
         style={{paddingLeft: INSET, paddingRight: right}}
@@ -98,7 +103,7 @@ export function FloatingLabelInput({
             fontFamily: 'Merriweather_500Medium',
             top: progress.interpolate({
               inputRange: [0, 1],
-              outputRange: [17, 8],
+              outputRange: [17, 7],
             }),
             fontSize: progress.interpolate({
               inputRange: [0, 1],

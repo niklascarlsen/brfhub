@@ -8,12 +8,12 @@ type FloatingLabelInputProps = ComponentProps<'input'> & {
 };
 
 const FIELD =
-  'peer h-13 w-full rounded-xs border border-theme-edge bg-theme-surface pt-6 pb-2 pl-4 text-base text-theme-ink placeholder:text-transparent focus:border-theme-ink [&::-webkit-date-and-time-value]:text-left';
+  'peer h-13 w-full rounded-xs border border-theme-edge bg-theme-surface pt-6.5 pb-1.5 pl-4 text-base text-theme-ink placeholder:text-transparent focus:border-theme-ink [&::-webkit-date-and-time-value]:text-left';
 
 // A long label is cut short rather than wrapped onto a second line, where
 // it would run into what is typed.
 const LABEL =
-  'pointer-events-none absolute left-4 top-2 truncate text-[13px] font-medium leading-none text-theme-muted transition-all duration-150 ease-out peer-placeholder-shown:peer-not-focus:top-4.5 peer-placeholder-shown:peer-not-focus:text-[15px] peer-placeholder-shown:peer-not-focus:leading-4 peer-placeholder-shown:peer-not-focus:text-theme-faint';
+  'pointer-events-none absolute left-4 top-1.75 truncate text-[13px] font-medium leading-none text-theme-muted transition-all duration-150 ease-out peer-placeholder-shown:peer-not-focus:top-4.5 peer-placeholder-shown:peer-not-focus:text-[15px] peer-placeholder-shown:peer-not-focus:leading-4 peer-placeholder-shown:peer-not-focus:text-theme-faint';
 
 export function FloatingLabelInput({
   label,

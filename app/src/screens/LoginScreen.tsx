@@ -1,5 +1,11 @@
 import {useState} from 'react';
-import {KeyboardAvoidingView, Platform, Pressable, Text} from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  Text,
+  View,
+} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
 import {errorMessage} from '@/api/errors';
@@ -60,52 +66,57 @@ export function LoginScreen() {
         className='flex-1 justify-center px-5 pb-16'
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <Text className='mb-1 text-[27px] font-semibold tracking-tight text-theme-ink'>
-          {t.login.title}
-        </Text>
-        <Text className='mb-6 font-sans text-sm leading-5 text-theme-muted'>
-          {t.login.intro}
-        </Text>
-        <FloatingLabelInput
-          className='mb-3'
-          label={t.common.email}
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize='none'
-          autoComplete='email'
-          autoCorrect={false}
-          keyboardType='email-address'
-          textContentType='emailAddress'
-          returnKeyType='next'
-        />
-        <FloatingLabelInput
-          className='mb-5'
-          label={t.login.password}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          autoComplete='current-password'
-          textContentType='password'
-          returnKeyType='go'
-          onSubmitEditing={() => canSubmit && void submit()}
-        />
-        {error ? (
-          <Text
-            accessibilityRole='alert'
-            className='mb-4 font-sans text-sm text-theme-ink'
+        {/* One view for the keyboard to move. As separate children each
+            field got its own layout animation, and the focused email field
+            could jump ahead of the rest onto the title. */}
+        <View>
+          <Text className='mb-1 text-[27px] font-semibold tracking-tight text-theme-ink'>
+            {t.login.title}
+          </Text>
+          <Text className='mb-6 font-sans text-sm leading-5 text-theme-muted'>
+            {t.login.intro}
+          </Text>
+          <FloatingLabelInput
+            className='mb-3'
+            label={t.common.email}
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize='none'
+            autoComplete='email'
+            autoCorrect={false}
+            keyboardType='email-address'
+            textContentType='emailAddress'
+            returnKeyType='next'
+          />
+          <FloatingLabelInput
+            className='mb-5'
+            label={t.login.password}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoComplete='current-password'
+            textContentType='password'
+            returnKeyType='go'
+            onSubmitEditing={() => canSubmit && void submit()}
+          />
+          {error ? (
+            <Text
+              accessibilityRole='alert'
+              className='mb-4 font-sans text-sm text-theme-ink'
+            >
+              {error}
+            </Text>
+          ) : null}
+          <Pressable
+            onPress={() => void submit()}
+            disabled={!canSubmit}
+            className='h-14 items-center justify-center rounded-sm bg-theme-ink active:opacity-70 disabled:opacity-50'
           >
-            {error}
-          </Text>
-        ) : null}
-        <Pressable
-          onPress={() => void submit()}
-          disabled={!canSubmit}
-          className='h-14 items-center justify-center rounded-sm bg-theme-ink active:opacity-70 disabled:opacity-50'
-        >
-          <Text className='text-base font-semibold tracking-tight text-theme-surface'>
-            {t.login.submit}
-          </Text>
-        </Pressable>
+            <Text className='text-base font-semibold tracking-tight text-theme-surface'>
+              {t.login.submit}
+            </Text>
+          </Pressable>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
