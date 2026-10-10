@@ -6,15 +6,23 @@ import {
   endsOnAfter,
   startOf,
 } from '@/admin/announcement';
+import {useAdminAccount} from '@/admin/account';
+import {
+  fieldLabel,
+  isWritten,
+  trimmedText,
+  type Draft,
+} from '@/admin/localized';
 import {PRIMARY_BUTTON, SECONDARY_BUTTON} from '@/admin/styles';
+import type {LocalizedText} from '@/api/client';
 import {codeOf, errorMessage} from '@/api/errors';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {useMessages} from '@/i18n/LocaleProvider';
 import {formatLongDate} from '@/lib/dates';
 
 export type AnnouncementFields = {
-  title: string;
-  body: string;
+  title: LocalizedText;
+  body: LocalizedText;
   endsOn: string | null;
 };
 
@@ -36,8 +44,9 @@ export function AnnouncementForm({
   onDelete,
 }: AnnouncementFormProps) {
   const t = useMessages();
-  const [title, setTitle] = useState(initial.title);
-  const [body, setBody] = useState(initial.body);
+  const {locales} = useAdminAccount();
+  const [title, setTitle] = useState<Draft>(initial.title);
+  const [body, setBody] = useState<Draft>(initial.body);
   const [endsOn, setEndsOn] = useState(initial.endsOn);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -53,8 +62,8 @@ export function AnnouncementForm({
 
     try {
       await onSubmit({
-        title: title.trim(),
-        body: body.trim(),
+        title: trimmedText(title, locales),
+        body: trimmedText(body, locales),
         endsOn,
       });
     } catch (caught) {
@@ -68,26 +77,42 @@ export function AnnouncementForm({
       onSubmit={(event) => void submit(event)}
       className='flex flex-col gap-3'
     >
-      <FloatingLabelInput
-        label={t.admin.announcementForm.title}
-        required
-        maxLength={100}
-        value={title}
-        onChange={(event) => setTitle(event.target.value)}
-      />
-      <label className='flex flex-col gap-1.5'>
-        <span className='text-[13px] font-medium text-theme-muted'>
-          {t.admin.announcementForm.body}
-        </span>
-        <textarea
+      {locales.map((language) => (
+        <FloatingLabelInput
+          key={language}
+          lang={language}
+          label={fieldLabel(
+            t.admin.announcementForm.title,
+            language,
+            locales,
+            t,
+          )}
           required
-          maxLength={2000}
-          rows={6}
-          value={body}
-          onChange={(event) => setBody(event.target.value)}
-          className='w-full rounded-xs border border-theme-edge bg-theme-surface px-4 py-3 text-base leading-6 text-theme-ink focus:border-theme-ink'
+          maxLength={100}
+          value={title[language] ?? ''}
+          onChange={(event) =>
+            setTitle({...title, [language]: event.target.value})
+          }
         />
-      </label>
+      ))}
+      {locales.map((language) => (
+        <label key={language} className='flex flex-col gap-1.5'>
+          <span className='text-[13px] font-medium text-theme-muted'>
+            {fieldLabel(t.admin.announcementForm.body, language, locales, t)}
+          </span>
+          <textarea
+            lang={language}
+            required
+            maxLength={2000}
+            rows={6}
+            value={body[language] ?? ''}
+            onChange={(event) =>
+              setBody({...body, [language]: event.target.value})
+            }
+            className='w-full rounded-xs border border-theme-edge bg-theme-surface px-4 py-3 text-base leading-6 text-theme-ink focus:border-theme-ink'
+          />
+        </label>
+      ))}
       <fieldset className='flex flex-col gap-2'>
         <legend className='mb-2 text-[13px] font-medium text-theme-muted'>
           {t.admin.announcementForm.shownFor}
@@ -131,7 +156,9 @@ export function AnnouncementForm({
         <button
           type='submit'
           disabled={
-            submitting || title.trim().length === 0 || body.trim().length === 0
+            submitting ||
+            !isWritten(title, locales) ||
+            !isWritten(body, locales)
           }
           className={PRIMARY_BUTTON}
         >

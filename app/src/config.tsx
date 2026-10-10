@@ -12,7 +12,7 @@ import {codeOf, errorMessage, type ClientErrorCode} from '@/api/errors';
 import type {MemberAccount} from '@/auth/account';
 import {Blank} from '@/components/Blank';
 import {Notice} from '@/components/Notice';
-import {useMessages} from '@/i18n/LocaleProvider';
+import {useLocale, useMessages} from '@/i18n/LocaleProvider';
 
 // Refetched whenever the app returns: the window's dates move at midnight, and
 // the device clock cannot tell what the server's day is.
@@ -51,6 +51,9 @@ type ConfigProviderProps = {
 
 export function ConfigProvider({account, children}: ConfigProviderProps) {
   const t = useMessages();
+  // The resources are named in the language shown, so a new one loads
+  // them again.
+  const {locale} = useLocale();
   const [loaded, setLoaded] = useState<Awaited<
     ReturnType<typeof fetchConfig>
   > | null>(null);
@@ -78,7 +81,7 @@ export function ConfigProvider({account, children}: ConfigProviderProps) {
     return () => {
       current = false;
     };
-  }, [attempt]);
+  }, [attempt, locale]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {

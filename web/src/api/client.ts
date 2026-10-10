@@ -4,6 +4,7 @@ import {apiBaseUrl} from '@/api/baseUrl';
 import {apiError} from '@/api/errors';
 import {sessionChanged} from '@/auth/client';
 import type {components, paths} from '@/generated/api';
+import {getRequestLocale} from '@/lib/locale';
 
 export type Booking = components['schemas']['Booking'];
 export type Slot = components['schemas']['Slot'];
@@ -13,6 +14,9 @@ export type Apartment = components['schemas']['Apartment'];
 export type AdminResources = components['schemas']['AdminResources'];
 export type AdminResource = components['schemas']['AdminResource'];
 export type AdminKind = components['schemas']['AdminKind'];
+// Text the organization writes once per language it uses.
+export type LocalizedText = components['schemas']['LocalizedText'];
+export type LocalizedTags = components['schemas']['LocalizedTags'];
 export type SlotInput = components['schemas']['ScheduleSlot'];
 export type Announcement = components['schemas']['Announcement'];
 export type AdminAnnouncement = components['schemas']['AdminAnnouncement'];
@@ -35,6 +39,13 @@ export const api = createClient<paths>({
   baseUrl: apiBaseUrl(),
   credentials: 'include',
   fetch: fetchWithTimeout,
+});
+
+// The server answers with the organization's text in this language.
+api.use({
+  onRequest({request}) {
+    request.headers.set('accept-language', getRequestLocale());
+  },
 });
 
 type ParsedError = Partial<components['schemas']['Error']>;

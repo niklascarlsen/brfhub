@@ -1,11 +1,14 @@
 import {useState, type SubmitEvent} from 'react';
 
+import {useAdminAccount} from '@/admin/account';
+import {fieldLabel, trimmedText, type Draft} from '@/admin/localized';
 import {PRIMARY_BUTTON, SECONDARY_BUTTON} from '@/admin/styles';
+import type {LocalizedText} from '@/api/client';
 import {codeOf, errorMessage} from '@/api/errors';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {useMessages} from '@/i18n/LocaleProvider';
 
-export type KindFields = {name: string; maxActive: number};
+export type KindFields = {name: LocalizedText; maxActive: number};
 
 type KindFormProps = {
   initial: KindFields;
@@ -25,7 +28,8 @@ export function KindForm({
   onDelete,
 }: KindFormProps) {
   const t = useMessages();
-  const [name, setName] = useState(initial.name);
+  const {locales} = useAdminAccount();
+  const [name, setName] = useState<Draft>(initial.name);
   const [maxActive, setMaxActive] = useState(initial.maxActive);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -36,7 +40,7 @@ export function KindForm({
     setError(null);
 
     try {
-      await onSubmit({name: name.trim(), maxActive});
+      await onSubmit({name: trimmedText(name, locales), maxActive});
     } catch (caught) {
       setError(errorMessage(codeOf(caught), t));
       setSubmitting(false);
@@ -53,13 +57,19 @@ export function KindForm({
       onSubmit={(event) => void submit(event)}
       className='flex flex-col gap-3'
     >
-      <FloatingLabelInput
-        label={t.admin.kindForm.name}
-        required
-        maxLength={40}
-        value={name}
-        onChange={(event) => setName(event.target.value)}
-      />
+      {locales.map((language) => (
+        <FloatingLabelInput
+          key={language}
+          lang={language}
+          label={fieldLabel(t.admin.kindForm.name, language, locales, t)}
+          required
+          maxLength={40}
+          value={name[language] ?? ''}
+          onChange={(event) =>
+            setName({...name, [language]: event.target.value})
+          }
+        />
+      ))}
       <div className='flex items-center justify-between gap-4 rounded-2xl border border-theme-line bg-theme-surface px-4.5 py-3'>
         <span className='flex flex-col gap-0.5'>
           <span className='text-[15px] font-semibold tracking-tight text-theme-ink'>

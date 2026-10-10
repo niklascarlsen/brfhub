@@ -3,9 +3,12 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import {AppState} from 'react-native';
 
 import {codeOf, errorMessage, type ClientErrorCode} from '@/api/errors';
-import {useMessages} from '@/i18n/LocaleProvider';
+import {useLocale, useMessages} from '@/i18n/LocaleProvider';
 
 export function useFocusLoad<T>(load: () => Promise<T>, identity?: string) {
+  // The server answers in the language shown, so a new one loads again.
+  // What is shown stays until the answer comes.
+  const {locale} = useLocale();
   const [loaded, setLoaded] = useState<{key: string; value: T} | null>(null);
   const [error, setError] = useState<ClientErrorCode | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -50,9 +53,9 @@ export function useFocusLoad<T>(load: () => Promise<T>, identity?: string) {
       return () => {
         current = false;
       };
-      // attempt is a trigger, not a value the load reads.
+      // attempt and locale are triggers, not values the load reads.
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [scope, attempt]),
+    }, [scope, attempt, locale]),
   );
 
   const t = useMessages();

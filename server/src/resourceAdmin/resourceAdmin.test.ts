@@ -80,13 +80,13 @@ before(async () => {
 
   await seedOrganization({
     organization: NORTH,
-    kinds: [{id: 'laundry', name: 'Tvätt', maxActive: 1}],
+    kinds: [{id: 'laundry', name: {sv: 'Tvätt'}, maxActive: 1}],
     resources: [
       {
         id: LAUNDRY,
         kindId: 'laundry',
-        name: 'Tvättstuga',
-        tags: [],
+        name: {sv: 'Tvättstuga'},
+        tags: {},
         sortOrder: 1,
       },
     ],
@@ -248,16 +248,16 @@ test('refuses slots that overlap or end before they start', async () => {
 
 test('a new resource of a new kind can be booked today', async () => {
   const kind = await call('POST', '/admin/kinds', admin, {
-    name: 'Bastu',
+    name: {sv: 'Bastu'},
     maxActive: 2,
   });
   assert.equal(kind.statusCode, 201);
   const kindId = kind.json<{id: string}>().id;
 
   const created = await call('POST', '/admin/resources', admin, {
-    name: 'Bastun',
+    name: {sv: 'Bastun'},
     kindId,
-    tags: ['max 4 personer'],
+    tags: {sv: ['max 4 personer']},
     slots: [slot('22:00', '23:30')],
   });
   assert.equal(created.statusCode, 201);
@@ -344,7 +344,9 @@ test('a closed resource stops taking bookings from its closing day', async () =>
 test("an admin cannot touch another organization's resources", async () => {
   const {earliestChange} = await adminView();
   const requests = [
-    call('PATCH', `/admin/resources/${LAUNDRY}`, southAdmin, {name: 'Min'}),
+    call('PATCH', `/admin/resources/${LAUNDRY}`, southAdmin, {
+      name: {sv: 'Min'},
+    }),
     call('PUT', `/admin/resources/${LAUNDRY}/schedule`, southAdmin, {
       validFrom: earliestChange,
       slots: [slot('08:00', '09:00')],
@@ -397,20 +399,20 @@ test('an apartment cannot use what only the admin uses', async () => {
     ['GET', '/admin/resources'],
     ['GET', '/admin/organization'],
     ['PATCH', '/admin/organization', {bookingWindowDays: 60}],
-    ['POST', '/admin/kinds', {name: 'Gästrum', maxActive: 1}],
+    ['POST', '/admin/kinds', {name: {sv: 'Gästrum'}, maxActive: 1}],
     ['PATCH', '/admin/kinds/laundry', {maxActive: 5}],
     ['DELETE', '/admin/kinds/laundry'],
     [
       'POST',
       '/admin/resources',
       {
-        name: 'Gästrum',
+        name: {sv: 'Gästrum'},
         kindId: 'laundry',
-        tags: [],
+        tags: {},
         slots: [slot('08:00', '09:00')],
       },
     ],
-    ['PATCH', `/admin/resources/${LAUNDRY}`, {name: 'Min'}],
+    ['PATCH', `/admin/resources/${LAUNDRY}`, {name: {sv: 'Min'}}],
     ['PUT', '/admin/resources/order', {ids: [LAUNDRY]}],
     [
       'PUT',
@@ -447,7 +449,7 @@ test('the order must list every resource once', async () => {
 
 test('removes a kind no resource uses', async () => {
   const kind = await call('POST', '/admin/kinds', admin, {
-    name: 'Gästrum',
+    name: {sv: 'Gästrum'},
     maxActive: 1,
   });
   const id = kind.json<{id: string}>().id;

@@ -1,5 +1,7 @@
 import {z} from 'zod';
 
+import {localizedInputSchema, localizedTextSchema} from '../lib/locale.js';
+
 export const announcementSchema = z.object({
   id: z.uuid(),
   title: z.string(),
@@ -9,7 +11,10 @@ export const announcementSchema = z.object({
   updatedAt: z.iso.datetime(),
 });
 
+// The admin edits the text in every language, so gets all of them.
 export const adminAnnouncementSchema = announcementSchema.extend({
+  title: localizedTextSchema,
+  body: localizedTextSchema,
   status: z.enum(['scheduled', 'active', 'ended']),
 });
 
@@ -23,8 +28,8 @@ export const adminAnnouncementsSchema = z.object({
 // The day an announcement is published is the day it is written; the
 // server sets it.
 export const announcementBodySchema = z.object({
-  title: z.string().trim().min(1).max(100),
-  body: z.string().trim().min(1).max(2000),
+  title: localizedInputSchema(100),
+  body: localizedInputSchema(2000),
   endsOn: z.iso.date().nullable(),
 });
 

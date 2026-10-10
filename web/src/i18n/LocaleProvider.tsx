@@ -2,6 +2,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useState,
   useSyncExternalStore,
@@ -10,18 +11,29 @@ import {
 
 import {
   CATALOGS,
+  LOCALES,
   resolveLocale,
   type Locale,
   type LocaleChoice,
   type Messages,
 } from '@/i18n/catalog';
-import {readLocaleChoice, saveLocaleChoice} from '@/lib/locale';
+import {
+  readLocaleChoice,
+  saveLocaleChoice,
+  setRequestLocale,
+} from '@/lib/locale';
 
 type LocaleValue = {
   locale: Locale;
+  // The languages that can be shown: the organization's once signed in.
+  locales: readonly Locale[];
   messages: Messages;
   choice: LocaleChoice;
   setChoice: (choice: LocaleChoice) => void;
+  // Set with the account, in the same render, so its screens never show
+  // in a language the organization does not write in. Null when signed
+  // out.
+  setOrganizationLocales: (locales: Locale[] | null) => void;
 };
 
 const LocaleContext = createContext<LocaleValue | null>(null);
@@ -41,8 +53,9 @@ export function useMessages(): Messages {
 }
 
 export function useLocale(): Omit<LocaleValue, 'messages'> {
-  const {locale, choice, setChoice} = useLocaleValue();
-  return {locale, choice, setChoice};
+  const {locale, locales, choice, setChoice, setOrganizationLocales} =
+    useLocaleValue();
+  return {locale, locales, choice, setChoice, setOrganizationLocales};
 }
 
 function subscribeToLanguages(onChange: () => void) {
@@ -56,14 +69,24 @@ function browserLanguages(): string {
 }
 
 // The language the person picked in this browser, or the first of the
-// browser's languages the app speaks.
+// browser's languages the app speaks, among those the organization writes
+// in.
 export function LocaleProvider({children}: {children: ReactNode}) {
   const languages = useSyncExternalStore(
     subscribeToLanguages,
     browserLanguages,
   );
   const [choice, setStoredChoice] = useState(readLocaleChoice);
-  const locale = resolveLocale(choice, languages.split(','));
+  const [organizationLocales, setOrganizationLocales] = useState<
+    Locale[] | null
+  >(null);
+  const locales = organizationLocales ?? LOCALES;
+  const locale = resolveLocale(choice, languages.split(','), locales);
+
+  // Before the screens below load anything, so they ask in this language.
+  useLayoutEffect(() => {
+    setRequestLocale(locale);
+  }, [locale]);
 
   // Screen readers and the browser's own spelling follow the page language.
   useEffect(() => {
@@ -73,14 +96,16 @@ export function LocaleProvider({children}: {children: ReactNode}) {
   const value = useMemo<LocaleValue>(
     () => ({
       locale,
+      locales,
       messages: CATALOGS[locale],
       choice,
       setChoice: (next) => {
         saveLocaleChoice(next);
         setStoredChoice(next);
       },
+      setOrganizationLocales,
     }),
-    [locale, choice],
+    [locale, locales, choice],
   );
 
   return (

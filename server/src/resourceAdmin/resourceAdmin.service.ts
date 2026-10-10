@@ -12,6 +12,7 @@ import {
   subscriptions,
 } from '../db/schema.js';
 import {appError} from '../lib/errors.js';
+import {assertTranslated, localized} from '../lib/locale.js';
 import {asDateText, todaySql} from '../lib/time.js';
 import type {Organization} from '../lib/user.js';
 import {slotInEffect} from '../resource/schedule.query.js';
@@ -152,6 +153,7 @@ async function assertResource(organizationId: string, id: string) {
 export async function listAdminResources({
   organizationId,
   timeZone,
+  locale,
 }: Organization): Promise<AdminResources> {
   const today = todaySql(timeZone);
   const [dates, kinds, rows, slots] = await Promise.all([
@@ -164,7 +166,7 @@ export async function listAdminResources({
       })
       .from(resourceKinds)
       .where(eq(resourceKinds.organizationId, organizationId))
-      .orderBy(asc(resourceKinds.name)),
+      .orderBy(asc(localized(resourceKinds.name, locale))),
     db
       .select({
         id: resources.id,
@@ -229,14 +231,22 @@ export async function listAdminResources({
   };
 }
 
-export async function createKind(organizationId: string, body: CreateKindBody) {
+export async function createKind(
+  {organizationId, locales}: Organization,
+  body: CreateKindBody,
+) {
   const id = randomUUID();
-  await db.insert(resourceKinds).values({id, organizationId, ...body});
+  await db.insert(resourceKinds).values({
+    id,
+    organizationId,
+    maxActive: body.maxActive,
+    name: assertTranslated(body.name, locales),
+  });
   return id;
 }
 
 export async function updateKind(
-  organizationId: string,
+  {organizationId, locales}: Organization,
   id: string,
   body: UpdateKindBody,
 ) {
@@ -249,7 +259,13 @@ export async function updateKind(
   // A lower limit applies to new bookings; the ones already made stand.
   await db
     .update(resourceKinds)
-    .set(body)
+    .set({
+      maxActive: body.maxActive,
+      name:
+        body.name === undefined
+          ? undefined
+          : assertTranslated(body.name, locales),
+    })
     .where(
       and(
         eq(resourceKinds.organizationId, organizationId),
@@ -288,9 +304,11 @@ export async function deleteKind(organizationId: string, id: string) {
 
 // A new resource has no bookings to break, so its schedule starts today.
 export async function createResource(
-  organizationId: string,
+  {organizationId, locales}: Organization,
   body: CreateResourceBody,
 ) {
+  const name = assertTranslated(body.name, locales);
+  const tags = assertTranslated(body.tags, locales, {optional: true});
   await assertKind(organizationId, body.kindId);
   assertValidSlots(body.slots);
 
@@ -307,8 +325,8 @@ export async function createResource(
       id,
       organizationId,
       kindId: body.kindId,
-      name: body.name,
-      tags: body.tags,
+      name,
+      tags,
       sortOrder: (last?.sortOrder ?? 0) + 1,
     });
     await tx
@@ -322,10 +340,16 @@ export async function createResource(
 }
 
 export async function updateResource(
-  organizationId: string,
+  {organizationId, locales}: Organization,
   id: string,
   body: UpdateResourceBody,
 ) {
+  const name =
+    body.name === undefined ? undefined : assertTranslated(body.name, locales);
+  const tags =
+    body.tags === undefined
+      ? undefined
+      : assertTranslated(body.tags, locales, {optional: true});
   await assertResource(organizationId, id);
 
   if (body.kindId !== undefined) {
@@ -342,7 +366,10 @@ export async function updateResource(
 
   // Like a lower limit, a new kind's limit applies to new bookings; the
   // ones already made stand.
-  await db.update(resources).set(body).where(eq(resources.id, id));
+  await db
+    .update(resources)
+    .set({kindId: body.kindId, name, tags})
+    .where(eq(resources.id, id));
 }
 
 // Replaces any version not yet promised, since nobody can have booked

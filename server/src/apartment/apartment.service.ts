@@ -319,7 +319,7 @@ function announceFreed(
 }
 
 export async function replaceResident(
-  {organizationId, timeZone}: Organization,
+  {organizationId, timeZone, locales}: Organization,
   id: string,
   body: NewResidentBody,
   log: FastifyBaseLogger,
@@ -347,13 +347,13 @@ export async function replaceResident(
     })
     .catch(rethrowTaken);
 
-  announceFreed(freed, {id, timeZone}, log);
+  announceFreed(freed, {id, timeZone, locales}, log);
 
   return {apartment: await getApartment(organizationId, id), password};
 }
 
 export async function removeApartment(
-  {organizationId, timeZone}: Organization,
+  {organizationId, timeZone, locales}: Organization,
   id: string,
   log: FastifyBaseLogger,
 ): Promise<void> {
@@ -369,5 +369,5 @@ export async function removeApartment(
     return released;
   });
 
-  announceFreed(freed, {id, timeZone}, log);
+  announceFreed(freed, {id, timeZone, locales}, log);
 }

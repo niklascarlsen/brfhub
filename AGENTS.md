@@ -34,12 +34,14 @@ files are committed; `npm run generate` in `web/` rewrites them, and `dev`,
   as ones made with `org:create`, are left alone. Brf Exempel signs in as
   `<number>@example.com`, Brf Andra as `<number>@andra.example.com`, and each
   admin as `admin@` on the same domain, all with password `password`. Brf
-  Andra keeps New York time, to see another time zone with real data. Members
+  Andra keeps New York time and English alone, to see another time zone and
+  a one-language organization with real data. Members
   and push tokens survive, so the app stays registered. It wipes bookings I
   may be testing with, so ask before running it.
 - `npm run org:create -- --id <slug> --name <name> --time-zone <IANA zone>
-  --admin-email <email>`: creates an organization and its one admin, and
-  prints the password once. The time zone cannot be changed afterwards.
+  --admin-email <email> [--languages sv,en]`: creates an organization and
+  its one admin, and prints the password once. The time zone cannot be
+  changed afterwards; the languages, Swedish by default, can.
 - `npm run push:test -- [organization] [apartment]`: releases an upcoming
   booking held by another apartment and sends the real notification to the
   watching apartment, `demo` and `12` by default. Reseed when it runs out of
@@ -90,8 +92,9 @@ Physical iPhone with a free Apple ID (no paid developer account):
 - `npm run generate` — rewrites the generated theme and icons, see Generated
   types. Runs by itself before `dev`, `build` and `check`.
 - `npm run check` — Prettier, TypeScript, ESLint and a diff of the files
-  shared with the app (`src/lib/dates.ts`, and `sv.ts`, `en.ts` and
-  `catalog.ts` in `src/i18n/`) against the app's copies.
+  shared with the app (`src/lib/dates.ts`, `src/admin/localized.ts`, and
+  `sv.ts`, `en.ts` and `catalog.ts` in `src/i18n/`) against the app's
+  copies.
 
 I keep the `server/` and `web/` dev servers running while testing. Never kill
 them (`pkill`, by port); check what is listening with
@@ -115,11 +118,16 @@ pick up changes without a restart.
   same files in both clients and checked by `shared:check`. A new string goes
   in both, and TypeScript refuses an English catalog that lacks a Swedish key.
   Components read it with `useMessages()`; helpers outside components take it
-  as a `t: Messages` argument. Never write UI text inline. Text from the
-  organization (names, rules, announcements, tags) is not translated.
+  as a `t: Messages` argument. Never write UI text inline.
+- The organization picks its languages (`locales`), and the clients show
+  only those. Its own text (resource and kind names, tags, rules,
+  announcements) is jsonb with a value per language. The server resolves it
+  from `Accept-Language`, so member endpoints return plain strings and admin
+  endpoints the whole object (`server/src/lib/locale.ts`). Untranslated text
+  falls back to a language it is written in.
 - The language is per device: the one picked under Lägenhet or Föreningen,
-  else the first device language the app speaks, else English. Push tokens
-  carry it, and the server writes push in it (`server/src/lib/locale.ts`).
+  else the first device language the organization uses, else English if it
+  uses it. Push tokens carry it, and the server writes push in it.
 - `web/` is on Tailwind v4 (CSS-first, tokens in `@theme`); `app/` stays on the
   v3 LTS that NativeWind needs. Do not copy config between them.
 - Match the app's result, not its layout mechanism. Anything sized from the

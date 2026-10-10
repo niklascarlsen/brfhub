@@ -18,18 +18,12 @@ import {
   slotHasStarted,
 } from '../lib/time.js';
 import type {Member} from '../lib/user.js';
-import {getResource} from '../resource/resource.service.js';
+import {getResource, resourceRefFields} from '../resource/resource.service.js';
 import {resourceOpenOn, slotInEffect} from '../resource/schedule.query.js';
 import {getBookingWindow, isWithinBookingWindow} from '../slot/slot.service.js';
 import type {Booking, CreatedBooking} from './booking.dto.js';
 import {lockApartmentBookings, stillActive} from './booking.query.js';
 import {notifySlotReleased} from './booking.notification.js';
-
-const resourceFields = {
-  resourceId: resources.id,
-  resourceName: resources.name,
-  resourceKind: resources.kindId,
-};
 
 export async function deleteBooking(
   id: string,
@@ -106,7 +100,7 @@ export function listBookings(member: Member): Promise<Booking[]> {
       endsAt: asIsoText(bookings.endsAt),
       started: slotHasStarted(member.timeZone, bookings.date, bookings.start),
       released: sql<boolean>`${bookings.releasedAt} is not null`,
-      ...resourceFields,
+      ...resourceRefFields(member.locale),
     })
     .from(bookings)
     .innerJoin(resources, eq(bookings.resourceId, resources.id))
@@ -129,7 +123,7 @@ export async function createBooking({
   replaceExisting: boolean;
   log: FastifyBaseLogger;
 }): Promise<CreatedBooking> {
-  const resource = await getResource(member.organizationId, resourceId);
+  const resource = await getResource(member, resourceId);
   if (!resource) {
     throw appError('NOT_FOUND', 'Unknown resource');
   }

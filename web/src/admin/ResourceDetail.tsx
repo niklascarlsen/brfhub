@@ -13,7 +13,8 @@ import {
 import {codeOf, errorMessage} from '@/api/errors';
 import {useDialog} from '@/components/Dialog';
 import {ChevronForwardIcon} from '@/components/icons';
-import {useMessages} from '@/i18n/LocaleProvider';
+import {localize} from '@/i18n/catalog';
+import {useLocale, useMessages} from '@/i18n/LocaleProvider';
 import {formatDayMonth, formatLongDate} from '@/lib/dates';
 
 type ResourceDetailProps = {
@@ -59,7 +60,9 @@ export function ResourceDetail({
 }: ResourceDetailProps) {
   const dialog = useDialog();
   const t = useMessages();
+  const {locale} = useLocale();
   const [mode, setMode] = useState<Mode>('view');
+  const tags = localize(resource.tags, locale) ?? [];
   const {kinds, earliestChange, today} = data;
   const kind = kinds.find((item) => item.id === resource.kindId);
   const [current, ...later] = resource.schedules;
@@ -134,7 +137,7 @@ export function ResourceDetail({
     dialog.confirm(
       t.admin.resource.close,
       t.admin.resource.closeQuestion(
-        resource.name,
+        localize(resource.name, locale) ?? '',
         formatLongDate(earliestChange, t),
       ),
       {
@@ -269,7 +272,9 @@ export function ResourceDetail({
               {t.admin.resource.kind}
             </span>
             <span className='text-right text-sm text-theme-ink'>
-              {kind ? `${kind.name} · ${limitText(kind, t)}` : '–'}
+              {kind
+                ? `${localize(kind.name, locale)} · ${limitText(kind, t)}`
+                : '–'}
             </span>
           </div>
           <div className='flex items-baseline justify-between gap-4 py-2.5'>
@@ -277,7 +282,7 @@ export function ResourceDetail({
               {t.admin.resource.tags}
             </span>
             <span className='text-right text-sm text-theme-ink'>
-              {resource.tags.length > 0 ? resource.tags.join(', ') : '–'}
+              {tags.length > 0 ? tags.join(', ') : '–'}
             </span>
           </div>
         </div>

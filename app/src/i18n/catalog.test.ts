@@ -1,6 +1,6 @@
 import {describe, expect, test} from '@jest/globals';
 
-import {isLocaleChoice, resolveLocale} from '@/i18n/catalog';
+import {isLocaleChoice, localize, resolveLocale} from '@/i18n/catalog';
 
 describe('resolveLocale', () => {
   test('a picked language wins over the device', () => {
@@ -21,6 +21,26 @@ describe('resolveLocale', () => {
 
   test('a bare language code still matches', () => {
     expect(resolveLocale('system', ['sv'])).toBe('sv');
+  });
+
+  test("only the organization's languages can be shown", () => {
+    expect(resolveLocale('en', ['en-US'], ['sv'])).toBe('sv');
+    expect(resolveLocale('system', ['de-DE', 'sv-SE'], ['en'])).toBe('en');
+    expect(resolveLocale('system', ['de-DE'], ['sv', 'en'])).toBe('en');
+    expect(resolveLocale('system', ['en-GB', 'sv-SE'], ['sv', 'en'])).toBe(
+      'en',
+    );
+  });
+});
+
+describe('localize', () => {
+  test('takes the language shown', () => {
+    expect(localize({sv: 'Tvätt', en: 'Laundry'}, 'en')).toBe('Laundry');
+  });
+
+  test('falls back to a language the text is written in', () => {
+    expect(localize({sv: 'Tvätt'}, 'en')).toBe('Tvätt');
+    expect(localize({}, 'en')).toBeUndefined();
   });
 });
 

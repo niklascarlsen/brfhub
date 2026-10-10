@@ -11,6 +11,7 @@ import {
   resources,
   user,
 } from '../src/db/schema.js';
+import {localize} from '../src/lib/locale.js';
 import {slotHasStarted} from '../src/lib/time.js';
 
 const API_URL = process.env.API_URL ?? 'http://localhost:3000';
@@ -152,7 +153,8 @@ try {
     process.exit(1);
   }
 
-  const {id, owner, date, start, end, resourceId, resourceName} = booking;
+  const {id, owner, date, start, end, resourceId} = booking;
+  const resourceName = localize(booking.resourceName, 'en');
   console.log(
     `1. apartment ${owner} holds ${resourceName} ${date} ${start}–${end}`,
   );

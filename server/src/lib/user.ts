@@ -6,11 +6,17 @@ import {auth} from '../auth/auth.js';
 import {db} from '../db/index.js';
 import {members, organizations} from '../db/schema.js';
 import {appError} from './errors.js';
+import {requestedLocales, resolveLocale, type Locale} from './locale.js';
 
 // What every request in an organization needs to know about it.
 export type Organization = {
   organizationId: string;
   timeZone: string;
+  // The languages the organization writes in.
+  locales: Locale[];
+  // The one of them this request is answered in: the device's, when the
+  // organization writes in it.
+  locale: Locale;
 };
 
 export type Member = Organization & {
@@ -37,10 +43,14 @@ export async function getSignedIn(request: FastifyRequest): Promise<SignedIn> {
   }
 
   const {user} = session;
+  const requested = requestedLocales(request.headers['accept-language']);
 
   if (user.role === 'admin') {
     const [organization] = await db
-      .select({timeZone: organizations.timeZone})
+      .select({
+        timeZone: organizations.timeZone,
+        locales: organizations.locales,
+      })
       .from(organizations)
       .where(eq(organizations.id, user.organizationId));
 
@@ -52,7 +62,8 @@ export async function getSignedIn(request: FastifyRequest): Promise<SignedIn> {
       role: 'admin',
       admin: {
         organizationId: user.organizationId,
-        timeZone: organization.timeZone,
+        ...organization,
+        locale: resolveLocale(requested, organization.locales),
       },
     };
   }
@@ -66,6 +77,7 @@ export async function getSignedIn(request: FastifyRequest): Promise<SignedIn> {
       id: members.id,
       organizationId: members.organizationId,
       timeZone: organizations.timeZone,
+      locales: organizations.locales,
       label: members.label,
     })
     .from(members)
@@ -82,7 +94,14 @@ export async function getSignedIn(request: FastifyRequest): Promise<SignedIn> {
     throw appError('UNAUTHORIZED', 'Unknown member');
   }
 
-  return {role: 'member', member: {...member, userId: user.id}};
+  return {
+    role: 'member',
+    member: {
+      ...member,
+      locale: resolveLocale(requested, member.locales),
+      userId: user.id,
+    },
+  };
 }
 
 export async function getMember(request: FastifyRequest): Promise<Member> {

@@ -3301,20 +3301,30 @@ export interface components {
             statusCode: number;
             message: string;
             /** @enum {string} */
-            code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "SLOT_STARTED" | "OUTSIDE_BOOKING_WINDOW" | "SLOT_AVAILABLE" | "APARTMENT_TAKEN" | "EMAIL_TAKEN" | "CHANGE_INSIDE_WINDOW" | "ENDS_IN_PAST" | "INVALID_SCHEDULE" | "KIND_IN_USE" | "NOT_FOUND" | "UNAUTHORIZED" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
+            code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "SLOT_STARTED" | "OUTSIDE_BOOKING_WINDOW" | "SLOT_AVAILABLE" | "APARTMENT_TAKEN" | "EMAIL_TAKEN" | "CHANGE_INSIDE_WINDOW" | "ENDS_IN_PAST" | "INVALID_SCHEDULE" | "KIND_IN_USE" | "LANGUAGES_CHANGED" | "NOT_FOUND" | "UNAUTHORIZED" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
         };
         /** @enum {string} */
         LocaleInput: "sv" | "en";
+        LocalizedTextInput: {
+            sv?: string;
+            en?: string;
+        };
+        LocalizedTagsInput: {
+            sv?: string[];
+            en?: string[];
+        };
         MemberAccountInput: {
             /** @constant */
             role: "member";
             organizationName: string;
+            locales: components["schemas"]["LocaleInput"][];
             apartment: string;
         };
         AdminAccountInput: {
             /** @constant */
             role: "admin";
             organizationName: string;
+            locales: components["schemas"]["LocaleInput"][];
         };
         AccountInput: components["schemas"]["MemberAccountInput"] | components["schemas"]["AdminAccountInput"];
         AnnouncementInput: {
@@ -3331,8 +3341,8 @@ export interface components {
         AdminAnnouncementInput: {
             /** Format: uuid */
             id: string;
-            title: string;
-            body: string;
+            title: components["schemas"]["LocalizedTextInput"];
+            body: components["schemas"]["LocalizedTextInput"];
             /** Format: date */
             publishedOn: string;
             endsOn: string | null;
@@ -3347,8 +3357,14 @@ export interface components {
             announcements: components["schemas"]["AdminAnnouncementInput"][];
         };
         AnnouncementBodyInput: {
-            title: string;
-            body: string;
+            title: {
+                sv?: string;
+                en?: string;
+            };
+            body: {
+                sv?: string;
+                en?: string;
+            };
             endsOn: string | null;
         };
         ApartmentInput: {
@@ -3454,12 +3470,17 @@ export interface components {
         OrganizationSettingsInput: {
             name: string;
             bookingWindowDays: number;
-            rulesText: string;
+            locales: components["schemas"]["LocaleInput"][];
+            rulesText: components["schemas"]["LocalizedTextInput"];
         };
         UpdateOrganizationBodyInput: {
             name?: string;
             bookingWindowDays?: number;
-            rulesText?: string;
+            locales?: components["schemas"]["LocaleInput"][];
+            rulesText?: {
+                sv?: string;
+                en?: string;
+            };
         };
         PushTokenBodyInput: {
             token: string;
@@ -3480,14 +3501,14 @@ export interface components {
         };
         AdminKindInput: {
             id: string;
-            name: string;
+            name: components["schemas"]["LocalizedTextInput"];
             maxActive: number;
         };
         AdminResourceInput: {
             id: string;
-            name: string;
+            name: components["schemas"]["LocalizedTextInput"];
             kindId: string;
-            tags: string[];
+            tags: components["schemas"]["LocalizedTagsInput"];
             closesFrom: string | null;
             schedules: components["schemas"]["ScheduleInput"][];
         };
@@ -3500,23 +3521,41 @@ export interface components {
             earliestChange: string;
         };
         CreateKindBodyInput: {
-            name: string;
+            name: {
+                sv?: string;
+                en?: string;
+            };
             maxActive: number;
         };
         UpdateKindBodyInput: {
-            name?: string;
+            name?: {
+                sv?: string;
+                en?: string;
+            };
             maxActive?: number;
         };
         CreateResourceBodyInput: {
-            name: string;
+            name: {
+                sv?: string;
+                en?: string;
+            };
             kindId: string;
-            tags: string[];
+            tags: {
+                sv?: string[];
+                en?: string[];
+            };
             slots: components["schemas"]["ScheduleSlotInput"][];
         };
         UpdateResourceBodyInput: {
-            name?: string;
+            name?: {
+                sv?: string;
+                en?: string;
+            };
             kindId?: string;
-            tags?: string[];
+            tags?: {
+                sv?: string[];
+                en?: string[];
+            };
         };
         PutScheduleBodyInput: {
             /** Format: date */
@@ -3611,20 +3650,30 @@ export interface components {
             statusCode: number;
             message: string;
             /** @enum {string} */
-            code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "SLOT_STARTED" | "OUTSIDE_BOOKING_WINDOW" | "SLOT_AVAILABLE" | "APARTMENT_TAKEN" | "EMAIL_TAKEN" | "CHANGE_INSIDE_WINDOW" | "ENDS_IN_PAST" | "INVALID_SCHEDULE" | "KIND_IN_USE" | "NOT_FOUND" | "UNAUTHORIZED" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
+            code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "SLOT_STARTED" | "OUTSIDE_BOOKING_WINDOW" | "SLOT_AVAILABLE" | "APARTMENT_TAKEN" | "EMAIL_TAKEN" | "CHANGE_INSIDE_WINDOW" | "ENDS_IN_PAST" | "INVALID_SCHEDULE" | "KIND_IN_USE" | "LANGUAGES_CHANGED" | "NOT_FOUND" | "UNAUTHORIZED" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
         };
         /** @enum {string} */
         Locale: "sv" | "en";
+        LocalizedText: {
+            sv?: string;
+            en?: string;
+        };
+        LocalizedTags: {
+            sv?: string[];
+            en?: string[];
+        };
         MemberAccount: {
             /** @constant */
             role: "member";
             organizationName: string;
+            locales: components["schemas"]["Locale"][];
             apartment: string;
         };
         AdminAccount: {
             /** @constant */
             role: "admin";
             organizationName: string;
+            locales: components["schemas"]["Locale"][];
         };
         Account: components["schemas"]["MemberAccount"] | components["schemas"]["AdminAccount"];
         Announcement: {
@@ -3641,8 +3690,8 @@ export interface components {
         AdminAnnouncement: {
             /** Format: uuid */
             id: string;
-            title: string;
-            body: string;
+            title: components["schemas"]["LocalizedText"];
+            body: components["schemas"]["LocalizedText"];
             /** Format: date */
             publishedOn: string;
             endsOn: string | null;
@@ -3657,8 +3706,14 @@ export interface components {
             announcements: components["schemas"]["AdminAnnouncement"][];
         };
         AnnouncementBody: {
-            title: string;
-            body: string;
+            title: {
+                sv?: string;
+                en?: string;
+            };
+            body: {
+                sv?: string;
+                en?: string;
+            };
             endsOn: string | null;
         };
         Apartment: {
@@ -3767,12 +3822,17 @@ export interface components {
         OrganizationSettings: {
             name: string;
             bookingWindowDays: number;
-            rulesText: string;
+            locales: components["schemas"]["Locale"][];
+            rulesText: components["schemas"]["LocalizedText"];
         };
         UpdateOrganizationBody: {
             name?: string;
             bookingWindowDays?: number;
-            rulesText?: string;
+            locales?: unknown;
+            rulesText?: {
+                sv?: string;
+                en?: string;
+            };
         };
         PushTokenBody: {
             token: string;
@@ -3793,14 +3853,14 @@ export interface components {
         };
         AdminKind: {
             id: string;
-            name: string;
+            name: components["schemas"]["LocalizedText"];
             maxActive: number;
         };
         AdminResource: {
             id: string;
-            name: string;
+            name: components["schemas"]["LocalizedText"];
             kindId: string;
-            tags: string[];
+            tags: components["schemas"]["LocalizedTags"];
             closesFrom: string | null;
             schedules: components["schemas"]["Schedule"][];
         };
@@ -3813,23 +3873,41 @@ export interface components {
             earliestChange: string;
         };
         CreateKindBody: {
-            name: string;
+            name: {
+                sv?: string;
+                en?: string;
+            };
             maxActive: number;
         };
         UpdateKindBody: {
-            name?: string;
+            name?: {
+                sv?: string;
+                en?: string;
+            };
             maxActive?: number;
         };
         CreateResourceBody: {
-            name: string;
+            name: {
+                sv?: string;
+                en?: string;
+            };
             kindId: string;
-            tags: string[];
+            tags: {
+                sv?: string[];
+                en?: string[];
+            };
             slots: components["schemas"]["ScheduleSlot"][];
         };
         UpdateResourceBody: {
-            name?: string;
+            name?: {
+                sv?: string;
+                en?: string;
+            };
             kindId?: string;
-            tags?: string[];
+            tags?: {
+                sv?: string[];
+                en?: string[];
+            };
         };
         PutScheduleBody: {
             /** Format: date */

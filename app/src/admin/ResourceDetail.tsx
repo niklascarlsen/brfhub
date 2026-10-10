@@ -18,7 +18,8 @@ import {
   type AdminResources,
 } from '@/api/client';
 import {codeOf, errorMessage} from '@/api/errors';
-import {useMessages} from '@/i18n/LocaleProvider';
+import {localize} from '@/i18n/catalog';
+import {useLocale, useMessages} from '@/i18n/LocaleProvider';
 import {formatDayMonth, formatLongDate} from '@/lib/dates';
 import theme from '@/theme.json';
 
@@ -87,7 +88,9 @@ export function ResourceDetail({
   onChanged,
 }: ResourceDetailProps) {
   const t = useMessages();
+  const {locale} = useLocale();
   const [mode, setMode] = useState<Mode>('view');
+  const tags = localize(resource.tags, locale) ?? [];
 
   // Back from a form returns to the resource, not to the list. Registered
   // after the list's handler, so it is asked first.
@@ -184,7 +187,7 @@ export function ResourceDetail({
     Alert.alert(
       t.admin.resource.close,
       t.admin.resource.closeQuestion(
-        resource.name,
+        localize(resource.name, locale) ?? '',
         formatLongDate(earliestChange, t),
       ),
       [
@@ -321,7 +324,9 @@ export function ResourceDetail({
               {t.admin.resource.kind}
             </Text>
             <Text className='min-w-0 flex-1 text-right font-sans text-sm text-theme-ink'>
-              {kind ? `${kind.name} · ${limitText(kind, t)}` : '–'}
+              {kind
+                ? `${localize(kind.name, locale)} · ${limitText(kind, t)}`
+                : '–'}
             </Text>
           </View>
           <View className='flex-row items-baseline justify-between gap-4 py-2.5'>
@@ -329,7 +334,7 @@ export function ResourceDetail({
               {t.admin.resource.tags}
             </Text>
             <Text className='min-w-0 flex-1 text-right font-sans text-sm text-theme-ink'>
-              {resource.tags.length > 0 ? resource.tags.join(', ') : '–'}
+              {tags.length > 0 ? tags.join(', ') : '–'}
             </Text>
           </View>
         </View>

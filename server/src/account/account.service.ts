@@ -25,6 +25,7 @@ export async function getAccount(signedIn: SignedIn): Promise<Account> {
     return {
       role: 'admin',
       organizationName: await organizationName(admin.organizationId),
+      locales: admin.locales,
     };
   }
 
@@ -33,6 +34,7 @@ export async function getAccount(signedIn: SignedIn): Promise<Account> {
   return {
     role: 'member',
     organizationName: await organizationName(member.organizationId),
+    locales: member.locales,
     apartment: member.label,
   };
 }

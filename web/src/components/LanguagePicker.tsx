@@ -1,18 +1,23 @@
 import {useId} from 'react';
 
-import {CATALOGS, LOCALES, type LocaleChoice} from '@/i18n/catalog';
+import {CATALOGS, type LocaleChoice} from '@/i18n/catalog';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
 
 // Each language is named in itself, so it can be found whatever the page is
 // shown in.
 export function LanguagePicker() {
   const t = useMessages();
-  const {choice, setChoice} = useLocale();
+  const {choice, setChoice, locales} = useLocale();
   const headingId = useId();
+
+  // An organization that writes in one language shows only that one.
+  if (locales.length < 2) {
+    return null;
+  }
 
   const options: {value: LocaleChoice; label: string; lang?: string}[] = [
     {value: 'system', label: t.language.system},
-    ...LOCALES.map((locale) => ({
+    ...locales.map((locale) => ({
       value: locale,
       label: CATALOGS[locale].language.name,
       lang: locale,

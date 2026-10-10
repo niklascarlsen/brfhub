@@ -33,6 +33,7 @@ export const en: Messages = {
     heading: 'Language',
     system: 'System',
     name: 'English',
+    names: {sv: 'Swedish', en: 'English'},
   },
   errors: {
     HAS_ACTIVE_BOOKING: 'You already have a booking',
@@ -48,6 +49,8 @@ export const en: Messages = {
     ENDS_IN_PAST: 'The end date has already passed',
     INVALID_SCHEDULE: 'The slots overlap or end before they start',
     KIND_IN_USE: 'Resources still use that type',
+    LANGUAGES_CHANGED:
+      "The association's languages changed since the page was opened. Reload and try again.",
     NOT_FOUND: 'Not found',
     UNAUTHORIZED: 'You are not signed in',
     FORBIDDEN: 'That is not your booking',
@@ -299,8 +302,18 @@ export const en: Messages = {
       shown: (from: string, to: string | null) =>
         to ? `From ${from} up to and including ${to}.` : `From ${from}.`,
     },
+    localized: {
+      label: (label: string, language: string) => `${label} (${language})`,
+      untranslated: (languages: string) => `Missing ${languages}`,
+      tagsInEvery: 'Write tags in every language, or leave them all empty.',
+      rulesInEvery:
+        'Write the rules in every language, or leave them all empty.',
+    },
     organization: {
       settings: 'Settings',
+      languages: 'Association languages',
+      languagesNote:
+        "Apartments can pick among the languages turned on. With more than one, you write the association's texts in each. Anything not yet translated shows in the language it was written in.",
       name: 'Association name',
       windowDays: 'Days bookable ahead',
       windowRange: (max: number) => `The booking window is 1 to ${max} days`,

@@ -6,7 +6,7 @@ import {signOut} from '@/auth/signOut';
 import {Blank} from '@/components/Blank';
 import {Notice} from '@/components/Notice';
 import type {components} from '@/generated/api';
-import {useMessages} from '@/i18n/LocaleProvider';
+import {useLocale, useMessages} from '@/i18n/LocaleProvider';
 import {useReturnToTab} from '@/hooks/useReturnToTab';
 
 export type MemberAccount = components['schemas']['MemberAccount'];
@@ -21,6 +21,7 @@ type AccountGateProps = {
 // an apartment books, the admin manages the organization.
 export function AccountGate({member, admin}: AccountGateProps) {
   const t = useMessages();
+  const {setOrganizationLocales} = useLocale();
   const [account, setAccount] = useState<
     components['schemas']['Account'] | null
   >(null);
@@ -33,6 +34,7 @@ export function AccountGate({member, admin}: AccountGateProps) {
     unwrap(api.GET('/account'))
       .then((result) => {
         if (current) {
+          setOrganizationLocales(result.locales);
           setAccount(result);
           setError(null);
         }
@@ -45,6 +47,7 @@ export function AccountGate({member, admin}: AccountGateProps) {
           // The apartment has moved out since the last answer: stop
           // showing its app. Other failures keep the account shown.
           if (code === 'UNAUTHORIZED') {
+            setOrganizationLocales(null);
             setAccount(null);
           }
         }
@@ -53,7 +56,10 @@ export function AccountGate({member, admin}: AccountGateProps) {
     return () => {
       current = false;
     };
-  }, [attempt]);
+  }, [attempt, setOrganizationLocales]);
+
+  // Signed out: the sign-in screen may show any language again.
+  useEffect(() => () => setOrganizationLocales(null), [setOrganizationLocales]);
 
   const refresh = () => setAttempt((previous) => previous + 1);
 
