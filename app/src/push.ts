@@ -3,6 +3,7 @@ import * as Notifications from 'expo-notifications';
 import {Platform} from 'react-native';
 
 import {api, unwrap} from '@/api/client';
+import type {Locale} from '@/i18n/catalog';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -49,13 +50,15 @@ async function expoPushToken(
   return data;
 }
 
+// The server writes this device's push in its language.
 async function sendToken(
+  locale: Locale,
   devicePushToken?: Notifications.DevicePushToken,
 ): Promise<void> {
   const token = await expoPushToken(devicePushToken);
 
   if (token !== null) {
-    await unwrap(api.POST('/push-tokens', {body: {token}}));
+    await unwrap(api.POST('/push-tokens', {body: {token, locale}}));
   }
 }
 
@@ -73,9 +76,12 @@ export async function dropPushToken(): Promise<void> {
   }
 }
 
-// The channel name is what Android shows in the app's notification
-// settings, in the language the app is shown in.
-export async function registerPushToken(channelName: string): Promise<void> {
+// Runs again when the language changes, so the push and the channel name
+// Android shows in the app's notification settings follow it.
+export async function registerPushToken(
+  locale: Locale,
+  channelName: string,
+): Promise<void> {
   try {
     await ensureSlotChannel(channelName);
 
@@ -88,15 +94,15 @@ export async function registerPushToken(channelName: string): Promise<void> {
       return;
     }
 
-    await sendToken();
+    await sendToken(locale);
   } catch (error) {
     console.warn('[push] could not register push token', error);
   }
 }
 
-export function onPushTokenChange(): () => void {
+export function onPushTokenChange(locale: Locale): () => void {
   const subscription = Notifications.addPushTokenListener((devicePushToken) => {
-    sendToken(devicePushToken).catch((error: unknown) => {
+    sendToken(locale, devicePushToken).catch((error: unknown) => {
       console.warn('[push] could not register rotated push token', error);
     });
   });

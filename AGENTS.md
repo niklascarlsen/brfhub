@@ -90,8 +90,8 @@ Physical iPhone with a free Apple ID (no paid developer account):
 - `npm run generate` — rewrites the generated theme and icons, see Generated
   types. Runs by itself before `dev`, `build` and `check`.
 - `npm run check` — Prettier, TypeScript, ESLint and a diff of the files
-  shared with the app (`src/lib/dates.ts`, `src/i18n/sv.ts`,
-  `src/i18n/catalog.ts`) against the app's copies.
+  shared with the app (`src/lib/dates.ts` and `src/i18n/` except
+  `LocaleProvider.tsx`) against the app's copies.
 
 I keep the `server/` and `web/` dev servers running while testing. Never kill
 them (`pkill`, by port); check what is listening with
@@ -111,11 +111,15 @@ pick up changes without a restart.
 - `src/lib/dates.ts` is the same file in both clients, kept honest by web's
   `shared:check`. Its tests live in `app/`, so add helpers there. What only the
   desktop calendar needs goes in `web/src/desktop/weeks.ts`.
-- Every visible string lives in `src/i18n/sv.ts`, the same file in both
-  clients and also checked by `shared:check`. Components read it with
-  `useMessages()`; helpers outside components take it as a `t: Messages`
-  argument. Never write UI text inline. Text from the organization (names,
-  rules, announcements, tags) is not translated.
+- Every visible string lives in `src/i18n/sv.ts` and `src/i18n/en.ts`, the
+  same files in both clients and checked by `shared:check`. A new string goes
+  in both, and TypeScript refuses an English catalog that lacks a Swedish key.
+  Components read it with `useMessages()`; helpers outside components take it
+  as a `t: Messages` argument. Never write UI text inline. Text from the
+  organization (names, rules, announcements, tags) is not translated.
+- The language is per device: the one picked under Lägenhet or Föreningen,
+  else the first device language the app speaks, else English. Push tokens
+  carry it, and the server writes push in it (`server/src/lib/locale.ts`).
 - `web/` is on Tailwind v4 (CSS-first, tokens in `@theme`); `app/` stays on the
   v3 LTS that NativeWind needs. Do not copy config between them.
 - Match the app's result, not its layout mechanism. Anything sized from the

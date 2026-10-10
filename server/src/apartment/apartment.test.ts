@@ -334,7 +334,9 @@ let tokenCount = 0;
 async function insertToken(label: string) {
   tokenCount += 1;
   const token = `ExponentPushToken[${label}-${tokenCount}]`;
-  await db.insert(pushTokens).values({token, memberId: ids.get(label) ?? ''});
+  await db
+    .insert(pushTokens)
+    .values({token, memberId: ids.get(label) ?? '', locale: 'sv'});
   return token;
 }
 

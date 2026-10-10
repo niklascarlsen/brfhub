@@ -1,5 +1,6 @@
 import type {FastifyBaseLogger} from 'fastify';
 
+import type {Locale} from '../lib/locale.js';
 import {sendPush} from '../lib/push.js';
 import {
   listPushTokens,
@@ -12,9 +13,10 @@ export type Notification = {
   data?: Record<string, string>;
 };
 
+// Each device gets the notification in its own language.
 export async function notifyMembers(
   memberIds: string[],
-  notification: Notification,
+  build: (locale: Locale) => Notification,
   log: FastifyBaseLogger,
 ): Promise<void> {
   if (memberIds.length === 0) {
@@ -25,7 +27,7 @@ export async function notifyMembers(
 
   try {
     const failures = await sendPush(
-      tokens.map((token) => ({to: token, ...notification})),
+      tokens.map(({token, locale}) => ({to: token, ...build(locale)})),
     );
 
     await removePushTokens(
@@ -35,9 +37,9 @@ export async function notifyMembers(
     );
 
     for (const failure of failures.filter((item) => !item.unregistered)) {
-      log.error({failure, notification}, 'push notification rejected');
+      log.error({failure}, 'push notification rejected');
     }
   } catch (error) {
-    log.error({err: error, notification}, 'push notification failed');
+    log.error({err: error}, 'push notification failed');
   }
 }

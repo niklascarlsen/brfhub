@@ -15,7 +15,14 @@ export default tseslint.config(
     rules: {
       'react-refresh/only-export-components': [
         'error',
-        {allowExportNames: ['useConfig', 'useDialog', 'useMessages']},
+        {
+          allowExportNames: [
+            'useConfig',
+            'useDialog',
+            'useMessages',
+            'useLocale',
+          ],
+        },
       ],
     },
   },

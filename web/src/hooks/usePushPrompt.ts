@@ -4,7 +4,7 @@
 import {useEffect} from 'react';
 
 import {useDialog} from '@/components/Dialog';
-import {useMessages} from '@/i18n/LocaleProvider';
+import {useLocale, useMessages} from '@/i18n/LocaleProvider';
 import {
   enablePush,
   markPushPromptShown,
@@ -14,11 +14,12 @@ import {
 export function usePushPrompt() {
   const dialog = useDialog();
   const t = useMessages();
+  const {locale} = useLocale();
 
   useEffect(() => {
     let current = true;
 
-    void syncPushSubscription()
+    void syncPushSubscription(locale)
       .then((missing) => {
         if (!current || !missing) {
           return;
@@ -29,7 +30,7 @@ export function usePushPrompt() {
         dialog.confirm(t.push.promptTitle, t.push.promptMessage, {
           label: t.push.turnOn,
           onPress: () => {
-            enablePush().catch(() => {
+            enablePush(locale).catch(() => {
               dialog.alert(t.push.failedTitle, t.push.failedMessage);
             });
           },
@@ -40,5 +41,5 @@ export function usePushPrompt() {
     return () => {
       current = false;
     };
-  }, [dialog, t]);
+  }, [dialog, t, locale]);
 }

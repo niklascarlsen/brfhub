@@ -2,6 +2,7 @@ import {gt, sql, type SQL} from 'drizzle-orm';
 import type {PgColumn} from 'drizzle-orm/pg-core';
 
 import {db} from '../db/index.js';
+import {INTL_LOCALES, type Locale} from './locale.js';
 
 // Dates and slot times are wall-clock values in the organization's time
 // zone, which every helper here takes first: an IANA name or the
@@ -99,6 +100,18 @@ export function bookingWindowSql(timeZone: Value<string>, days: Value<number>) {
   };
 }
 
-export function formatWhen(date: string, start: string, end: string): string {
-  return `${date} ${start}–${end}`;
+// "lördag 10 oktober 07:00–10:00". The date is a calendar day, so it is
+// written in UTC whatever zone the server runs in.
+export function formatWhen(
+  locale: Locale,
+  date: string,
+  start: string,
+  end: string,
+): string {
+  const day = new Date(`${date}T00:00:00Z`).toLocaleDateString(
+    INTL_LOCALES[locale],
+    {timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long'},
+  );
+
+  return `${day} ${start}–${end}`;
 }

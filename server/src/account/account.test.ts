@@ -150,7 +150,7 @@ test('an admin cannot use what only apartments use', async () => {
     date: '2030-01-01',
     start: '08:00',
   };
-  const token = {token: 'ExponentPushToken[admin]'};
+  const token = {token: 'ExponentPushToken[admin]', locale: 'sv'};
   const requests: [string, string, Record<string, unknown>?][] = [
     ['GET', '/resources'],
     ['GET', '/booking-window'],
@@ -337,7 +337,7 @@ test('the admin unbinds an apartment token left on its device', async () => {
   const token = 'ExponentPushToken[shared-phone]';
   await db
     .insert(pushTokens)
-    .values({token, memberId: ids.get('north-1') ?? ''});
+    .values({token, memberId: ids.get('north-1') ?? '', locale: 'sv'});
 
   const response = await server.inject({
     method: 'DELETE',

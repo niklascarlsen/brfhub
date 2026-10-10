@@ -14,6 +14,7 @@ import {
   toIsoDate,
   unbrokenRange,
 } from '@/lib/dates';
+import {en} from '@/i18n/en';
 import {sv} from '@/i18n/sv';
 
 // Shaped by the generated types, so a server schema change breaks the build
@@ -226,6 +227,14 @@ describe('labels', () => {
     expect(formatDayMonth(WINDOW.today, sv)).toBe('3 september');
     expect(formatWhen(WINDOW.today, timeRange(SLOT.start, SLOT.end), sv)).toBe(
       'torsdag 3 september, 07:00–10:00',
+    );
+  });
+
+  test('a date is written in English, weekday first', () => {
+    expect(formatLongDate(WINDOW.today, en)).toBe('Thursday 3 September');
+    expect(formatDayMonth(WINDOW.today, en)).toBe('3 September');
+    expect(formatWhen(WINDOW.today, timeRange(SLOT.start, SLOT.end), en)).toBe(
+      'Thursday 3 September, 07:00–10:00',
     );
   });
 

@@ -3,7 +3,7 @@ import {z} from 'zod';
 
 import {errorResponses} from '../lib/errors.js';
 import {getMember, getSignedIn} from '../lib/user.js';
-import {pushTokenBodySchema} from './pushToken.dto.js';
+import {dropPushTokenBodySchema, pushTokenBodySchema} from './pushToken.dto.js';
 import {
   removeMemberPushToken,
   removePushTokens,
@@ -24,7 +24,7 @@ export const pushTokenRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request, reply) => {
       const member = await getMember(request);
-      await savePushToken(member.id, request.body.token);
+      await savePushToken(member.id, request.body.token, request.body.locale);
       return reply.code(204).send();
     },
   );
@@ -33,7 +33,7 @@ export const pushTokenRoutes: FastifyPluginAsyncZod = async (app) => {
     '/push-tokens',
     {
       schema: {
-        body: pushTokenBodySchema,
+        body: dropPushTokenBodySchema,
         response: {
           204: z.undefined(),
           ...errorResponses,

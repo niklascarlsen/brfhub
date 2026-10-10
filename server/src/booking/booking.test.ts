@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {after, before, beforeEach, test} from 'node:test';
 
-import {sql} from 'drizzle-orm';
+import {eq, sql} from 'drizzle-orm';
 
 import {buildApp} from '../app.js';
 import {db, pool} from '../db/index.js';
@@ -21,6 +21,7 @@ import {
   signIn as signInTo,
 } from '../test/fixtures.js';
 import type {Booking, CreatedBooking} from './booking.dto.js';
+import {releasedNotification} from './booking.notification.js';
 
 const LAUNDRY_1 = 'laundry-1';
 const LAUNDRY_2 = 'laundry-2';
@@ -941,8 +942,8 @@ test('an apartment drops only its own push token', async () => {
   const mine = 'ExponentPushToken[mine]';
   const theirs = 'ExponentPushToken[theirs]';
   await db.insert(pushTokens).values([
-    {token: mine, memberId: memberId(TENANT)},
-    {token: theirs, memberId: memberId(NEIGHBOUR)},
+    {token: mine, memberId: memberId(TENANT), locale: 'sv'},
+    {token: theirs, memberId: memberId(NEIGHBOUR), locale: 'sv'},
   ]);
 
   for (const token of [mine, theirs]) {
@@ -960,6 +961,55 @@ test('an apartment drops only its own push token', async () => {
     left.map((row) => row.token),
     [theirs],
   );
+});
+
+test('a device registers its token in its language and can switch', async () => {
+  const token = 'ExponentPushToken[switching]';
+  const register = (locale: string) =>
+    server.inject({
+      method: 'POST',
+      url: '/push-tokens',
+      headers: signedInAs(TENANT),
+      payload: {token, locale},
+    });
+  const stored = () =>
+    db
+      .select({locale: pushTokens.locale})
+      .from(pushTokens)
+      .where(eq(pushTokens.token, token))
+      .then((rows) => rows.map((row) => row.locale));
+
+  assert.equal((await register('en')).statusCode, 204);
+  assert.deepEqual(await stored(), ['en']);
+
+  assert.equal((await register('sv')).statusCode, 204);
+  assert.deepEqual(await stored(), ['sv']);
+
+  const unknown = await register('de');
+  assert.equal(unknown.statusCode, 400);
+  assert.equal(codeOf(unknown), 'VALIDATION');
+  assert.deepEqual(await stored(), ['sv']);
+});
+
+test('the released slot is announced in each device language', () => {
+  const slot = {
+    date: '2026-10-10',
+    start: '07:00',
+    end: '10:00',
+    resourceId: LAUNDRY_1,
+    resourceName: 'Tvättstuga 1',
+  };
+
+  assert.deepEqual(releasedNotification('sv', slot), {
+    title: 'En tid blev ledig',
+    body: 'Tvättstuga 1, lördag 10 oktober 07:00–10:00 är ledig – först till kvarn.',
+    data: {date: '2026-10-10', start: '07:00', resourceId: LAUNDRY_1},
+  });
+  assert.deepEqual(releasedNotification('en', slot), {
+    title: 'A time opened up',
+    body: 'Tvättstuga 1, Saturday 10 October 07:00–10:00 is free – first come, first served.',
+    data: {date: '2026-10-10', start: '07:00', resourceId: LAUNDRY_1},
+  });
 });
 
 test('signing out ends the session', async () => {

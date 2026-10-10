@@ -20,7 +20,7 @@ import {AdminShell} from '@/admin/AdminShell';
 import {AccountGate} from '@/auth/account';
 import {SessionGate} from '@/auth/session';
 import {ConfigProvider} from '@/config';
-import {LocaleProvider, useMessages} from '@/i18n/LocaleProvider';
+import {LocaleProvider, useLocale, useMessages} from '@/i18n/LocaleProvider';
 import AppTabNavigator, {
   type AppTabParamList,
 } from '@/navigation/AppTabNavigator';
@@ -31,12 +31,13 @@ const navigationRef = createNavigationContainerRef<AppTabParamList>();
 // Registers the device once an apartment is signed in; the token is tied
 // to the apartment on the server.
 function PushRegistration() {
+  const {locale} = useLocale();
   const channelName = useMessages().push.channel;
 
   useEffect(() => {
-    void registerPushToken(channelName);
-    return onPushTokenChange();
-  }, [channelName]);
+    void registerPushToken(locale, channelName);
+    return onPushTokenChange(locale);
+  }, [locale, channelName]);
 
   return null;
 }

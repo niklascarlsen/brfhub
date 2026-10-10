@@ -7,6 +7,7 @@
 // the leading brace. Every app start re-sends it so a rotated subscription
 // reaches the server and a stale VAPID key gets replaced.
 import {api, unwrap} from '@/api/client';
+import type {Locale} from '@/i18n/catalog';
 import {openedSlot, type OpenedSlot} from '@/lib/route';
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
@@ -65,9 +66,13 @@ function tokenOf(subscription: PushSubscription): string {
   });
 }
 
-async function saveSubscription(subscription: PushSubscription): Promise<void> {
+// The server writes this browser's push in its language.
+async function saveSubscription(
+  subscription: PushSubscription,
+  locale: Locale,
+): Promise<void> {
   await unwrap(
-    api.POST('/push-tokens', {body: {token: tokenOf(subscription)}}),
+    api.POST('/push-tokens', {body: {token: tokenOf(subscription), locale}}),
   );
 }
 
@@ -91,9 +96,10 @@ export async function dropPushSubscription(): Promise<void> {
   await subscription.unsubscribe();
 }
 
-// Runs on every load. Re-sends the subscription when notifications are
-// allowed and reports whether the in-app prompt should be shown.
-export async function syncPushSubscription(): Promise<boolean> {
+// Runs on every load and when the language changes. Re-sends the
+// subscription when notifications are allowed and reports whether the
+// in-app prompt should be shown.
+export async function syncPushSubscription(locale: Locale): Promise<boolean> {
   if (!isSupported() || !VAPID_PUBLIC_KEY) {
     return false;
   }
@@ -101,7 +107,7 @@ export async function syncPushSubscription(): Promise<boolean> {
   const registration = await navigator.serviceWorker.ready;
 
   if (Notification.permission === 'granted') {
-    await saveSubscription(await subscriptionOf(registration));
+    await saveSubscription(await subscriptionOf(registration), locale);
     return false;
   }
 
@@ -117,14 +123,14 @@ export function markPushPromptShown(): void {
 
 // Must be called from a click. Safari only shows the permission prompt
 // inside a user gesture.
-export async function enablePush(): Promise<void> {
+export async function enablePush(locale: Locale): Promise<void> {
   if ((await Notification.requestPermission()) !== 'granted') {
     throw new Error('Notifications were denied');
   }
 
   const registration = await navigator.serviceWorker.ready;
 
-  await saveSubscription(await subscriptionOf(registration));
+  await saveSubscription(await subscriptionOf(registration), locale);
 }
 
 // The service worker posts the slot url when a notification is tapped

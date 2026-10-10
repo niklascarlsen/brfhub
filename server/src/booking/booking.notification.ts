@@ -3,9 +3,13 @@ import {sql} from 'drizzle-orm';
 import type {FastifyBaseLogger} from 'fastify';
 
 import {db} from '../db/index.js';
+import type {Locale} from '../lib/locale.js';
 import {formatWhen, slotHasStarted} from '../lib/time.js';
 import type {Member} from '../lib/user.js';
-import {notifyMembers} from '../notification/notification.service.js';
+import {
+  notifyMembers,
+  type Notification,
+} from '../notification/notification.service.js';
 import {listSubscribers} from '../subscription/subscription.service.js';
 
 type ReleasedSlot = {
@@ -15,6 +19,42 @@ type ReleasedSlot = {
   start: string;
   end: string;
 };
+
+const RELEASED: Record<
+  Locale,
+  {title: string; body: (resource: string, when: string) => string}
+> = {
+  sv: {
+    title: 'En tid blev ledig',
+    body: (resource, when) =>
+      `${resource}, ${when} är ledig – först till kvarn.`,
+  },
+  en: {
+    title: 'A time opened up',
+    body: (resource, when) =>
+      `${resource}, ${when} is free – first come, first served.`,
+  },
+};
+
+export function releasedNotification(
+  locale: Locale,
+  slot: ReleasedSlot,
+): Notification {
+  const words = RELEASED[locale];
+
+  return {
+    title: words.title,
+    body: words.body(
+      slot.resourceName,
+      formatWhen(locale, slot.date, slot.start, slot.end),
+    ),
+    data: {
+      date: slot.date,
+      start: slot.start,
+      resourceId: slot.resourceId,
+    },
+  };
+}
 
 // The apartment that let the slot go, which is not told about it.
 type ReleasedBy = Pick<Member, 'id' | 'timeZone'>;
@@ -46,15 +86,7 @@ export async function notifySlotReleased(
     subscribers
       .map((row) => row.memberId)
       .filter((memberId) => memberId !== releasedBy.id),
-    {
-      title: 'En tid blev ledig',
-      body: `${slot.resourceName} ${formatWhen(slot.date, slot.start, slot.end)} är ledig – först till kvarn.`,
-      data: {
-        date: slot.date,
-        start: slot.start,
-        resourceId: slot.resourceId,
-      },
-    },
+    (locale) => releasedNotification(locale, slot),
     log,
   );
 }

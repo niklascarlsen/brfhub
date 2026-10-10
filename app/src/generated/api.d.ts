@@ -3221,7 +3221,7 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["PushTokenBodyInput"];
+                    "application/json": components["schemas"]["DropPushTokenBodyInput"];
                 };
             };
             responses: {
@@ -3303,6 +3303,8 @@ export interface components {
             /** @enum {string} */
             code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "SLOT_STARTED" | "OUTSIDE_BOOKING_WINDOW" | "SLOT_AVAILABLE" | "APARTMENT_TAKEN" | "EMAIL_TAKEN" | "CHANGE_INSIDE_WINDOW" | "ENDS_IN_PAST" | "INVALID_SCHEDULE" | "KIND_IN_USE" | "NOT_FOUND" | "UNAUTHORIZED" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
         };
+        /** @enum {string} */
+        LocaleInput: "sv" | "en";
         MemberAccountInput: {
             /** @constant */
             role: "member";
@@ -3461,6 +3463,10 @@ export interface components {
         };
         PushTokenBodyInput: {
             token: string;
+            locale: components["schemas"]["LocaleInput"];
+        };
+        DropPushTokenBodyInput: {
+            token: string;
         };
         ScheduleSlotInput: {
             start: string;
@@ -3607,6 +3613,8 @@ export interface components {
             /** @enum {string} */
             code: "HAS_ACTIVE_BOOKING" | "SLOT_TAKEN" | "SLOT_IN_PAST" | "SLOT_STARTED" | "OUTSIDE_BOOKING_WINDOW" | "SLOT_AVAILABLE" | "APARTMENT_TAKEN" | "EMAIL_TAKEN" | "CHANGE_INSIDE_WINDOW" | "ENDS_IN_PAST" | "INVALID_SCHEDULE" | "KIND_IN_USE" | "NOT_FOUND" | "UNAUTHORIZED" | "FORBIDDEN" | "VALIDATION" | "UNKNOWN";
         };
+        /** @enum {string} */
+        Locale: "sv" | "en";
         MemberAccount: {
             /** @constant */
             role: "member";
@@ -3767,6 +3775,10 @@ export interface components {
             rulesText?: string;
         };
         PushTokenBody: {
+            token: string;
+            locale: components["schemas"]["Locale"];
+        };
+        DropPushTokenBody: {
             token: string;
         };
         ScheduleSlot: {

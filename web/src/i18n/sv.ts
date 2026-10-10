@@ -30,6 +30,13 @@ export const sv = {
     email: 'E-post',
     loading: 'Laddar',
   },
+  language: {
+    heading: 'Språk',
+    // Follows the device's language.
+    system: 'System',
+    // What the language is called in itself, for the picker.
+    name: 'Svenska',
+  },
   errors: {
     HAS_ACTIVE_BOOKING: 'Du har redan en bokning',
     SLOT_TAKEN: 'Tiden är redan bokad',
@@ -66,7 +73,6 @@ export const sv = {
     heading: 'Konto',
     signedInAs: 'Inloggad som',
     signOut: 'Logga ut',
-    // "från" completes with what is signed out from.
     signOutQuestion: (from: string) => `Vill du logga ut från ${from}?`,
     noApartmentTitle: 'Kontot saknar lägenhet',
     noApartmentMessage:

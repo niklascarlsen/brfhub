@@ -16,6 +16,8 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
+import {LOCALES} from '../lib/locale.js';
+
 export const organizations = pgTable('organizations', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
@@ -213,11 +215,15 @@ export const announcements = pgTable(
   ],
 );
 
+export const locale = pgEnum('locale', LOCALES);
+
 export const pushTokens = pgTable('push_tokens', {
   token: text('token').primaryKey(),
   memberId: uuid('member_id')
     .notNull()
     .references(() => members.id),
+  // The language the device shows, which its push is written in.
+  locale: locale('locale').notNull(),
   createdAt: timestamp('created_at', {withTimezone: true})
     .notNull()
     .defaultNow(),

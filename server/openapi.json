@@ -46,6 +46,13 @@
           "code"
         ]
       },
+      "LocaleInput": {
+        "type": "string",
+        "enum": [
+          "sv",
+          "en"
+        ]
+      },
       "MemberAccountInput": {
         "type": "object",
         "properties": {
@@ -720,6 +727,22 @@
           "token": {
             "type": "string",
             "minLength": 1
+          },
+          "locale": {
+            "$ref": "#/components/schemas/LocaleInput"
+          }
+        },
+        "required": [
+          "token",
+          "locale"
+        ]
+      },
+      "DropPushTokenBodyInput": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 1
           }
         },
         "required": [
@@ -1380,6 +1403,13 @@
           "code"
         ],
         "additionalProperties": false
+      },
+      "Locale": {
+        "type": "string",
+        "enum": [
+          "sv",
+          "en"
+        ]
       },
       "MemberAccount": {
         "type": "object",
@@ -2080,6 +2110,23 @@
         "additionalProperties": false
       },
       "PushTokenBody": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 1
+          },
+          "locale": {
+            "$ref": "#/components/schemas/Locale"
+          }
+        },
+        "required": [
+          "token",
+          "locale"
+        ],
+        "additionalProperties": false
+      },
+      "DropPushTokenBody": {
         "type": "object",
         "properties": {
           "token": {
@@ -5874,7 +5921,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PushTokenBodyInput"
+                "$ref": "#/components/schemas/DropPushTokenBodyInput"
               }
             }
           }
