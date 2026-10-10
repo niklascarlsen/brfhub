@@ -30,7 +30,7 @@ const RELEASED: Record<
       `${resource}, ${when} är ledig – först till kvarn.`,
   },
   en: {
-    title: 'A time opened up',
+    title: 'A slot opened up',
     body: (resource, when) =>
       `${resource}, ${when} is free – first come, first served.`,
   },

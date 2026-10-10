@@ -36,7 +36,7 @@ export function resolveLocale(
   }
 
   for (const tag of deviceLanguages) {
-    const [language] = tag.toLowerCase().split('-');
+    const [language] = tag.split('-');
 
     if (isLocale(language)) {
       return language;

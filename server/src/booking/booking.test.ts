@@ -1006,7 +1006,7 @@ test('the released slot is announced in each device language', () => {
     data: {date: '2026-10-10', start: '07:00', resourceId: LAUNDRY_1},
   });
   assert.deepEqual(releasedNotification('en', slot), {
-    title: 'A time opened up',
+    title: 'A slot opened up',
     body: 'Tvättstuga 1, Saturday 10 October 07:00–10:00 is free – first come, first served.',
     data: {date: '2026-10-10', start: '07:00', resourceId: LAUNDRY_1},
   });

@@ -28,6 +28,12 @@ function joinNames(names: string[], t: Messages): string {
   );
 }
 
+// Only the first letter, so a month name keeps the case its language
+// writes it in.
+function lowerFirst(sentence: string): string {
+  return sentence.charAt(0).toLowerCase() + sentence.slice(1);
+}
+
 function limitOf(kind: Kind, t: Messages): string {
   if (kind.maxActive === 1) {
     return kind.resources.length > 1
@@ -45,7 +51,7 @@ function upcomingOf(kind: Kind, t: Messages): {key: string; text: string}[] {
 
   return kind.resources.flatMap((resource) => {
     const lead = (sentence: string) =>
-      named ? `${resource.name}: ${sentence.toLowerCase()}` : sentence;
+      named ? `${resource.name}: ${lowerFirst(sentence)}` : sentence;
     const changes = resource.changes.map((change) => ({
       key: `${resource.id}-${change.validFrom}`,
       text: lead(

@@ -38,7 +38,7 @@ export const en: Messages = {
     HAS_ACTIVE_BOOKING: 'You already have a booking',
     SLOT_TAKEN: 'That time is already booked',
     SLOT_IN_PAST: 'That time has already passed',
-    SLOT_STARTED: 'That time has started, it is drop-in now',
+    SLOT_STARTED: 'That time has started and is now drop-in',
     OUTSIDE_BOOKING_WINDOW: 'That day cannot be booked yet',
     SLOT_AVAILABLE: 'That time is free, book it instead',
     APARTMENT_TAKEN: 'There is already an apartment with that number',
@@ -59,7 +59,7 @@ export const en: Messages = {
   },
   login: {
     title: 'Sign in',
-    intro: "With the apartment's or the association admin's email.",
+    intro: "Use the apartment's email, or the association admin's.",
     password: 'Password',
     submit: 'Sign in',
     wrongCredentials: 'Wrong email or password',
@@ -75,7 +75,7 @@ export const en: Messages = {
     noApartmentMessage:
       'Your account is not linked to an apartment. Contact the board.',
     nothingToBookTitle: 'Nothing to book',
-    nothingToBookMessage: 'There is nothing to book right now.',
+    nothingToBookMessage: 'There are no spaces to book right now.',
   },
   apartment: {
     title: (label: string) => `Apartment ${label}`,
@@ -89,7 +89,7 @@ export const en: Messages = {
     queue: 'Queued',
     ended: 'Ended',
     done: "I'm done",
-    cancel: 'Cancel',
+    cancel: 'Cancel booking',
     dropIn: 'Drop-in',
     freeNow: 'Free now',
     book: 'Book',
@@ -100,7 +100,7 @@ export const en: Messages = {
     queueFailed: 'Could not join the queue',
     leaveQueueFailed: 'Could not leave the queue',
     cancelFailed: 'Could not cancel',
-    releaseFailed: 'Could not open the time',
+    releaseFailed: 'Could not open the time for drop-in',
     alreadyBookedTitle: 'You already have a booking',
     swap: 'Switch',
     swapQuestion: (when: string) => `Switch to ${when}?`,
@@ -119,12 +119,12 @@ export const en: Messages = {
       count === 1 ? '1 free slot' : `${count} free slots`,
     previousDay: 'Previous day',
     nextDay: 'Next day',
-    noSlotsLeft: 'No times left this day',
+    noSlotsLeft: 'No times left on this day',
     slotsOfDay: 'Times this day',
     chooseResource: 'Choose a space',
     greeting: (apartment: string) => `Hello, apartment ${apartment}`,
-    nextTime: 'Your next time',
-    bookTitle: 'Book time',
+    nextTime: 'Your next booking',
+    bookTitle: 'Book a time',
     bookQuestion: (when: string) => `Book ${when}?`,
   },
   calendar: {
@@ -132,7 +132,7 @@ export const en: Messages = {
     full: 'full',
     noFreeSlots: 'no free slots',
     yourTime: 'your time',
-    legend: 'The number is free slots across all spaces.',
+    legend: 'The number shows free slots across all spaces.',
   },
   slots: {
     mine: 'Your time',
@@ -147,7 +147,7 @@ export const en: Messages = {
     bookableDaysAhead: (days: number) => `Bookable ${days} days ahead`,
     joinList: (first: string, last: string) => `${first} and ${last}`,
     oneBooking: 'One booking at a time',
-    oneBookingShared: 'One booking at a time, for all of them together',
+    oneBookingShared: 'One booking at a time across all of them',
     upToBookings: (count: number) => `Up to ${count} bookings at a time`,
     changesFrom: (day: string, times: string) => `From ${day} ${times}`,
     closes: (day: string) => `Closes ${day}`,
@@ -157,7 +157,7 @@ export const en: Messages = {
     hide: 'Hide',
   },
   push: {
-    channel: 'Free times',
+    channel: 'Available times',
     promptTitle: 'Notifications',
     promptMessage:
       'Do you want a notification when a time you are queuing for becomes free?',
@@ -218,7 +218,7 @@ export const en: Messages = {
       upcomingBookings: 'Upcoming bookings',
       editDetailsHint: 'Number, name and email',
       newResident: 'New residents',
-      newResidentHint: 'When the apartment changes owner',
+      newResidentHint: 'When the apartment changes hands',
     },
     resources: {
       newKind: 'New type',
@@ -255,7 +255,7 @@ export const en: Messages = {
       closeQuestion: (name: string, day: string) =>
         `${name} can be booked up to the day before ${day}. Bookings until then stay.`,
       closeFailed: 'Could not close the resource',
-      reopen: 'Open again',
+      reopen: 'Reopen',
       undoClose: 'Undo closing',
       reopenFailed: 'Could not open the resource',
       undoCloseFailed: 'Could not undo the closing',
@@ -268,7 +268,7 @@ export const en: Messages = {
     kindForm: {
       name: 'Name, for example Laundry',
       limit: 'Bookings at a time',
-      limitHint: 'Per apartment, for all resources of the type together',
+      limitHint: 'Per apartment, across all resources of this type',
       limitNote:
         'A changed limit applies to new bookings. Those already made stay.',
       fewer: 'Fewer',
@@ -289,25 +289,26 @@ export const en: Messages = {
     },
     apartmentForm: {
       number: 'Apartment number',
-      residentName: "Residents' name",
+      residentName: "Residents' names",
       checkEmail: 'Check the email address',
     },
     announcementForm: {
-      title: 'Heading',
+      title: 'Title',
       body: 'Text',
-      shownFor: 'Shown',
+      shownFor: 'Show for',
       shown: (from: string, to: string | null) =>
         to ? `From ${from} up to and including ${to}.` : `From ${from}.`,
     },
     organization: {
       settings: 'Settings',
-      name: "Association's name",
-      windowDays: 'Bookable number of days ahead',
+      name: 'Association name',
+      windowDays: 'Days bookable ahead',
       windowRange: (max: number) => `The booking window is 1 to ${max} days`,
       windowNote:
         'A longer window opens more days at once. A shorter one does not remove bookings already made.',
       rules: 'House rules',
-      rulesPlaceholder: 'For example: Clean up after yourself. Quiet after 22.',
+      rulesPlaceholder:
+        'For example: Clean up after yourself. Quiet after 22:00.',
       rulesNote: 'Shown to the apartments above the times and limits.',
       saved: 'Saved.',
       changePassword: 'Change password',
@@ -322,7 +323,7 @@ export const en: Messages = {
       passwordTooLong: 'The new password is too long',
       passwordsDiffer: 'The new passwords do not match',
       passwordChanged:
-        'The password is changed. Every other device has been signed out.',
+        'The password has been changed. Every other device has been signed out.',
     },
     password: {
       title: (label: string) => `Password for apartment ${label}`,
@@ -331,16 +332,16 @@ export const en: Messages = {
       afterEmail: '. They sign in with both.',
       login: (label: string, email: string, password: string) =>
         `Sign-in for apartment ${label}\nEmail: ${email}\nPassword: ${password}`,
-      share: 'Share sign-in',
-      copy: 'Copy sign-in',
-      copied: 'Sign-in copied',
+      share: 'Share sign-in details',
+      copy: 'Copy sign-in details',
+      copied: 'Sign-in details copied',
       copyFailed:
         'Copying does not work here. Select the password and copy it yourself.',
       done: 'Done',
     },
     schedule: {
       noSlots: 'Add at least one slot',
-      timeFormat: 'Write the times as 08:00',
+      timeFormat: 'Enter times as 08:00',
       endsBeforeStart:
         'A slot ends before it starts. If it ends after midnight, choose next day.',
     },

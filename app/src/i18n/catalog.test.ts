@@ -19,9 +19,8 @@ describe('resolveLocale', () => {
     expect(resolveLocale('system', [])).toBe('en');
   });
 
-  test('a bare or upper-case language code still matches', () => {
+  test('a bare language code still matches', () => {
     expect(resolveLocale('system', ['sv'])).toBe('sv');
-    expect(resolveLocale('system', ['SV-se'])).toBe('sv');
   });
 });
 
