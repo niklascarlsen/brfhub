@@ -6,6 +6,7 @@ import {db, pool} from '../src/db/index.js';
 import {
   bookings,
   members,
+  organizations,
   pushTokens,
   resources,
   user,
@@ -112,12 +113,15 @@ function findReleasableBooking() {
     .from(bookings)
     .innerJoin(members, eq(members.id, bookings.memberId))
     .innerJoin(resources, eq(resources.id, bookings.resourceId))
+    .innerJoin(organizations, eq(organizations.id, bookings.organizationId))
     .where(
       and(
         eq(bookings.organizationId, ORGANIZATION_ID),
         isNull(bookings.releasedAt),
         ne(members.label, WATCHER),
-        not(slotHasStarted(bookings.date, bookings.start)),
+        not(
+          slotHasStarted(organizations.timeZone, bookings.date, bookings.start),
+        ),
       ),
     )
     .orderBy(asc(bookings.date), asc(bookings.start))

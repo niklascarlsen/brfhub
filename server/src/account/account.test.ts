@@ -21,8 +21,18 @@ import {
 } from '../test/fixtures.js';
 import type {Account} from './account.dto.js';
 
-const NORTH = {id: 'north', name: 'Brf Norr', bookingWindowDays: 30};
-const SOUTH = {id: 'south', name: 'Brf Söder', bookingWindowDays: 10};
+const NORTH = {
+  id: 'north',
+  name: 'Brf Norr',
+  timeZone: 'Europe/Stockholm',
+  bookingWindowDays: 30,
+};
+const SOUTH = {
+  id: 'south',
+  name: 'Brf Söder',
+  timeZone: 'Europe/Stockholm',
+  bookingWindowDays: 10,
+};
 
 const SLOTS = [{start: '08:00', end: '12:00'}];
 
@@ -288,6 +298,7 @@ test('refuses an admin tied to an apartment', async () => {
   await db.insert(organizations).values({
     id: 'east',
     name: 'Brf Öster',
+    timeZone: 'Europe/Stockholm',
     bookingWindowDays: 30,
   });
   const [apartment] = await db

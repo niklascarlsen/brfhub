@@ -1,45 +1,75 @@
 import {gt, sql, type SQL} from 'drizzle-orm';
 import type {PgColumn} from 'drizzle-orm/pg-core';
 
-const STOCKHOLM = 'Europe/Stockholm';
+import {db} from '../db/index.js';
 
+// Dates and slot times are wall-clock values in the organization's time
+// zone, which every helper here takes first: an IANA name or the
+// organizations.time_zone column.
 type Value<T> = T | PgColumn | SQL<T> | SQL.Aliased<T>;
 
-export function toIsoDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+// Postgres does the arithmetic, so it decides which names are valid.
+export async function isValidTimeZone(name: string): Promise<boolean> {
+  const {rows} = await db.execute<{valid: boolean}>(
+    sql`select exists(select 1 from pg_timezone_names where name = ${name}) as valid`,
+  );
+
+  return rows[0]?.valid ?? false;
 }
 
-function slotStartsAt(
+// The date it is in the zone at that instant, for scripts and tests that
+// need today's date without asking the database.
+export function isoDateIn(timeZone: string, at = new Date()): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(at);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((item) => item.type === type)?.value;
+
+  return `${part('year')}-${part('month')}-${part('day')}`;
+}
+
+export function addDays(isoDate: string, days: number): string {
+  const date = new Date(`${isoDate}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+export function slotStartsAt(
+  timeZone: Value<string>,
   date: Value<string>,
   slotStart: Value<string>,
 ): SQL<Date> {
-  return sql`(${date}::date + ${slotStart}::time) at time zone ${STOCKHOLM}`;
+  return sql`(${date}::date + ${slotStart}::time) at time zone ${timeZone}`;
 }
 
 export function slotEndsAt(
+  timeZone: Value<string>,
   date: Value<string>,
   slotEnd: Value<string>,
   endOffsetDays: Value<number> = 0,
 ): SQL<Date> {
-  return sql`((${date}::date + ${slotEnd}::time) + make_interval(days => ${endOffsetDays})) at time zone ${STOCKHOLM}`;
+  return sql`((${date}::date + ${slotEnd}::time) + make_interval(days => ${endOffsetDays})) at time zone ${timeZone}`;
 }
 
 export function slotHasStarted(
+  timeZone: Value<string>,
   date: Value<string>,
   slotStart: Value<string>,
 ): SQL<boolean> {
-  return sql`${slotStartsAt(date, slotStart)} <= now()`;
+  return sql`${slotStartsAt(timeZone, date, slotStart)} <= now()`;
 }
 
 export function slotHasEnded(
+  timeZone: Value<string>,
   date: Value<string>,
   slotEnd: Value<string>,
   endOffsetDays: Value<number> = 0,
 ): SQL<boolean> {
-  return sql`${slotEndsAt(date, slotEnd, endOffsetDays)} <= now()`;
+  return sql`${slotEndsAt(timeZone, date, slotEnd, endOffsetDays)} <= now()`;
 }
 
 export function notExpired(endsAt: PgColumn) {
@@ -54,13 +84,13 @@ export function asDateText(value: PgColumn | SQL | SQL.Aliased): SQL<string> {
   return sql`to_char(${value}, 'YYYY-MM-DD')`;
 }
 
-// Today's date where the organizations are.
-export function todaySql(): SQL<string> {
-  return sql`(now() at time zone ${STOCKHOLM})::date`;
+// Today's date in the organization.
+export function todaySql(timeZone: Value<string>): SQL<string> {
+  return sql`(now() at time zone ${timeZone})::date`;
 }
 
-export function bookingWindowSql(days: Value<number>) {
-  const today = todaySql();
+export function bookingWindowSql(timeZone: Value<string>, days: Value<number>) {
+  const today = todaySql(timeZone);
 
   return {
     today: asDateText(today),

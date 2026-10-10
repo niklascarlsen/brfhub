@@ -13,7 +13,7 @@ import {
   user,
 } from '../db/schema.js';
 import {createBooking} from '../booking/booking.service.js';
-import {slotEndsAt, toIsoDate} from '../lib/time.js';
+import {addDays, isoDateIn, slotEndsAt} from '../lib/time.js';
 import {
   assertTestDatabase,
   codeOf,
@@ -23,8 +23,18 @@ import {
 } from '../test/fixtures.js';
 import type {Apartment} from './apartment.dto.js';
 
-const NORTH = {id: 'north', name: 'Brf Norr', bookingWindowDays: 30};
-const SOUTH = {id: 'south', name: 'Brf Söder', bookingWindowDays: 30};
+const NORTH = {
+  id: 'north',
+  name: 'Brf Norr',
+  timeZone: 'Europe/Stockholm',
+  bookingWindowDays: 30,
+};
+const SOUTH = {
+  id: 'south',
+  name: 'Brf Söder',
+  timeZone: 'Europe/Stockholm',
+  bookingWindowDays: 30,
+};
 const SLOT = {start: '08:00', end: '12:00'};
 
 let server: Awaited<ReturnType<typeof buildApp>>;
@@ -37,10 +47,7 @@ function northEmail(apartment: string) {
 }
 
 function inDays(days: number) {
-  const date = new Date();
-  date.setHours(0, 0, 0, 0);
-  date.setDate(date.getDate() + days);
-  return toIsoDate(date);
+  return addDays(isoDateIn(NORTH.timeZone), days);
 }
 
 async function cookieOf(email: string, password?: string) {
@@ -70,7 +77,7 @@ async function insertBooking(label: string, days: number) {
     date,
     start: SLOT.start,
     end: SLOT.end,
-    endsAt: slotEndsAt(date, SLOT.end),
+    endsAt: slotEndsAt(NORTH.timeZone, date, SLOT.end),
   });
 }
 
@@ -246,7 +253,7 @@ test('a new resident replaces the account and cancels its bookings', async () =>
     date: inDays(3),
     start: SLOT.start,
     end: SLOT.end,
-    endsAt: slotEndsAt(inDays(3), SLOT.end),
+    endsAt: slotEndsAt(NORTH.timeZone, inDays(3), SLOT.end),
   });
 
   const listed = (await apartmentsOf(admin)).find((item) => item.id === id);
@@ -402,14 +409,17 @@ test('a new email or password also stops the old device getting push', async () 
 
 test('remembers the last sign-in after a new password', async () => {
   const id = ids.get('33') ?? '';
+  const never = (await apartmentsOf(admin)).find((item) => item.id === id);
+  assert.equal(never?.lastSignInOn, null);
+
   await cookieOf(northEmail('33'));
 
   const signedIn = (await apartmentsOf(admin)).find((item) => item.id === id);
-  assert.ok(signedIn?.lastSignInAt);
+  assert.equal(signedIn?.lastSignInOn, isoDateIn(NORTH.timeZone));
 
   await call('POST', `/admin/apartments/${id}/reset-password`, admin);
   const after = (await apartmentsOf(admin)).find((item) => item.id === id);
-  assert.equal(after?.lastSignInAt, signedIn.lastSignInAt);
+  assert.equal(after?.lastSignInOn, signedIn.lastSignInOn);
 });
 
 test('two new residents at once leave one account on the apartment', async () => {
@@ -457,6 +467,7 @@ test('an account replaced while it waited cannot book', async () => {
       member: {
         id,
         organizationId: NORTH.id,
+        timeZone: NORTH.timeZone,
         label: '34',
         userId: old?.userId ?? '',
       },

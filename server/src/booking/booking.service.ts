@@ -33,7 +33,7 @@ const resourceFields = {
 
 export async function deleteBooking(
   id: string,
-  memberId: string,
+  member: Member,
   log: FastifyBaseLogger,
 ): Promise<void> {
   const [existing] = await db
@@ -43,7 +43,7 @@ export async function deleteBooking(
       resourceId: bookings.resourceId,
       resourceName: resources.name,
       releasedAt: bookings.releasedAt,
-      started: slotHasStarted(bookings.date, bookings.start),
+      started: slotHasStarted(member.timeZone, bookings.date, bookings.start),
       start: bookings.start,
       end: bookings.end,
     })
@@ -55,7 +55,7 @@ export async function deleteBooking(
     throw appError('NOT_FOUND', 'Booking not found');
   }
 
-  if (existing.memberId !== memberId) {
+  if (existing.memberId !== member.id) {
     throw appError('FORBIDDEN', 'Not your booking');
   }
 
@@ -91,12 +91,12 @@ export async function deleteBooking(
       resourceName: existing.resourceName,
       end: existing.end,
     },
-    memberId,
+    member,
     log,
   );
 }
 
-export function listBookings(memberId: string): Promise<Booking[]> {
+export function listBookings(member: Member): Promise<Booking[]> {
   return db
     .select({
       id: bookings.id,
@@ -104,13 +104,13 @@ export function listBookings(memberId: string): Promise<Booking[]> {
       start: bookings.start,
       end: bookings.end,
       endsAt: asIsoText(bookings.endsAt),
-      started: slotHasStarted(bookings.date, bookings.start),
+      started: slotHasStarted(member.timeZone, bookings.date, bookings.start),
       released: sql<boolean>`${bookings.releasedAt} is not null`,
       ...resourceFields,
     })
     .from(bookings)
     .innerJoin(resources, eq(bookings.resourceId, resources.id))
-    .where(stillActive(memberId))
+    .where(stillActive(member.id))
     .orderBy(asc(bookings.date), asc(bookings.start), asc(resources.sortOrder));
 }
 
@@ -139,8 +139,13 @@ export async function createBooking({
       start: resourceSlots.start,
       end: resourceSlots.end,
       endOffsetDays: resourceSlots.endOffsetDays,
-      ended: slotHasEnded(date, resourceSlots.end, resourceSlots.endOffsetDays),
-      started: slotHasStarted(date, resourceSlots.start),
+      ended: slotHasEnded(
+        member.timeZone,
+        date,
+        resourceSlots.end,
+        resourceSlots.endOffsetDays,
+      ),
+      started: slotHasStarted(member.timeZone, date, resourceSlots.start),
     })
     .from(resourceSlots)
     .innerJoin(resources, eq(resources.id, resourceSlots.resourceId))
@@ -229,7 +234,12 @@ export async function createBooking({
           start: slot.start,
           end: slot.end,
           resourceId,
-          endsAt: slotEndsAt(date, slot.end, slot.endOffsetDays),
+          endsAt: slotEndsAt(
+            member.timeZone,
+            date,
+            slot.end,
+            slot.endOffsetDays,
+          ),
         })
         .returning({
           id: bookings.id,
@@ -279,7 +289,7 @@ export async function createBooking({
   }
 
   if (created.replaced) {
-    await notifySlotReleased(created.replaced, member.id, log);
+    await notifySlotReleased(created.replaced, member, log);
   }
 
   return created.booking;

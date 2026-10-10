@@ -33,11 +33,13 @@ files are committed; `npm run generate` in `web/` rewrites them, and `dev`,
   announcements and settings of the two seeded organizations; others, such
   as ones made with `org:create`, are left alone. Brf Exempel signs in as
   `<number>@example.com`, Brf Andra as `<number>@andra.example.com`, and each
-  admin as `admin@` on the same domain, all with password `password`. Members
+  admin as `admin@` on the same domain, all with password `password`. Brf
+  Andra keeps New York time, to see another time zone with real data. Members
   and push tokens survive, so the app stays registered. It wipes bookings I
   may be testing with, so ask before running it.
-- `npm run org:create -- --id <slug> --name <name> --admin-email <email>`:
-  creates an organization and its one admin, and prints the password once.
+- `npm run org:create -- --id <slug> --name <name> --time-zone <IANA zone>
+  --admin-email <email>`: creates an organization and its one admin, and
+  prints the password once. The time zone cannot be changed afterwards.
 - `npm run push:test -- [organization] [apartment]`: releases an upcoming
   booking held by another apartment and sends the real notification to the
   watching apartment, `demo` and `12` by default. Reseed when it runs out of

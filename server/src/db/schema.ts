@@ -19,6 +19,9 @@ import {
 export const organizations = pgTable('organizations', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
+  // IANA name, set when the organization is created and never changed:
+  // bookings store the instant their slot ends, worked out in this zone.
+  timeZone: text('time_zone').notNull(),
   bookingWindowDays: integer('booking_window_days').notNull(),
   // House rules in the admin's own words, shown above the derived ones.
   rulesText: text('rules_text').notNull().default(''),

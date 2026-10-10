@@ -18,7 +18,7 @@ export const resourceRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request) => {
       const member = await getMember(request);
-      return listResources(member.organizationId);
+      return listResources(member);
     },
   );
 
@@ -34,7 +34,7 @@ export const resourceRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request) => {
       const member = await getMember(request);
-      return getBookingRules(member.organizationId);
+      return getBookingRules(member);
     },
   );
 };

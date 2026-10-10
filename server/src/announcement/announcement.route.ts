@@ -23,7 +23,7 @@ export const announcementRoutes: FastifyPluginAsyncZod = async (app) => {
     {schema: {response: {200: announcementSchema.array(), ...errorResponses}}},
     async (request) => {
       const member = await getMember(request);
-      return listActiveAnnouncements(member.organizationId);
+      return listActiveAnnouncements(member);
     },
   );
 
@@ -36,7 +36,7 @@ export const announcementRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request) => {
       const admin = await getAdmin(request);
-      return listAdminAnnouncements(admin.organizationId);
+      return listAdminAnnouncements(admin);
     },
   );
 
@@ -50,7 +50,7 @@ export const announcementRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request, reply) => {
       const admin = await getAdmin(request);
-      const id = await createAnnouncement(admin.organizationId, request.body);
+      const id = await createAnnouncement(admin, request.body);
       return reply.code(201).send({id});
     },
   );
@@ -66,11 +66,7 @@ export const announcementRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request, reply) => {
       const admin = await getAdmin(request);
-      await updateAnnouncement(
-        admin.organizationId,
-        request.params.id,
-        request.body,
-      );
+      await updateAnnouncement(admin, request.params.id, request.body);
       return reply.code(204).send();
     },
   );

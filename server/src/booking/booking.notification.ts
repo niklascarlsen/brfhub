@@ -4,6 +4,7 @@ import type {FastifyBaseLogger} from 'fastify';
 
 import {db} from '../db/index.js';
 import {formatWhen, slotHasStarted} from '../lib/time.js';
+import type {Member} from '../lib/user.js';
 import {notifyMembers} from '../notification/notification.service.js';
 import {listSubscribers} from '../subscription/subscription.service.js';
 
@@ -15,15 +16,20 @@ type ReleasedSlot = {
   end: string;
 };
 
+// The apartment that let the slot go, which is not told about it.
+type ReleasedBy = Pick<Member, 'id' | 'timeZone'>;
+
 export async function notifySlotReleased(
   slot: ReleasedSlot,
-  releasedBy: string,
+  releasedBy: ReleasedBy,
   log: FastifyBaseLogger,
 ): Promise<void> {
   const started = await db
     .execute<{
       started: boolean;
-    }>(sql`select ${slotHasStarted(slot.date, slot.start)} as started`)
+    }>(
+      sql`select ${slotHasStarted(releasedBy.timeZone, slot.date, slot.start)} as started`,
+    )
     .then((result) => result.rows[0]?.started);
 
   if (started) {
@@ -39,7 +45,7 @@ export async function notifySlotReleased(
   await notifyMembers(
     subscribers
       .map((row) => row.memberId)
-      .filter((memberId) => memberId !== releasedBy),
+      .filter((memberId) => memberId !== releasedBy.id),
     {
       title: 'En tid blev ledig',
       body: `${slot.resourceName} ${formatWhen(slot.date, slot.start, slot.end)} är ledig – först till kvarn.`,

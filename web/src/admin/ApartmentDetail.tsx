@@ -6,7 +6,7 @@ import {api, unwrap, type Apartment} from '@/api/client';
 import {codeOf, errorMessage} from '@/api/errors';
 import {useDialog} from '@/components/Dialog';
 import {ChevronForwardIcon} from '@/components/icons';
-import {formatLongDate, toIsoDate} from '@/lib/dates';
+import {formatLongDate} from '@/lib/dates';
 
 type ApartmentDetailProps = {
   apartment: Apartment;
@@ -178,8 +178,8 @@ export function ApartmentDetail({
     );
   }
 
-  const signedIn = apartment.lastSignInAt
-    ? formatLongDate(toIsoDate(new Date(apartment.lastSignInAt)))
+  const signedIn = apartment.lastSignInOn
+    ? formatLongDate(apartment.lastSignInOn)
     : 'Aldrig';
 
   return (

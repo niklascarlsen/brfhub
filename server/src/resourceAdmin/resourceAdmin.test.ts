@@ -6,6 +6,7 @@ import {and, eq} from 'drizzle-orm';
 import {buildApp} from '../app.js';
 import {db, pool} from '../db/index.js';
 import {resourceSlots, resources} from '../db/schema.js';
+import {addDays} from '../lib/time.js';
 import type {BookingRules, Resource} from '../resource/resource.dto.js';
 import type {BookingWindow, Slots} from '../slot/slot.dto.js';
 import {
@@ -17,20 +18,24 @@ import {
 } from '../test/fixtures.js';
 import type {AdminResources} from './resourceAdmin.dto.js';
 
-const NORTH = {id: 'north', name: 'Brf Norr', bookingWindowDays: 10};
-const SOUTH = {id: 'south', name: 'Brf Söder', bookingWindowDays: 10};
+const NORTH = {
+  id: 'north',
+  name: 'Brf Norr',
+  timeZone: 'Europe/Stockholm',
+  bookingWindowDays: 10,
+};
+const SOUTH = {
+  id: 'south',
+  name: 'Brf Söder',
+  timeZone: 'Europe/Stockholm',
+  bookingWindowDays: 10,
+};
 const LAUNDRY = 'north-laundry';
 
 let server: Awaited<ReturnType<typeof buildApp>>;
 let admin: {cookie: string};
 let southAdmin: {cookie: string};
 let member: {cookie: string};
-
-function addDays(isoDate: string, days: number): string {
-  const date = new Date(`${isoDate}T00:00:00Z`);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
-}
 
 function call(
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',

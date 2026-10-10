@@ -15,7 +15,7 @@ import {
   subscriptions,
   user,
 } from '../src/db/schema.js';
-import {slotEndsAt, toIsoDate} from '../src/lib/time.js';
+import {addDays, isoDateIn, slotEndsAt} from '../src/lib/time.js';
 
 const ORGANIZATION_ID = 'demo';
 const OTHER_ORGANIZATION_ID = 'andra';
@@ -28,6 +28,7 @@ const PASSWORD = 'password';
 const ORGANIZATION = {
   id: ORGANIZATION_ID,
   name: 'Brf Exempel',
+  timeZone: 'Europe/Stockholm',
   bookingWindowDays: 30,
   rulesText: [
     'Lämna tvättstugan städad och torka av maskinerna efter dig.',
@@ -124,9 +125,12 @@ const RESOURCE_SLOTS = [
 
 // A second organization, so every screen shows that nothing leaks between
 // them. Resource ids are global until they become uuids, hence the prefix.
+// It keeps New York time, so its days and started slots differ from the
+// first one's.
 const OTHER_ORGANIZATION = {
   id: OTHER_ORGANIZATION_ID,
   name: 'Brf Andra',
+  timeZone: 'America/New_York',
   bookingWindowDays: 14,
   rulesText: '',
 };
@@ -212,11 +216,9 @@ const SEEDED_SUBSCRIPTIONS = [
   {days: 2, start: '19:00', label: '14', resourceId: 'laundry-2'},
 ];
 
+// Only the first organization gets bookings and announcements.
 function dateDaysFromToday(days: number): string {
-  const date = new Date();
-  date.setHours(0, 0, 0, 0);
-  date.setDate(date.getDate() + days);
-  return toIsoDate(date);
+  return addDays(isoDateIn(ORGANIZATION.timeZone), days);
 }
 
 function findSlot(resourceId: string, start: string) {
@@ -324,7 +326,12 @@ try {
       start,
       end: slot.end,
       resourceId,
-      endsAt: slotEndsAt(date, slot.end, slot.endOffsetDays),
+      endsAt: slotEndsAt(
+        ORGANIZATION.timeZone,
+        date,
+        slot.end,
+        slot.endOffsetDays,
+      ),
     };
   }
 

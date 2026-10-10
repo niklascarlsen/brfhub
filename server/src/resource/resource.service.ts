@@ -8,6 +8,7 @@ import {
   resources,
 } from '../db/schema.js';
 import {asDateText, todaySql} from '../lib/time.js';
+import type {Organization} from '../lib/user.js';
 import type {BookingRules, Resource} from './resource.dto.js';
 import {resourceOpenOn, slotInEffect} from './schedule.query.js';
 
@@ -21,18 +22,18 @@ const resourceFields = {
 export type BookableResource = Resource & {maxActive: number};
 
 // What members see: the organization's resources that are still open.
-function bookableIn(organizationId: string) {
+function bookableIn({organizationId, timeZone}: Organization) {
   return and(
     eq(resources.organizationId, organizationId),
-    resourceOpenOn(todaySql()),
+    resourceOpenOn(todaySql(timeZone)),
   );
 }
 
-export function listResources(organizationId: string): Promise<Resource[]> {
+export function listResources(organization: Organization): Promise<Resource[]> {
   return db
     .select(resourceFields)
     .from(resources)
-    .where(bookableIn(organizationId))
+    .where(bookableIn(organization))
     .orderBy(asc(resources.sortOrder));
 }
 
@@ -50,10 +51,10 @@ function selectBookable() {
 }
 
 export function listBookableResources(
-  organizationId: string,
+  organization: Organization,
 ): Promise<BookableResource[]> {
   return selectBookable()
-    .where(bookableIn(organizationId))
+    .where(bookableIn(organization))
     .orderBy(asc(resources.sortOrder));
 }
 
@@ -92,9 +93,11 @@ function versionsOf(
 // Kinds come in the order of their first resource, so the rules read in the
 // same order as the booking page.
 export async function getBookingRules(
-  organizationId: string,
+  organization: Organization,
 ): Promise<BookingRules> {
-  const [[organization], kinds, bookable, open] = await Promise.all([
+  const {organizationId, timeZone} = organization;
+  const today = todaySql(timeZone);
+  const [[settings], kinds, bookable, open] = await Promise.all([
     db
       .select({rulesText: organizations.rulesText})
       .from(organizations)
@@ -110,14 +113,14 @@ export async function getBookingRules(
     db
       .select({...resourceFields, closesFrom: resources.closesFrom})
       .from(resources)
-      .where(bookableIn(organizationId))
+      .where(bookableIn(organization))
       .orderBy(asc(resources.sortOrder)),
     // The version in effect today and every later one.
     db
       .select({
         resourceId: resourceSlots.resourceId,
         validFrom: asDateText(resourceSlots.validFrom),
-        current: sql<boolean>`${slotInEffect(todaySql())}`,
+        current: sql<boolean>`${slotInEffect(today)}`,
         start: resourceSlots.start,
         end: resourceSlots.end,
       })
@@ -126,7 +129,7 @@ export async function getBookingRules(
       .where(
         and(
           eq(resources.organizationId, organizationId),
-          sql`(${slotInEffect(todaySql())} or ${gt(resourceSlots.validFrom, todaySql())})`,
+          sql`(${slotInEffect(today)} or ${gt(resourceSlots.validFrom, today)})`,
         ),
       )
       .orderBy(asc(resourceSlots.validFrom), asc(resourceSlots.start)),
@@ -135,7 +138,7 @@ export async function getBookingRules(
   const kindOrder = [...new Set(bookable.map((resource) => resource.kind))];
 
   return {
-    text: organization?.rulesText ?? '',
+    text: settings?.rulesText ?? '',
     kinds: kindOrder.flatMap((kindId) => {
       const kind = kinds.find((item) => item.id === kindId);
 

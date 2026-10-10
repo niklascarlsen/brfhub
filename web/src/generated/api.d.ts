@@ -3355,7 +3355,7 @@ export interface components {
             label: string;
             residentName: string;
             email: string;
-            lastSignInAt: string | null;
+            lastSignInOn: string | null;
             upcomingBookings: number;
         };
         CreateApartmentBodyInput: {
@@ -3659,7 +3659,7 @@ export interface components {
             label: string;
             residentName: string;
             email: string;
-            lastSignInAt: string | null;
+            lastSignInOn: string | null;
             upcomingBookings: number;
         };
         CreateApartmentBody: {
