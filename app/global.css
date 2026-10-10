@@ -15,4 +15,12 @@
     font-family: Merriweather_700Bold;
     font-weight: normal;
   }
+
+  /* iOS uses the weight to pick the face. On Android the face file already
+     is that weight, and setting it again clips the tail of longer labels. */
+  @media (display-mode: android) {
+    .font-semibold {
+      font-weight: normal;
+    }
+  }
 }

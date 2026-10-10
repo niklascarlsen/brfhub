@@ -9,13 +9,13 @@ type NoticeProps = {
 
 export function Notice({title, message, actionLabel, onAction}: NoticeProps) {
   return (
-    <div className='flex grow flex-col items-center justify-center lg:items-start lg:justify-start px-8 lg:px-0 py-12'>
+    <div className='flex grow flex-col items-center justify-center lg:items-start lg:justify-start px-8 lg:px-0 py-12 lg:py-0'>
       {title ? (
-        <p className='mb-2 text-center text-xl font-semibold text-theme-ink'>
+        <p className='mb-2 text-center text-xl md:hidden font-semibold text-theme-ink'>
           {title}
         </p>
       ) : null}
-      <p className='text-center text-sm leading-5 text-theme-muted'>
+      <p className='text-center lg:text-start max-w-80 text-sm leading-5 text-theme-muted'>
         {message}
       </p>
       {actionLabel && onAction ? (

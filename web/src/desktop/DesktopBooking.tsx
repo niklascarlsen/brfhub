@@ -171,7 +171,7 @@ export function DesktopBooking({
             <section aria-labelledby='my-times-heading'>
               <h2
                 id='my-times-heading'
-                className='mb-3 ml-0.5 text-base font-semibold tracking-tight text-theme-ink'
+                className='mb-3 ml-0.5 text-[27px] font-semibold tracking-tight text-theme-ink'
               >
                 Mina tider
               </h2>
