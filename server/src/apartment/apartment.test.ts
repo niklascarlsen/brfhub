@@ -89,13 +89,13 @@ before(async () => {
 
   const north = await seedOrganization({
     organization: NORTH,
-    kinds: [{id: 'laundry', name: 'Tvätt', maxActive: 1}],
+    kinds: [{id: 'laundry', name: {sv: 'Tvätt'}, maxActive: 1}],
     resources: [
       {
         id: 'north-laundry',
         kindId: 'laundry',
-        name: 'Tvättstuga',
-        tags: [],
+        name: {sv: 'Tvättstuga'},
+        tags: {},
         sortOrder: 1,
       },
     ],
@@ -470,6 +470,8 @@ test('an account replaced while it waited cannot book', async () => {
         id,
         organizationId: NORTH.id,
         timeZone: NORTH.timeZone,
+        locales: ['sv'],
+        locale: 'sv',
         label: '34',
         userId: old?.userId ?? '',
       },

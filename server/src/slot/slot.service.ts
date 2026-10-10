@@ -211,7 +211,7 @@ export async function listSlots({
   to?: string;
   resourceId: string;
 }): Promise<Slots> {
-  const resource = await getResource(member.organizationId, resourceId);
+  const resource = await getResource(member, resourceId);
 
   if (!resource) {
     throw appError('NOT_FOUND', 'Unknown resource');

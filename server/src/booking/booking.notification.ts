@@ -3,7 +3,12 @@ import {sql} from 'drizzle-orm';
 import type {FastifyBaseLogger} from 'fastify';
 
 import {db} from '../db/index.js';
-import type {Locale} from '../lib/locale.js';
+import {
+  localize,
+  resolveLocale,
+  type Locale,
+  type LocalizedText,
+} from '../lib/locale.js';
 import {formatWhen, slotHasStarted} from '../lib/time.js';
 import type {Member} from '../lib/user.js';
 import {
@@ -15,7 +20,8 @@ import {listSubscribers} from '../subscription/subscription.service.js';
 type ReleasedSlot = {
   date: string;
   resourceId: string;
-  resourceName: string;
+  // In every language, since each device is told in its own.
+  resourceName: LocalizedText;
   start: string;
   end: string;
 };
@@ -45,7 +51,7 @@ export function releasedNotification(
   return {
     title: words.title,
     body: words.body(
-      slot.resourceName,
+      localize(slot.resourceName, locale) ?? '',
       formatWhen(locale, slot.date, slot.start, slot.end),
     ),
     data: {
@@ -57,7 +63,7 @@ export function releasedNotification(
 }
 
 // The apartment that let the slot go, which is not told about it.
-type ReleasedBy = Pick<Member, 'id' | 'timeZone'>;
+type ReleasedBy = Pick<Member, 'id' | 'timeZone' | 'locales'>;
 
 export async function notifySlotReleased(
   slot: ReleasedSlot,
@@ -86,7 +92,10 @@ export async function notifySlotReleased(
     subscribers
       .map((row) => row.memberId)
       .filter((memberId) => memberId !== releasedBy.id),
-    (locale) => releasedNotification(locale, slot),
+    // A device keeps its language until it starts again, which can be
+    // one the organization has stopped writing in since.
+    (locale) =>
+      releasedNotification(resolveLocale([locale], releasedBy.locales), slot),
     log,
   );
 }

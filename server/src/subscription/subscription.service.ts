@@ -16,16 +16,10 @@ import {
   slotHasStarted,
 } from '../lib/time.js';
 import type {Member} from '../lib/user.js';
-import {getResource} from '../resource/resource.service.js';
+import {getResource, resourceRefFields} from '../resource/resource.service.js';
 import {resourceOpenOn, slotInEffect} from '../resource/schedule.query.js';
 import {getBookingWindow, isWithinBookingWindow} from '../slot/slot.service.js';
 import type {Subscription} from './subscription.dto.js';
-
-const resourceFields = {
-  resourceId: resources.id,
-  resourceName: resources.name,
-  resourceKind: resources.kindId,
-};
 
 function stillActive(memberId: string) {
   return and(
@@ -48,7 +42,7 @@ export function listSubscriptions(member: Member): Promise<Subscription[]> {
         subscriptions.date,
         subscriptions.start,
       ),
-      ...resourceFields,
+      ...resourceRefFields(member.locale),
     })
     .from(subscriptions)
     .innerJoin(resources, eq(subscriptions.resourceId, resources.id))
@@ -80,7 +74,7 @@ export async function createSubscription({
   start: string;
   resourceId: string;
 }): Promise<Subscription> {
-  const resource = await getResource(member.organizationId, resourceId);
+  const resource = await getResource(member, resourceId);
   if (!resource) {
     throw appError('NOT_FOUND', 'Unknown resource');
   }

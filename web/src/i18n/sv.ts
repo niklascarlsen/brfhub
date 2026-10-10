@@ -36,6 +36,8 @@ export const sv = {
     system: 'System',
     // What the language is called in itself, for the picker.
     name: 'Svenska',
+    // What each language is called in this one, inside a sentence.
+    names: {sv: 'svenska', en: 'engelska'},
   },
   errors: {
     HAS_ACTIVE_BOOKING: 'Du har redan en bokning',
@@ -51,6 +53,8 @@ export const sv = {
     ENDS_IN_PAST: 'Slutdagen har redan passerat',
     INVALID_SCHEDULE: 'Passen överlappar eller slutar innan de börjar',
     KIND_IN_USE: 'Typen används fortfarande av resurser',
+    LANGUAGES_CHANGED:
+      'Föreningens språk har ändrats sedan sidan öppnades. Ladda om och försök igen.',
     NOT_FOUND: 'Hittades inte',
     UNAUTHORIZED: 'Du är inte inloggad',
     FORBIDDEN: 'Det där är inte din bokning',
@@ -308,8 +312,18 @@ export const sv = {
       shown: (from: string, to: string | null) =>
         to ? `Från ${from} till och med ${to}.` : `Från ${from}.`,
     },
+    // Text the organization writes in each of its languages.
+    localized: {
+      label: (label: string, language: string) => `${label} (${language})`,
+      untranslated: (languages: string) => `Saknar ${languages}`,
+      tagsInEvery: 'Skriv taggar på alla språk, eller lämna alla tomma.',
+      rulesInEvery: 'Skriv reglerna på alla språk, eller lämna alla tomma.',
+    },
     organization: {
       settings: 'Inställningar',
+      languages: 'Föreningens språk',
+      languagesNote:
+        'Lägenheterna kan välja bland språken som är på. Med flera språk skriver du föreningens texter på vart och ett. Det som inte är översatt visas på det språk det är skrivet på.',
       name: 'Föreningens namn',
       windowDays: 'Bokningsbart antal dagar framåt',
       windowRange: (max: number) => `Bokningsfönstret är 1 till ${max} dagar`,

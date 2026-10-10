@@ -1,17 +1,31 @@
 import {useState, type SubmitEvent} from 'react';
 
+import {useAdminAccount} from '@/admin/account';
+import {
+  fieldLabel,
+  isWrittenOrEmpty,
+  tagsOf,
+  trimmedText,
+  type Draft,
+} from '@/admin/localized';
 import {slotsProblem} from '@/admin/schedule';
 import {SlotsEditor} from '@/admin/SlotsEditor';
 import {PRIMARY_BUTTON, SECONDARY_BUTTON, SECTION_LABEL} from '@/admin/styles';
-import type {AdminKind, SlotInput} from '@/api/client';
+import type {
+  AdminKind,
+  LocalizedTags,
+  LocalizedText,
+  SlotInput,
+} from '@/api/client';
 import {codeOf, errorMessage} from '@/api/errors';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
-import {useMessages} from '@/i18n/LocaleProvider';
+import {localize} from '@/i18n/catalog';
+import {useLocale, useMessages} from '@/i18n/LocaleProvider';
 
 export type ResourceFields = {
-  name: string;
+  name: LocalizedText;
   kindId: string;
-  tags: string[];
+  tags: LocalizedTags;
   slots: SlotInput[];
 };
 
@@ -26,13 +40,6 @@ type ResourceFormProps = {
   onCancel: () => void;
 };
 
-function tagsOf(text: string): string[] {
-  return text
-    .split(',')
-    .map((tag) => tag.trim())
-    .filter((tag) => tag.length > 0);
-}
-
 export function ResourceForm({
   kinds,
   initial,
@@ -42,16 +49,32 @@ export function ResourceForm({
   onCancel,
 }: ResourceFormProps) {
   const t = useMessages();
-  const [name, setName] = useState(initial.name);
+  const {locale} = useLocale();
+  const {locales} = useAdminAccount();
+  const [name, setName] = useState<Draft>(initial.name);
   const [kindId, setKindId] = useState(initial.kindId);
-  const [tags, setTags] = useState(initial.tags.join(', '));
+  const [tags, setTags] = useState<Draft>(() =>
+    Object.fromEntries(
+      Object.entries(initial.tags).map(([language, list]) => [
+        language,
+        list.join(', '),
+      ]),
+    ),
+  );
   const [slots, setSlots] = useState(initial.slots);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    const problem = withSlots ? slotsProblem(slots, t) : null;
+    const tagLists = Object.fromEntries(
+      locales.map((language) => [language, tagsOf(tags[language] ?? '')]),
+    );
+    const problem = !isWrittenOrEmpty(tagLists, locales)
+      ? t.admin.localized.tagsInEvery
+      : withSlots
+        ? slotsProblem(slots, t)
+        : null;
 
     if (problem) {
       setError(problem);
@@ -62,7 +85,12 @@ export function ResourceForm({
     setError(null);
 
     try {
-      await onSubmit({name: name.trim(), kindId, tags: tagsOf(tags), slots});
+      await onSubmit({
+        name: trimmedText(name, locales),
+        kindId,
+        tags: tagLists,
+        slots,
+      });
     } catch (caught) {
       setError(errorMessage(codeOf(caught), t));
       setSubmitting(false);
@@ -74,13 +102,19 @@ export function ResourceForm({
       onSubmit={(event) => void submit(event)}
       className='flex flex-col gap-3'
     >
-      <FloatingLabelInput
-        label={t.admin.resourceForm.name}
-        required
-        maxLength={40}
-        value={name}
-        onChange={(event) => setName(event.target.value)}
-      />
+      {locales.map((language) => (
+        <FloatingLabelInput
+          key={language}
+          lang={language}
+          label={fieldLabel(t.admin.resourceForm.name, language, locales, t)}
+          required
+          maxLength={40}
+          value={name[language] ?? ''}
+          onChange={(event) =>
+            setName({...name, [language]: event.target.value})
+          }
+        />
+      ))}
       <fieldset className='flex flex-col gap-2'>
         <legend className='mb-2 text-[13px] font-medium text-theme-muted'>
           {t.admin.resource.kind}
@@ -101,17 +135,23 @@ export function ResourceForm({
                     : 'border-theme-edge bg-theme-surface text-theme-ink hover:bg-theme-sunk'
                 }`}
               >
-                {kind.name}
+                {localize(kind.name, locale)}
               </button>
             );
           })}
         </div>
       </fieldset>
-      <FloatingLabelInput
-        label={t.admin.resourceForm.tags}
-        value={tags}
-        onChange={(event) => setTags(event.target.value)}
-      />
+      {locales.map((language) => (
+        <FloatingLabelInput
+          key={language}
+          lang={language}
+          label={fieldLabel(t.admin.resourceForm.tags, language, locales, t)}
+          value={tags[language] ?? ''}
+          onChange={(event) =>
+            setTags({...tags, [language]: event.target.value})
+          }
+        />
+      ))}
       {withSlots ? (
         <section className='mt-3'>
           <h2 className={SECTION_LABEL}>{t.admin.resourceForm.slots}</h2>

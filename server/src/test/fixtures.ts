@@ -10,6 +10,7 @@ import {
   resourceSlots,
   resources,
 } from '../db/schema.js';
+import type {Locale} from '../lib/locale.js';
 
 export const PASSWORD = 'password';
 export const ORIGIN = 'http://localhost:5173';
@@ -35,7 +36,10 @@ export async function resetDatabase() {
 }
 
 type OrganizationSeed = {
-  organization: typeof organizations.$inferInsert;
+  // In Swedish alone unless a test says otherwise.
+  organization: Omit<typeof organizations.$inferInsert, 'locales'> & {
+    locales?: Locale[];
+  };
   kinds: Omit<typeof resourceKinds.$inferInsert, 'organizationId'>[];
   resources: Omit<typeof resources.$inferInsert, 'organizationId'>[];
   // Valid since long before any test day unless a test says otherwise.
@@ -54,7 +58,9 @@ export async function seedOrganization(
 ): Promise<Map<string, string>> {
   const organizationId = seed.organization.id;
 
-  await db.insert(organizations).values(seed.organization);
+  await db
+    .insert(organizations)
+    .values({locales: ['sv'], ...seed.organization});
 
   if (seed.kinds.length > 0) {
     await db

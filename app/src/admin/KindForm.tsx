@@ -1,17 +1,25 @@
 import {useState} from 'react';
 import {Pressable, Text, View} from 'react-native';
 
+import {useAdminAccount} from '@/admin/account';
+import {
+  fieldLabel,
+  isWritten,
+  trimmedText,
+  type Draft,
+} from '@/admin/localized';
 import {
   PRIMARY_BUTTON,
   PRIMARY_LABEL,
   SECONDARY_BUTTON,
   SECONDARY_LABEL,
 } from '@/admin/styles';
+import type {LocalizedText} from '@/api/client';
 import {codeOf, errorMessage} from '@/api/errors';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {useMessages} from '@/i18n/LocaleProvider';
 
-export type KindFields = {name: string; maxActive: number};
+export type KindFields = {name: LocalizedText; maxActive: number};
 
 type KindFormProps = {
   initial: KindFields;
@@ -54,7 +62,8 @@ export function KindForm({
   onDelete,
 }: KindFormProps) {
   const t = useMessages();
-  const [name, setName] = useState(initial.name);
+  const {locales} = useAdminAccount();
+  const [name, setName] = useState<Draft>(initial.name);
   const [maxActive, setMaxActive] = useState(initial.maxActive);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -64,7 +73,7 @@ export function KindForm({
     setError(null);
 
     try {
-      await onSubmit({name: name.trim(), maxActive});
+      await onSubmit({name: trimmedText(name, locales), maxActive});
     } catch (caught) {
       setError(errorMessage(codeOf(caught), t));
       setSubmitting(false);
@@ -78,13 +87,16 @@ export function KindForm({
 
   return (
     <View className='gap-3'>
-      <FloatingLabelInput
-        label={t.admin.kindForm.name}
-        value={name}
-        onChangeText={setName}
-        maxLength={40}
-        autoCapitalize='sentences'
-      />
+      {locales.map((language) => (
+        <FloatingLabelInput
+          key={language}
+          label={fieldLabel(t.admin.kindForm.name, language, locales, t)}
+          value={name[language] ?? ''}
+          onChangeText={(text) => setName({...name, [language]: text})}
+          maxLength={40}
+          autoCapitalize='sentences'
+        />
+      ))}
       <View className='flex-row items-center justify-between gap-4 rounded-2xl border border-theme-line bg-theme-surface px-[18px] py-3'>
         <View className='min-w-0 flex-1 gap-0.5'>
           <Text className='text-[15px] font-semibold tracking-tight text-theme-ink'>
@@ -126,7 +138,7 @@ export function KindForm({
       <View className='mt-2 flex-row flex-wrap gap-2.5'>
         <Pressable
           onPress={() => void submit()}
-          disabled={submitting || name.trim().length === 0}
+          disabled={submitting || !isWritten(name, locales)}
           className={PRIMARY_BUTTON}
         >
           <Text className={PRIMARY_LABEL}>{submitLabel}</Text>

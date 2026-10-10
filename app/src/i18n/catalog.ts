@@ -25,23 +25,45 @@ export function isLocaleChoice(value: unknown): value is LocaleChoice {
   return value === 'system' || (typeof value === 'string' && isLocale(value));
 }
 
-// The first of the device's languages, in its order, that the app speaks,
-// and English when it speaks none of them.
+// What the person picked when the organization writes in it, else the
+// first of the device's languages, in its order, that the organization
+// writes in, else English when it does, else the organization's own
+// language. Before sign-in every language the app speaks is open. The
+// server picks its text the same way.
 export function resolveLocale(
   choice: LocaleChoice,
   deviceLanguages: readonly string[],
+  available: readonly Locale[] = LOCALES,
 ): Locale {
-  if (choice !== 'system') {
+  if (choice !== 'system' && available.includes(choice)) {
     return choice;
   }
 
   for (const tag of deviceLanguages) {
     const [language] = tag.split('-');
+    const known = available.find((locale) => locale === language);
 
-    if (isLocale(language)) {
-      return language;
+    if (known) {
+      return known;
     }
   }
 
-  return 'en';
+  return available.includes('en') ? 'en' : (available[0] ?? 'en');
+}
+
+// The text in the language shown, else in another one it is written in,
+// for text written before the organization took up the language.
+export function localize<T>(
+  text: Partial<Record<Locale, T>>,
+  locale: Locale,
+): T | undefined {
+  for (const candidate of [locale, ...LOCALES]) {
+    const value = text[candidate];
+
+    if (value !== undefined) {
+      return value;
+    }
+  }
+
+  return undefined;
 }

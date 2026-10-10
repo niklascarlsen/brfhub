@@ -14,6 +14,7 @@ export const errorCodeSchema = z.enum([
   'ENDS_IN_PAST',
   'INVALID_SCHEDULE',
   'KIND_IN_USE',
+  'LANGUAGES_CHANGED',
   'NOT_FOUND',
   'UNAUTHORIZED',
   'FORBIDDEN',
@@ -71,6 +72,12 @@ const ERRORS: Record<ErrorCode, {status: number; message: string}> = {
   KIND_IN_USE: {
     status: 409,
     message: 'Resources still use that kind',
+  },
+  // The text left out a language the organization uses, or has one it
+  // does not: the admin's form is older than the organization's languages.
+  LANGUAGES_CHANGED: {
+    status: 409,
+    message: "The text is not in the organization's languages",
   },
   NOT_FOUND: {
     status: 404,

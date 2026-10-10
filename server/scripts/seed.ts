@@ -15,6 +15,7 @@ import {
   subscriptions,
   user,
 } from '../src/db/schema.js';
+import type {Locale} from '../src/lib/locale.js';
 import {addDays, isoDateIn, slotEndsAt} from '../src/lib/time.js';
 
 const ORGANIZATION_ID = 'demo';
@@ -25,23 +26,52 @@ const CURRENT_APARTMENT = '12';
 // and each admin as admin@ on the same domain.
 const PASSWORD = 'password';
 
+// Writes in Swedish and English, so its apartments can pick either.
 const ORGANIZATION = {
   id: ORGANIZATION_ID,
   name: 'Brf Exempel',
   timeZone: 'Europe/Stockholm',
   bookingWindowDays: 30,
-  rulesText: [
-    'Lämna tvättstugan städad och torka av maskinerna efter dig.',
-    'Är du sen mer än 30 minuter får nästa på tur ta över din tid.',
-    'Bastun är rökfri, och barn badar bara med en vuxen.',
-  ].join('\n\n'),
+  locales: ['sv', 'en'] satisfies Locale[],
+  rulesText: {
+    sv: [
+      'Lämna tvättstugan städad och torka av maskinerna efter dig.',
+      'Är du sen mer än 30 minuter får nästa på tur ta över din tid.',
+      'Bastun är rökfri, och barn badar bara med en vuxen.',
+    ].join('\n\n'),
+    en: [
+      'Leave the laundry room clean and wipe the machines after you.',
+      'If you are more than 30 minutes late, the next in line may take your slot.',
+      'The sauna is smoke-free, and children bathe only with an adult.',
+    ].join('\n\n'),
+  },
 };
 
 const KINDS = [
-  {organizationId: ORGANIZATION_ID, id: 'laundry', name: 'Tvätt', maxActive: 1},
-  {organizationId: ORGANIZATION_ID, id: 'drying', name: 'Tork', maxActive: 1},
-  {organizationId: ORGANIZATION_ID, id: 'sauna', name: 'Bastu', maxActive: 1},
-  {organizationId: ORGANIZATION_ID, id: 'hobby', name: 'Hobby', maxActive: 1},
+  {
+    organizationId: ORGANIZATION_ID,
+    id: 'laundry',
+    name: {sv: 'Tvätt', en: 'Laundry'},
+    maxActive: 1,
+  },
+  {
+    organizationId: ORGANIZATION_ID,
+    id: 'drying',
+    name: {sv: 'Tork', en: 'Drying'},
+    maxActive: 1,
+  },
+  {
+    organizationId: ORGANIZATION_ID,
+    id: 'sauna',
+    name: {sv: 'Bastu', en: 'Sauna'},
+    maxActive: 1,
+  },
+  {
+    organizationId: ORGANIZATION_ID,
+    id: 'hobby',
+    name: {sv: 'Hobby', en: 'Hobby'},
+    maxActive: 1,
+  },
 ];
 
 const APARTMENTS = ['12', '14', '21', '23', '31'];
@@ -51,40 +81,40 @@ const RESOURCES = [
     id: 'laundry-1',
     organizationId: ORGANIZATION_ID,
     kindId: 'laundry',
-    name: 'Tvättstuga 1',
-    tags: ['torktumlare'],
+    name: {sv: 'Tvättstuga 1', en: 'Laundry room 1'},
+    tags: {sv: ['torktumlare'], en: ['tumble dryer']},
     sortOrder: 1,
   },
   {
     id: 'laundry-2',
     organizationId: ORGANIZATION_ID,
     kindId: 'laundry',
-    name: 'Tvättstuga 2',
-    tags: [],
+    name: {sv: 'Tvättstuga 2', en: 'Laundry room 2'},
+    tags: {},
     sortOrder: 2,
   },
   {
     id: 'drying-room',
     organizationId: ORGANIZATION_ID,
     kindId: 'drying',
-    name: 'Torkrum',
-    tags: [],
+    name: {sv: 'Torkrum', en: 'Drying room'},
+    tags: {},
     sortOrder: 3,
   },
   {
     id: 'sauna',
     organizationId: ORGANIZATION_ID,
     kindId: 'sauna',
-    name: 'Bastu',
-    tags: ['max 4 personer'],
+    name: {sv: 'Bastu', en: 'Sauna'},
+    tags: {sv: ['max 4 personer'], en: ['max 4 people']},
     sortOrder: 4,
   },
   {
     id: 'workshop',
     organizationId: ORGANIZATION_ID,
     kindId: 'hobby',
-    name: 'Snickerirum',
-    tags: [],
+    name: {sv: 'Snickerirum', en: 'Workshop'},
+    tags: {},
     sortOrder: 5,
   },
 ];
@@ -126,26 +156,28 @@ const RESOURCE_SLOTS = [
 // A second organization, so every screen shows that nothing leaks between
 // them. Resource ids are global until they become uuids, hence the prefix.
 // It keeps New York time, so its days and started slots differ from the
-// first one's.
+// first one's, and writes in English alone, so its apartments show
+// English whatever their device speaks.
 const OTHER_ORGANIZATION = {
   id: OTHER_ORGANIZATION_ID,
   name: 'Brf Andra',
   timeZone: 'America/New_York',
   bookingWindowDays: 14,
-  rulesText: '',
+  locales: ['en'] satisfies Locale[],
+  rulesText: {},
 };
 
 const OTHER_KINDS = [
   {
     organizationId: OTHER_ORGANIZATION_ID,
     id: 'laundry',
-    name: 'Tvätt',
+    name: {en: 'Laundry'},
     maxActive: 1,
   },
   {
     organizationId: OTHER_ORGANIZATION_ID,
     id: 'guest',
-    name: 'Gästlägenhet',
+    name: {en: 'Guest apartment'},
     maxActive: 1,
   },
 ];
@@ -170,16 +202,16 @@ const OTHER_RESOURCES = [
     id: 'andra-laundry',
     organizationId: OTHER_ORGANIZATION_ID,
     kindId: 'laundry',
-    name: 'Tvättstugan',
-    tags: [],
+    name: {en: 'Laundry room'},
+    tags: {},
     sortOrder: 1,
   },
   {
     id: 'andra-guest',
     organizationId: OTHER_ORGANIZATION_ID,
     kindId: 'guest',
-    name: 'Gästlägenheten',
-    tags: ['4 bäddar'],
+    name: {en: 'Guest apartment'},
+    tags: {en: ['sleeps 4']},
     sortOrder: 2,
   },
 ];
@@ -341,16 +373,22 @@ try {
   await db.insert(announcements).values([
     {
       organizationId: ORGANIZATION_ID,
-      title: 'Städdag lördag',
-      body: 'Vi städar gården och förråden på lördag klockan 10. Föreningen bjuder på fika efteråt.',
+      title: {sv: 'Städdag lördag', en: 'Clean-up day Saturday'},
+      body: {
+        sv: 'Vi städar gården och förråden på lördag klockan 10. Föreningen bjuder på fika efteråt.',
+        en: 'We clean the courtyard and storage rooms on Saturday at 10. Coffee and cake afterwards, on the association.',
+      },
       publishedOn: dateDaysFromToday(0),
       // One week, counting today: what the admin's "1 vecka" sets.
       endsOn: dateDaysFromToday(6),
     },
     {
       organizationId: ORGANIZATION_ID,
-      title: 'Ny torktumlare',
-      body: 'Torkrummet har fått en ny torktumlare. Rensa luddfiltret efter varje körning.',
+      title: {sv: 'Ny torktumlare', en: 'New tumble dryer'},
+      body: {
+        sv: 'Torkrummet har fått en ny torktumlare. Rensa luddfiltret efter varje körning.',
+        en: 'The drying room has a new tumble dryer. Clean the lint filter after every run.',
+      },
       publishedOn: dateDaysFromToday(-3),
       endsOn: null,
     },

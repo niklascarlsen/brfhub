@@ -5,6 +5,7 @@ import {Alert, Pressable, Text, View} from 'react-native';
 import {useAdminAccount} from '@/admin/account';
 import {AdminPage} from '@/admin/AdminPage';
 import {AnnouncementForm} from '@/admin/AnnouncementForm';
+import {missingLanguages} from '@/admin/localized';
 import {PRIMARY_BUTTON, PRIMARY_LABEL, SECTION_LABEL} from '@/admin/styles';
 import {api, unwrap, type AdminAnnouncement} from '@/api/client';
 import {codeOf, errorMessage} from '@/api/errors';
@@ -12,8 +13,8 @@ import {Notice} from '@/components/Notice';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useSlowLoad} from '@/hooks/useSlowLoad';
-import type {Messages} from '@/i18n/catalog';
-import {useMessages} from '@/i18n/LocaleProvider';
+import {localize, type Messages} from '@/i18n/catalog';
+import {useLocale, useMessages} from '@/i18n/LocaleProvider';
 import {formatDayMonth} from '@/lib/dates';
 import theme from '@/theme.json';
 
@@ -41,8 +42,9 @@ function periodOf(announcement: AdminAnnouncement, t: Messages): string {
 }
 
 export function AdminAnnouncements() {
-  const {organizationName} = useAdminAccount();
+  const {organizationName, locales} = useAdminAccount();
   const t = useMessages();
+  const {locale} = useLocale();
   const {data, error, reload} = useFocusLoad(fetchAnnouncements);
   const showSkeleton = useSlowLoad(data === null && error === null);
   const [screen, setScreen] = useState<Screen>({kind: 'list'});
@@ -59,8 +61,8 @@ export function AdminAnnouncements() {
       >
         <AnnouncementForm
           initial={{
-            title: '',
-            body: '',
+            title: {},
+            body: {},
             publishedOn: data.today,
             endsOn: null,
           }}
@@ -85,8 +87,10 @@ export function AdminAnnouncements() {
       : undefined;
 
   if (data && edited) {
+    const title = localize(edited.title, locale) ?? '';
+
     return (
-      <AdminPage title={edited.title} subtitle={organizationName} back={back}>
+      <AdminPage title={title} subtitle={organizationName} back={back}>
         <AnnouncementForm
           key={edited.id}
           initial={edited}
@@ -106,7 +110,7 @@ export function AdminAnnouncements() {
           onDelete={() =>
             Alert.alert(
               t.admin.announcements.remove,
-              t.admin.announcements.removeQuestion(edited.title),
+              t.admin.announcements.removeQuestion(title),
               [
                 {text: t.common.cancel, style: 'cancel'},
                 {
@@ -160,39 +164,50 @@ export function AdminAnnouncements() {
               <View key={status}>
                 <Text className={SECTION_LABEL}>{label(t)}</Text>
                 <View className='overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
-                  {own.map((announcement, index) => (
-                    <Pressable
-                      key={announcement.id}
-                      onPress={() =>
-                        setScreen({kind: 'edit', id: announcement.id})
-                      }
-                      className={`flex-row items-center gap-3 px-[18px] py-3.5 active:bg-theme-sunk ${
-                        index === own.length - 1
-                          ? ''
-                          : 'border-b border-theme-line'
-                      }`}
-                    >
-                      <View className='min-w-0 flex-1 gap-0.5'>
-                        <Text
-                          numberOfLines={1}
-                          className='text-[15px] font-semibold tracking-tight text-theme-ink'
-                        >
-                          {announcement.title}
-                        </Text>
-                        <Text
-                          numberOfLines={1}
-                          className='font-sans text-[13px] text-theme-muted'
-                        >
-                          {periodOf(announcement, t)}
-                        </Text>
-                      </View>
-                      <Ionicons
-                        name='chevron-forward'
-                        size={16}
-                        color={theme.faint}
-                      />
-                    </Pressable>
-                  ))}
+                  {own.map((announcement, index) => {
+                    const missing =
+                      missingLanguages(announcement.title, locales, t) ??
+                      missingLanguages(announcement.body, locales, t);
+
+                    return (
+                      <Pressable
+                        key={announcement.id}
+                        onPress={() =>
+                          setScreen({kind: 'edit', id: announcement.id})
+                        }
+                        className={`flex-row items-center gap-3 px-[18px] py-3.5 active:bg-theme-sunk ${
+                          index === own.length - 1
+                            ? ''
+                            : 'border-b border-theme-line'
+                        }`}
+                      >
+                        <View className='min-w-0 flex-1 gap-0.5'>
+                          <Text
+                            numberOfLines={1}
+                            className='text-[15px] font-semibold tracking-tight text-theme-ink'
+                          >
+                            {localize(announcement.title, locale)}
+                          </Text>
+                          <Text
+                            numberOfLines={1}
+                            className='font-sans text-[13px] text-theme-muted'
+                          >
+                            {periodOf(announcement, t)}
+                          </Text>
+                          {missing ? (
+                            <Text className='font-sans text-xs text-theme-accent'>
+                              {t.admin.localized.untranslated(missing)}
+                            </Text>
+                          ) : null}
+                        </View>
+                        <Ionicons
+                          name='chevron-forward'
+                          size={16}
+                          color={theme.faint}
+                        />
+                      </Pressable>
+                    );
+                  })}
                 </View>
               </View>
             );

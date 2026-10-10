@@ -54,7 +54,7 @@ export const resourceAdminRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request, reply) => {
       const admin = await getAdmin(request);
-      const id = await createKind(admin.organizationId, request.body);
+      const id = await createKind(admin, request.body);
       return reply.code(201).send({id});
     },
   );
@@ -70,7 +70,7 @@ export const resourceAdminRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request, reply) => {
       const admin = await getAdmin(request);
-      await updateKind(admin.organizationId, request.params.id, request.body);
+      await updateKind(admin, request.params.id, request.body);
       return reply.code(204).send();
     },
   );
@@ -95,7 +95,7 @@ export const resourceAdminRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request, reply) => {
       const admin = await getAdmin(request);
-      const id = await createResource(admin.organizationId, request.body);
+      const id = await createResource(admin, request.body);
       return reply.code(201).send({id});
     },
   );
@@ -121,11 +121,7 @@ export const resourceAdminRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request, reply) => {
       const admin = await getAdmin(request);
-      await updateResource(
-        admin.organizationId,
-        request.params.id,
-        request.body,
-      );
+      await updateResource(admin, request.params.id, request.body);
       return reply.code(204).send();
     },
   );

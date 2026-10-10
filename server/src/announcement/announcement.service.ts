@@ -3,6 +3,7 @@ import {and, desc, eq, gte, isNull, lte, or, sql} from 'drizzle-orm';
 import {db} from '../db/index.js';
 import {announcements} from '../db/schema.js';
 import {appError} from '../lib/errors.js';
+import {assertTranslated, localized, type Locale} from '../lib/locale.js';
 import {asDateText, todaySql} from '../lib/time.js';
 import type {Organization} from '../lib/user.js';
 import type {
@@ -14,8 +15,6 @@ import type {
 
 const fields = {
   id: announcements.id,
-  title: announcements.title,
-  body: announcements.body,
   publishedOn: asDateText(announcements.publishedOn),
   endsOn: sql<string | null>`to_char(${announcements.endsOn}, 'YYYY-MM-DD')`,
   // To the millisecond, so an edit right after publishing still differs.
@@ -44,6 +43,23 @@ function assertEndsOn(endsOn: string | null, from: string) {
   }
 }
 
+// What an apartment reads, in its own language.
+function textIn(locale: Locale) {
+  return {
+    title: localized(announcements.title, locale),
+    body: localized(announcements.body, locale),
+  };
+}
+
+// Written in every language the organization uses.
+function translated(body: AnnouncementBody, locales: Locale[]) {
+  return {
+    ...body,
+    title: assertTranslated(body.title, locales),
+    body: assertTranslated(body.body, locales),
+  };
+}
+
 const newestFirst = [
   desc(announcements.publishedOn),
   desc(announcements.createdAt),
@@ -53,11 +69,12 @@ const newestFirst = [
 export function listActiveAnnouncements({
   organizationId,
   timeZone,
+  locale,
 }: Organization): Promise<Announcement[]> {
   const today = todaySql(timeZone);
 
   return db
-    .select(fields)
+    .select({...fields, ...textIn(locale)})
     .from(announcements)
     .where(
       and(
@@ -80,6 +97,8 @@ export async function listAdminAnnouncements({
     db
       .select({
         ...fields,
+        title: announcements.title,
+        body: announcements.body,
         status: sql<AdminAnnouncement['status']>`case
           when ${announcements.publishedOn} > ${day} then 'scheduled'
           when ${announcements.endsOn} < ${day} then 'ended'
@@ -94,15 +113,16 @@ export async function listAdminAnnouncements({
 }
 
 export async function createAnnouncement(
-  {organizationId, timeZone}: Organization,
+  {organizationId, timeZone, locales}: Organization,
   body: AnnouncementBody,
 ): Promise<string> {
+  const text = translated(body, locales);
   const publishedOn = await today(timeZone);
   assertEndsOn(body.endsOn, publishedOn);
 
   const [created] = await db
     .insert(announcements)
-    .values({organizationId, ...body, publishedOn})
+    .values({organizationId, ...text, publishedOn})
     .returning({id: announcements.id});
 
   if (!created) {
@@ -122,10 +142,11 @@ function ownAnnouncement(organizationId: string, id: string) {
 // A new end may not lie in the past, but an ended announcement can still
 // have its text corrected.
 export async function updateAnnouncement(
-  {organizationId, timeZone}: Organization,
+  {organizationId, timeZone, locales}: Organization,
   id: string,
   body: AnnouncementBody,
 ): Promise<void> {
+  const text = translated(body, locales);
   const [existing] = await db
     .select({
       publishedOn: asDateText(announcements.publishedOn),
@@ -150,7 +171,7 @@ export async function updateAnnouncement(
 
   const updated = await db
     .update(announcements)
-    .set({...body, updatedAt: sql`now()`})
+    .set({...text, updatedAt: sql`now()`})
     .where(ownAnnouncement(organizationId, id))
     .returning({id: announcements.id});
 

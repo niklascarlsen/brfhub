@@ -32,6 +32,7 @@
               "ENDS_IN_PAST",
               "INVALID_SCHEDULE",
               "KIND_IN_USE",
+              "LANGUAGES_CHANGED",
               "NOT_FOUND",
               "UNAUTHORIZED",
               "FORBIDDEN",
@@ -53,6 +54,34 @@
           "en"
         ]
       },
+      "LocalizedTextInput": {
+        "type": "object",
+        "properties": {
+          "sv": {
+            "type": "string"
+          },
+          "en": {
+            "type": "string"
+          }
+        }
+      },
+      "LocalizedTagsInput": {
+        "type": "object",
+        "properties": {
+          "sv": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "en": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "MemberAccountInput": {
         "type": "object",
         "properties": {
@@ -63,6 +92,12 @@
           "organizationName": {
             "type": "string"
           },
+          "locales": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LocaleInput"
+            }
+          },
           "apartment": {
             "type": "string"
           }
@@ -70,6 +105,7 @@
         "required": [
           "role",
           "organizationName",
+          "locales",
           "apartment"
         ]
       },
@@ -82,11 +118,18 @@
           },
           "organizationName": {
             "type": "string"
+          },
+          "locales": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LocaleInput"
+            }
           }
         },
         "required": [
           "role",
-          "organizationName"
+          "organizationName",
+          "locales"
         ]
       },
       "AccountInput": {
@@ -154,10 +197,10 @@
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
           },
           "title": {
-            "type": "string"
+            "$ref": "#/components/schemas/LocalizedTextInput"
           },
           "body": {
-            "type": "string"
+            "$ref": "#/components/schemas/LocalizedTextInput"
           },
           "publishedOn": {
             "type": "string",
@@ -224,14 +267,34 @@
         "type": "object",
         "properties": {
           "title": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100
+            "type": "object",
+            "properties": {
+              "sv": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "en": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              }
+            }
           },
           "body": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 2000
+            "type": "object",
+            "properties": {
+              "sv": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              "en": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            }
           },
           "endsOn": {
             "anyOf": [
@@ -692,13 +755,20 @@
             "minimum": -9007199254740991,
             "maximum": 9007199254740991
           },
+          "locales": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LocaleInput"
+            }
+          },
           "rulesText": {
-            "type": "string"
+            "$ref": "#/components/schemas/LocalizedTextInput"
           }
         },
         "required": [
           "name",
           "bookingWindowDays",
+          "locales",
           "rulesText"
         ]
       },
@@ -715,9 +785,25 @@
             "minimum": 1,
             "maximum": 365
           },
+          "locales": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LocaleInput"
+            }
+          },
           "rulesText": {
-            "type": "string",
-            "maxLength": 4000
+            "type": "object",
+            "properties": {
+              "sv": {
+                "type": "string",
+                "maxLength": 4000
+              },
+              "en": {
+                "type": "string",
+                "maxLength": 4000
+              }
+            }
           }
         }
       },
@@ -806,7 +892,7 @@
             "type": "string"
           },
           "name": {
-            "type": "string"
+            "$ref": "#/components/schemas/LocalizedTextInput"
           },
           "maxActive": {
             "type": "integer",
@@ -827,16 +913,13 @@
             "type": "string"
           },
           "name": {
-            "type": "string"
+            "$ref": "#/components/schemas/LocalizedTextInput"
           },
           "kindId": {
             "type": "string"
           },
           "tags": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+            "$ref": "#/components/schemas/LocalizedTagsInput"
           },
           "closesFrom": {
             "anyOf": [
@@ -903,9 +986,19 @@
         "type": "object",
         "properties": {
           "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 40
+            "type": "object",
+            "properties": {
+              "sv": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              },
+              "en": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              }
+            }
           },
           "maxActive": {
             "type": "integer",
@@ -922,9 +1015,19 @@
         "type": "object",
         "properties": {
           "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 40
+            "type": "object",
+            "properties": {
+              "sv": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              },
+              "en": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              }
+            }
           },
           "maxActive": {
             "type": "integer",
@@ -937,21 +1040,45 @@
         "type": "object",
         "properties": {
           "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 40
+            "type": "object",
+            "properties": {
+              "sv": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              },
+              "en": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              }
+            }
           },
           "kindId": {
             "type": "string",
             "minLength": 1
           },
           "tags": {
-            "maxItems": 5,
-            "type": "array",
-            "items": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 30
+            "type": "object",
+            "properties": {
+              "sv": {
+                "maxItems": 5,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 30
+                }
+              },
+              "en": {
+                "maxItems": 5,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 30
+                }
+              }
             }
           },
           "slots": {
@@ -974,21 +1101,45 @@
         "type": "object",
         "properties": {
           "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 40
+            "type": "object",
+            "properties": {
+              "sv": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              },
+              "en": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              }
+            }
           },
           "kindId": {
             "type": "string",
             "minLength": 1
           },
           "tags": {
-            "maxItems": 5,
-            "type": "array",
-            "items": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 30
+            "type": "object",
+            "properties": {
+              "sv": {
+                "maxItems": 5,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 30
+                }
+              },
+              "en": {
+                "maxItems": 5,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 30
+                }
+              }
             }
           }
         }
@@ -1389,6 +1540,7 @@
               "ENDS_IN_PAST",
               "INVALID_SCHEDULE",
               "KIND_IN_USE",
+              "LANGUAGES_CHANGED",
               "NOT_FOUND",
               "UNAUTHORIZED",
               "FORBIDDEN",
@@ -1411,6 +1563,36 @@
           "en"
         ]
       },
+      "LocalizedText": {
+        "type": "object",
+        "properties": {
+          "sv": {
+            "type": "string"
+          },
+          "en": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LocalizedTags": {
+        "type": "object",
+        "properties": {
+          "sv": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "en": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
       "MemberAccount": {
         "type": "object",
         "properties": {
@@ -1421,6 +1603,12 @@
           "organizationName": {
             "type": "string"
           },
+          "locales": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Locale"
+            }
+          },
           "apartment": {
             "type": "string"
           }
@@ -1428,6 +1616,7 @@
         "required": [
           "role",
           "organizationName",
+          "locales",
           "apartment"
         ],
         "additionalProperties": false
@@ -1441,11 +1630,18 @@
           },
           "organizationName": {
             "type": "string"
+          },
+          "locales": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Locale"
+            }
           }
         },
         "required": [
           "role",
-          "organizationName"
+          "organizationName",
+          "locales"
         ],
         "additionalProperties": false
       },
@@ -1515,10 +1711,10 @@
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
           },
           "title": {
-            "type": "string"
+            "$ref": "#/components/schemas/LocalizedText"
           },
           "body": {
-            "type": "string"
+            "$ref": "#/components/schemas/LocalizedText"
           },
           "publishedOn": {
             "type": "string",
@@ -1587,14 +1783,36 @@
         "type": "object",
         "properties": {
           "title": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100
+            "type": "object",
+            "properties": {
+              "sv": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "en": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              }
+            },
+            "additionalProperties": false
           },
           "body": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 2000
+            "type": "object",
+            "properties": {
+              "sv": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              "en": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            },
+            "additionalProperties": false
           },
           "endsOn": {
             "anyOf": [
@@ -2078,13 +2296,20 @@
             "minimum": -9007199254740991,
             "maximum": 9007199254740991
           },
+          "locales": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Locale"
+            }
+          },
           "rulesText": {
-            "type": "string"
+            "$ref": "#/components/schemas/LocalizedText"
           }
         },
         "required": [
           "name",
           "bookingWindowDays",
+          "locales",
           "rulesText"
         ],
         "additionalProperties": false
@@ -2102,9 +2327,20 @@
             "minimum": 1,
             "maximum": 365
           },
+          "locales": {},
           "rulesText": {
-            "type": "string",
-            "maxLength": 4000
+            "type": "object",
+            "properties": {
+              "sv": {
+                "type": "string",
+                "maxLength": 4000
+              },
+              "en": {
+                "type": "string",
+                "maxLength": 4000
+              }
+            },
+            "additionalProperties": false
           }
         },
         "additionalProperties": false
@@ -2198,7 +2434,7 @@
             "type": "string"
           },
           "name": {
-            "type": "string"
+            "$ref": "#/components/schemas/LocalizedText"
           },
           "maxActive": {
             "type": "integer",
@@ -2220,16 +2456,13 @@
             "type": "string"
           },
           "name": {
-            "type": "string"
+            "$ref": "#/components/schemas/LocalizedText"
           },
           "kindId": {
             "type": "string"
           },
           "tags": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+            "$ref": "#/components/schemas/LocalizedTags"
           },
           "closesFrom": {
             "anyOf": [
@@ -2298,9 +2531,20 @@
         "type": "object",
         "properties": {
           "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 40
+            "type": "object",
+            "properties": {
+              "sv": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              },
+              "en": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              }
+            },
+            "additionalProperties": false
           },
           "maxActive": {
             "type": "integer",
@@ -2318,9 +2562,20 @@
         "type": "object",
         "properties": {
           "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 40
+            "type": "object",
+            "properties": {
+              "sv": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              },
+              "en": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              }
+            },
+            "additionalProperties": false
           },
           "maxActive": {
             "type": "integer",
@@ -2334,22 +2589,48 @@
         "type": "object",
         "properties": {
           "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 40
+            "type": "object",
+            "properties": {
+              "sv": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              },
+              "en": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              }
+            },
+            "additionalProperties": false
           },
           "kindId": {
             "type": "string",
             "minLength": 1
           },
           "tags": {
-            "maxItems": 5,
-            "type": "array",
-            "items": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 30
-            }
+            "type": "object",
+            "properties": {
+              "sv": {
+                "maxItems": 5,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 30
+                }
+              },
+              "en": {
+                "maxItems": 5,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 30
+                }
+              }
+            },
+            "additionalProperties": false
           },
           "slots": {
             "minItems": 1,
@@ -2372,22 +2653,48 @@
         "type": "object",
         "properties": {
           "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 40
+            "type": "object",
+            "properties": {
+              "sv": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              },
+              "en": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              }
+            },
+            "additionalProperties": false
           },
           "kindId": {
             "type": "string",
             "minLength": 1
           },
           "tags": {
-            "maxItems": 5,
-            "type": "array",
-            "items": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 30
-            }
+            "type": "object",
+            "properties": {
+              "sv": {
+                "maxItems": 5,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 30
+                }
+              },
+              "en": {
+                "maxItems": 5,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 30
+                }
+              }
+            },
+            "additionalProperties": false
           }
         },
         "additionalProperties": false

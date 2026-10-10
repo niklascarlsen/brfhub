@@ -88,13 +88,13 @@ before(async () => {
 
     await seedOrganization({
       organization,
-      kinds: [{id: 'laundry', name: 'Tvätt', maxActive: 1}],
+      kinds: [{id: 'laundry', name: {sv: 'Tvätt'}, maxActive: 1}],
       resources: [
         {
           id: resourceId,
           kindId: 'laundry',
-          name: 'Tvättstuga',
-          tags: [],
+          name: {sv: 'Tvättstuga'},
+          tags: {},
           sortOrder: 1,
         },
       ],
@@ -152,8 +152,8 @@ test('an announcement is dated today where it is published', async () => {
   for (const organization of [EAST, WEST]) {
     const {admin} = side(organization);
     const created = await call('POST', '/admin/announcements', admin, {
-      title: 'Städdag',
-      body: 'På lördag.',
+      title: {sv: 'Städdag'},
+      body: {sv: 'På lördag.'},
       endsOn: null,
     });
     assert.equal(created.statusCode, 201);

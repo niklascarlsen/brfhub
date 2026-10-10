@@ -1,6 +1,15 @@
 import {useState} from 'react';
 import {Pressable, Text, View} from 'react-native';
 
+import {useAdminAccount} from '@/admin/account';
+import {
+  fieldLabel,
+  isWritten,
+  isWrittenOrEmpty,
+  tagsOf,
+  trimmedText,
+  type Draft,
+} from '@/admin/localized';
 import {slotsProblem} from '@/admin/schedule';
 import {SlotsEditor} from '@/admin/SlotsEditor';
 import {
@@ -10,15 +19,21 @@ import {
   SECONDARY_LABEL,
   SECTION_LABEL,
 } from '@/admin/styles';
-import type {AdminKind, SlotInput} from '@/api/client';
+import type {
+  AdminKind,
+  LocalizedTags,
+  LocalizedText,
+  SlotInput,
+} from '@/api/client';
 import {codeOf, errorMessage} from '@/api/errors';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
-import {useMessages} from '@/i18n/LocaleProvider';
+import {localize} from '@/i18n/catalog';
+import {useLocale, useMessages} from '@/i18n/LocaleProvider';
 
 export type ResourceFields = {
-  name: string;
+  name: LocalizedText;
   kindId: string;
-  tags: string[];
+  tags: LocalizedTags;
   slots: SlotInput[];
 };
 
@@ -33,13 +48,6 @@ type ResourceFormProps = {
   onCancel: () => void;
 };
 
-function tagsOf(text: string): string[] {
-  return text
-    .split(',')
-    .map((tag) => tag.trim())
-    .filter((tag) => tag.length > 0);
-}
-
 export function ResourceForm({
   kinds,
   initial,
@@ -49,15 +57,31 @@ export function ResourceForm({
   onCancel,
 }: ResourceFormProps) {
   const t = useMessages();
-  const [name, setName] = useState(initial.name);
+  const {locale} = useLocale();
+  const {locales} = useAdminAccount();
+  const [name, setName] = useState<Draft>(initial.name);
   const [kindId, setKindId] = useState(initial.kindId);
-  const [tags, setTags] = useState(initial.tags.join(', '));
+  const [tags, setTags] = useState<Draft>(() =>
+    Object.fromEntries(
+      Object.entries(initial.tags).map(([language, list]) => [
+        language,
+        list.join(', '),
+      ]),
+    ),
+  );
   const [slots, setSlots] = useState(initial.slots);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function submit() {
-    const problem = withSlots ? slotsProblem(slots, t) : null;
+    const tagLists = Object.fromEntries(
+      locales.map((language) => [language, tagsOf(tags[language] ?? '')]),
+    );
+    const problem = !isWrittenOrEmpty(tagLists, locales)
+      ? t.admin.localized.tagsInEvery
+      : withSlots
+        ? slotsProblem(slots, t)
+        : null;
 
     if (problem) {
       setError(problem);
@@ -68,7 +92,12 @@ export function ResourceForm({
     setError(null);
 
     try {
-      await onSubmit({name: name.trim(), kindId, tags: tagsOf(tags), slots});
+      await onSubmit({
+        name: trimmedText(name, locales),
+        kindId,
+        tags: tagLists,
+        slots,
+      });
     } catch (caught) {
       setError(errorMessage(codeOf(caught), t));
       setSubmitting(false);
@@ -77,13 +106,16 @@ export function ResourceForm({
 
   return (
     <View className='gap-3'>
-      <FloatingLabelInput
-        label={t.admin.resourceForm.name}
-        value={name}
-        onChangeText={setName}
-        maxLength={40}
-        autoCapitalize='sentences'
-      />
+      {locales.map((language) => (
+        <FloatingLabelInput
+          key={language}
+          label={fieldLabel(t.admin.resourceForm.name, language, locales, t)}
+          value={name[language] ?? ''}
+          onChangeText={(text) => setName({...name, [language]: text})}
+          maxLength={40}
+          autoCapitalize='sentences'
+        />
+      ))}
       <View className='gap-2'>
         <Text className='text-[13px] font-medium text-theme-muted'>
           {t.admin.resource.kind}
@@ -108,18 +140,21 @@ export function ResourceForm({
                     selected ? 'text-theme-surface' : 'text-theme-ink'
                   }`}
                 >
-                  {kind.name}
+                  {localize(kind.name, locale)}
                 </Text>
               </Pressable>
             );
           })}
         </View>
       </View>
-      <FloatingLabelInput
-        label={t.admin.resourceForm.tags}
-        value={tags}
-        onChangeText={setTags}
-      />
+      {locales.map((language) => (
+        <FloatingLabelInput
+          key={language}
+          label={fieldLabel(t.admin.resourceForm.tags, language, locales, t)}
+          value={tags[language] ?? ''}
+          onChangeText={(text) => setTags({...tags, [language]: text})}
+        />
+      ))}
       {withSlots ? (
         <View className='mt-3'>
           <Text className={SECTION_LABEL}>{t.admin.resourceForm.slots}</Text>
@@ -137,7 +172,7 @@ export function ResourceForm({
       <View className='mt-2 flex-row flex-wrap gap-2.5'>
         <Pressable
           onPress={() => void submit()}
-          disabled={submitting || kindId === '' || name.trim().length === 0}
+          disabled={submitting || kindId === '' || !isWritten(name, locales)}
           className={PRIMARY_BUTTON}
         >
           <Text className={PRIMARY_LABEL}>{submitLabel}</Text>

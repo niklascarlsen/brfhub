@@ -36,8 +36,8 @@ function call(
 
 async function post(title: string, endsOn: string | null) {
   const response = await call('POST', '/admin/announcements', admin, {
-    title,
-    body: `${title} i detalj`,
+    title: {sv: title},
+    body: {sv: `${title} i detalj`},
     endsOn,
   });
   assert.equal(response.statusCode, 201);
@@ -54,8 +54,8 @@ async function insert(
     .insert(announcements)
     .values({
       organizationId: 'north',
-      title,
-      body: `${title} i detalj`,
+      title: {sv: title},
+      body: {sv: `${title} i detalj`},
       publishedOn,
       endsOn,
     })
@@ -128,7 +128,7 @@ test('an apartment sees what is published and not yet ended, newest first', asyn
   assert.equal(view.today, today);
   assert.deepEqual(
     view.announcements.map((announcement) => [
-      announcement.title,
+      announcement.title.sv,
       announcement.status,
     ]),
     [
@@ -147,8 +147,8 @@ test('another organization sees none of them', async () => {
 
 test('an announcement is published the day it is written', async () => {
   const response = await call('POST', '/admin/announcements', admin, {
-    title: 'Ny',
-    body: 'Text',
+    title: {sv: 'Ny'},
+    body: {sv: 'Text'},
     publishedOn: addDays(today, 5),
     endsOn: null,
   });
@@ -167,8 +167,8 @@ test('the admin edits and removes an announcement', async () => {
   const before = (await shownTo(member)).find((item) => item.id === id);
 
   const edited = await call('PUT', `/admin/announcements/${id}`, admin, {
-    title: 'Rätt rubrik',
-    body: 'Rätt text',
+    title: {sv: 'Rätt rubrik'},
+    body: {sv: 'Rätt text'},
     endsOn: addDays(today, 6),
   });
   assert.equal(edited.statusCode, 204);
@@ -188,8 +188,8 @@ test('the admin edits and removes an announcement', async () => {
 
 test('refuses an end before today', async () => {
   const created = await call('POST', '/admin/announcements', admin, {
-    title: 'Baklänges',
-    body: 'Text',
+    title: {sv: 'Baklänges'},
+    body: {sv: 'Text'},
     endsOn: addDays(today, -1),
   });
   assert.equal(created.statusCode, 400);
@@ -197,8 +197,8 @@ test('refuses an end before today', async () => {
 
   const id = await insert('Sedan länge', addDays(today, -10), null);
   const edited = await call('PUT', `/admin/announcements/${id}`, admin, {
-    title: 'Sedan länge',
-    body: 'Text',
+    title: {sv: 'Sedan länge'},
+    body: {sv: 'Text'},
     endsOn: addDays(today, -4),
   });
   assert.equal(edited.statusCode, 400);
@@ -211,8 +211,8 @@ test('an ended announcement can still have its text corrected', async () => {
   const id = await insert('Stavfel', addDays(today, -10), addDays(today, -3));
 
   const edited = await call('PUT', `/admin/announcements/${id}`, admin, {
-    title: 'Rättat',
-    body: 'Text',
+    title: {sv: 'Rättat'},
+    body: {sv: 'Text'},
     endsOn: addDays(today, -3),
   });
   assert.equal(edited.statusCode, 204);
@@ -222,10 +222,10 @@ test('an ended announcement can still have its text corrected', async () => {
 
 test('refuses empty, blank and too long texts', async () => {
   const cases = [
-    {title: '   ', body: 'Text'},
-    {title: 'Rubrik', body: ' \n '},
-    {title: 'x'.repeat(101), body: 'Text'},
-    {title: 'Rubrik', body: 'x'.repeat(2001)},
+    {title: {sv: '   '}, body: {sv: 'Text'}},
+    {title: {sv: 'Rubrik'}, body: {sv: ' \n '}},
+    {title: {sv: 'x'.repeat(101)}, body: {sv: 'Text'}},
+    {title: {sv: 'Rubrik'}, body: {sv: 'x'.repeat(2001)}},
   ];
 
   for (const fields of cases) {
@@ -239,8 +239,8 @@ test('refuses empty, blank and too long texts', async () => {
 
   const id = await post('Rubrik', null);
   const blank = await call('PUT', `/admin/announcements/${id}`, admin, {
-    title: ' ',
-    body: 'Text',
+    title: {sv: ' '},
+    body: {sv: 'Text'},
     endsOn: null,
   });
   assert.equal(codeOf(blank), 'VALIDATION');
@@ -254,8 +254,8 @@ test("an admin cannot touch another organization's announcements", async () => {
   const id = await post('Norr', null);
 
   const edited = await call('PUT', `/admin/announcements/${id}`, southAdmin, {
-    title: 'Söder',
-    body: 'Text',
+    title: {sv: 'Söder'},
+    body: {sv: 'Text'},
     endsOn: null,
   });
   assert.equal(edited.statusCode, 404);
@@ -274,7 +274,7 @@ test('only apartments read announcements and only the admin writes them', async 
   assert.equal((await call('GET', '/announcements', admin)).statusCode, 403);
 
   const id = '00000000-0000-4000-8000-000000000000';
-  const body = {title: 'Hej', body: 'Text', endsOn: null};
+  const body = {title: {sv: 'Hej'}, body: {sv: 'Text'}, endsOn: null};
   const requests: ['GET' | 'POST' | 'PUT' | 'DELETE', string][] = [
     ['GET', '/admin/announcements'],
     ['POST', '/admin/announcements'],
@@ -300,7 +300,7 @@ test('the house rules reach only their own apartments', async () => {
   assert.equal(before.text, '');
 
   const saved = await call('PATCH', '/admin/organization', admin, {
-    rulesText: '  Städa efter dig.\nTyst efter 22.  ',
+    rulesText: {sv: '  Städa efter dig.\nTyst efter 22.  '},
   });
   assert.equal(saved.statusCode, 200);
 
@@ -315,12 +315,12 @@ test('the house rules reach only their own apartments', async () => {
   assert.equal(south.text, '');
 
   const tooLong = await call('PATCH', '/admin/organization', admin, {
-    rulesText: 'x'.repeat(4001),
+    rulesText: {sv: 'x'.repeat(4001)},
   });
   assert.equal(codeOf(tooLong), 'VALIDATION');
 
   const cleared = await call('PATCH', '/admin/organization', admin, {
-    rulesText: '   ',
+    rulesText: {sv: '   '},
   });
   assert.equal(cleared.statusCode, 200);
   assert.equal(

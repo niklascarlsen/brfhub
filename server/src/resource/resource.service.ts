@@ -7,17 +7,30 @@ import {
   resourceSlots,
   resources,
 } from '../db/schema.js';
+import {localized, localizedTags, type Locale} from '../lib/locale.js';
 import {asDateText, todaySql} from '../lib/time.js';
 import type {Organization} from '../lib/user.js';
 import type {BookingRules, Resource} from './resource.dto.js';
 import {resourceOpenOn, slotInEffect} from './schedule.query.js';
 
-const resourceFields = {
-  id: resources.id,
-  name: resources.name,
-  kind: resources.kindId,
-  tags: resources.tags,
-};
+function resourceFields(locale: Locale) {
+  return {
+    id: resources.id,
+    name: localized(resources.name, locale),
+    kind: resources.kindId,
+    tags: localizedTags(resources.tags, locale),
+  };
+}
+
+// The resource a booking or queue place is for, as resourceRefSchema
+// names it.
+export function resourceRefFields(locale: Locale) {
+  return {
+    resourceId: resources.id,
+    resourceName: localized(resources.name, locale),
+    resourceKind: resources.kindId,
+  };
+}
 
 export type BookableResource = Resource & {maxActive: number};
 
@@ -31,15 +44,15 @@ function bookableIn({organizationId, timeZone}: Organization) {
 
 export function listResources(organization: Organization): Promise<Resource[]> {
   return db
-    .select(resourceFields)
+    .select(resourceFields(organization.locale))
     .from(resources)
     .where(bookableIn(organization))
     .orderBy(asc(resources.sortOrder));
 }
 
-function selectBookable() {
+function selectBookable(locale: Locale) {
   return db
-    .select({...resourceFields, maxActive: resourceKinds.maxActive})
+    .select({...resourceFields(locale), maxActive: resourceKinds.maxActive})
     .from(resources)
     .innerJoin(
       resourceKinds,
@@ -53,16 +66,16 @@ function selectBookable() {
 export function listBookableResources(
   organization: Organization,
 ): Promise<BookableResource[]> {
-  return selectBookable()
+  return selectBookable(organization.locale)
     .where(bookableIn(organization))
     .orderBy(asc(resources.sortOrder));
 }
 
 export async function getResource(
-  organizationId: string,
+  {organizationId, locale}: Organization,
   id: string,
 ): Promise<BookableResource | undefined> {
-  const [row] = await selectBookable().where(
+  const [row] = await selectBookable(locale).where(
     and(eq(resources.organizationId, organizationId), eq(resources.id, id)),
   );
 
@@ -95,23 +108,23 @@ function versionsOf(
 export async function getBookingRules(
   organization: Organization,
 ): Promise<BookingRules> {
-  const {organizationId, timeZone} = organization;
+  const {organizationId, timeZone, locale} = organization;
   const today = todaySql(timeZone);
   const [[settings], kinds, bookable, open] = await Promise.all([
     db
-      .select({rulesText: organizations.rulesText})
+      .select({rulesText: localized(organizations.rulesText, locale)})
       .from(organizations)
       .where(eq(organizations.id, organizationId)),
     db
       .select({
         id: resourceKinds.id,
-        name: resourceKinds.name,
+        name: localized(resourceKinds.name, locale),
         maxActive: resourceKinds.maxActive,
       })
       .from(resourceKinds)
       .where(eq(resourceKinds.organizationId, organizationId)),
     db
-      .select({...resourceFields, closesFrom: resources.closesFrom})
+      .select({...resourceFields(locale), closesFrom: resources.closesFrom})
       .from(resources)
       .where(bookableIn(organization))
       .orderBy(asc(resources.sortOrder)),

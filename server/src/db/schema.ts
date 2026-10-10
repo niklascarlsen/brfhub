@@ -6,6 +6,7 @@ import {
   foreignKey,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -16,18 +17,45 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
-import {LOCALES} from '../lib/locale.js';
+import {
+  LOCALES,
+  type Locale,
+  type LocalizedTags,
+  type LocalizedText,
+} from '../lib/locale.js';
 
-export const organizations = pgTable('organizations', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  // IANA name, set when the organization is created and never changed:
-  // bookings store the instant their slot ends, worked out in this zone.
-  timeZone: text('time_zone').notNull(),
-  bookingWindowDays: integer('booking_window_days').notNull(),
-  // House rules in the admin's own words, shown above the derived ones.
-  rulesText: text('rules_text').notNull().default(''),
-});
+export const locale = pgEnum('locale', LOCALES);
+
+// Text the admin writes once per language of the organization, which is
+// shown in the language each device asks for.
+function localizedText(name: string) {
+  return jsonb(name).$type<LocalizedText>();
+}
+
+export const organizations = pgTable(
+  'organizations',
+  {
+    id: text('id').primaryKey(),
+    // Not translated: a name reads the same in every language.
+    name: text('name').notNull(),
+    // IANA name, set when the organization is created and never changed:
+    // bookings store the instant their slot ends, worked out in this zone.
+    timeZone: text('time_zone').notNull(),
+    bookingWindowDays: integer('booking_window_days').notNull(),
+    // The languages the organization writes in, and so the only ones its
+    // apartments can show. In the order of LOCALES.
+    locales: locale('locales').array().$type<Locale[]>().notNull(),
+    // House rules in the admin's own words, shown above the derived ones.
+    // Empty when there are none.
+    rulesText: localizedText('rules_text').notNull().default({}),
+  },
+  (table) => [
+    check(
+      'organizations_locales_check',
+      sql`cardinality(${table.locales}) > 0`,
+    ),
+  ],
+);
 
 export const members = pgTable(
   'members',
@@ -56,7 +84,7 @@ export const resourceKinds = pgTable(
       .notNull()
       .references(() => organizations.id),
     id: text('id').notNull(),
-    name: text('name').notNull(),
+    name: localizedText('name').notNull(),
     maxActive: integer('max_active').notNull(),
   },
   (table) => [primaryKey({columns: [table.organizationId, table.id]})],
@@ -70,8 +98,8 @@ export const resources = pgTable(
       .notNull()
       .references(() => organizations.id),
     kindId: text('kind_id').notNull(),
-    name: text('name').notNull(),
-    tags: text('tags').array().notNull(),
+    name: localizedText('name').notNull(),
+    tags: jsonb('tags').$type<LocalizedTags>().notNull(),
     sortOrder: integer('sort_order').notNull(),
     // Bookable up to the day before. Null while the resource stays open.
     closesFrom: date('closes_from', {mode: 'string'}),
@@ -195,8 +223,8 @@ export const announcements = pgTable(
     organizationId: text('organization_id')
       .notNull()
       .references(() => organizations.id),
-    title: text('title').notNull(),
-    body: text('body').notNull(),
+    title: localizedText('title').notNull(),
+    body: localizedText('body').notNull(),
     publishedOn: date('published_on', {mode: 'string'}).notNull(),
     endsOn: date('ends_on', {mode: 'string'}),
     createdAt: timestamp('created_at', {withTimezone: true})
@@ -214,8 +242,6 @@ export const announcements = pgTable(
     ),
   ],
 );
-
-export const locale = pgEnum('locale', LOCALES);
 
 export const pushTokens = pgTable('push_tokens', {
   token: text('token').primaryKey(),

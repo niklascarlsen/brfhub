@@ -7,12 +7,20 @@ import {
   endsOnAfter,
   startOf,
 } from '@/admin/announcement';
+import {useAdminAccount} from '@/admin/account';
+import {
+  fieldLabel,
+  isWritten,
+  trimmedText,
+  type Draft,
+} from '@/admin/localized';
 import {
   PRIMARY_BUTTON,
   PRIMARY_LABEL,
   SECONDARY_BUTTON,
   SECONDARY_LABEL,
 } from '@/admin/styles';
+import type {LocalizedText} from '@/api/client';
 import {codeOf, errorMessage} from '@/api/errors';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {useMessages} from '@/i18n/LocaleProvider';
@@ -20,8 +28,8 @@ import {formatLongDate} from '@/lib/dates';
 import theme from '@/theme.json';
 
 export type AnnouncementFields = {
-  title: string;
-  body: string;
+  title: LocalizedText;
+  body: LocalizedText;
   endsOn: string | null;
 };
 
@@ -43,8 +51,9 @@ export function AnnouncementForm({
   onDelete,
 }: AnnouncementFormProps) {
   const t = useMessages();
-  const [title, setTitle] = useState(initial.title);
-  const [body, setBody] = useState(initial.body);
+  const {locales} = useAdminAccount();
+  const [title, setTitle] = useState<Draft>(initial.title);
+  const [body, setBody] = useState<Draft>(initial.body);
   const [endsOn, setEndsOn] = useState(initial.endsOn);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -59,8 +68,8 @@ export function AnnouncementForm({
 
     try {
       await onSubmit({
-        title: title.trim(),
-        body: body.trim(),
+        title: trimmedText(title, locales),
+        body: trimmedText(body, locales),
         endsOn,
       });
     } catch (caught) {
@@ -71,28 +80,47 @@ export function AnnouncementForm({
 
   return (
     <View className='gap-3'>
-      <FloatingLabelInput
-        label={t.admin.announcementForm.title}
-        value={title}
-        onChangeText={setTitle}
-        maxLength={100}
-        autoCapitalize='sentences'
-      />
-      <View className='gap-1.5'>
-        <Text className='text-[13px] font-medium text-theme-muted'>
-          {t.admin.announcementForm.body}
-        </Text>
-        <TextInput
-          value={body}
-          onChangeText={setBody}
-          multiline
-          maxLength={2000}
-          textAlignVertical='top'
-          accessibilityLabel={t.admin.announcementForm.body}
-          className='min-h-[132px] rounded-sm border border-theme-edge bg-theme-surface px-4 py-3 text-base text-theme-ink'
-          style={{fontFamily: 'Merriweather_400Regular', color: theme.ink}}
+      {locales.map((language) => (
+        <FloatingLabelInput
+          key={language}
+          label={fieldLabel(
+            t.admin.announcementForm.title,
+            language,
+            locales,
+            t,
+          )}
+          value={title[language] ?? ''}
+          onChangeText={(text) => setTitle({...title, [language]: text})}
+          maxLength={100}
+          autoCapitalize='sentences'
         />
-      </View>
+      ))}
+      {locales.map((language) => {
+        const label = fieldLabel(
+          t.admin.announcementForm.body,
+          language,
+          locales,
+          t,
+        );
+
+        return (
+          <View key={language} className='gap-1.5'>
+            <Text className='text-[13px] font-medium text-theme-muted'>
+              {label}
+            </Text>
+            <TextInput
+              value={body[language] ?? ''}
+              onChangeText={(text) => setBody({...body, [language]: text})}
+              multiline
+              maxLength={2000}
+              textAlignVertical='top'
+              accessibilityLabel={label}
+              className='min-h-[132px] rounded-sm border border-theme-edge bg-theme-surface px-4 py-3 text-base text-theme-ink'
+              style={{fontFamily: 'Merriweather_400Regular', color: theme.ink}}
+            />
+          </View>
+        );
+      })}
       <View className='gap-2'>
         <Text className='text-[13px] font-medium text-theme-muted'>
           {t.admin.announcementForm.shownFor}
@@ -144,7 +172,9 @@ export function AnnouncementForm({
         <Pressable
           onPress={() => void submit()}
           disabled={
-            submitting || title.trim().length === 0 || body.trim().length === 0
+            submitting ||
+            !isWritten(title, locales) ||
+            !isWritten(body, locales)
           }
           className={PRIMARY_BUTTON}
         >

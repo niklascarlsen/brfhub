@@ -5,6 +5,7 @@ import {Alert, BackHandler, Pressable, Text, View} from 'react-native';
 import {useAdminAccount} from '@/admin/account';
 import {AdminPage} from '@/admin/AdminPage';
 import {KindForm} from '@/admin/KindForm';
+import {missingLanguages} from '@/admin/localized';
 import {ResourceDetail} from '@/admin/ResourceDetail';
 import {ResourceForm} from '@/admin/ResourceForm';
 import {limitText, slotsText} from '@/admin/schedule';
@@ -20,8 +21,8 @@ import {Notice} from '@/components/Notice';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useSlowLoad} from '@/hooks/useSlowLoad';
-import type {Messages} from '@/i18n/catalog';
-import {useMessages} from '@/i18n/LocaleProvider';
+import {localize, type Messages} from '@/i18n/catalog';
+import {useLocale, useMessages} from '@/i18n/LocaleProvider';
 import {formatDayMonth} from '@/lib/dates';
 import theme from '@/theme.json';
 
@@ -66,7 +67,12 @@ function ResourceRow({
   last: boolean;
 }) {
   const t = useMessages();
+  const {locale} = useLocale();
+  const {locales} = useAdminAccount();
   const current = resource.schedules[0];
+  const missing =
+    missingLanguages(resource.name, locales, t) ??
+    missingLanguages(resource.tags, locales, t);
 
   return (
     <Pressable
@@ -80,13 +86,18 @@ function ResourceRow({
           numberOfLines={1}
           className='text-[15px] font-semibold tracking-tight text-theme-ink'
         >
-          {resource.name}
+          {localize(resource.name, locale)}
         </Text>
         <Text className='font-sans text-[13px] text-theme-muted'>
           {current ? slotsText(current.slots) : t.admin.resources.noSlots}
         </Text>
         {status ? (
           <Text className='font-sans text-xs text-theme-accent'>{status}</Text>
+        ) : null}
+        {missing ? (
+          <Text className='font-sans text-xs text-theme-accent'>
+            {t.admin.localized.untranslated(missing)}
+          </Text>
         ) : null}
       </View>
       <Ionicons name='chevron-forward' size={16} color={theme.faint} />
@@ -95,8 +106,9 @@ function ResourceRow({
 }
 
 export function AdminResources() {
-  const {organizationName} = useAdminAccount();
+  const {organizationName, locales} = useAdminAccount();
   const t = useMessages();
+  const {locale} = useLocale();
   const {data, error, reload} = useFocusLoad(fetchResources);
   const showSkeleton = useSlowLoad(data === null && error === null);
   const [screen, setScreen] = useState<Screen>({kind: 'list'});
@@ -130,7 +142,7 @@ export function AdminResources() {
         back={back}
       >
         <KindForm
-          initial={{name: '', maxActive: 1}}
+          initial={{name: {}, maxActive: 1}}
           submitLabel={t.admin.add}
           onCancel={toList}
           onSubmit={async (fields) => {
@@ -155,7 +167,7 @@ export function AdminResources() {
 
     return (
       <AdminPage
-        title={editedKind.name}
+        title={localize(editedKind.name, locale) ?? ''}
         subtitle={organizationName}
         back={back}
       >
@@ -209,9 +221,9 @@ export function AdminResources() {
         <ResourceForm
           kinds={data.kinds}
           initial={{
-            name: '',
+            name: {},
             kindId: data.kinds[0]?.id ?? '',
-            tags: [],
+            tags: {},
             slots: [{start: '08:00', end: '11:00', endOffsetDays: 0}],
           }}
           withSlots
@@ -222,7 +234,11 @@ export function AdminResources() {
               api.POST('/admin/resources', {body: fields}),
             );
             reload();
-            setScreen({kind: 'resource', id, name: fields.name});
+            setScreen({
+              kind: 'resource',
+              id,
+              name: localize(fields.name, locale) ?? '',
+            });
           }}
         />
       </AdminPage>
@@ -236,7 +252,11 @@ export function AdminResources() {
 
   if (data && opened) {
     return (
-      <AdminPage title={opened.name} subtitle={organizationName} back={back}>
+      <AdminPage
+        title={localize(opened.name, locale) ?? ''}
+        subtitle={organizationName}
+        back={back}
+      >
         <ResourceDetail
           key={opened.id}
           resource={opened}
@@ -270,12 +290,13 @@ export function AdminResources() {
           const own = data.resources.filter(
             (resource) => resource.kindId === kind.id,
           );
+          const missing = missingLanguages(kind.name, locales, t);
 
           return (
             <View key={kind.id}>
               <View className='mb-2.5 ml-0.5 flex-row items-baseline justify-between gap-3'>
                 <Text className='text-[11px] font-bold uppercase tracking-[1px] text-theme-muted'>
-                  {kind.name}
+                  {localize(kind.name, locale)}
                 </Text>
                 <Pressable
                   onPress={() => setScreen({kind: 'edit-kind', id: kind.id})}
@@ -283,6 +304,11 @@ export function AdminResources() {
                   className='active:opacity-60'
                 >
                   <Text className='font-sans text-xs text-theme-muted'>
+                    {missing ? (
+                      <Text className='text-theme-accent'>
+                        {t.admin.localized.untranslated(missing)} ·{' '}
+                      </Text>
+                    ) : null}
                     {limitText(kind, t)} · {t.admin.resources.edit}
                   </Text>
                 </Pressable>
@@ -303,7 +329,7 @@ export function AdminResources() {
                         setScreen({
                           kind: 'resource',
                           id: resource.id,
-                          name: resource.name,
+                          name: localize(resource.name, locale) ?? '',
                         })
                       }
                     />

@@ -7,14 +7,16 @@ import {eq} from 'drizzle-orm';
 import {createUser} from '../src/auth/auth.service.js';
 import {db, pool} from '../src/db/index.js';
 import {organizations, user} from '../src/db/schema.js';
+import {organizationLocalesSchema} from '../src/lib/locale.js';
 import {generatePassword} from '../src/lib/password.js';
 import {isValidTimeZone} from '../src/lib/time.js';
 
-const USAGE = `Usage: npm run org:create -- --id <slug> --name <name> --time-zone <zone> --admin-email <email> [--window <days>]
+const USAGE = `Usage: npm run org:create -- --id <slug> --name <name> --time-zone <zone> --admin-email <email> [--window <days>] [--languages <sv,en>]
 
 Creates an organization and its admin account, and prints the admin's
 password once. The time zone is an IANA name such as Europe/Stockholm and
-cannot be changed later.`;
+cannot be changed later. The languages default to Swedish; the admin can
+change them.`;
 
 const DEFAULT_WINDOW_DAYS = 30;
 
@@ -25,6 +27,7 @@ const {values} = parseArgs({
     'time-zone': {type: 'string'},
     'admin-email': {type: 'string'},
     window: {type: 'string'},
+    languages: {type: 'string'},
   },
 });
 
@@ -33,6 +36,9 @@ const name = values.name;
 const timeZone = values['time-zone'];
 const adminEmail = values['admin-email'];
 const bookingWindowDays = Number(values.window ?? DEFAULT_WINDOW_DAYS);
+const languages = organizationLocalesSchema.safeParse(
+  (values.languages ?? 'sv').split(','),
+);
 
 if (
   !id ||
@@ -41,11 +47,14 @@ if (
   !timeZone ||
   !adminEmail ||
   !Number.isInteger(bookingWindowDays) ||
-  bookingWindowDays < 1
+  bookingWindowDays < 1 ||
+  !languages.success
 ) {
   console.error(USAGE);
   process.exit(1);
 }
+
+const locales = languages.data;
 
 try {
   if (!(await isValidTimeZone(timeZone))) {
@@ -77,7 +86,7 @@ try {
   await db.transaction(async (tx) => {
     await tx
       .insert(organizations)
-      .values({id, name, timeZone, bookingWindowDays});
+      .values({id, name, timeZone, bookingWindowDays, locales});
     await createUser(
       {
         email: adminEmail,

@@ -38,9 +38,9 @@ const ORGANIZATION = {
 };
 
 const KINDS = [
-  {id: 'laundry', name: 'Tvätt', maxActive: 1},
-  {id: 'drying', name: 'Tork', maxActive: 1},
-  {id: 'sauna', name: 'Bastu', maxActive: 2},
+  {id: 'laundry', name: {sv: 'Tvätt'}, maxActive: 1},
+  {id: 'drying', name: {sv: 'Tork'}, maxActive: 1},
+  {id: 'sauna', name: {sv: 'Bastu'}, maxActive: 2},
 ];
 
 const APARTMENTS = ['11', '12', '13', '14', '15', '21', '31'];
@@ -49,29 +49,29 @@ const RESOURCES = [
   {
     id: LAUNDRY_1,
     kindId: 'laundry',
-    name: 'Tvättstuga 1',
-    tags: ['torktumlare'],
+    name: {sv: 'Tvättstuga 1'},
+    tags: {sv: ['torktumlare']},
     sortOrder: 1,
   },
   {
     id: LAUNDRY_2,
     kindId: 'laundry',
-    name: 'Tvättstuga 2',
-    tags: [],
+    name: {sv: 'Tvättstuga 2'},
+    tags: {},
     sortOrder: 2,
   },
   {
     id: DRYING,
     kindId: 'drying',
-    name: 'Torkrum',
-    tags: ['avfuktare'],
+    name: {sv: 'Torkrum'},
+    tags: {sv: ['avfuktare']},
     sortOrder: 3,
   },
   {
     id: SAUNA,
     kindId: 'sauna',
-    name: 'Bastu',
-    tags: [],
+    name: {sv: 'Bastu'},
+    tags: {},
     sortOrder: 4,
   },
 ];
@@ -997,7 +997,7 @@ test('the released slot is announced in each device language', () => {
     start: '07:00',
     end: '10:00',
     resourceId: LAUNDRY_1,
-    resourceName: 'Tvättstuga 1',
+    resourceName: {sv: 'Tvättstuga 1', en: 'Laundry room 1'},
   };
 
   assert.deepEqual(releasedNotification('sv', slot), {
@@ -1007,7 +1007,7 @@ test('the released slot is announced in each device language', () => {
   });
   assert.deepEqual(releasedNotification('en', slot), {
     title: 'A slot opened up',
-    body: 'Tvättstuga 1, Saturday 10 October 07:00–10:00 is free – first come, first served.',
+    body: 'Laundry room 1, Saturday 10 October 07:00–10:00 is free – first come, first served.',
     data: {date: '2026-10-10', start: '07:00', resourceId: LAUNDRY_1},
   });
 });

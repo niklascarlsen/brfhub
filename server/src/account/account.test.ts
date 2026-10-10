@@ -63,13 +63,13 @@ before(async () => {
 
   const north = await seedOrganization({
     organization: NORTH,
-    kinds: [{id: 'laundry', name: 'Tvätt', maxActive: 1}],
+    kinds: [{id: 'laundry', name: {sv: 'Tvätt'}, maxActive: 1}],
     resources: [
       {
         id: 'north-laundry',
         kindId: 'laundry',
-        name: 'Tvättstuga Norr',
-        tags: [],
+        name: {sv: 'Tvättstuga Norr'},
+        tags: {},
         sortOrder: 1,
       },
     ],
@@ -80,13 +80,13 @@ before(async () => {
   });
   const south = await seedOrganization({
     organization: SOUTH,
-    kinds: [{id: 'sauna', name: 'Bastu', maxActive: 1}],
+    kinds: [{id: 'sauna', name: {sv: 'Bastu'}, maxActive: 1}],
     resources: [
       {
         id: 'south-sauna',
         kindId: 'sauna',
-        name: 'Bastu Söder',
-        tags: [],
+        name: {sv: 'Bastu Söder'},
+        tags: {},
         sortOrder: 1,
       },
     ],
@@ -116,6 +116,7 @@ test('tells an apartment who it is', async () => {
   assert.deepEqual(response.json<Account>(), {
     role: 'member',
     organizationName: NORTH.name,
+    locales: ['sv'],
     apartment: '1',
   });
 });
@@ -130,6 +131,7 @@ test('tells the admin who it is', async () => {
   assert.deepEqual(response.json<Account>(), {
     role: 'admin',
     organizationName: SOUTH.name,
+    locales: ['sv'],
   });
 });
 
@@ -201,6 +203,7 @@ test('nobody can change their own role, organization or apartment', async () => 
   assert.deepEqual(account.json<Account>(), {
     role: 'member',
     organizationName: NORTH.name,
+    locales: ['sv'],
     apartment: '1',
   });
 });
@@ -300,6 +303,7 @@ test('refuses an admin tied to an apartment', async () => {
     name: 'Brf Öster',
     timeZone: 'Europe/Stockholm',
     bookingWindowDays: 30,
+    locales: ['sv'],
   });
   const [apartment] = await db
     .insert(members)

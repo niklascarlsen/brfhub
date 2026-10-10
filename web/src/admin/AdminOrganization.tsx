@@ -2,15 +2,21 @@ import {useState, type SubmitEvent} from 'react';
 
 import {useAdminAccount, useRefreshAccount} from '@/admin/account';
 import {AdminPage} from '@/admin/AdminPage';
+import {
+  fieldLabel,
+  isWrittenOrEmpty,
+  trimmedText,
+  type Draft,
+} from '@/admin/localized';
 import {PRIMARY_BUTTON, SECTION_LABEL} from '@/admin/styles';
-import {api, unwrap} from '@/api/client';
+import {api, unwrap, type LocalizedText} from '@/api/client';
 import {codeOf, errorMessage} from '@/api/errors';
 import {authClient} from '@/auth/client';
 import {Account} from '@/components/Account';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {Notice} from '@/components/Notice';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
-import type {Messages} from '@/i18n/catalog';
+import {CATALOGS, LOCALES, type Locale, type Messages} from '@/i18n/catalog';
 import {useMessages} from '@/i18n/LocaleProvider';
 
 const MIN_PASSWORD_LENGTH = 8;
@@ -23,7 +29,8 @@ function fetchSettings() {
 type SettingsFields = {
   name: string;
   bookingWindowDays: number;
-  rulesText: string;
+  locales: Locale[];
+  rulesText: LocalizedText;
 };
 
 function SettingsForm({
@@ -36,7 +43,8 @@ function SettingsForm({
   const t = useMessages();
   const [name, setName] = useState(initial.name);
   const [days, setDays] = useState(String(initial.bookingWindowDays));
-  const [rulesText, setRulesText] = useState(initial.rulesText);
+  const [locales, setLocales] = useState(initial.locales);
+  const [rulesText, setRulesText] = useState<Draft>(initial.rulesText);
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -54,11 +62,28 @@ function SettingsForm({
       return;
     }
 
+    const rules = trimmedText(rulesText, locales);
+    if (!isWrittenOrEmpty(rules, locales)) {
+      setMessage(t.admin.localized.rulesInEvery);
+      return;
+    }
+
+    // Unchanged rules stay as they are, so a language turned off keeps
+    // its text.
+    const rulesChanged =
+      JSON.stringify(rules) !==
+      JSON.stringify(trimmedText(initial.rulesText, locales));
+
     setSubmitting(true);
     try {
       await unwrap(
         api.PATCH('/admin/organization', {
-          body: {name: name.trim(), bookingWindowDays, rulesText},
+          body: {
+            name: name.trim(),
+            bookingWindowDays,
+            locales,
+            ...(rulesChanged ? {rulesText: rules} : {}),
+          },
         }),
       );
       setMessage(t.admin.organization.saved);
@@ -94,22 +119,65 @@ function SettingsForm({
       <p className='text-[13px] leading-5 text-theme-muted'>
         {t.admin.organization.windowNote}
       </p>
-      <label className='mt-2 flex flex-col gap-1.5'>
-        <span className='text-[13px] font-medium text-theme-muted'>
-          {t.admin.organization.rules}
-        </span>
-        <textarea
-          maxLength={4000}
-          rows={5}
-          placeholder={t.admin.organization.rulesPlaceholder}
-          value={rulesText}
-          onChange={(event) => setRulesText(event.target.value)}
-          className='w-full rounded-xs border border-theme-edge bg-theme-surface px-4 py-3 text-base leading-6 text-theme-ink placeholder:text-theme-faint focus:border-theme-ink'
-        />
+      <fieldset className='mt-2 flex flex-col gap-2'>
+        <legend className='mb-2 text-[13px] font-medium text-theme-muted'>
+          {t.admin.organization.languages}
+        </legend>
+        <div className='flex flex-wrap gap-2'>
+          {LOCALES.map((language) => {
+            const selected = locales.includes(language);
+
+            return (
+              <button
+                key={language}
+                type='button'
+                lang={language}
+                aria-pressed={selected}
+                // The organization writes in at least one language.
+                disabled={selected && locales.length === 1}
+                onClick={() =>
+                  setLocales(
+                    LOCALES.filter((item) =>
+                      item === language ? !selected : locales.includes(item),
+                    ),
+                  )
+                }
+                className={`h-10 rounded-full border px-4 text-sm font-semibold transition-colors ${
+                  selected
+                    ? 'border-theme-ink bg-theme-ink text-theme-surface'
+                    : 'border-theme-edge bg-theme-surface text-theme-ink hover:bg-theme-sunk'
+                }`}
+              >
+                {CATALOGS[language].language.name}
+              </button>
+            );
+          })}
+        </div>
         <span className='text-[13px] leading-5 text-theme-muted'>
-          {t.admin.organization.rulesNote}
+          {t.admin.organization.languagesNote}
         </span>
-      </label>
+      </fieldset>
+      {locales.map((language) => (
+        <label key={language} className='mt-2 flex flex-col gap-1.5'>
+          <span className='text-[13px] font-medium text-theme-muted'>
+            {fieldLabel(t.admin.organization.rules, language, locales, t)}
+          </span>
+          <textarea
+            lang={language}
+            maxLength={4000}
+            rows={5}
+            placeholder={t.admin.organization.rulesPlaceholder}
+            value={rulesText[language] ?? ''}
+            onChange={(event) =>
+              setRulesText({...rulesText, [language]: event.target.value})
+            }
+            className='w-full rounded-xs border border-theme-edge bg-theme-surface px-4 py-3 text-base leading-6 text-theme-ink placeholder:text-theme-faint focus:border-theme-ink'
+          />
+        </label>
+      ))}
+      <span className='text-[13px] leading-5 text-theme-muted'>
+        {t.admin.organization.rulesNote}
+      </span>
       {message ? (
         <p role='status' className='text-sm text-theme-ink'>
           {message}
