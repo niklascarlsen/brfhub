@@ -2,18 +2,14 @@ import {useState} from 'react';
 import {Pressable, Text, View} from 'react-native';
 
 import {useAdminAccount} from '@/admin/account';
+import {FormActions} from '@/admin/FormActions';
 import {
   fieldLabel,
   isWritten,
   trimmedText,
   type Draft,
 } from '@/admin/localized';
-import {
-  PRIMARY_BUTTON,
-  PRIMARY_LABEL,
-  SECONDARY_BUTTON,
-  SECONDARY_LABEL,
-} from '@/admin/styles';
+import {SECONDARY_BUTTON, SECONDARY_LABEL} from '@/admin/styles';
 import type {LocalizedText} from '@/api/client';
 import {codeOf, errorMessage} from '@/api/errors';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
@@ -67,6 +63,10 @@ export function KindForm({
   const [maxActive, setMaxActive] = useState(initial.maxActive);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const dirty =
+    JSON.stringify(trimmedText(name, locales)) !==
+      JSON.stringify(trimmedText(initial.name, locales)) ||
+    maxActive !== initial.maxActive;
 
   async function submit() {
     setSubmitting(true);
@@ -135,23 +135,20 @@ export function KindForm({
           {error}
         </Text>
       ) : null}
-      <View className='mt-2 flex-row flex-wrap gap-2.5'>
-        <Pressable
-          onPress={() => void submit()}
-          disabled={submitting || !isWritten(name, locales)}
-          className={PRIMARY_BUTTON}
-        >
-          <Text className={PRIMARY_LABEL}>{submitLabel}</Text>
-        </Pressable>
-        <Pressable onPress={onCancel} className={SECONDARY_BUTTON}>
-          <Text className={SECONDARY_LABEL}>{t.common.cancel}</Text>
-        </Pressable>
+      <FormActions
+        submitLabel={submitLabel}
+        dirty={dirty}
+        valid={isWritten(name, locales)}
+        submitting={submitting}
+        onSubmit={() => void submit()}
+        onCancel={onCancel}
+      >
         {onDelete ? (
           <Pressable onPress={onDelete} className={SECONDARY_BUTTON}>
             <Text className={SECONDARY_LABEL}>{t.admin.kindForm.remove}</Text>
           </Pressable>
         ) : null}
-      </View>
+      </FormActions>
     </View>
   );
 }

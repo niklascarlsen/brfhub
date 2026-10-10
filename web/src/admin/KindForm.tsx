@@ -1,8 +1,14 @@
 import {useState, type SubmitEvent} from 'react';
 
 import {useAdminAccount} from '@/admin/account';
-import {fieldLabel, trimmedText, type Draft} from '@/admin/localized';
-import {PRIMARY_BUTTON, SECONDARY_BUTTON} from '@/admin/styles';
+import {FormActions} from '@/admin/FormActions';
+import {
+  fieldLabel,
+  isWritten,
+  trimmedText,
+  type Draft,
+} from '@/admin/localized';
+import {SECONDARY_BUTTON} from '@/admin/styles';
 import type {LocalizedText} from '@/api/client';
 import {codeOf, errorMessage} from '@/api/errors';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
@@ -33,6 +39,11 @@ export function KindForm({
   const [maxActive, setMaxActive] = useState(initial.maxActive);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const dirty =
+    JSON.stringify(trimmedText(name, locales)) !==
+      JSON.stringify(trimmedText(initial.name, locales)) ||
+    maxActive !== initial.maxActive;
 
   async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -111,13 +122,13 @@ export function KindForm({
           {error}
         </p>
       ) : null}
-      <div className='mt-2 flex flex-wrap gap-2.5'>
-        <button type='submit' disabled={submitting} className={PRIMARY_BUTTON}>
-          {submitLabel}
-        </button>
-        <button type='button' onClick={onCancel} className={SECONDARY_BUTTON}>
-          {t.common.cancel}
-        </button>
+      <FormActions
+        submitLabel={submitLabel}
+        dirty={dirty}
+        valid={isWritten(name, locales)}
+        submitting={submitting}
+        onCancel={onCancel}
+      >
         {onDelete ? (
           <button
             type='button'
@@ -127,7 +138,7 @@ export function KindForm({
             {t.admin.kindForm.remove}
           </button>
         ) : null}
-      </div>
+      </FormActions>
     </form>
   );
 }

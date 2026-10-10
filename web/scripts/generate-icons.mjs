@@ -16,6 +16,8 @@ const ICONS = {
   'grid-outline': 'GridOutlineIcon',
   'megaphone-outline': 'MegaphoneOutlineIcon',
   'settings-outline': 'SettingsOutlineIcon',
+  'eye-outline': 'EyeOutlineIcon',
+  'eye-off-outline': 'EyeOffOutlineIcon',
   add: 'AddIcon',
 };
 

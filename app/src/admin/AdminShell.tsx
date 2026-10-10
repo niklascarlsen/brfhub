@@ -2,6 +2,7 @@ import {NavigationContainer} from '@react-navigation/native';
 import {useEffect} from 'react';
 
 import {AdminAccountContext} from '@/admin/account';
+import {UnsavedContext, useUnsavedRoot} from '@/admin/unsaved';
 import type {AdminAccount} from '@/auth/account';
 import AdminTabNavigator from '@/navigation/AdminTabNavigator';
 import {dropPushToken} from '@/push';
@@ -14,6 +15,8 @@ type AdminShellProps = {
 };
 
 export function AdminShell({account, onRefresh}: AdminShellProps) {
+  const unsaved = useUnsavedRoot();
+
   // A phone an apartment used before may still hand its push to the
   // apartment; the admin should not get those notifications.
   useEffect(() => {
@@ -24,9 +27,11 @@ export function AdminShell({account, onRefresh}: AdminShellProps) {
 
   return (
     <AdminAccountContext.Provider value={{account, refresh: onRefresh}}>
-      <NavigationContainer>
-        <AdminTabNavigator />
-      </NavigationContainer>
+      <UnsavedContext.Provider value={unsaved}>
+        <NavigationContainer>
+          <AdminTabNavigator />
+        </NavigationContainer>
+      </UnsavedContext.Provider>
     </AdminAccountContext.Provider>
   );
 }

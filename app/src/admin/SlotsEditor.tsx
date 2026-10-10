@@ -1,10 +1,11 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {useState} from 'react';
-import {Pressable, Switch, Text, TextInput, View} from 'react-native';
+import {Pressable, Switch, Text, View} from 'react-native';
 
 import {nextSlot} from '@/admin/schedule';
 import {SECONDARY_BUTTON, SECONDARY_LABEL} from '@/admin/styles';
 import type {SlotInput} from '@/api/client';
+import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import theme from '@/theme.json';
 import {useMessages} from '@/i18n/LocaleProvider';
 
@@ -39,25 +40,18 @@ function TimeField({
   const [text, setText] = useState(value);
 
   return (
-    <View className='min-w-[96px] flex-1 gap-1'>
-      <Text className='text-xs font-medium text-theme-muted'>{label}</Text>
-      <TextInput
-        value={text}
-        onChangeText={(next) => {
-          setText(next);
-          onChange(normalizedTime(next));
-        }}
-        onEndEditing={() => setText(normalizedTime(text))}
-        keyboardType='numbers-and-punctuation'
-        maxLength={5}
-        accessibilityLabel={label}
-        className='h-11 rounded-sm border border-theme-edge bg-theme-surface px-3 text-base text-theme-ink'
-        style={{
-          fontFamily: 'Merriweather_400Regular',
-          fontVariant: ['tabular-nums'],
-        }}
-      />
-    </View>
+    <FloatingLabelInput
+      label={label}
+      value={text}
+      onChangeText={(next) => {
+        setText(next);
+        onChange(normalizedTime(next));
+      }}
+      onEndEditing={() => setText(normalizedTime(text))}
+      keyboardType='numbers-and-punctuation'
+      maxLength={5}
+      className='min-w-[96px] flex-1'
+    />
   );
 }
 
@@ -96,9 +90,9 @@ export function SlotsEditor({slots, onChange}: SlotsEditorProps) {
                 onValueChange={(next) =>
                   update(index, {endOffsetDays: next ? 1 : 0})
                 }
-                trackColor={{true: theme.ink, false: theme.track}}
+                trackColor={{true: theme.ink, false: theme.edge}}
                 thumbColor={theme.surface}
-                ios_backgroundColor={theme.track}
+                ios_backgroundColor={theme.edge}
               />
               <Text className='font-sans text-[13px] text-theme-ink'>
                 {t.admin.slots.endsNextDay}

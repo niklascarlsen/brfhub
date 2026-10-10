@@ -109,6 +109,49 @@
           "apartment"
         ]
       },
+      "UntranslatedInput": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "locales": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/LocaleInput"
+                }
+              },
+              "kinds": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "resources": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "announcements": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "rules": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "locales",
+              "kinds",
+              "resources",
+              "announcements",
+              "rules"
+            ]
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
       "AdminAccountInput": {
         "type": "object",
         "properties": {
@@ -124,12 +167,16 @@
             "items": {
               "$ref": "#/components/schemas/LocaleInput"
             }
+          },
+          "untranslated": {
+            "$ref": "#/components/schemas/UntranslatedInput"
           }
         },
         "required": [
           "role",
           "organizationName",
-          "locales"
+          "locales",
+          "untranslated"
         ]
       },
       "AccountInput": {
@@ -1621,6 +1668,50 @@
         ],
         "additionalProperties": false
       },
+      "Untranslated": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "locales": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Locale"
+                }
+              },
+              "kinds": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "resources": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "announcements": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "rules": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "locales",
+              "kinds",
+              "resources",
+              "announcements",
+              "rules"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
       "AdminAccount": {
         "type": "object",
         "properties": {
@@ -1636,12 +1727,16 @@
             "items": {
               "$ref": "#/components/schemas/Locale"
             }
+          },
+          "untranslated": {
+            "$ref": "#/components/schemas/Untranslated"
           }
         },
         "required": [
           "role",
           "organizationName",
-          "locales"
+          "locales",
+          "untranslated"
         ],
         "additionalProperties": false
       },

@@ -1,13 +1,15 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import {useIsFocused} from '@react-navigation/native';
 import {useEffect, useState} from 'react';
 import {Alert, BackHandler, Pressable, Text, View} from 'react-native';
 
-import {useAdminAccount} from '@/admin/account';
+import {useAdminAccount, useRefreshAccount} from '@/admin/account';
 import {AdminPage} from '@/admin/AdminPage';
 import {KindForm} from '@/admin/KindForm';
 import {missingLanguages} from '@/admin/localized';
 import {ResourceDetail} from '@/admin/ResourceDetail';
 import {ResourceForm} from '@/admin/ResourceForm';
+import {useConfirmLeave} from '@/admin/unsaved';
 import {limitText, slotsText} from '@/admin/schedule';
 import {
   PRIMARY_BUTTON,
@@ -112,6 +114,18 @@ export function AdminResources() {
   const {data, error, reload} = useFocusLoad(fetchResources);
   const showSkeleton = useSlowLoad(data === null && error === null);
   const [screen, setScreen] = useState<Screen>({kind: 'list'});
+  const refreshAccount = useRefreshAccount();
+  const confirmLeave = useConfirmLeave();
+  // Every tab keeps its screen, so only the one shown answers the back
+  // button.
+  const focused = useIsFocused();
+
+  // What lacks a language is counted on the account, so it follows every
+  // change here.
+  const changed = () => {
+    reload();
+    refreshAccount();
+  };
 
   const toList = () => setScreen({kind: 'list'});
   const back = {label: t.tabs.resources, onPress: toList};
@@ -119,20 +133,20 @@ export function AdminResources() {
   // The steps below the list are not screens of their own, so Android's
   // back button would otherwise leave the tab instead of going back.
   useEffect(() => {
-    if (screen.kind === 'list') {
+    if (screen.kind === 'list' || !focused) {
       return;
     }
 
     const subscription = BackHandler.addEventListener(
       'hardwareBackPress',
       () => {
-        setScreen({kind: 'list'});
+        confirmLeave(() => setScreen({kind: 'list'}));
         return true;
       },
     );
 
     return () => subscription.remove();
-  }, [screen.kind]);
+  }, [screen.kind, focused, confirmLeave]);
 
   if (data && screen.kind === 'add-kind') {
     return (
@@ -147,7 +161,7 @@ export function AdminResources() {
           onCancel={toList}
           onSubmit={async (fields) => {
             await unwrap(api.POST('/admin/kinds', {body: fields}));
-            reload();
+            changed();
             toList();
           }}
         />
@@ -182,7 +196,7 @@ export function AdminResources() {
                 body: fields,
               }),
             );
-            reload();
+            changed();
             toList();
           }}
           onDelete={
@@ -195,7 +209,7 @@ export function AdminResources() {
                     }),
                   )
                     .then(() => {
-                      reload();
+                      changed();
                       toList();
                     })
                     .catch((caught: unknown) =>
@@ -233,7 +247,7 @@ export function AdminResources() {
             const {id} = await unwrap(
               api.POST('/admin/resources', {body: fields}),
             );
-            reload();
+            changed();
             setScreen({
               kind: 'resource',
               id,
@@ -261,7 +275,7 @@ export function AdminResources() {
           key={opened.id}
           resource={opened}
           data={data}
-          onChanged={reload}
+          onChanged={changed}
         />
       </AdminPage>
     );

@@ -1,14 +1,9 @@
 import {useState} from 'react';
-import {Pressable, Text, View} from 'react-native';
+import {Text, View} from 'react-native';
 
+import {FormActions} from '@/admin/FormActions';
 import {slotsProblem} from '@/admin/schedule';
 import {SlotsEditor} from '@/admin/SlotsEditor';
-import {
-  PRIMARY_BUTTON,
-  PRIMARY_LABEL,
-  SECONDARY_BUTTON,
-  SECONDARY_LABEL,
-} from '@/admin/styles';
 import type {SlotInput} from '@/api/client';
 import {codeOf, errorMessage} from '@/api/errors';
 import {useMessages} from '@/i18n/LocaleProvider';
@@ -65,18 +60,14 @@ export function ScheduleForm({
           {error}
         </Text>
       ) : null}
-      <View className='mt-2 flex-row flex-wrap gap-2.5'>
-        <Pressable
-          onPress={() => void submit()}
-          disabled={submitting}
-          className={PRIMARY_BUTTON}
-        >
-          <Text className={PRIMARY_LABEL}>{t.admin.scheduleForm.save}</Text>
-        </Pressable>
-        <Pressable onPress={onCancel} className={SECONDARY_BUTTON}>
-          <Text className={SECONDARY_LABEL}>{t.common.cancel}</Text>
-        </Pressable>
-      </View>
+      <FormActions
+        submitLabel={t.admin.scheduleForm.save}
+        dirty={JSON.stringify(slots) !== JSON.stringify(initial)}
+        valid={slots.length > 0}
+        submitting={submitting}
+        onSubmit={() => void submit()}
+        onCancel={onCancel}
+      />
     </View>
   );
 }

@@ -10,6 +10,11 @@ import {
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
+import {useAdminAccount} from '@/admin/account';
+import {untranslatedMessage} from '@/admin/localized';
+import {useConfirmLeave} from '@/admin/unsaved';
+import {NoticeBar} from '@/components/Notice';
+import {useMessages} from '@/i18n/LocaleProvider';
 import theme from '@/theme.json';
 
 type AdminPageProps = {
@@ -20,8 +25,10 @@ type AdminPageProps = {
   children: ReactNode;
 };
 
-// One admin page: a back link when it is a step down, the title, an
-// optional action under it, and the content.
+// One admin page: a back link when it is a step down, the title, a bar
+// while some of the organization's text lacks a language, an optional
+// action under it, and the content. Going back from a form with unsaved
+// changes asks first.
 export function AdminPage({
   title,
   subtitle,
@@ -29,7 +36,11 @@ export function AdminPage({
   action,
   children,
 }: AdminPageProps) {
+  const t = useMessages();
+  const {untranslated} = useAdminAccount();
+  const confirmLeave = useConfirmLeave();
   const scroll = useRef<ScrollView>(null);
+  const missing = untranslatedMessage(untranslated, t);
 
   // A step to another page starts at its top.
   useEffect(() => {
@@ -50,7 +61,7 @@ export function AdminPage({
         >
           {back ? (
             <Pressable
-              onPress={back.onPress}
+              onPress={() => confirmLeave(back.onPress)}
               hitSlop={8}
               className='-ml-1 mb-2 mt-1 flex-row items-center gap-1 self-start py-1 pr-2 active:opacity-60'
             >
@@ -66,6 +77,11 @@ export function AdminPage({
           <Text className='mb-6 mt-1 font-sans text-[13px] text-theme-muted'>
             {subtitle}
           </Text>
+          {missing ? (
+            <View className='-mt-2 mb-2'>
+              <NoticeBar message={missing} />
+            </View>
+          ) : null}
           {action ? <View className='mb-6'>{action}</View> : null}
           {children}
         </ScrollView>

@@ -3,14 +3,16 @@ import {useState, type SubmitEvent} from 'react';
 import {useAdminAccount} from '@/admin/account';
 import {
   fieldLabel,
+  isWritten,
   isWrittenOrEmpty,
   tagsOf,
   trimmedText,
   type Draft,
 } from '@/admin/localized';
+import {FormActions} from '@/admin/FormActions';
 import {slotsProblem} from '@/admin/schedule';
 import {SlotsEditor} from '@/admin/SlotsEditor';
-import {PRIMARY_BUTTON, SECONDARY_BUTTON, SECTION_LABEL} from '@/admin/styles';
+import {SECTION_LABEL} from '@/admin/styles';
 import type {
   AdminKind,
   LocalizedTags,
@@ -65,11 +67,21 @@ export function ResourceForm({
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const tagLists = Object.fromEntries(
+    locales.map((language) => [language, tagsOf(tags[language] ?? '')]),
+  );
+  const initialTags = Object.fromEntries(
+    locales.map((language) => [language, initial.tags[language] ?? []]),
+  );
+  const dirty =
+    JSON.stringify(trimmedText(name, locales)) !==
+      JSON.stringify(trimmedText(initial.name, locales)) ||
+    kindId !== initial.kindId ||
+    JSON.stringify(tagLists) !== JSON.stringify(initialTags) ||
+    JSON.stringify(slots) !== JSON.stringify(initial.slots);
+
   async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    const tagLists = Object.fromEntries(
-      locales.map((language) => [language, tagsOf(tags[language] ?? '')]),
-    );
     const problem = !isWrittenOrEmpty(tagLists, locales)
       ? t.admin.localized.tagsInEvery
       : withSlots
@@ -163,18 +175,13 @@ export function ResourceForm({
           {error}
         </p>
       ) : null}
-      <div className='mt-2 flex flex-wrap gap-2.5'>
-        <button
-          type='submit'
-          disabled={submitting || kindId === ''}
-          className={PRIMARY_BUTTON}
-        >
-          {submitLabel}
-        </button>
-        <button type='button' onClick={onCancel} className={SECONDARY_BUTTON}>
-          {t.common.cancel}
-        </button>
-      </div>
+      <FormActions
+        submitLabel={submitLabel}
+        dirty={dirty}
+        valid={kindId !== '' && isWritten(name, locales)}
+        submitting={submitting}
+        onCancel={onCancel}
+      />
     </form>
   );
 }

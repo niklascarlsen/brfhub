@@ -3,7 +3,7 @@ import {Notice} from '@/components/Notice';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
 import {useConfig} from '@/config';
 import type {components} from '@/generated/api';
-import type {Messages} from '@/i18n/catalog';
+import {joinNames, type Messages} from '@/i18n/catalog';
 import {useMessages} from '@/i18n/LocaleProvider';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useSlowLoad} from '@/hooks/useSlowLoad';
@@ -13,19 +13,6 @@ type Kind = components['schemas']['BookingRules']['kinds'][number];
 
 function fetchRules() {
   return unwrap(api.GET('/booking-rules'));
-}
-
-// "A, B och C". Intl.ListFormat is missing on Hermes, so the app spells it
-// out, and this stays the same.
-function joinNames(names: string[], t: Messages): string {
-  if (names.length < 2) {
-    return names.join('');
-  }
-
-  return t.rules.joinList(
-    names.slice(0, -1).join(', '),
-    names[names.length - 1],
-  );
 }
 
 // Only the first letter, so a month name keeps the case its language

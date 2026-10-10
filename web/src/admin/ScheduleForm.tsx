@@ -1,8 +1,8 @@
 import {useState, type SubmitEvent} from 'react';
 
+import {FormActions} from '@/admin/FormActions';
 import {slotsProblem} from '@/admin/schedule';
 import {SlotsEditor} from '@/admin/SlotsEditor';
-import {PRIMARY_BUTTON, SECONDARY_BUTTON} from '@/admin/styles';
 import type {SlotInput} from '@/api/client';
 import {codeOf, errorMessage} from '@/api/errors';
 import {useMessages} from '@/i18n/LocaleProvider';
@@ -60,14 +60,13 @@ export function ScheduleForm({
           {error}
         </p>
       ) : null}
-      <div className='mt-2 flex flex-wrap gap-2.5'>
-        <button type='submit' disabled={submitting} className={PRIMARY_BUTTON}>
-          {t.admin.scheduleForm.save}
-        </button>
-        <button type='button' onClick={onCancel} className={SECONDARY_BUTTON}>
-          {t.common.cancel}
-        </button>
-      </div>
+      <FormActions
+        submitLabel={t.admin.scheduleForm.save}
+        dirty={JSON.stringify(slots) !== JSON.stringify(initial)}
+        valid={slots.length > 0}
+        submitting={submitting}
+        onCancel={onCancel}
+      />
     </form>
   );
 }

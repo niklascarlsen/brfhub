@@ -10,5 +10,7 @@ export {PeopleOutlineIcon} from '@/components/icons/PeopleOutlineIcon';
 export {GridOutlineIcon} from '@/components/icons/GridOutlineIcon';
 export {MegaphoneOutlineIcon} from '@/components/icons/MegaphoneOutlineIcon';
 export {SettingsOutlineIcon} from '@/components/icons/SettingsOutlineIcon';
+export {EyeOutlineIcon} from '@/components/icons/EyeOutlineIcon';
+export {EyeOffOutlineIcon} from '@/components/icons/EyeOffOutlineIcon';
 export {AddIcon} from '@/components/icons/AddIcon';
 export type {IconProps} from '@/components/icons/types';

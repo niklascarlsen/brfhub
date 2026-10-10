@@ -2,6 +2,7 @@ import {useState} from 'react';
 import {Pressable, Text, View} from 'react-native';
 
 import {useAdminAccount} from '@/admin/account';
+import {FormActions} from '@/admin/FormActions';
 import {
   fieldLabel,
   isWritten,
@@ -12,13 +13,7 @@ import {
 } from '@/admin/localized';
 import {slotsProblem} from '@/admin/schedule';
 import {SlotsEditor} from '@/admin/SlotsEditor';
-import {
-  PRIMARY_BUTTON,
-  PRIMARY_LABEL,
-  SECONDARY_BUTTON,
-  SECONDARY_LABEL,
-  SECTION_LABEL,
-} from '@/admin/styles';
+import {SECTION_LABEL} from '@/admin/styles';
 import type {
   AdminKind,
   LocalizedTags,
@@ -73,10 +68,20 @@ export function ResourceForm({
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const tagLists = Object.fromEntries(
+    locales.map((language) => [language, tagsOf(tags[language] ?? '')]),
+  );
+  const initialTags = Object.fromEntries(
+    locales.map((language) => [language, initial.tags[language] ?? []]),
+  );
+  const dirty =
+    JSON.stringify(trimmedText(name, locales)) !==
+      JSON.stringify(trimmedText(initial.name, locales)) ||
+    kindId !== initial.kindId ||
+    JSON.stringify(tagLists) !== JSON.stringify(initialTags) ||
+    JSON.stringify(slots) !== JSON.stringify(initial.slots);
+
   async function submit() {
-    const tagLists = Object.fromEntries(
-      locales.map((language) => [language, tagsOf(tags[language] ?? '')]),
-    );
     const problem = !isWrittenOrEmpty(tagLists, locales)
       ? t.admin.localized.tagsInEvery
       : withSlots
@@ -169,18 +174,14 @@ export function ResourceForm({
           {error}
         </Text>
       ) : null}
-      <View className='mt-2 flex-row flex-wrap gap-2.5'>
-        <Pressable
-          onPress={() => void submit()}
-          disabled={submitting || kindId === '' || !isWritten(name, locales)}
-          className={PRIMARY_BUTTON}
-        >
-          <Text className={PRIMARY_LABEL}>{submitLabel}</Text>
-        </Pressable>
-        <Pressable onPress={onCancel} className={SECONDARY_BUTTON}>
-          <Text className={SECONDARY_LABEL}>{t.common.cancel}</Text>
-        </Pressable>
-      </View>
+      <FormActions
+        submitLabel={submitLabel}
+        dirty={dirty}
+        valid={kindId !== '' && isWritten(name, locales)}
+        submitting={submitting}
+        onSubmit={() => void submit()}
+        onCancel={onCancel}
+      />
     </View>
   );
 }

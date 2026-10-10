@@ -1,12 +1,14 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import {useState} from 'react';
-import {Alert, Pressable, Text, View} from 'react-native';
+import {useIsFocused} from '@react-navigation/native';
+import {useEffect, useState} from 'react';
+import {Alert, BackHandler, Pressable, Text, View} from 'react-native';
 
-import {useAdminAccount} from '@/admin/account';
+import {useAdminAccount, useRefreshAccount} from '@/admin/account';
 import {AdminPage} from '@/admin/AdminPage';
 import {AnnouncementForm} from '@/admin/AnnouncementForm';
 import {missingLanguages} from '@/admin/localized';
 import {PRIMARY_BUTTON, PRIMARY_LABEL, SECTION_LABEL} from '@/admin/styles';
+import {useConfirmLeave} from '@/admin/unsaved';
 import {api, unwrap, type AdminAnnouncement} from '@/api/client';
 import {codeOf, errorMessage} from '@/api/errors';
 import {Notice} from '@/components/Notice';
@@ -49,8 +51,39 @@ export function AdminAnnouncements() {
   const showSkeleton = useSlowLoad(data === null && error === null);
   const [screen, setScreen] = useState<Screen>({kind: 'list'});
 
+  const refreshAccount = useRefreshAccount();
+  const confirmLeave = useConfirmLeave();
+  // Every tab keeps its screen, so only the one shown answers the back
+  // button.
+  const focused = useIsFocused();
+
   const toList = () => setScreen({kind: 'list'});
   const back = {label: t.tabs.announcements, onPress: toList};
+
+  // What lacks a language is counted on the account, so it follows every
+  // change here.
+  const changed = () => {
+    reload();
+    refreshAccount();
+  };
+
+  // The steps below the list are not screens of their own, so Android's
+  // back button would otherwise leave the tab instead of going back.
+  useEffect(() => {
+    if (screen.kind === 'list' || !focused) {
+      return;
+    }
+
+    const subscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      () => {
+        confirmLeave(() => setScreen({kind: 'list'}));
+        return true;
+      },
+    );
+
+    return () => subscription.remove();
+  }, [screen.kind, focused, confirmLeave]);
 
   if (data && screen.kind === 'add') {
     return (
@@ -71,7 +104,7 @@ export function AdminAnnouncements() {
           onCancel={toList}
           onSubmit={async (fields) => {
             await unwrap(api.POST('/admin/announcements', {body: fields}));
-            reload();
+            changed();
             toList();
           }}
         />
@@ -104,7 +137,7 @@ export function AdminAnnouncements() {
                 body: fields,
               }),
             );
-            reload();
+            changed();
             toList();
           }}
           onDelete={() =>
@@ -123,7 +156,7 @@ export function AdminAnnouncements() {
                       }),
                     )
                       .then(() => {
-                        reload();
+                        changed();
                         toList();
                       })
                       .catch((caught: unknown) =>

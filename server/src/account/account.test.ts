@@ -7,7 +7,12 @@ import {buildApp} from '../app.js';
 import {createUser} from '../auth/auth.service.js';
 import {violatedConstraint} from '../db/errors.js';
 import {db, pool} from '../db/index.js';
-import {members, organizations, pushTokens} from '../db/schema.js';
+import {
+  announcements,
+  members,
+  organizations,
+  pushTokens,
+} from '../db/schema.js';
 import type {BookingRules, Resource} from '../resource/resource.dto.js';
 import type {BookingWindow, ResourceSchedule} from '../slot/slot.dto.js';
 import {
@@ -132,6 +137,88 @@ test('tells the admin who it is', async () => {
     role: 'admin',
     organizationName: SOUTH.name,
     locales: ['sv'],
+    untranslated: null,
+  });
+});
+
+test('tells the admin what is not yet written in every language', async () => {
+  await seedOrganization({
+    organization: {
+      id: 'both',
+      name: 'Brf Båda',
+      timeZone: 'Europe/Stockholm',
+      bookingWindowDays: 30,
+      locales: ['sv', 'en'],
+      rulesText: {sv: 'Städa efter dig.'},
+    },
+    kinds: [
+      {id: 'laundry', name: {sv: 'Tvätt', en: 'Laundry'}, maxActive: 1},
+      {id: 'sauna', name: {sv: 'Bastu'}, maxActive: 1},
+    ],
+    resources: [
+      {
+        id: 'both-laundry',
+        kindId: 'laundry',
+        name: {sv: 'Tvättstuga', en: 'Laundry room'},
+        tags: {sv: ['torktumlare']},
+        sortOrder: 1,
+      },
+      {
+        id: 'both-sauna',
+        kindId: 'sauna',
+        name: {sv: 'Bastu'},
+        tags: {},
+        sortOrder: 2,
+      },
+      // Closed, so the apartments no longer see it.
+      {
+        id: 'both-closed',
+        kindId: 'sauna',
+        name: {sv: 'Gamla bastun'},
+        tags: {},
+        sortOrder: 3,
+        closesFrom: '2000-01-01',
+      },
+    ],
+    slots: [],
+    apartments: [],
+    emailOf: (apartment) => `${apartment}@both.example.com`,
+    adminEmail: 'admin@both.example.com',
+  });
+  await db.insert(announcements).values([
+    {
+      organizationId: 'both',
+      title: {en: 'Cleaning day'},
+      body: {en: 'Saturday.'},
+      publishedOn: '2000-01-01',
+    },
+    // Ended, so the apartments no longer see it.
+    {
+      organizationId: 'both',
+      title: {sv: 'Städdag'},
+      body: {sv: 'Lördag.'},
+      publishedOn: '2000-01-01',
+      endsOn: '2000-01-02',
+    },
+  ]);
+
+  const response = await get(
+    '/account',
+    await cookieOf('admin@both.example.com'),
+  );
+
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(response.json<Account>(), {
+    role: 'admin',
+    organizationName: 'Brf Båda',
+    locales: ['sv', 'en'],
+    untranslated: {
+      locales: ['sv', 'en'],
+      kinds: 1,
+      resources: 2,
+      announcements: 1,
+      rules: true,
+    },
   });
 });
 

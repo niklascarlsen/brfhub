@@ -14,6 +14,18 @@ export const CATALOGS: Record<Locale, Messages> = {sv, en};
 
 export const LOCALES = Object.keys(CATALOGS) as Locale[];
 
+// "A, B och C". Intl.ListFormat is missing on Hermes, so it is spelled out.
+export function joinNames(names: readonly string[], t: Messages): string {
+  if (names.length < 2) {
+    return names.join('');
+  }
+
+  return t.rules.joinList(
+    names.slice(0, -1).join(', '),
+    names[names.length - 1] ?? '',
+  );
+}
+
 // What the person picked: a language, or whatever the device uses.
 export type LocaleChoice = Locale | 'system';
 

@@ -1,6 +1,6 @@
 import {useState, type SubmitEvent} from 'react';
 
-import {PRIMARY_BUTTON, SECONDARY_BUTTON} from '@/admin/styles';
+import {FormActions} from '@/admin/FormActions';
 import {codeOf, errorMessage} from '@/api/errors';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {useMessages} from '@/i18n/LocaleProvider';
@@ -37,17 +37,27 @@ export function ApartmentForm({
   const set = (key: keyof ApartmentFields) => (value: string) =>
     setFields((previous) => ({...previous, [key]: value}));
 
+  const trimmed = {
+    label: fields.label.trim(),
+    residentName: fields.residentName.trim(),
+    email: fields.email.trim(),
+  };
+  const dirty =
+    trimmed.label !== initial.label ||
+    trimmed.residentName !== initial.residentName ||
+    trimmed.email !== initial.email;
+  const valid =
+    trimmed.residentName.length > 0 &&
+    trimmed.email.length > 0 &&
+    (!withLabel || trimmed.label.length > 0);
+
   async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
     setError(null);
 
     try {
-      await onSubmit({
-        label: fields.label.trim(),
-        residentName: fields.residentName.trim(),
-        email: fields.email.trim(),
-      });
+      await onSubmit(trimmed);
     } catch (caught) {
       const code = codeOf(caught);
       // The server checks the email more closely than the field does.
@@ -103,14 +113,13 @@ export function ApartmentForm({
           {error}
         </p>
       ) : null}
-      <div className='mt-2 flex flex-wrap gap-2.5'>
-        <button type='submit' disabled={submitting} className={PRIMARY_BUTTON}>
-          {submitLabel}
-        </button>
-        <button type='button' onClick={onCancel} className={SECONDARY_BUTTON}>
-          {t.common.cancel}
-        </button>
-      </div>
+      <FormActions
+        submitLabel={submitLabel}
+        dirty={dirty}
+        valid={valid}
+        submitting={submitting}
+        onCancel={onCancel}
+      />
     </form>
   );
 }

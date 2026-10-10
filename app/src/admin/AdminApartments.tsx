@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import {useIsFocused} from '@react-navigation/native';
 import {useEffect, useState} from 'react';
 import {BackHandler, Pressable, Text, View} from 'react-native';
 
@@ -7,6 +8,7 @@ import {AdminPage} from '@/admin/AdminPage';
 import {ApartmentDetail} from '@/admin/ApartmentDetail';
 import {ApartmentForm} from '@/admin/ApartmentForm';
 import {PasswordCard} from '@/admin/PasswordCard';
+import {useConfirmLeave} from '@/admin/unsaved';
 import {PRIMARY_BUTTON, PRIMARY_LABEL} from '@/admin/styles';
 import {api, unwrap, type Apartment} from '@/api/client';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
@@ -83,25 +85,30 @@ export function AdminApartments() {
   const [view, setView] = useState<Screen>({kind: 'list'});
   const [query, setQuery] = useState('');
 
+  const confirmLeave = useConfirmLeave();
+  // Every tab keeps its screen, so only the one shown answers the back
+  // button.
+  const focused = useIsFocused();
+
   const toList = () => setView({kind: 'list'});
 
   // The steps below the list are not screens of their own, so Android's
   // back button would otherwise leave the app instead of going back.
   useEffect(() => {
-    if (view.kind === 'list') {
+    if (view.kind === 'list' || !focused) {
       return;
     }
 
     const subscription = BackHandler.addEventListener(
       'hardwareBackPress',
       () => {
-        setView({kind: 'list'});
+        confirmLeave(() => setView({kind: 'list'}));
         return true;
       },
     );
 
     return () => subscription.remove();
-  }, [view.kind]);
+  }, [view.kind, focused, confirmLeave]);
   const showPassword = (apartment: Apartment, password: string) => {
     reload();
     setView({kind: 'password', apartment, password});

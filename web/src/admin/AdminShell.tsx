@@ -5,6 +5,7 @@ import {AdminAnnouncements} from '@/admin/AdminAnnouncements';
 import {AdminApartments} from '@/admin/AdminApartments';
 import {AdminOrganization} from '@/admin/AdminOrganization';
 import {AdminResources} from '@/admin/AdminResources';
+import {UnsavedContext, useUnsavedRoot} from '@/admin/unsaved';
 import type {AdminAccount} from '@/auth/account';
 import {
   GridOutlineIcon,
@@ -19,7 +20,13 @@ import {OrganizationMark} from '@/desktop/OrganizationMark';
 import {useMessages} from '@/i18n/LocaleProvider';
 import {useIsDesktop} from '@/lib/media';
 import {dropPushSubscription} from '@/lib/push';
-import {isAdminRoute, linkProps, useRoute} from '@/lib/route';
+import {
+  isAdminRoute,
+  linkProps,
+  useHistoryGuard,
+  useRoute,
+  type Route,
+} from '@/lib/route';
 
 const ADMIN_TABS: readonly Tab[] = [
   {
@@ -55,6 +62,11 @@ export function AdminShell({account, onRefresh}: AdminShellProps) {
   const t = useMessages();
   const isDesktop = useIsDesktop();
   const [route, navigate] = useRoute();
+  const unsaved = useUnsavedRoot();
+  // Each tab mounts its page afresh, so a form left half done is lost.
+  const leaveTo = (target: Route) =>
+    unsaved.confirmLeave(() => navigate(target));
+  useHistoryGuard(leaveTo);
 
   // A browser an apartment used before may still hand its push to the
   // apartment; the admin should not get those notifications.
@@ -86,60 +98,64 @@ export function AdminShell({account, onRefresh}: AdminShellProps) {
   if (isDesktop) {
     return (
       <AdminAccountContext.Provider value={{account, refresh: onRefresh}}>
-        <div className='flex min-h-dvh flex-col bg-theme-bg'>
-          <header
-            className={`${SHELL} flex shrink-0 flex-wrap items-center justify-between gap-3 pt-5.5`}
-          >
-            <a
-              {...linkProps('admin/apartments', navigate)}
-              className='flex items-center gap-2.5 rounded-xl py-1 pr-2 text-theme-ink'
+        <UnsavedContext.Provider value={unsaved}>
+          <div className='flex min-h-dvh flex-col bg-theme-bg'>
+            <header
+              className={`${SHELL} flex shrink-0 flex-wrap items-center justify-between gap-3 pt-5.5`}
             >
-              <OrganizationMark name={account.organizationName} />
-            </a>
-            <nav
-              className='flex items-center gap-2'
-              aria-label={t.tabs.mainMenu}
-            >
-              {ADMIN_TABS.map(({route: target, label, Icon}) => {
-                const active = route === target;
+              <a
+                {...linkProps('admin/apartments', leaveTo)}
+                className='flex items-center gap-2.5 rounded-xl py-1 pr-2 text-theme-ink'
+              >
+                <OrganizationMark name={account.organizationName} />
+              </a>
+              <nav
+                className='flex items-center gap-2'
+                aria-label={t.tabs.mainMenu}
+              >
+                {ADMIN_TABS.map(({route: target, label, Icon}) => {
+                  const active = route === target;
 
-                return (
-                  <a
-                    key={target}
-                    {...linkProps(target, navigate)}
-                    aria-current={active ? 'page' : undefined}
-                    className={`flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold transition-colors ${
-                      active
-                        ? 'bg-theme-ink text-theme-surface'
-                        : 'text-theme-muted hover:text-theme-ink'
-                    }`}
-                  >
-                    <Icon size={17} className='-translate-y-px' />
-                    {label(t)}
-                  </a>
-                );
-              })}
-            </nav>
-          </header>
-          <main key={route} className='flex grow flex-col'>
-            {page}
-          </main>
-        </div>
+                  return (
+                    <a
+                      key={target}
+                      {...linkProps(target, leaveTo)}
+                      aria-current={active ? 'page' : undefined}
+                      className={`flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold transition-colors ${
+                        active
+                          ? 'bg-theme-ink text-theme-surface'
+                          : 'text-theme-muted hover:text-theme-ink'
+                      }`}
+                    >
+                      <Icon size={17} className='-translate-y-px' />
+                      {label(t)}
+                    </a>
+                  );
+                })}
+              </nav>
+            </header>
+            <main key={route} className='flex grow flex-col'>
+              {page}
+            </main>
+          </div>
+        </UnsavedContext.Provider>
       </AdminAccountContext.Provider>
     );
   }
 
   return (
     <AdminAccountContext.Provider value={{account, refresh: onRefresh}}>
-      <div className='flex h-dvh flex-col overflow-hidden bg-theme-bg pt-[env(safe-area-inset-top)]'>
-        <main
-          key={route}
-          className='min-h-0 flex-1 overflow-y-auto overscroll-y-contain'
-        >
-          {page}
-        </main>
-        <TabBar tabs={ADMIN_TABS} route={route} onNavigate={navigate} />
-      </div>
+      <UnsavedContext.Provider value={unsaved}>
+        <div className='flex h-dvh flex-col overflow-hidden bg-theme-bg pt-[env(safe-area-inset-top)]'>
+          <main
+            key={route}
+            className='min-h-0 flex-1 overflow-y-auto overscroll-y-contain'
+          >
+            {page}
+          </main>
+          <TabBar tabs={ADMIN_TABS} route={route} onNavigate={leaveTo} />
+        </div>
+      </UnsavedContext.Provider>
     </AdminAccountContext.Provider>
   );
 }

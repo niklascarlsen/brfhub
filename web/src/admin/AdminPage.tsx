@@ -1,8 +1,13 @@
 import {useEffect, useRef, type ReactNode} from 'react';
 
+import {useAdminAccount} from '@/admin/account';
+import {untranslatedMessage} from '@/admin/localized';
+import {useConfirmLeave} from '@/admin/unsaved';
 import {ChevronBackIcon} from '@/components/icons';
+import {NoticeBar} from '@/components/Notice';
 import {SHELL} from '@/desktop/layout';
 import {PageHeader} from '@/desktop/PageHeader';
+import {useMessages} from '@/i18n/LocaleProvider';
 import {useIsDesktop} from '@/lib/media';
 
 type AdminPageProps = {
@@ -14,7 +19,9 @@ type AdminPageProps = {
 };
 
 // One admin page: a back link when it is a step down, the title, an
-// optional action beside it, and the content in a readable column.
+// optional action beside it, a bar while some of the organization's text
+// lacks a language, and the content in a readable column. Going back from
+// a form with unsaved changes asks first.
 export function AdminPage({
   title,
   subtitle,
@@ -22,7 +29,11 @@ export function AdminPage({
   action,
   children,
 }: AdminPageProps) {
+  const t = useMessages();
+  const {untranslated} = useAdminAccount();
+  const confirmLeave = useConfirmLeave();
   const isDesktop = useIsDesktop();
+  const missing = untranslatedMessage(untranslated, t);
   const top = useRef<HTMLDivElement>(null);
 
   // A step to another page starts at its top. The desktop scrolls the
@@ -38,7 +49,7 @@ export function AdminPage({
   const backLink = back ? (
     <button
       type='button'
-      onClick={back.onPress}
+      onClick={() => confirmLeave(back.onPress)}
       className='-ml-1 flex items-center gap-1 self-start rounded-lg py-1 pr-2 text-sm font-semibold text-theme-muted transition-colors hover:text-theme-ink'
     >
       <ChevronBackIcon size={16} />
@@ -54,7 +65,10 @@ export function AdminPage({
           {action}
         </PageHeader>
         <div className={`${SHELL} pt-7 pb-12`}>
-          <div className='flex max-w-2xl flex-col'>{children}</div>
+          <div className='flex max-w-2xl flex-col'>
+            {missing ? <NoticeBar message={missing} /> : null}
+            {children}
+          </div>
         </div>
       </>
     );
@@ -67,6 +81,11 @@ export function AdminPage({
         {title}
       </h1>
       <p className='mt-1 mb-6 text-[13px] text-theme-muted'>{subtitle}</p>
+      {missing ? (
+        <div className='-mt-2 mb-2'>
+          <NoticeBar message={missing} />
+        </div>
+      ) : null}
       {action ? <div className='mb-6 flex flex-col'>{action}</div> : null}
       {children}
     </div>
