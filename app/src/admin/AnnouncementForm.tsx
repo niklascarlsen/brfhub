@@ -8,18 +8,14 @@ import {
   startOf,
 } from '@/admin/announcement';
 import {useAdminAccount} from '@/admin/account';
+import {FormActions} from '@/admin/FormActions';
 import {
   fieldLabel,
   isWritten,
   trimmedText,
   type Draft,
 } from '@/admin/localized';
-import {
-  PRIMARY_BUTTON,
-  PRIMARY_LABEL,
-  SECONDARY_BUTTON,
-  SECONDARY_LABEL,
-} from '@/admin/styles';
+import {SECONDARY_BUTTON, SECONDARY_LABEL} from '@/admin/styles';
 import type {LocalizedText} from '@/api/client';
 import {codeOf, errorMessage} from '@/api/errors';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
@@ -61,6 +57,12 @@ export function AnnouncementForm({
   // given more days.
   const start = startOf(initial.publishedOn, today);
   const duration = durationOf(start, endsOn);
+  const dirty =
+    JSON.stringify(trimmedText(title, locales)) !==
+      JSON.stringify(trimmedText(initial.title, locales)) ||
+    JSON.stringify(trimmedText(body, locales)) !==
+      JSON.stringify(trimmedText(initial.body, locales)) ||
+    endsOn !== initial.endsOn;
 
   async function submit() {
     setSubmitting(true);
@@ -168,27 +170,20 @@ export function AnnouncementForm({
           {error}
         </Text>
       ) : null}
-      <View className='mt-2 flex-row flex-wrap gap-2.5'>
-        <Pressable
-          onPress={() => void submit()}
-          disabled={
-            submitting ||
-            !isWritten(title, locales) ||
-            !isWritten(body, locales)
-          }
-          className={PRIMARY_BUTTON}
-        >
-          <Text className={PRIMARY_LABEL}>{submitLabel}</Text>
-        </Pressable>
-        <Pressable onPress={onCancel} className={SECONDARY_BUTTON}>
-          <Text className={SECONDARY_LABEL}>{t.common.cancel}</Text>
-        </Pressable>
+      <FormActions
+        submitLabel={submitLabel}
+        dirty={dirty}
+        valid={isWritten(title, locales) && isWritten(body, locales)}
+        submitting={submitting}
+        onSubmit={() => void submit()}
+        onCancel={onCancel}
+      >
         {onDelete ? (
           <Pressable onPress={onDelete} className={SECONDARY_BUTTON}>
             <Text className={SECONDARY_LABEL}>{t.admin.remove}</Text>
           </Pressable>
         ) : null}
-      </View>
+      </FormActions>
     </View>
   );
 }

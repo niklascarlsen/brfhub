@@ -28,6 +28,8 @@ export const en: Messages = {
     ok: 'OK',
     email: 'Email',
     loading: 'Loading',
+    showPassword: 'Show password',
+    hidePassword: 'Hide password',
   },
   language: {
     heading: 'Language',
@@ -176,6 +178,13 @@ export const en: Messages = {
     details: 'Details',
     actions: 'Actions',
     editDetails: 'Edit details',
+    unsaved: {
+      hint: 'Unsaved changes',
+      title: 'Leave without saving?',
+      message: 'What you have changed will not be saved.',
+      stay: 'Stay',
+      leave: 'Leave',
+    },
     apartments: {
       newTitle: 'New apartment',
       newNote:
@@ -264,12 +273,12 @@ export const en: Messages = {
       undoCloseFailed: 'Could not undo the closing',
     },
     resourceForm: {
-      name: 'Name, for example Laundry room 1',
+      name: 'Name, e.g. Laundry room 1',
       tags: 'Tags, separated by commas',
       slots: 'Slots',
     },
     kindForm: {
-      name: 'Name, for example Laundry',
+      name: 'Name, e.g. Laundry',
       limit: 'Bookings at a time',
       limitHint: 'Per apartment, across all resources of this type',
       limitNote:
@@ -287,7 +296,6 @@ export const en: Messages = {
       starts: 'Starts',
       ends: 'Ends',
       endsNextDay: 'Ends the next day',
-      nextDay: 'Next day',
       add: 'Add slot',
     },
     apartmentForm: {
@@ -308,6 +316,14 @@ export const en: Messages = {
       tagsInEvery: 'Write tags in every language, or leave them all empty.',
       rulesInEvery:
         'Write the rules in every language, or leave them all empty.',
+      missing: (languages: string, what: string) =>
+        `Not yet in ${languages}: ${what}.`,
+      kinds: (count: number) => (count === 1 ? '1 type' : `${count} types`),
+      resources: (count: number) =>
+        count === 1 ? '1 resource' : `${count} resources`,
+      announcements: (count: number) =>
+        count === 1 ? '1 notice' : `${count} notices`,
+      rules: 'the house rules',
     },
     organization: {
       settings: 'Settings',

@@ -15,6 +15,8 @@ type DialogAction = {
   label: string;
   destructive?: boolean;
   onPress: () => void;
+  // What the button that closes without acting says, when not cancel.
+  cancelLabel?: string;
 };
 
 type DialogRequest = {
@@ -122,7 +124,7 @@ export function DialogProvider({children}: {children: ReactNode}) {
                   onClick={close}
                   className={`${BUTTON} border border-theme-edge bg-theme-surface text-theme-ink transition-colors hover:bg-theme-sunk`}
                 >
-                  {t.common.cancel}
+                  {request.action.cancelLabel ?? t.common.cancel}
                 </button>
               ) : null}
               <button

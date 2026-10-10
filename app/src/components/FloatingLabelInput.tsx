@@ -1,3 +1,4 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import {useEffect, useRef, useState} from 'react';
 import {
   Animated,
@@ -8,24 +9,35 @@ import {
   type TextInputProps,
 } from 'react-native';
 
+import {useMessages} from '@/i18n/LocaleProvider';
 import theme from '@/theme.json';
 
 type FloatingLabelInputProps = TextInputProps & {
   label: string;
 };
 
+// Where the text and the label start, as px-4 is on the other fields.
+const INSET = 14;
+// Room on the right for the button that shows a password.
+const REVEAL_WIDTH = 44;
+
 export function FloatingLabelInput({
   label,
   value,
   className,
+  secureTextEntry,
   onFocus,
   onBlur,
   ...props
 }: FloatingLabelInputProps) {
+  const t = useMessages();
   const inputRef = useRef<TextInput>(null);
   const [focused, setFocused] = useState(false);
+  // A password can be shown while it is typed, to check all of it.
+  const [revealed, setRevealed] = useState(false);
   const floated = focused || Boolean(value);
   const [progress] = useState(() => new Animated.Value(Boolean(value) ? 1 : 0));
+  const right = secureTextEntry ? REVEAL_WIDTH : INSET;
 
   useEffect(() => {
     Animated.timing(progress, {
@@ -39,15 +51,17 @@ export function FloatingLabelInput({
   return (
     <Pressable onPress={() => inputRef.current?.focus()} className={className}>
       <View
-        className={`h-[52px] justify-end rounded-sm border bg-theme-surface px-4 pb-2 ${
+        className={`h-[52px] justify-end rounded-sm border bg-theme-surface pb-2 ${
           focused ? 'border-theme-ink' : 'border-theme-edge'
         }`}
+        style={{paddingLeft: INSET, paddingRight: right}}
       >
         <View style={{height: 24, justifyContent: 'center'}}>
           <TextInput
             {...props}
             ref={inputRef}
             value={value}
+            secureTextEntry={secureTextEntry && !revealed}
             accessibilityLabel={label}
             textAlignVertical='center'
             underlineColorAndroid='transparent'
@@ -63,7 +77,7 @@ export function FloatingLabelInput({
               height: 24,
               minHeight: 24,
               maxHeight: 24,
-              paddingVertical: 0,
+              padding: 0,
               includeFontPadding: false,
               fontSize: 16,
               color: theme.ink,
@@ -74,21 +88,25 @@ export function FloatingLabelInput({
         <Animated.Text
           accessible={false}
           pointerEvents='none'
+          // A long label is cut short rather than wrapped onto a second
+          // line, where it would run into what is typed.
+          numberOfLines={1}
           style={{
             position: 'absolute',
-            left: 16,
+            left: INSET,
+            right,
             fontFamily: 'Merriweather_500Medium',
             top: progress.interpolate({
               inputRange: [0, 1],
-              outputRange: [18, 8],
+              outputRange: [17, 8],
             }),
             fontSize: progress.interpolate({
               inputRange: [0, 1],
-              outputRange: [16, 13],
+              outputRange: [15, 13],
             }),
             lineHeight: progress.interpolate({
               inputRange: [0, 1],
-              outputRange: [16, 13],
+              outputRange: [17, 13],
             }),
             color: progress.interpolate({
               inputRange: [0, 1],
@@ -98,6 +116,23 @@ export function FloatingLabelInput({
         >
           {label}
         </Animated.Text>
+        {secureTextEntry ? (
+          <Pressable
+            onPress={() => setRevealed((previous) => !previous)}
+            accessibilityRole='button'
+            accessibilityLabel={
+              revealed ? t.common.hidePassword : t.common.showPassword
+            }
+            className='absolute bottom-0 right-0 top-0 items-center justify-center active:opacity-60'
+            style={{width: REVEAL_WIDTH}}
+          >
+            <Ionicons
+              name={revealed ? 'eye-off-outline' : 'eye-outline'}
+              size={20}
+              color={theme.muted}
+            />
+          </Pressable>
+        ) : null}
       </View>
     </Pressable>
   );

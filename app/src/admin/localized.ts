@@ -1,4 +1,5 @@
-import {LOCALES, type Locale, type Messages} from '@/i18n/catalog';
+import type {components} from '@/generated/api';
+import {joinNames, LOCALES, type Locale, type Messages} from '@/i18n/catalog';
 
 // What the admin writes in a form: a text per language of the
 // organization.
@@ -68,4 +69,31 @@ export function tagsOf(text: string): string[] {
     .split(',')
     .map((tag) => tag.trim())
     .filter((tag) => tag.length > 0);
+}
+
+// What the bar on every admin page says while some of the organization's
+// text lacks a language, or null when nothing does.
+export function untranslatedMessage(
+  untranslated: components['schemas']['Untranslated'],
+  t: Messages,
+): string | null {
+  if (untranslated === null) {
+    return null;
+  }
+
+  const {locales, kinds, resources, announcements, rules} = untranslated;
+  const what = [
+    resources > 0 ? t.admin.localized.resources(resources) : null,
+    kinds > 0 ? t.admin.localized.kinds(kinds) : null,
+    announcements > 0 ? t.admin.localized.announcements(announcements) : null,
+    rules ? t.admin.localized.rules : null,
+  ].filter((part) => part !== null);
+
+  return t.admin.localized.missing(
+    joinNames(
+      locales.map((locale) => t.language.names[locale]),
+      t,
+    ),
+    joinNames(what, t),
+  );
 }

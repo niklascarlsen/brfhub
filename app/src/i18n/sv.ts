@@ -29,6 +29,8 @@ export const sv = {
     ok: 'OK',
     email: 'E-post',
     loading: 'Laddar',
+    showPassword: 'Visa lösenord',
+    hidePassword: 'Dölj lösenord',
   },
   language: {
     heading: 'Språk',
@@ -182,6 +184,14 @@ export const sv = {
     details: 'Uppgifter',
     actions: 'Åtgärder',
     editDetails: 'Ändra uppgifter',
+    // Said when an edited form is about to be left without saving.
+    unsaved: {
+      hint: 'Osparade ändringar',
+      title: 'Lämna utan att spara?',
+      message: 'Det du har ändrat sparas inte.',
+      stay: 'Stanna kvar',
+      leave: 'Lämna',
+    },
     apartments: {
       newTitle: 'Ny lägenhet',
       newNote:
@@ -272,12 +282,12 @@ export const sv = {
       undoCloseFailed: 'Kunde inte ångra stängningen',
     },
     resourceForm: {
-      name: 'Namn, till exempel Tvättstuga 1',
+      name: 'Namn, t.ex. Tvättstuga 1',
       tags: 'Taggar, åtskilda med komma',
       slots: 'Pass',
     },
     kindForm: {
-      name: 'Namn, till exempel Tvätt',
+      name: 'Namn, t.ex. Tvätt',
       limit: 'Bokningar åt gången',
       limitHint: 'Per lägenhet, för alla resurser av typen tillsammans',
       limitNote:
@@ -294,10 +304,7 @@ export const sv = {
     slots: {
       starts: 'Börjar',
       ends: 'Slutar',
-      // The phone puts the switch on a row of its own, the web next to the
-      // times, so the phone says more.
       endsNextDay: 'Slutar nästa dag',
-      nextDay: 'Nästa dag',
       add: 'Lägg till pass',
     },
     apartmentForm: {
@@ -318,6 +325,16 @@ export const sv = {
       untranslated: (languages: string) => `Saknar ${languages}`,
       tagsInEvery: 'Skriv taggar på alla språk, eller lämna alla tomma.',
       rulesInEvery: 'Skriv reglerna på alla språk, eller lämna alla tomma.',
+      // The bar every admin page shows while something lacks a language,
+      // such as "2 resurser och ordningsreglerna".
+      missing: (languages: string, what: string) =>
+        `Inte översatt till ${languages} än: ${what}.`,
+      kinds: (count: number) => (count === 1 ? '1 typ' : `${count} typer`),
+      resources: (count: number) =>
+        count === 1 ? '1 resurs' : `${count} resurser`,
+      announcements: (count: number) =>
+        count === 1 ? '1 anslag' : `${count} anslag`,
+      rules: 'ordningsreglerna',
     },
     organization: {
       settings: 'Inställningar',

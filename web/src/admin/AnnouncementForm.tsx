@@ -7,13 +7,14 @@ import {
   startOf,
 } from '@/admin/announcement';
 import {useAdminAccount} from '@/admin/account';
+import {FormActions} from '@/admin/FormActions';
 import {
   fieldLabel,
   isWritten,
   trimmedText,
   type Draft,
 } from '@/admin/localized';
-import {PRIMARY_BUTTON, SECONDARY_BUTTON} from '@/admin/styles';
+import {SECONDARY_BUTTON} from '@/admin/styles';
 import type {LocalizedText} from '@/api/client';
 import {codeOf, errorMessage} from '@/api/errors';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
@@ -54,6 +55,12 @@ export function AnnouncementForm({
   // given more days.
   const start = startOf(initial.publishedOn, today);
   const duration = durationOf(start, endsOn);
+  const dirty =
+    JSON.stringify(trimmedText(title, locales)) !==
+      JSON.stringify(trimmedText(initial.title, locales)) ||
+    JSON.stringify(trimmedText(body, locales)) !==
+      JSON.stringify(trimmedText(initial.body, locales)) ||
+    endsOn !== initial.endsOn;
 
   async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -152,21 +159,13 @@ export function AnnouncementForm({
           {error}
         </p>
       ) : null}
-      <div className='mt-2 flex flex-wrap gap-2.5'>
-        <button
-          type='submit'
-          disabled={
-            submitting ||
-            !isWritten(title, locales) ||
-            !isWritten(body, locales)
-          }
-          className={PRIMARY_BUTTON}
-        >
-          {submitLabel}
-        </button>
-        <button type='button' onClick={onCancel} className={SECONDARY_BUTTON}>
-          {t.common.cancel}
-        </button>
+      <FormActions
+        submitLabel={submitLabel}
+        dirty={dirty}
+        valid={isWritten(title, locales) && isWritten(body, locales)}
+        submitting={submitting}
+        onCancel={onCancel}
+      >
         {onDelete ? (
           <button
             type='button'
@@ -176,7 +175,7 @@ export function AnnouncementForm({
             {t.admin.remove}
           </button>
         ) : null}
-      </div>
+      </FormActions>
     </form>
   );
 }

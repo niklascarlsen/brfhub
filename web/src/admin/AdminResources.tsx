@@ -1,6 +1,6 @@
 import {useState} from 'react';
 
-import {useAdminAccount} from '@/admin/account';
+import {useAdminAccount, useRefreshAccount} from '@/admin/account';
 import {AdminPage} from '@/admin/AdminPage';
 import {KindForm} from '@/admin/KindForm';
 import {missingLanguages} from '@/admin/localized';
@@ -76,7 +76,7 @@ function ResourceRow({
         <span className='truncate text-[15px] font-semibold tracking-tight text-theme-ink'>
           {localize(resource.name, locale)}
         </span>
-        <span className='truncate text-[13px] tabular-nums text-theme-muted'>
+        <span className='text-[13px] leading-5 tabular-nums text-theme-muted'>
           {current ? slotsText(current.slots) : t.admin.resources.noSlots}
         </span>
         {status ? (
@@ -102,7 +102,15 @@ export function AdminResources() {
   const showSkeleton = useSlowLoad(data === null && error === null);
   const [screen, setScreen] = useState<Screen>({kind: 'list'});
 
+  const refreshAccount = useRefreshAccount();
   const toList = () => setScreen({kind: 'list'});
+
+  // What lacks a language is counted on the account, so it follows every
+  // change here.
+  const changed = () => {
+    reload();
+    refreshAccount();
+  };
   const back = {label: t.tabs.resources, onPress: toList};
 
   if (data && screen.kind === 'add-kind') {
@@ -118,7 +126,7 @@ export function AdminResources() {
           onCancel={toList}
           onSubmit={async (fields) => {
             await unwrap(api.POST('/admin/kinds', {body: fields}));
-            reload();
+            changed();
             toList();
           }}
         />
@@ -153,7 +161,7 @@ export function AdminResources() {
                 body: fields,
               }),
             );
-            reload();
+            changed();
             toList();
           }}
           onDelete={
@@ -166,7 +174,7 @@ export function AdminResources() {
                     }),
                   )
                     .then(() => {
-                      reload();
+                      changed();
                       toList();
                     })
                     .catch((caught: unknown) =>
@@ -204,7 +212,7 @@ export function AdminResources() {
             const {id} = await unwrap(
               api.POST('/admin/resources', {body: fields}),
             );
-            reload();
+            changed();
             setScreen({
               kind: 'resource',
               id,
@@ -232,7 +240,7 @@ export function AdminResources() {
           key={opened.id}
           resource={opened}
           data={data}
-          onChanged={reload}
+          onChanged={changed}
         />
       </AdminPage>
     );

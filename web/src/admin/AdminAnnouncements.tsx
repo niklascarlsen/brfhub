@@ -1,6 +1,6 @@
 import {useState} from 'react';
 
-import {useAdminAccount} from '@/admin/account';
+import {useAdminAccount, useRefreshAccount} from '@/admin/account';
 import {AdminPage} from '@/admin/AdminPage';
 import {AnnouncementForm} from '@/admin/AnnouncementForm';
 import {missingLanguages} from '@/admin/localized';
@@ -49,7 +49,15 @@ export function AdminAnnouncements() {
   const showSkeleton = useSlowLoad(data === null && error === null);
   const [screen, setScreen] = useState<Screen>({kind: 'list'});
 
+  const refreshAccount = useRefreshAccount();
   const toList = () => setScreen({kind: 'list'});
+
+  // What lacks a language is counted on the account, so it follows every
+  // change here.
+  const changed = () => {
+    reload();
+    refreshAccount();
+  };
   const back = {label: t.tabs.announcements, onPress: toList};
 
   if (data && screen.kind === 'add') {
@@ -71,7 +79,7 @@ export function AdminAnnouncements() {
           onCancel={toList}
           onSubmit={async (fields) => {
             await unwrap(api.POST('/admin/announcements', {body: fields}));
-            reload();
+            changed();
             toList();
           }}
         />
@@ -104,7 +112,7 @@ export function AdminAnnouncements() {
                 body: fields,
               }),
             );
-            reload();
+            changed();
             toList();
           }}
           onDelete={() =>
@@ -120,7 +128,7 @@ export function AdminAnnouncements() {
                     }),
                   )
                     .then(() => {
-                      reload();
+                      changed();
                       toList();
                     })
                     .catch((caught: unknown) =>

@@ -3320,11 +3320,19 @@ export interface components {
             locales: components["schemas"]["LocaleInput"][];
             apartment: string;
         };
+        UntranslatedInput: {
+            locales: components["schemas"]["LocaleInput"][];
+            kinds: number;
+            resources: number;
+            announcements: number;
+            rules: boolean;
+        } | null;
         AdminAccountInput: {
             /** @constant */
             role: "admin";
             organizationName: string;
             locales: components["schemas"]["LocaleInput"][];
+            untranslated: components["schemas"]["UntranslatedInput"];
         };
         AccountInput: components["schemas"]["MemberAccountInput"] | components["schemas"]["AdminAccountInput"];
         AnnouncementInput: {
@@ -3669,11 +3677,19 @@ export interface components {
             locales: components["schemas"]["Locale"][];
             apartment: string;
         };
+        Untranslated: {
+            locales: components["schemas"]["Locale"][];
+            kinds: number;
+            resources: number;
+            announcements: number;
+            rules: boolean;
+        } | null;
         AdminAccount: {
             /** @constant */
             role: "admin";
             organizationName: string;
             locales: components["schemas"]["Locale"][];
+            untranslated: components["schemas"]["Untranslated"];
         };
         Account: components["schemas"]["MemberAccount"] | components["schemas"]["AdminAccount"];
         Announcement: {

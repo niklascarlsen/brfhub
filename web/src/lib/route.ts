@@ -84,14 +84,52 @@ function readRoute(): Route {
 
 const readers = new Set<() => void>();
 
+// The route on screen, which the browser's back and forward may be kept
+// from leaving.
+let shown = readRoute();
+let historyGuard: ((route: Route) => boolean) | null = null;
+
+function notify() {
+  shown = readRoute();
+
+  for (const read of readers) {
+    read();
+  }
+}
+
+window.addEventListener('popstate', () => {
+  const next = readRoute();
+
+  if (next !== shown && historyGuard !== null && !historyGuard(next)) {
+    // The address bar already says next. Put back the page still shown;
+    // the guard goes on to next itself if it is told to.
+    window.history.pushState(null, '', hrefOf(shown));
+    return;
+  }
+
+  notify();
+});
+
 function subscribe(onChange: () => void) {
   readers.add(onChange);
-  window.addEventListener('popstate', onChange);
 
   return () => {
     readers.delete(onChange);
-    window.removeEventListener('popstate', onChange);
   };
+}
+
+// Asked before the browser's back or forward leaves the route shown: true
+// lets it go, false keeps the page.
+export function useHistoryGuard(guard: (route: Route) => boolean) {
+  useEffect(() => {
+    historyGuard = guard;
+
+    return () => {
+      if (historyGuard === guard) {
+        historyGuard = null;
+      }
+    };
+  }, [guard]);
 }
 
 type Navigate = (route: Route, options?: {replace?: boolean}) => void;
@@ -121,10 +159,7 @@ export function useRoute(): [Route, Navigate] {
       window.history.pushState(null, '', hrefOf(next));
     }
     window.scrollTo(0, 0);
-
-    for (const read of readers) {
-      read();
-    }
+    notify();
   }, []);
 
   return [route, navigate];

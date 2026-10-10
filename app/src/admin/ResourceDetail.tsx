@@ -1,10 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import {useIsFocused} from '@react-navigation/native';
 import {useEffect, useState} from 'react';
 import {Alert, BackHandler, Pressable, Text, View} from 'react-native';
 
 import {ResourceForm} from '@/admin/ResourceForm';
 import {ScheduleForm} from '@/admin/ScheduleForm';
 import {limitText, slotsText} from '@/admin/schedule';
+import {useConfirmLeave} from '@/admin/unsaved';
 import {
   CARD,
   SECONDARY_BUTTON,
@@ -90,25 +92,29 @@ export function ResourceDetail({
   const t = useMessages();
   const {locale} = useLocale();
   const [mode, setMode] = useState<Mode>('view');
+  const confirmLeave = useConfirmLeave();
+  // Every tab keeps its screen, so only the one shown answers the back
+  // button.
+  const focused = useIsFocused();
   const tags = localize(resource.tags, locale) ?? [];
 
   // Back from a form returns to the resource, not to the list. Registered
   // after the list's handler, so it is asked first.
   useEffect(() => {
-    if (mode === 'view') {
+    if (mode === 'view' || !focused) {
       return;
     }
 
     const subscription = BackHandler.addEventListener(
       'hardwareBackPress',
       () => {
-        setMode('view');
+        confirmLeave(() => setMode('view'));
         return true;
       },
     );
 
     return () => subscription.remove();
-  }, [mode]);
+  }, [mode, focused, confirmLeave]);
   const {kinds, earliestChange, today} = data;
   const kind = kinds.find((item) => item.id === resource.kindId);
   const [current, ...later] = resource.schedules;

@@ -1,12 +1,7 @@
 import {useState} from 'react';
-import {Pressable, Text, View} from 'react-native';
+import {Text, View} from 'react-native';
 
-import {
-  PRIMARY_BUTTON,
-  PRIMARY_LABEL,
-  SECONDARY_BUTTON,
-  SECONDARY_LABEL,
-} from '@/admin/styles';
+import {FormActions} from '@/admin/FormActions';
 import {codeOf, errorMessage} from '@/api/errors';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {useMessages} from '@/i18n/LocaleProvider';
@@ -48,8 +43,11 @@ export function ApartmentForm({
     residentName: fields.residentName.trim(),
     email: fields.email.trim(),
   };
-  const canSubmit =
-    !submitting &&
+  const dirty =
+    trimmed.label !== initial.label ||
+    trimmed.residentName !== initial.residentName ||
+    trimmed.email !== initial.email;
+  const valid =
     trimmed.residentName.length > 0 &&
     trimmed.email.length > 0 &&
     (!withLabel || trimmed.label.length > 0);
@@ -116,18 +114,14 @@ export function ApartmentForm({
           {error}
         </Text>
       ) : null}
-      <View className='mt-2 flex-row flex-wrap gap-2.5'>
-        <Pressable
-          onPress={() => void submit()}
-          disabled={!canSubmit}
-          className={PRIMARY_BUTTON}
-        >
-          <Text className={PRIMARY_LABEL}>{submitLabel}</Text>
-        </Pressable>
-        <Pressable onPress={onCancel} className={SECONDARY_BUTTON}>
-          <Text className={SECONDARY_LABEL}>{t.common.cancel}</Text>
-        </Pressable>
-      </View>
+      <FormActions
+        submitLabel={submitLabel}
+        dirty={dirty}
+        valid={valid}
+        submitting={submitting}
+        onSubmit={() => void submit()}
+        onCancel={onCancel}
+      />
     </View>
   );
 }
