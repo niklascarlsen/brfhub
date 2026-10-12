@@ -1,4 +1,4 @@
-import {describe, expect, test, vi} from 'vitest';
+import {afterEach, describe, expect, test, vi} from 'vitest';
 
 import {createApi} from './createApi';
 import {codeOf} from './errors';
@@ -75,5 +75,79 @@ describe('unwrap', () => {
     expect(await failure(unwrap(Promise.reject(new TypeError())))).toBe(
       'NETWORK',
     );
+  });
+});
+
+describe('requests', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  test('carry the headers as they are when each is sent', async () => {
+    const seen: Request[] = [];
+    vi.stubGlobal('fetch', async (request: Request) => {
+      seen.push(request);
+      return Response.json({});
+    });
+
+    const locales = ['sv', 'en'];
+    const headers = vi.fn(() => ({
+      cookie: 'session=1',
+      'accept-language': locales[headers.mock.calls.length - 1] ?? '',
+    }));
+    const {api, unwrap} = createApi({
+      baseUrl: 'http://localhost',
+      credentials: 'include',
+      headers,
+      onUnauthorized: () => {},
+    });
+
+    await unwrap(api.GET('/booking-window'));
+    await unwrap(api.GET('/resources'));
+
+    expect(headers).toHaveBeenCalledTimes(2);
+    expect(
+      seen.map((request) => request.headers.get('accept-language')),
+    ).toEqual(['sv', 'en']);
+    expect(seen.map((request) => request.headers.get('cookie'))).toEqual([
+      'session=1',
+      'session=1',
+    ]);
+    expect(seen.map((request) => request.credentials)).toEqual([
+      'include',
+      'include',
+    ]);
+  });
+
+  test('give up after ten seconds', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      'fetch',
+      (_: Request, init: {signal: AbortSignal}) =>
+        new Promise((_resolve, reject) => {
+          init.signal.addEventListener('abort', () => {
+            reject(Object.assign(new Error('aborted'), {name: 'AbortError'}));
+          });
+        }),
+    );
+
+    const {api, unwrap} = createApi({
+      baseUrl: 'http://localhost',
+      credentials: 'omit',
+      headers: () => ({}),
+      onUnauthorized: () => {},
+    });
+
+    let code: string | null = null;
+    void failure(unwrap(api.GET('/booking-window'))).then((result) => {
+      code = result;
+    });
+
+    await vi.advanceTimersByTimeAsync(9_999);
+    expect(code).toBeNull();
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(code).toBe('TIMEOUT');
   });
 });

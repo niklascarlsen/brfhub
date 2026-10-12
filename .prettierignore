@@ -1,0 +1,9 @@
+# Each workspace and server/ checks its own files.
+core
+app
+web
+server
+node_modules
+package-lock.json
+# Notes, including untracked ones kept next to the repo.
+*.md

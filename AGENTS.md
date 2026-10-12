@@ -8,7 +8,8 @@ what you remember.
 # Generated types
 
 `server/openapi.json` and `core/src/generated/api.d.ts` are generated. Never
-edit them by hand. Change the Zod schemas in `server/src/<feature>/<feature>.dto.ts`, then from `server/` run
+edit them by hand. Change the Zod schemas in
+`server/src/<feature>/<feature>.dto.ts`, then from `server/` run
 `npm run types:gen`, and `npm run types:check` to verify sync.
 
 `web/src/theme.css`, `web/src/components/icons/` and the theme-color meta tag
@@ -25,8 +26,8 @@ own.
 
 Root
 
-- `npm run check`: `check` in every workspace, then
-  `scripts/check-mirrors.mjs`.
+- `npm run check`: Prettier on the root's own files, `check` in every
+  workspace, then `scripts/check-mirrors.mjs`.
 - `npm test`: core's tests (Vitest), run in Europe/Stockholm and then
   America/New_York. The date helpers use local time, and only a negative
   offset catches a zone bug. Setting TZ inside a test does nothing.
