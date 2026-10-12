@@ -7,9 +7,8 @@ what you remember.
 
 # Generated types
 
-`server/openapi.json`, `app/src/generated/api.d.ts` and
-`web/src/generated/api.d.ts` are generated. Never edit them by hand. Change the
-Zod schemas in `server/src/<feature>/<feature>.dto.ts`, then from `server/` run
+`server/openapi.json` and `core/src/generated/api.d.ts` are generated. Never
+edit them by hand. Change the Zod schemas in `server/src/<feature>/<feature>.dto.ts`, then from `server/` run
 `npm run types:gen`, and `npm run types:check` to verify sync.
 
 `web/src/theme.css`, `web/src/components/icons/` and the theme-color meta tag
@@ -19,6 +18,18 @@ files are committed; `npm run generate` in `web/` rewrites them, and `dev`,
 `build` and `check` run it first, so commit what it produces.
 
 # Scripts
+
+The root is an npm workspace of `core/`, `app/` and `web/` with one lockfile:
+run `npm install` there, never inside them. `server/` stays outside with its
+own.
+
+Root
+
+- `npm run check`: `check` in every workspace, then
+  `scripts/check-mirrors.mjs`.
+- `npm test`: core's tests (Vitest), run in Europe/Stockholm and then
+  America/New_York. The date helpers use local time, and only a negative
+  offset catches a zone bug. Setting TZ inside a test does nothing.
 
 `server/`
 
@@ -57,9 +68,6 @@ files are committed; `npm run generate` in `web/` rewrites them, and `dev`,
 - `npm run go` — Expo Go on a physical iPhone. UI only: push does not work
   there, and it throws on Android.
 - `npm run check` — Prettier, TypeScript and ESLint.
-- `npm test` — Jest via `jest-expo`, run in Europe/Stockholm and then
-  America/New_York. The date helpers use local time, and only a negative
-  offset catches a zone bug. Setting TZ inside a test does nothing.
 
 Physical iPhone with a free Apple ID (no paid developer account):
 
@@ -91,10 +99,7 @@ id=<udid> -allowProvisioningUpdates build` once. The free profile expires
   rewrite only shows up once it is deployed.
 - `npm run generate` — rewrites the generated theme and icons, see Generated
   types. Runs by itself before `dev`, `build` and `check`.
-- `npm run check` — Prettier, TypeScript, ESLint and a diff of the files
-  shared with the app (`src/lib/dates.ts`, `src/admin/localized.ts`, and
-  `sv.ts`, `en.ts` and `catalog.ts` in `src/i18n/`) against the app's
-  copies.
+- `npm run check`: Prettier, TypeScript and ESLint.
 
 I keep the `server/` and `web/` dev servers running while testing. Never kill
 them (`pkill`, by port); check what is listening with
@@ -111,12 +116,23 @@ pick up changes without a restart.
 - `web/` is one app. Below 1024px it renders the same screens as `app/`; above
   it renders the calendar and day view in `src/desktop/`, which loads the whole
   booking window for every resource in one `/schedule` request.
-- `src/lib/dates.ts` is the same file in both clients, kept honest by web's
-  `shared:check`. Its tests live in `app/`, so add helpers there. What only the
-  desktop calendar needs goes in `web/src/desktop/weeks.ts`.
-- Every visible string lives in `src/i18n/sv.ts` and `src/i18n/en.ts`, the
-  same files in both clients and checked by `shared:check`. A new string goes
-  in both, and TypeScript refuses an English catalog that lacks a Swedish key.
+- `core/` (`@booking/core`) holds what both clients share: the API types and
+  the client's core (`createApi`), error codes, i18n, date helpers and other
+  logic such as `bookingActions`. It is TypeScript read straight by Metro and
+  Vite, with no build step, and runs in plain Node: it never imports
+  `react-native`, `expo-*`, the DOM, `app/` or `web/`. UI, platform calls and
+  the adapters that feed core a platform (`src/api/client.ts`,
+  `src/hooks/useBookingActions.ts`) stay in the clients, which depend on core
+  and never on each other.
+- New date helpers, strings and other shared logic go in `core/`, tested
+  there. What only the desktop calendar needs goes in
+  `web/src/desktop/weeks.ts`.
+- Some client files read the same in both but bind platform code, such as
+  `config.tsx` and `src/auth/session.tsx`. `scripts/check-mirrors.mjs` lists
+  them and fails when the copies differ, so change both.
+- Every visible string lives in `core/src/i18n/sv.ts` and
+  `core/src/i18n/en.ts`. A new string goes in both, and TypeScript refuses an
+  English catalog that lacks a Swedish key.
   Components read it with `useMessages()`; helpers outside components take it
   as a `t: Messages` argument. Never write UI text inline.
 - The organization picks its languages (`locales`), and the clients show
@@ -149,8 +165,10 @@ pick up changes without a restart.
 # Rules
 
 - Reuse existing helpers and components. Search before writing a new one.
-- In `app/` and `web/`, import with the `@/` alias, never `../`. `server/` has
-  no alias and uses relative imports.
+- In `app/` and `web/`, import with the `@/` alias, never `../`, and core as
+  `@booking/core/<path>`, such as `@booking/core/lib/dates`. `core/` and
+  `server/` have no alias and use relative imports; `@/` in core would point
+  into whichever client imports it.
 - drizzle/ is .gitignored as of now during development, no need to bring it up.
 
 ## Maintaining this file

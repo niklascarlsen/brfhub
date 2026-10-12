@@ -6,7 +6,7 @@ import {
 import {useResetWhenChanged} from '@booking/core/hooks/useResetWhenChanged';
 import {useEffect, useRef, useState} from 'react';
 
-import {useReturnToTab} from '@/hooks/useReturnToTab';
+import {useOnReturn} from '@/hooks/useOnReturn';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
 
 export function useFocusLoad<T>(load: () => Promise<T>, identity?: string) {
@@ -25,7 +25,7 @@ export function useFocusLoad<T>(load: () => Promise<T>, identity?: string) {
     loadRef.current = load;
   });
 
-  useReturnToTab(reload);
+  useOnReturn(reload);
 
   useResetWhenChanged(`${scope}:${attempt}`, () => setError(null));
 

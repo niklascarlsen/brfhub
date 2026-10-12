@@ -10,8 +10,8 @@ import {api, unwrap} from '@/api/client';
 import {signOut} from '@/auth/signOut';
 import {Blank} from '@/components/Blank';
 import {Notice} from '@/components/Notice';
+import {useOnReturn} from '@/hooks/useOnReturn';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
-import {useReturnToTab} from '@/hooks/useReturnToTab';
 
 export type MemberAccount = components['schemas']['MemberAccount'];
 export type AdminAccount = components['schemas']['AdminAccount'];
@@ -67,9 +67,9 @@ export function AccountGate({member, admin}: AccountGateProps) {
 
   const refresh = () => setAttempt((previous) => previous + 1);
 
-  // Asked again whenever the tab returns, so a renamed organization or a
-  // moved-out apartment shows without a reload.
-  useReturnToTab(refresh);
+  // Asked again whenever the user comes back, so a renamed organization or
+  // a moved-out apartment shows without a restart.
+  useOnReturn(refresh);
 
   // A refresh keeps showing the account it has until the new one arrives.
   if (account) {

@@ -1,6 +1,6 @@
 import {useEffect, useRef} from 'react';
 
-export function useReturnToTab(onReturn: () => void) {
+export function useOnReturn(onReturn: () => void) {
   const handler = useRef(onReturn);
 
   useEffect(() => {
