@@ -1,3 +1,5 @@
+import {useResetWhenChanged} from '@booking/core/hooks/useResetWhenChanged';
+import {formatLongDate, isWithinBookingWindow} from '@booking/core/lib/dates';
 import {useRoute, type RouteProp} from '@react-navigation/native';
 import {useState} from 'react';
 import {ScrollView, Text, View} from 'react-native';
@@ -10,9 +12,7 @@ import {SlotList} from '@/components/SlotList';
 import {useConfig} from '@/config';
 import {useBookingActions} from '@/hooks/useBookingActions';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
-import {useResetWhenChanged} from '@/hooks/useResetWhenChanged';
 import {useMessages} from '@/i18n/LocaleProvider';
-import {formatLongDate, isWithinBookingWindow} from '@/lib/dates';
 import type {AppTabParamList} from '@/navigation/AppTabNavigator';
 
 function fetchDay(isoDate: string, resourceId: string) {

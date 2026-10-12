@@ -1,6 +1,6 @@
-import type {Messages} from '@/i18n/catalog';
+import type {Messages} from './catalog';
 
-// The English catalog, the same file in app/ and web/ like sv.ts.
+// The English catalog, shared by both clients like sv.ts.
 export const en: Messages = {
   dates: {
     locale: 'en-GB',

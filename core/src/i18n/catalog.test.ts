@@ -1,6 +1,6 @@
-import {describe, expect, test} from '@jest/globals';
+import {describe, expect, test} from 'vitest';
 
-import {isLocaleChoice, localize, resolveLocale} from '@/i18n/catalog';
+import {isLocaleChoice, localize, resolveLocale} from './catalog';
 
 describe('resolveLocale', () => {
   test('a picked language wins over the device', () => {

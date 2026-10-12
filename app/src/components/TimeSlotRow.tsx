@@ -1,12 +1,12 @@
+import type {Slot} from '@booking/core/api/types';
+import type {Messages} from '@booking/core/i18n/catalog';
+import {timeRange} from '@booking/core/lib/dates';
+import {exhaustive} from '@booking/core/lib/exhaustive';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {Pressable, Text, View} from 'react-native';
 
-import type {Slot} from '@/api/client';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
-import type {Messages} from '@/i18n/catalog';
 import {useMessages} from '@/i18n/LocaleProvider';
-import {timeRange} from '@/lib/dates';
-import {exhaustive} from '@/lib/exhaustive';
 import theme from '@/theme.json';
 
 type TimeSlotRowProps = {

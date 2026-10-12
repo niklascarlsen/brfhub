@@ -1,9 +1,14 @@
-import type {BookingWindow} from '@/api/client';
+import type {BookingWindow} from '@booking/core/api/types';
+import type {Messages} from '@booking/core/i18n/catalog';
+import {
+  formatLongDate,
+  fromIsoDate,
+  isWithinBookingWindow,
+} from '@booking/core/lib/dates';
+
 import {calendarWeeks, formatMonthSpan, weekdayHeadings} from '@/desktop/weeks';
 import {useRovingGrid} from '@/hooks/useRovingGrid';
-import type {Messages} from '@/i18n/catalog';
 import {useMessages} from '@/i18n/LocaleProvider';
-import {formatLongDate, fromIsoDate, isWithinBookingWindow} from '@/lib/dates';
 
 export type DaySummary = {free: number; mine: boolean};
 

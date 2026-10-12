@@ -1,3 +1,5 @@
+import type {Apartment} from '@booking/core/api/types';
+import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {useIsFocused} from '@react-navigation/native';
 import {useEffect, useState} from 'react';
@@ -10,12 +12,11 @@ import {ApartmentForm} from '@/admin/ApartmentForm';
 import {PasswordCard} from '@/admin/PasswordCard';
 import {useConfirmLeave} from '@/admin/unsaved';
 import {PRIMARY_BUTTON, PRIMARY_LABEL} from '@/admin/styles';
-import {api, unwrap, type Apartment} from '@/api/client';
+import {api, unwrap} from '@/api/client';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {Notice} from '@/components/Notice';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
-import {useSlowLoad} from '@/hooks/useSlowLoad';
 import {useMessages} from '@/i18n/LocaleProvider';
 import theme from '@/theme.json';
 

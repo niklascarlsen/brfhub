@@ -1,6 +1,6 @@
-// Every string the apartment and admin screens show, in Swedish. The same
-// file lives in app/ and web/, and web's check keeps the two identical, so
-// a key one client does not use is still fine here.
+// Every string the apartment and admin screens show, in Swedish. Both
+// clients read this one file, so a key one client does not use is still
+// fine here.
 export const sv = {
   dates: {
     // The locale toLocaleDateString writes long dates in.

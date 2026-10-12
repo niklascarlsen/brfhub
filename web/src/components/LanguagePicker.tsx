@@ -1,6 +1,6 @@
+import {CATALOGS, type LocaleChoice} from '@booking/core/i18n/catalog';
 import {useId} from 'react';
 
-import {CATALOGS, type LocaleChoice} from '@/i18n/catalog';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
 
 // Each language is named in itself, so it can be found whatever the page is

@@ -1,8 +1,8 @@
-import {describe, expect, test} from '@jest/globals';
+import {describe, expect, test} from 'vitest';
 
-import {untranslatedMessage} from '@/admin/localized';
-import {en} from '@/i18n/en';
-import {sv} from '@/i18n/sv';
+import {en} from '../i18n/en';
+import {sv} from '../i18n/sv';
+import {untranslatedMessage} from './localized';
 
 const NONE = {kinds: 0, resources: 0, announcements: 0, rules: false};
 

@@ -1,9 +1,9 @@
+import type {Locale} from '@booking/core/i18n/catalog';
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import {Platform} from 'react-native';
 
 import {api, unwrap} from '@/api/client';
-import type {Locale} from '@/i18n/catalog';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({

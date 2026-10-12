@@ -1,6 +1,6 @@
-import type {components} from '@/generated/api';
-import type {Messages} from '@/i18n/catalog';
-import {sv} from '@/i18n/sv';
+import type {components} from '../generated/api';
+import type {Messages} from '../i18n/catalog';
+import {sv} from '../i18n/sv';
 
 export type ClientErrorCode =
   | components['schemas']['Error']['code']

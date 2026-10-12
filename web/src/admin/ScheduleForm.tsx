@@ -1,12 +1,12 @@
+import {slotsProblem} from '@booking/core/admin/schedule';
+import {codeOf, errorMessage} from '@booking/core/api/errors';
+import type {SlotInput} from '@booking/core/api/types';
+import {formatLongDate} from '@booking/core/lib/dates';
 import {useState, type SubmitEvent} from 'react';
 
 import {FormActions} from '@/admin/FormActions';
-import {slotsProblem} from '@/admin/schedule';
 import {SlotsEditor} from '@/admin/SlotsEditor';
-import type {SlotInput} from '@/api/client';
-import {codeOf, errorMessage} from '@/api/errors';
 import {useMessages} from '@/i18n/LocaleProvider';
-import {formatLongDate} from '@/lib/dates';
 
 type ScheduleFormProps = {
   initial: SlotInput[];

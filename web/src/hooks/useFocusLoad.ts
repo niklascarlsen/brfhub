@@ -1,7 +1,11 @@
+import {
+  codeOf,
+  errorMessage,
+  type ClientErrorCode,
+} from '@booking/core/api/errors';
+import {useResetWhenChanged} from '@booking/core/hooks/useResetWhenChanged';
 import {useEffect, useRef, useState} from 'react';
 
-import {codeOf, errorMessage, type ClientErrorCode} from '@/api/errors';
-import {useResetWhenChanged} from '@/hooks/useResetWhenChanged';
 import {useReturnToTab} from '@/hooks/useReturnToTab';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
 

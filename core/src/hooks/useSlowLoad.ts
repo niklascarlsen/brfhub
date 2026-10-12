@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
 
-import {useResetWhenChanged} from '@/hooks/useResetWhenChanged';
+import {useResetWhenChanged} from './useResetWhenChanged';
 
 const SKELETON_DELAY_MS = 200;
 

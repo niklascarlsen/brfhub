@@ -1,9 +1,9 @@
+import type {Slot} from '@booking/core/api/types';
+import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
 import {View} from 'react-native';
 
-import type {Slot} from '@/api/client';
 import {Notice, NoticeBar} from '@/components/Notice';
 import {TimeSlotListSkeleton, TimeSlotRow} from '@/components/TimeSlotRow';
-import {useSlowLoad} from '@/hooks/useSlowLoad';
 import {useMessages} from '@/i18n/LocaleProvider';
 
 const FALLBACK_SKELETON_ROWS = 4;

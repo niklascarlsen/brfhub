@@ -1,6 +1,6 @@
-import type {AdminKind, SlotInput} from '@/api/client';
-import type {Messages} from '@/i18n/catalog';
-import {unbrokenRange} from '@/lib/dates';
+import type {AdminKind, SlotInput} from '../api/types';
+import type {Messages} from '../i18n/catalog';
+import {unbrokenRange} from '../lib/dates';
 
 export function slotsText(slots: SlotInput[]): string {
   return slots.map((slot) => unbrokenRange(slot.start, slot.end)).join(', ');

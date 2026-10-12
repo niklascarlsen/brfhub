@@ -1,5 +1,5 @@
-import type {Messages} from '@/i18n/catalog';
-import {fromIsoDate, toIsoDate} from '@/lib/dates';
+import type {Messages} from '../i18n/catalog';
+import {fromIsoDate, toIsoDate} from '../lib/dates';
 
 // How long an announcement shows, as the admin thinks of it.
 export const DURATIONS = [

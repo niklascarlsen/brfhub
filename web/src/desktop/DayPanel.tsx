@@ -1,6 +1,13 @@
+import type {
+  ActiveBooking,
+  BookingWindow,
+  Resource,
+  Slot,
+} from '@booking/core/api/types';
+import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
+import {timeRange} from '@booking/core/lib/dates';
 import {useRef} from 'react';
 
-import type {ActiveBooking, BookingWindow, Resource, Slot} from '@/api/client';
 import {
   ChevronBackIcon,
   ChevronForwardIcon,
@@ -10,9 +17,7 @@ import {Notice, NoticeBar} from '@/components/Notice';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
 import {Tag} from '@/components/Tag';
 import {addDays, formatHeadingDate, relativeDay} from '@/desktop/weeks';
-import {useSlowLoad} from '@/hooks/useSlowLoad';
 import {useMessages} from '@/i18n/LocaleProvider';
-import {timeRange} from '@/lib/dates';
 import {isLocked, slotAppearance} from '@/lib/slots';
 
 export type ResourceDay = {

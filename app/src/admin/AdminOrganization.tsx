@@ -1,19 +1,29 @@
+import {
+  isWrittenOrEmpty,
+  trimmedText,
+  type Draft,
+} from '@booking/core/admin/localized';
+import {codeOf, errorMessage} from '@booking/core/api/errors';
+import type {LocalizedText} from '@booking/core/api/types';
+import {
+  CATALOGS,
+  LOCALES,
+  type Locale,
+  type Messages,
+} from '@booking/core/i18n/catalog';
 import {useState, type ReactNode} from 'react';
 import {Pressable, Text, TextInput, View} from 'react-native';
 
 import {useAdminAccount, useRefreshAccount} from '@/admin/account';
 import {AdminPage} from '@/admin/AdminPage';
 import {FormActions} from '@/admin/FormActions';
-import {isWrittenOrEmpty, trimmedText, type Draft} from '@/admin/localized';
 import {SECTION_LABEL} from '@/admin/styles';
-import {api, unwrap, type LocalizedText} from '@/api/client';
-import {codeOf, errorMessage} from '@/api/errors';
+import {api, unwrap} from '@/api/client';
 import {authClient} from '@/auth/client';
 import {Account} from '@/components/Account';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {Notice} from '@/components/Notice';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
-import {CATALOGS, LOCALES, type Locale, type Messages} from '@/i18n/catalog';
 import {useMessages} from '@/i18n/LocaleProvider';
 import theme from '@/theme.json';
 

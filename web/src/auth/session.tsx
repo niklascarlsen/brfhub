@@ -1,6 +1,6 @@
+import {errorMessage} from '@booking/core/api/errors';
 import type {ReactNode} from 'react';
 
-import {errorMessage} from '@/api/errors';
 import {authClient} from '@/auth/client';
 import {Blank} from '@/components/Blank';
 import {Notice} from '@/components/Notice';

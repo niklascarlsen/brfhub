@@ -1,5 +1,5 @@
-import type {BookingWindow} from '@/api/client';
-import type {Messages} from '@/i18n/catalog';
+import type {BookingWindow} from '../api/types';
+import type {Messages} from '../i18n/catalog';
 
 export function toIsoDate(date: Date): string {
   const year = date.getFullYear();

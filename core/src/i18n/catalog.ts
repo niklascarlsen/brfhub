@@ -1,6 +1,6 @@
-import type {components} from '@/generated/api';
-import {en} from '@/i18n/en';
-import {sv} from '@/i18n/sv';
+import type {components} from '../generated/api';
+import {en} from './en';
+import {sv} from './sv';
 
 // The app was written in Swedish, so its messages give the shape every
 // other language fills in.

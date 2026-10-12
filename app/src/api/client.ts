@@ -1,29 +1,10 @@
+import {apiError} from '@booking/core/api/errors';
+import type {components, paths} from '@booking/core/generated/api';
 import createClient from 'openapi-fetch';
 
 import {API_BASE_URL} from '@/api/baseUrl';
-import {apiError} from '@/api/errors';
 import {authClient, sessionChanged} from '@/auth/client';
-import type {components, paths} from '@/generated/api';
 import {getRequestLocale} from '@/lib/locale';
-
-export type Booking = components['schemas']['Booking'];
-export type Slot = components['schemas']['Slot'];
-export type BookingWindow = components['schemas']['BookingWindow'];
-export type Subscription = components['schemas']['Subscription'];
-export type Resource = components['schemas']['Resource'];
-export type Apartment = components['schemas']['Apartment'];
-export type AdminResources = components['schemas']['AdminResources'];
-export type AdminResource = components['schemas']['AdminResource'];
-export type AdminKind = components['schemas']['AdminKind'];
-// Text the organization writes once per language it uses.
-export type LocalizedText = components['schemas']['LocalizedText'];
-export type LocalizedTags = components['schemas']['LocalizedTags'];
-export type SlotInput = components['schemas']['ScheduleSlot'];
-export type Announcement = components['schemas']['Announcement'];
-export type AdminAnnouncement = components['schemas']['AdminAnnouncement'];
-export type ActiveBooking = NonNullable<
-  components['schemas']['Slots']['active']
->;
 
 const TIMEOUT_MS = 10_000;
 

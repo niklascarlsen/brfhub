@@ -15,19 +15,13 @@ try {
   const openapiPath = resolve(root, 'openapi.json');
   writeFileSync(openapiPath, `${JSON.stringify(app.swagger(), null, 2)}\n`);
 
-  const outPaths = [
-    resolve(root, '../app/src/generated/api.d.ts'),
-    resolve(root, '../web/src/generated/api.d.ts'),
-  ];
+  const outPath = resolve(root, '../core/src/generated/api.d.ts');
+  mkdirSync(dirname(outPath), {recursive: true});
 
-  for (const outPath of outPaths) {
-    mkdirSync(dirname(outPath), {recursive: true});
-
-    execFileSync('npx', ['openapi-typescript', openapiPath, '-o', outPath], {
-      cwd: root,
-      stdio: 'inherit',
-    });
-  }
+  execFileSync('npx', ['openapi-typescript', openapiPath, '-o', outPath], {
+    cwd: root,
+    stdio: 'inherit',
+  });
 } finally {
   await app.close();
   await pool.end();

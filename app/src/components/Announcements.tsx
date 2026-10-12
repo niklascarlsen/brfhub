@@ -1,10 +1,11 @@
+import type {Announcement} from '@booking/core/api/types';
+import {formatDayMonth} from '@booking/core/lib/dates';
 import {useEffect, useState} from 'react';
 import {Pressable, Text, View} from 'react-native';
 
-import {api, unwrap, type Announcement} from '@/api/client';
+import {api, unwrap} from '@/api/client';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useMessages} from '@/i18n/LocaleProvider';
-import {formatDayMonth} from '@/lib/dates';
 import {readDismissed, saveDismissed} from '@/lib/dismissed';
 
 function fetchAnnouncements() {

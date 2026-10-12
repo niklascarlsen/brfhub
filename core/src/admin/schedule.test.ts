@@ -1,8 +1,8 @@
-import {describe, expect, test} from '@jest/globals';
+import {describe, expect, test} from 'vitest';
 
-import {nextSlot, slotsProblem} from '@/admin/schedule';
-import {sv} from '@/i18n/sv';
-import type {SlotInput} from '@/api/client';
+import type {SlotInput} from '../api/types';
+import {sv} from '../i18n/sv';
+import {nextSlot, slotsProblem} from './schedule';
 
 const slot = (
   start: string,

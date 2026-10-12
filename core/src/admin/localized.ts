@@ -1,5 +1,5 @@
-import type {components} from '@/generated/api';
-import {joinNames, LOCALES, type Locale, type Messages} from '@/i18n/catalog';
+import type {components} from '../generated/api';
+import {joinNames, LOCALES, type Locale, type Messages} from '../i18n/catalog';
 
 // What the admin writes in a form: a text per language of the
 // organization.

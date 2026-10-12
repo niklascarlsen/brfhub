@@ -1,24 +1,25 @@
+import {missingLanguages} from '@booking/core/admin/localized';
+import {limitText, slotsText} from '@booking/core/admin/schedule';
+import {codeOf, errorMessage} from '@booking/core/api/errors';
+import type {AdminResource} from '@booking/core/api/types';
+import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
+import {localize, type Messages} from '@booking/core/i18n/catalog';
+import {formatDayMonth} from '@booking/core/lib/dates';
 import {useState} from 'react';
 
 import {useAdminAccount, useRefreshAccount} from '@/admin/account';
 import {AdminPage} from '@/admin/AdminPage';
 import {KindForm} from '@/admin/KindForm';
-import {missingLanguages} from '@/admin/localized';
 import {ResourceDetail} from '@/admin/ResourceDetail';
 import {ResourceForm} from '@/admin/ResourceForm';
-import {limitText, slotsText} from '@/admin/schedule';
 import {PRIMARY_BUTTON, SECONDARY_BUTTON} from '@/admin/styles';
-import {api, unwrap, type AdminResource} from '@/api/client';
-import {codeOf, errorMessage} from '@/api/errors';
+import {api, unwrap} from '@/api/client';
 import {useDialog} from '@/components/Dialog';
 import {AddIcon, ChevronForwardIcon} from '@/components/icons';
 import {Notice} from '@/components/Notice';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
-import {useSlowLoad} from '@/hooks/useSlowLoad';
-import {localize, type Messages} from '@/i18n/catalog';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
-import {formatDayMonth} from '@/lib/dates';
 
 function fetchResources() {
   return unwrap(api.GET('/admin/resources'));

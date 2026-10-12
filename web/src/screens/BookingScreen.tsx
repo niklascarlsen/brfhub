@@ -1,4 +1,7 @@
-import {api, unwrap, type BookingWindow, type Resource} from '@/api/client';
+import type {BookingWindow, Resource} from '@booking/core/api/types';
+import {formatLongDate} from '@booking/core/lib/dates';
+
+import {api, unwrap} from '@/api/client';
 import {AnnouncementBanner} from '@/components/Announcements';
 import {BookingHeader} from '@/components/BookingHeader';
 import {SlotList} from '@/components/SlotList';
@@ -6,7 +9,6 @@ import {Tag} from '@/components/Tag';
 import {useBookingActions} from '@/hooks/useBookingActions';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useMessages} from '@/i18n/LocaleProvider';
-import {formatLongDate} from '@/lib/dates';
 
 function fetchDay(isoDate: string, resourceId: string) {
   return unwrap(

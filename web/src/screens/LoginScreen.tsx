@@ -1,9 +1,9 @@
+import {errorMessage} from '@booking/core/api/errors';
+import type {Messages} from '@booking/core/i18n/catalog';
 import {useState, type SubmitEvent} from 'react';
 
-import {errorMessage} from '@/api/errors';
 import {authClient} from '@/auth/client';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
-import type {Messages} from '@/i18n/catalog';
 import {useMessages} from '@/i18n/LocaleProvider';
 
 // The rate limiter answers 429 without a code, so status is what tells

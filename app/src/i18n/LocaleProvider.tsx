@@ -1,3 +1,11 @@
+import {
+  CATALOGS,
+  LOCALES,
+  resolveLocale,
+  type Locale,
+  type LocaleChoice,
+  type Messages,
+} from '@booking/core/i18n/catalog';
 import {useLocales} from 'expo-localization';
 import {
   createContext,
@@ -8,14 +16,6 @@ import {
   type ReactNode,
 } from 'react';
 
-import {
-  CATALOGS,
-  LOCALES,
-  resolveLocale,
-  type Locale,
-  type LocaleChoice,
-  type Messages,
-} from '@/i18n/catalog';
 import {
   readLocaleChoice,
   saveLocaleChoice,

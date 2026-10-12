@@ -1,6 +1,6 @@
-import {describe, expect, test} from '@jest/globals';
+import {describe, expect, test} from 'vitest';
 
-import {durationOf, endsOnAfter, startOf} from '@/admin/announcement';
+import {durationOf, endsOnAfter, startOf} from './announcement';
 
 describe('announcement durations', () => {
   test('a week counts the first day as one', () => {

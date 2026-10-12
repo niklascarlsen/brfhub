@@ -1,3 +1,4 @@
+import {isWithinBookingWindow} from '@booking/core/lib/dates';
 import {useEffect, useState} from 'react';
 
 import {AdminShell} from '@/admin/AdminShell';
@@ -9,7 +10,6 @@ import {MEMBER_TABS} from '@/components/tabs';
 import {ConfigProvider, useConfig} from '@/config';
 import {DesktopShell} from '@/desktop/DesktopShell';
 import {LocaleProvider} from '@/i18n/LocaleProvider';
-import {isWithinBookingWindow} from '@/lib/dates';
 import {usePushPrompt} from '@/hooks/usePushPrompt';
 import {useIsDesktop} from '@/lib/media';
 import {onNotificationOpen} from '@/lib/push';

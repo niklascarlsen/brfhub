@@ -1,5 +1,5 @@
-import type {Messages} from '@/i18n/catalog';
-import {formatLongDate, fromIsoDate, toIsoDate} from '@/lib/dates';
+import type {Messages} from '@booking/core/i18n/catalog';
+import {formatLongDate, fromIsoDate, toIsoDate} from '@booking/core/lib/dates';
 
 const DAYS_PER_WEEK = 7;
 

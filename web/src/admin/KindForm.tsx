@@ -1,16 +1,16 @@
-import {useState, type SubmitEvent} from 'react';
-
-import {useAdminAccount} from '@/admin/account';
-import {FormActions} from '@/admin/FormActions';
 import {
   fieldLabel,
   isWritten,
   trimmedText,
   type Draft,
-} from '@/admin/localized';
+} from '@booking/core/admin/localized';
+import {codeOf, errorMessage} from '@booking/core/api/errors';
+import type {LocalizedText} from '@booking/core/api/types';
+import {useState, type SubmitEvent} from 'react';
+
+import {useAdminAccount} from '@/admin/account';
+import {FormActions} from '@/admin/FormActions';
 import {SECONDARY_BUTTON} from '@/admin/styles';
-import type {LocalizedText} from '@/api/client';
-import {codeOf, errorMessage} from '@/api/errors';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {useMessages} from '@/i18n/LocaleProvider';
 

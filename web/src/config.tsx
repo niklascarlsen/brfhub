@@ -1,4 +1,10 @@
 import {
+  codeOf,
+  errorMessage,
+  type ClientErrorCode,
+} from '@booking/core/api/errors';
+import type {BookingWindow, Resource} from '@booking/core/api/types';
+import {
   createContext,
   useContext,
   useEffect,
@@ -6,8 +12,7 @@ import {
   type ReactNode,
 } from 'react';
 
-import {api, unwrap, type BookingWindow, type Resource} from '@/api/client';
-import {codeOf, errorMessage, type ClientErrorCode} from '@/api/errors';
+import {api, unwrap} from '@/api/client';
 import type {MemberAccount} from '@/auth/account';
 import {Blank} from '@/components/Blank';
 import {Notice} from '@/components/Notice';

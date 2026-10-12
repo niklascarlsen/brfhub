@@ -1,11 +1,15 @@
+import {
+  codeOf,
+  errorMessage,
+  type ClientErrorCode,
+} from '@booking/core/api/errors';
+import type {components} from '@booking/core/generated/api';
 import {useEffect, useState, type ReactNode} from 'react';
 
 import {api, unwrap} from '@/api/client';
-import {codeOf, errorMessage, type ClientErrorCode} from '@/api/errors';
 import {signOut} from '@/auth/signOut';
 import {Blank} from '@/components/Blank';
 import {Notice} from '@/components/Notice';
-import type {components} from '@/generated/api';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
 import {useReturnToTab} from '@/hooks/useReturnToTab';
 

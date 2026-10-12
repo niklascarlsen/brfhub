@@ -1,8 +1,9 @@
-import type {Slot} from '@/api/client';
+import type {Slot} from '@booking/core/api/types';
+import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
+
 import {Notice, NoticeBar} from '@/components/Notice';
 import {TimeSlotListSkeleton, TimeSlotRow} from '@/components/TimeSlotRow';
 import {useRovingList} from '@/hooks/useRovingList';
-import {useSlowLoad} from '@/hooks/useSlowLoad';
 import {useMessages} from '@/i18n/LocaleProvider';
 import {isLocked} from '@/lib/slots';
 

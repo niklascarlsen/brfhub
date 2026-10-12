@@ -1,6 +1,6 @@
+import type {Apartment} from '@booking/core/api/types';
 import {useState} from 'react';
 
-import type {Apartment} from '@/api/client';
 import {useMessages} from '@/i18n/LocaleProvider';
 import {CARD, PRIMARY_BUTTON, SECONDARY_BUTTON} from '@/admin/styles';
 

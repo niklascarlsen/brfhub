@@ -1,4 +1,8 @@
-import {isLocaleChoice, type Locale, type LocaleChoice} from '@/i18n/catalog';
+import {
+  isLocaleChoice,
+  type Locale,
+  type LocaleChoice,
+} from '@booking/core/i18n/catalog';
 
 // The language picked in this browser. Read before the first render, so the
 // page never shows in one language and then switches. A failing storage

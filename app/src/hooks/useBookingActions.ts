@@ -1,18 +1,21 @@
+import {
+  codeOf,
+  errorMessage,
+  type ClientErrorCode,
+} from '@booking/core/api/errors';
+import type {
+  ActiveBooking,
+  Booking,
+  Resource,
+  Slot,
+} from '@booking/core/api/types';
+import type {Messages} from '@booking/core/i18n/catalog';
+import {formatWhen, timeRange} from '@booking/core/lib/dates';
+import {exhaustive} from '@booking/core/lib/exhaustive';
 import {Alert} from 'react-native';
 
-import {
-  api,
-  unwrap,
-  type ActiveBooking,
-  type Booking,
-  type Resource,
-  type Slot,
-} from '@/api/client';
-import {codeOf, errorMessage, type ClientErrorCode} from '@/api/errors';
-import type {Messages} from '@/i18n/catalog';
+import {api, unwrap} from '@/api/client';
 import {useMessages} from '@/i18n/LocaleProvider';
-import {formatWhen, timeRange} from '@/lib/dates';
-import {exhaustive} from '@/lib/exhaustive';
 
 type Times = Pick<Booking, 'date' | 'start' | 'end' | 'resourceName'>;
 type Bookable = Times & Pick<Booking, 'resourceId'>;

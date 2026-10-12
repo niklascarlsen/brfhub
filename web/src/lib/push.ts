@@ -6,8 +6,9 @@
 // push-tokens table as the Expo tokens, and the server tells them apart by
 // the leading brace. Every app start re-sends it so a rotated subscription
 // reaches the server and a stale VAPID key gets replaced.
+import type {Locale} from '@booking/core/i18n/catalog';
+
 import {api, unwrap} from '@/api/client';
-import type {Locale} from '@/i18n/catalog';
 import {openedSlot, type OpenedSlot} from '@/lib/route';
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;

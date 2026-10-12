@@ -1,10 +1,10 @@
+import type {BookingWindow, Resource} from '@booking/core/api/types';
+import {daysBetween, toIsoDate} from '@booking/core/lib/dates';
 import {useMemo} from 'react';
 import {View} from 'react-native';
 
-import type {BookingWindow, Resource} from '@/api/client';
 import {DatePicker} from '@/components/DatePicker';
 import {ResourcePicker} from '@/components/ResourcePicker';
-import {daysBetween, toIsoDate} from '@/lib/dates';
 
 type BookingHeaderProps = {
   resources: Resource[];

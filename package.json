@@ -1,0 +1,9 @@
+{
+  "name": "booking-workspace",
+  "private": true,
+  "workspaces": [
+    "core",
+    "app",
+    "web"
+  ]
+}

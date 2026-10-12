@@ -1,6 +1,8 @@
-import {describe, expect, test} from '@jest/globals';
+import {describe, expect, test} from 'vitest';
 
-import type {BookingWindow, Slot} from '@/api/client';
+import type {BookingWindow, Slot} from '../api/types';
+import {en} from '../i18n/en';
+import {sv} from '../i18n/sv';
 import {
   daysBetween,
   formatDayMonth,
@@ -13,9 +15,7 @@ import {
   timeRange,
   toIsoDate,
   unbrokenRange,
-} from '@/lib/dates';
-import {en} from '@/i18n/en';
-import {sv} from '@/i18n/sv';
+} from './dates';
 
 // Shaped by the generated types, so a server schema change breaks the build
 // here too. The dates themselves are arbitrary: these are pure functions.
