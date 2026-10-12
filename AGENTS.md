@@ -39,7 +39,7 @@ files are committed; `npm run generate` in `web/` rewrites them, and `dev`,
   and push tokens survive, so the app stays registered. It wipes bookings I
   may be testing with, so ask before running it.
 - `npm run org:create -- --id <slug> --name <name> --time-zone <IANA zone>
-  --admin-email <email> [--languages sv,en]`: creates an organization and
+--admin-email <email> [--languages sv,en]`: creates an organization and
   its one admin, and prints the password once. The time zone cannot be
   changed afterwards; the languages, Swedish by default, can.
 - `npm run push:test -- [organization] [apartment]`: releases an upcoming
@@ -69,7 +69,7 @@ Physical iPhone with a free Apple ID (no paid developer account):
   cannot sign. The push token warning that follows is expected.
 - "No profiles found": Expo does not pass `-allowProvisioningUpdates`. Run
   `xcodebuild -workspace ios/booking.xcworkspace -scheme booking -destination
-  id=<udid> -allowProvisioningUpdates build` once. The free profile expires
+id=<udid> -allowProvisioningUpdates build` once. The free profile expires
   after 7 days, then repeat.
 - The phone must be unlocked, trust the developer under Settings, General,
   VPN & Device Management, and allow local network access.
@@ -152,3 +152,10 @@ pick up changes without a restart.
 - In `app/` and `web/`, import with the `@/` alias, never `../`. `server/` has
   no alias and uses relative imports.
 - drizzle/ is .gitignored as of now during development, no need to bring it up.
+
+## Maintaining this file
+
+Keep this file for knowledge useful to almost every future agent session in this project.
+Do not repeat what the codebase already shows; point to the authoritative file or command instead.
+Prefer rewriting or pruning existing entries over appending new ones.
+When updating this file, preserve this bar for all agents and keep entries concise.
