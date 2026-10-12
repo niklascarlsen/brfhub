@@ -1,13 +1,14 @@
+import {codeOf, errorMessage} from '@booking/core/api/errors';
+import type {Apartment} from '@booking/core/api/types';
+import {formatLongDate} from '@booking/core/lib/dates';
 import {useState} from 'react';
 
 import {ApartmentForm} from '@/admin/ApartmentForm';
 import {CARD, SECONDARY_BUTTON, SECTION_LABEL} from '@/admin/styles';
-import {api, unwrap, type Apartment} from '@/api/client';
-import {codeOf, errorMessage} from '@/api/errors';
+import {api, unwrap} from '@/api/client';
 import {useDialog} from '@/components/Dialog';
 import {ChevronForwardIcon} from '@/components/icons';
 import {useMessages} from '@/i18n/LocaleProvider';
-import {formatLongDate} from '@/lib/dates';
 
 type ApartmentDetailProps = {
   apartment: Apartment;

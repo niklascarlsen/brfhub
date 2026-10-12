@@ -1,15 +1,19 @@
+import type {components} from '@booking/core/generated/api';
+import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
+import {joinNames, type Messages} from '@booking/core/i18n/catalog';
+import {
+  daysBetween,
+  formatDayMonth,
+  unbrokenRange,
+} from '@booking/core/lib/dates';
 import {Text, View} from 'react-native';
 
 import {api, unwrap} from '@/api/client';
 import {Notice} from '@/components/Notice';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
 import {useConfig} from '@/config';
-import type {components} from '@/generated/api';
-import {joinNames, type Messages} from '@/i18n/catalog';
 import {useMessages} from '@/i18n/LocaleProvider';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
-import {useSlowLoad} from '@/hooks/useSlowLoad';
-import {daysBetween, formatDayMonth, unbrokenRange} from '@/lib/dates';
 
 type Kind = components['schemas']['BookingRules']['kinds'][number];
 

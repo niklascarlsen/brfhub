@@ -1,0 +1,16 @@
+{
+  "name": "booking-workspace",
+  "private": true,
+  "workspaces": [
+    "core",
+    "app",
+    "web"
+  ],
+  "scripts": {
+    "test": "npm test --workspace core",
+    "check": "prettier --check . && npm run check --workspaces && node scripts/check-mirrors.mjs"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.6"
+  }
+}

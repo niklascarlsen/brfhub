@@ -1,3 +1,8 @@
+import {
+  getWeekdayLabel,
+  groupDaysByMonth,
+  toIsoDate,
+} from '@booking/core/lib/dates';
 import {Fragment} from 'react';
 import {
   Pressable,
@@ -9,7 +14,6 @@ import {
 
 import {useRevealSelected} from '@/hooks/useRevealSelected';
 import {useMessages} from '@/i18n/LocaleProvider';
-import {getWeekdayLabel, groupDaysByMonth, toIsoDate} from '@/lib/dates';
 
 type DatePickerProps = {
   days: Date[];

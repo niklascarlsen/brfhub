@@ -1,9 +1,10 @@
-import type {Slot} from '@/api/client';
+import type {Slot} from '@booking/core/api/types';
+import {timeRange} from '@booking/core/lib/dates';
+
 import {ChevronForwardIcon, LockClosedIcon} from '@/components/icons';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
 import type {RovingItemProps} from '@/hooks/useRovingList';
 import {useMessages} from '@/i18n/LocaleProvider';
-import {timeRange} from '@/lib/dates';
 import {isLocked, slotAppearance} from '@/lib/slots';
 
 type TimeSlotRowProps = {

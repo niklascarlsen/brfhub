@@ -1,3 +1,4 @@
+import type {Apartment} from '@booking/core/api/types';
 import {Pressable, Share, Text, View} from 'react-native';
 
 import {
@@ -7,7 +8,6 @@ import {
   SECONDARY_BUTTON,
   SECONDARY_LABEL,
 } from '@/admin/styles';
-import type {Apartment} from '@/api/client';
 import {useMessages} from '@/i18n/LocaleProvider';
 
 type PasswordCardProps = {

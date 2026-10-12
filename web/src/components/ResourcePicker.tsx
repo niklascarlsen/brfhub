@@ -1,4 +1,5 @@
-import type {Resource} from '@/api/client';
+import type {Resource} from '@booking/core/api/types';
+
 import {Tag} from '@/components/Tag';
 import {useRevealSelected} from '@/hooks/useRevealSelected';
 import {useRovingList} from '@/hooks/useRovingList';

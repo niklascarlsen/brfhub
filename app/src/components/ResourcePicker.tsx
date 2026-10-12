@@ -1,6 +1,6 @@
+import type {Resource} from '@booking/core/api/types';
 import {Pressable, ScrollView, Text} from 'react-native';
 
-import type {Resource} from '@/api/client';
 import {useRevealSelected} from '@/hooks/useRevealSelected';
 
 type ResourcePickerProps = {

@@ -1,4 +1,12 @@
 import {
+  CATALOGS,
+  LOCALES,
+  resolveLocale,
+  type Locale,
+  type LocaleChoice,
+  type Messages,
+} from '@booking/core/i18n/catalog';
+import {
   createContext,
   useContext,
   useEffect,
@@ -9,14 +17,6 @@ import {
   type ReactNode,
 } from 'react';
 
-import {
-  CATALOGS,
-  LOCALES,
-  resolveLocale,
-  type Locale,
-  type LocaleChoice,
-  type Messages,
-} from '@/i18n/catalog';
 import {
   readLocaleChoice,
   saveLocaleChoice,

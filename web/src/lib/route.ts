@@ -1,6 +1,6 @@
+import type {Messages} from '@booking/core/i18n/catalog';
 import {useCallback, useEffect, useSyncExternalStore} from 'react';
 
-import type {Messages} from '@/i18n/catalog';
 import {useMessages} from '@/i18n/LocaleProvider';
 
 export type MemberRoute = 'book' | 'my-times' | 'apartment';

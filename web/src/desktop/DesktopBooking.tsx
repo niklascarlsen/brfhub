@@ -1,10 +1,7 @@
-import {
-  api,
-  unwrap,
-  type Booking,
-  type BookingWindow,
-  type Resource,
-} from '@/api/client';
+import type {Booking, BookingWindow, Resource} from '@booking/core/api/types';
+import {fromIsoDate, getWeekdayLabel, timeRange} from '@booking/core/lib/dates';
+
+import {api, unwrap} from '@/api/client';
 import {MyTimesList} from '@/components/MyTimes';
 import {AnnouncementBanner} from '@/components/Announcements';
 import {useConfig} from '@/config';
@@ -16,7 +13,6 @@ import {formatHeadingDate, relativeDay} from '@/desktop/weeks';
 import {useBookingActions} from '@/hooks/useBookingActions';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useMessages} from '@/i18n/LocaleProvider';
-import {fromIsoDate, getWeekdayLabel, timeRange} from '@/lib/dates';
 
 export type BookingProps = {
   bookingWindow: BookingWindow;

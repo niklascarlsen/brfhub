@@ -1,3 +1,4 @@
+import type {Dialog, DialogAction} from '@booking/core/lib/dialog';
 import {
   createContext,
   useContext,
@@ -11,31 +12,18 @@ import {
 
 import {useMessages} from '@/i18n/LocaleProvider';
 
-type DialogAction = {
-  label: string;
-  destructive?: boolean;
-  onPress: () => void;
-  // What the button that closes without acting says, when not cancel.
-  cancelLabel?: string;
-};
-
 type DialogRequest = {
   title: string;
   message: string;
   action?: DialogAction;
 };
 
-type DialogApi = {
-  alert: (title: string, message: string) => void;
-  confirm: (title: string, message: string, action: DialogAction) => void;
-};
-
-const DialogContext = createContext<DialogApi | null>(null);
+const DialogContext = createContext<Dialog | null>(null);
 
 const BUTTON =
   'h-11 flex-1 rounded-full text-sm font-semibold tracking-tight active:opacity-70';
 
-export function useDialog(): DialogApi {
+export function useDialog(): Dialog {
   const dialog = useContext(DialogContext);
 
   if (dialog === null) {
@@ -53,7 +41,7 @@ export function DialogProvider({children}: {children: ReactNode}) {
   const titleId = useId();
   const messageId = useId();
 
-  const api = useMemo<DialogApi>(
+  const api = useMemo<Dialog>(
     () => ({
       alert: (title, message) => setRequest({title, message}),
       confirm: (title, message, action) => setRequest({title, message, action}),

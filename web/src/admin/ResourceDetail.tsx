@@ -1,21 +1,17 @@
+import {limitText, slotsText} from '@booking/core/admin/schedule';
+import {codeOf, errorMessage} from '@booking/core/api/errors';
+import type {AdminResource, AdminResources} from '@booking/core/api/types';
+import {localize} from '@booking/core/i18n/catalog';
+import {formatDayMonth, formatLongDate} from '@booking/core/lib/dates';
 import {useState} from 'react';
 
 import {ResourceForm} from '@/admin/ResourceForm';
 import {ScheduleForm} from '@/admin/ScheduleForm';
-import {limitText, slotsText} from '@/admin/schedule';
 import {CARD, SECONDARY_BUTTON, SECTION_LABEL} from '@/admin/styles';
-import {
-  api,
-  unwrap,
-  type AdminResource,
-  type AdminResources,
-} from '@/api/client';
-import {codeOf, errorMessage} from '@/api/errors';
+import {api, unwrap} from '@/api/client';
 import {useDialog} from '@/components/Dialog';
 import {ChevronForwardIcon} from '@/components/icons';
-import {localize} from '@/i18n/catalog';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
-import {formatDayMonth, formatLongDate} from '@/lib/dates';
 
 type ResourceDetailProps = {
   resource: AdminResource;

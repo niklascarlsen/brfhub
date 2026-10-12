@@ -1,6 +1,5 @@
+import {useResetWhenChanged} from '@booking/core/hooks/useResetWhenChanged';
 import {useState} from 'react';
-
-import {useResetWhenChanged} from '@/hooks/useResetWhenChanged';
 
 type Orientation = 'horizontal' | 'vertical';
 

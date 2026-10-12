@@ -1,3 +1,8 @@
+import {limitText, slotsText} from '@booking/core/admin/schedule';
+import {codeOf, errorMessage} from '@booking/core/api/errors';
+import type {AdminResource, AdminResources} from '@booking/core/api/types';
+import {localize} from '@booking/core/i18n/catalog';
+import {formatDayMonth, formatLongDate} from '@booking/core/lib/dates';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {useIsFocused} from '@react-navigation/native';
 import {useEffect, useState} from 'react';
@@ -5,7 +10,6 @@ import {Alert, BackHandler, Pressable, Text, View} from 'react-native';
 
 import {ResourceForm} from '@/admin/ResourceForm';
 import {ScheduleForm} from '@/admin/ScheduleForm';
-import {limitText, slotsText} from '@/admin/schedule';
 import {useConfirmLeave} from '@/admin/unsaved';
 import {
   CARD,
@@ -13,16 +17,8 @@ import {
   SECONDARY_LABEL,
   SECTION_LABEL,
 } from '@/admin/styles';
-import {
-  api,
-  unwrap,
-  type AdminResource,
-  type AdminResources,
-} from '@/api/client';
-import {codeOf, errorMessage} from '@/api/errors';
-import {localize} from '@/i18n/catalog';
+import {api, unwrap} from '@/api/client';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
-import {formatDayMonth, formatLongDate} from '@/lib/dates';
 import theme from '@/theme.json';
 
 type ResourceDetailProps = {

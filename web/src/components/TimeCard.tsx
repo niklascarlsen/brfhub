@@ -1,6 +1,7 @@
+import {formatLongDate, timeRange} from '@booking/core/lib/dates';
+
 import {SkeletonBar} from '@/components/Skeleton';
 import {useMessages} from '@/i18n/LocaleProvider';
-import {formatLongDate, timeRange} from '@/lib/dates';
 
 type Badge = {label: string; tone: 'accent' | 'muted'};
 

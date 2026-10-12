@@ -1,8 +1,8 @@
+import {codeOf, errorMessage} from '@booking/core/api/errors';
 import {useState} from 'react';
 import {Text, View} from 'react-native';
 
 import {FormActions} from '@/admin/FormActions';
-import {codeOf, errorMessage} from '@/api/errors';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {useMessages} from '@/i18n/LocaleProvider';
 

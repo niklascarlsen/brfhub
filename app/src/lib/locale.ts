@@ -1,6 +1,9 @@
+import {
+  isLocaleChoice,
+  type Locale,
+  type LocaleChoice,
+} from '@booking/core/i18n/catalog';
 import * as SecureStore from 'expo-secure-store';
-
-import {isLocaleChoice, type Locale, type LocaleChoice} from '@/i18n/catalog';
 
 // The language picked on this device. Read before the first render, so the
 // app never shows in one language and then switches. A failing storage

@@ -1,6 +1,6 @@
-import type {Slot} from '@/api/client';
-import type {Messages} from '@/i18n/catalog';
-import {exhaustive} from '@/lib/exhaustive';
+import type {Slot} from '@booking/core/api/types';
+import type {Messages} from '@booking/core/i18n/catalog';
+import {exhaustive} from '@booking/core/lib/exhaustive';
 
 type Appearance = {
   surface: string;

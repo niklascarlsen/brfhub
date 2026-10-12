@@ -1,4 +1,10 @@
 import {
+  codeOf,
+  errorMessage,
+  type ClientErrorCode,
+} from '@booking/core/api/errors';
+import type {BookingWindow, Resource} from '@booking/core/api/types';
+import {
   createContext,
   useContext,
   useEffect,
@@ -6,14 +12,15 @@ import {
   type ReactNode,
 } from 'react';
 
-import {api, unwrap, type BookingWindow, type Resource} from '@/api/client';
-import {codeOf, errorMessage, type ClientErrorCode} from '@/api/errors';
+import {api, unwrap} from '@/api/client';
 import type {MemberAccount} from '@/auth/account';
 import {Blank} from '@/components/Blank';
 import {Notice} from '@/components/Notice';
+import {useOnReturn} from '@/hooks/useOnReturn';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
-import {useReturnToTab} from '@/hooks/useReturnToTab';
 
+// Refetched whenever the user comes back: the window's dates move at
+// midnight, and the device clock cannot tell what the server's day is.
 type Config = {
   window: BookingWindow;
   resources: [Resource, ...Resource[]];
@@ -81,7 +88,7 @@ export function ConfigProvider({account, children}: ConfigProviderProps) {
     };
   }, [attempt, locale]);
 
-  useReturnToTab(reload);
+  useOnReturn(reload);
 
   if (loaded === null) {
     if (error !== null) {

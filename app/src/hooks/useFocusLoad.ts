@@ -1,8 +1,12 @@
+import {
+  codeOf,
+  errorMessage,
+  type ClientErrorCode,
+} from '@booking/core/api/errors';
 import {useFocusEffect} from '@react-navigation/native';
 import {useCallback, useEffect, useRef, useState} from 'react';
-import {AppState} from 'react-native';
 
-import {codeOf, errorMessage, type ClientErrorCode} from '@/api/errors';
+import {useOnReturn} from '@/hooks/useOnReturn';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
 
 export function useFocusLoad<T>(load: () => Promise<T>, identity?: string) {
@@ -21,15 +25,7 @@ export function useFocusLoad<T>(load: () => Promise<T>, identity?: string) {
     loadRef.current = load;
   });
 
-  useEffect(() => {
-    const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active') {
-        setAttempt((previous) => previous + 1);
-      }
-    });
-
-    return () => subscription.remove();
-  }, []);
+  useOnReturn(reload);
 
   useFocusEffect(
     useCallback(() => {

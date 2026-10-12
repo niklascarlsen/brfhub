@@ -1,6 +1,7 @@
-import type {SlotInput} from '@/api/client';
+import {nextSlot} from '@booking/core/admin/schedule';
+import type {SlotInput} from '@booking/core/api/types';
+
 import {SECONDARY_BUTTON} from '@/admin/styles';
-import {nextSlot} from '@/admin/schedule';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {AddIcon} from '@/components/icons';
 import {useMessages} from '@/i18n/LocaleProvider';

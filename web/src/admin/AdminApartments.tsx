@@ -1,3 +1,5 @@
+import type {Apartment} from '@booking/core/api/types';
+import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
 import {useState} from 'react';
 
 import {useAdminAccount} from '@/admin/account';
@@ -6,13 +8,12 @@ import {ApartmentDetail} from '@/admin/ApartmentDetail';
 import {ApartmentForm} from '@/admin/ApartmentForm';
 import {PasswordCard} from '@/admin/PasswordCard';
 import {PRIMARY_BUTTON} from '@/admin/styles';
-import {api, unwrap, type Apartment} from '@/api/client';
+import {api, unwrap} from '@/api/client';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {AddIcon, ChevronForwardIcon} from '@/components/icons';
 import {Notice} from '@/components/Notice';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
-import {useSlowLoad} from '@/hooks/useSlowLoad';
 import {useMessages} from '@/i18n/LocaleProvider';
 
 function fetchApartments() {

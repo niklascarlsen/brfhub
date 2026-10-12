@@ -1,12 +1,16 @@
+import {
+  codeOf,
+  errorMessage,
+  type ClientErrorCode,
+} from '@booking/core/api/errors';
+import type {components} from '@booking/core/generated/api';
 import {useEffect, useState, type ReactNode} from 'react';
-import {AppState} from 'react-native';
 
 import {api, unwrap} from '@/api/client';
-import {codeOf, errorMessage, type ClientErrorCode} from '@/api/errors';
 import {signOut} from '@/auth/signOut';
 import {Blank} from '@/components/Blank';
 import {Notice} from '@/components/Notice';
-import type {components} from '@/generated/api';
+import {useOnReturn} from '@/hooks/useOnReturn';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
 
 export type MemberAccount = components['schemas']['MemberAccount'];
@@ -63,17 +67,9 @@ export function AccountGate({member, admin}: AccountGateProps) {
 
   const refresh = () => setAttempt((previous) => previous + 1);
 
-  // Asked again whenever the app returns, so a renamed organization or a
-  // moved-out apartment shows without a restart.
-  useEffect(() => {
-    const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active') {
-        setAttempt((previous) => previous + 1);
-      }
-    });
-
-    return () => subscription.remove();
-  }, []);
+  // Asked again whenever the user comes back, so a renamed organization or
+  // a moved-out apartment shows without a restart.
+  useOnReturn(refresh);
 
   // A refresh keeps showing the account it has until the new one arrives.
   if (account) {

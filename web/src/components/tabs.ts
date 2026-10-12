@@ -1,3 +1,4 @@
+import type {Messages} from '@booking/core/i18n/catalog';
 import type {ComponentType} from 'react';
 
 import {
@@ -6,7 +7,6 @@ import {
   TimeOutlineIcon,
 } from '@/components/icons';
 import type {IconProps} from '@/components/icons/types';
-import type {Messages} from '@/i18n/catalog';
 import type {Route} from '@/lib/route';
 
 export type Tab = {

@@ -1,10 +1,10 @@
+import {nextSlot} from '@booking/core/admin/schedule';
+import type {SlotInput} from '@booking/core/api/types';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {useState} from 'react';
 import {Pressable, Switch, Text, View} from 'react-native';
 
-import {nextSlot} from '@/admin/schedule';
 import {SECONDARY_BUTTON, SECONDARY_LABEL} from '@/admin/styles';
-import type {SlotInput} from '@/api/client';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import theme from '@/theme.json';
 import {useMessages} from '@/i18n/LocaleProvider';

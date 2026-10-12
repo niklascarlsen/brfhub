@@ -1,3 +1,4 @@
+import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
 import type {ReactNode} from 'react';
 
 import {api, unwrap} from '@/api/client';
@@ -6,7 +7,6 @@ import {Skeleton, SkeletonBar} from '@/components/Skeleton';
 import {TimeCard, TimeCardSkeleton} from '@/components/TimeCard';
 import {useBookingActions} from '@/hooks/useBookingActions';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
-import {useSlowLoad} from '@/hooks/useSlowLoad';
 import {useMessages} from '@/i18n/LocaleProvider';
 
 function TimesSection({

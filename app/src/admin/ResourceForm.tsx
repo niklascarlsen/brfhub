@@ -1,8 +1,3 @@
-import {useState} from 'react';
-import {Pressable, Text, View} from 'react-native';
-
-import {useAdminAccount} from '@/admin/account';
-import {FormActions} from '@/admin/FormActions';
 import {
   fieldLabel,
   isWritten,
@@ -10,19 +5,24 @@ import {
   tagsOf,
   trimmedText,
   type Draft,
-} from '@/admin/localized';
-import {slotsProblem} from '@/admin/schedule';
-import {SlotsEditor} from '@/admin/SlotsEditor';
-import {SECTION_LABEL} from '@/admin/styles';
+} from '@booking/core/admin/localized';
+import {slotsProblem} from '@booking/core/admin/schedule';
+import {codeOf, errorMessage} from '@booking/core/api/errors';
 import type {
   AdminKind,
   LocalizedTags,
   LocalizedText,
   SlotInput,
-} from '@/api/client';
-import {codeOf, errorMessage} from '@/api/errors';
+} from '@booking/core/api/types';
+import {localize} from '@booking/core/i18n/catalog';
+import {useState} from 'react';
+import {Pressable, Text, View} from 'react-native';
+
+import {useAdminAccount} from '@/admin/account';
+import {FormActions} from '@/admin/FormActions';
+import {SlotsEditor} from '@/admin/SlotsEditor';
+import {SECTION_LABEL} from '@/admin/styles';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
-import {localize} from '@/i18n/catalog';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
 
 export type ResourceFields = {
