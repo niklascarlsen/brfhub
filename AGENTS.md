@@ -4,7 +4,9 @@ When working in `app/`, read the SDK page for the module you are touching before
 
 # Generated types
 
-`server/openapi.json` and `core/src/generated/api.d.ts` are generated. Never edit them by hand. Change the Zod schemas in `server/src/<feature>/<feature>.dto.ts`, then from `server/` run `npm run types:gen`, and `npm run types:check` to verify sync.
+`server/openapi.json`, `core/src/generated/api.d.ts` and `core/src/generated/limits.ts` are generated. Never edit them by hand. Change the Zod schemas in `server/src/<feature>/<feature>.dto.ts`, then from `server/` run `npm run types:gen`, and `npm run types:check` to verify sync.
+
+`limits.ts` holds every length and range the request bodies set (and Better Auth's password rule), so the admin forms never write a limit of their own: read it through the checks in `core/src/admin/drafts.ts`.
 
 `web/src/theme.css`, `web/src/components/icons/` and the theme-color meta tag in `web/index.html` are generated from `app/src/theme.json` and the `ionicons` package: change colours or glyphs there and both clients follow. The generated files are committed; `npm run generate` in `web/` rewrites them, and `dev`, `build` and `check` run it first, so commit what it produces.
 
