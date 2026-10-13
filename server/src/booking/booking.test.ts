@@ -5,8 +5,15 @@ import {eq, sql} from 'drizzle-orm';
 
 import {buildApp} from '../app.js';
 import {db, pool} from '../db/index.js';
-import {bookings, pushTokens, subscriptions} from '../db/schema.js';
+import {
+  bookings,
+  organizations,
+  pushTokens,
+  subscriptions,
+} from '../db/schema.js';
+import type {Locale} from '../lib/locale.js';
 import {addDays, isoDateIn, slotEndsAt} from '../lib/time.js';
+import {withTimeout} from '../lib/timeout.js';
 import type {BookingRules, Resource} from '../resource/resource.dto.js';
 import type {ResourceSchedule, Slots} from '../slot/slot.dto.js';
 import type {Subscription} from '../subscription/subscription.dto.js';
@@ -14,6 +21,7 @@ import {listSubscribers} from '../subscription/subscription.service.js';
 import {
   assertTestDatabase,
   codeOf,
+  memoryPush,
   ORIGIN,
   PASSWORD,
   resetDatabase,
@@ -126,6 +134,7 @@ function memberId(label: string): string {
 }
 
 let server: Awaited<ReturnType<typeof buildApp>>;
+const push = memoryPush();
 const cookies = new Map<string, string>();
 
 function emailOf(label: string) {
@@ -149,7 +158,7 @@ function signedInAs(label: string) {
 before(async () => {
   await assertTestDatabase();
 
-  server = await buildApp({logger: false});
+  server = await buildApp({logger: false, push: push.send});
   await resetDatabase();
 
   const ids = await seedOrganization({
@@ -169,7 +178,10 @@ before(async () => {
 });
 
 beforeEach(async () => {
-  await db.execute(sql`truncate bookings, subscriptions cascade`);
+  // A test that freed a slot may still be announcing it.
+  await server.notifier.idle();
+  await db.execute(sql`truncate bookings, subscriptions, push_tokens cascade`);
+  push.clear();
 });
 
 after(async () => {
@@ -515,11 +527,22 @@ test('rejects cancelling another apartment booking', async () => {
   assert.equal(theirs.json<Booking[]>().length, 1);
 });
 
-test('rejects cancelling an unknown booking', async () => {
-  const response = await cancel(TENANT, UNKNOWN_ID);
+test('cancelling a booking already gone is done', async () => {
+  const created = await book(TENANT, {date: bookableDate, start: '07:00'});
+  const {id} = created.json<CreatedBooking>();
 
-  assert.equal(response.statusCode, 404);
-  assert.equal(codeOf(response), 'NOT_FOUND');
+  assert.equal((await cancel(TENANT, id)).statusCode, 204);
+  assert.equal((await cancel(TENANT, id)).statusCode, 204);
+  assert.equal((await cancel(TENANT, UNKNOWN_ID)).statusCode, 204);
+});
+
+test('leaving a queue already left is done', async () => {
+  await book(NEIGHBOUR, {date: bookableDate, start: '07:00'});
+  const queued = await subscribe(TENANT, {date: bookableDate, start: '07:00'});
+  const {id} = queued.json<Subscription>();
+
+  assert.equal((await unsubscribe(TENANT, id)).statusCode, 204);
+  assert.equal((await unsubscribe(TENANT, id)).statusCode, 204);
 });
 
 test('lets only one apartment take a slot when several book at once', async () => {
@@ -1010,6 +1033,147 @@ test('the released slot is announced in each device language', () => {
     body: 'Laundry room 1, Saturday 10 October 07:00–10:00 is free – first come, first served.',
     data: {date: '2026-10-10', start: '07:00', resourceId: LAUNDRY_1},
   });
+});
+
+function addDevice(label: string, locale: Locale = 'sv') {
+  return db
+    .insert(pushTokens)
+    .values({token: `${label}-device`, memberId: memberId(label), locale});
+}
+
+// What the push service was handed once every send has run, by device.
+async function pushed() {
+  await server.notifier.idle();
+
+  return push.sent
+    .map(({to, title, data}) => ({to, title, start: data?.start}))
+    .sort((a, b) => a.to.localeCompare(b.to));
+}
+
+// Fails instead of hanging when the response waits on something it should
+// not, such as a push service held until the test lets it go. Generous, so
+// a slow database does not fail it.
+function within<T>(promise: Promise<T>): Promise<T> {
+  return withTimeout(promise, 10_000, 'No response while push was held');
+}
+
+test('a cancelled slot is announced to its queue and nobody else', async () => {
+  const theirs = await book(NEIGHBOUR, {date: bookableDate, start: '07:00'});
+  await subscribe(TENANT, {date: bookableDate, start: '07:00'});
+  await subscribe('13', {date: bookableDate, start: '07:00'});
+  await subscribe('14', {date: bookableDate, start: '10:00'});
+  for (const label of [TENANT, '13', '14', NEIGHBOUR]) {
+    await addDevice(label);
+  }
+
+  await cancel(NEIGHBOUR, theirs.json<CreatedBooking>().id);
+
+  assert.deepEqual(await pushed(), [
+    {to: '12-device', title: 'En tid blev ledig', start: '07:00'},
+    {to: '13-device', title: 'En tid blev ledig', start: '07:00'},
+  ]);
+});
+
+test('each device hears of a freed slot in its own language', async () => {
+  await db
+    .update(organizations)
+    .set({locales: ['sv', 'en']})
+    .where(eq(organizations.id, ORGANIZATION_ID));
+
+  try {
+    const theirs = await book(NEIGHBOUR, {date: bookableDate, start: '07:00'});
+    await subscribe(TENANT, {date: bookableDate, start: '07:00'});
+    await subscribe('13', {date: bookableDate, start: '07:00'});
+    await addDevice(TENANT, 'en');
+    await addDevice('13', 'sv');
+
+    await cancel(NEIGHBOUR, theirs.json<CreatedBooking>().id);
+
+    assert.deepEqual(
+      (await pushed()).map(({to, title}) => ({to, title})),
+      [
+        {to: '12-device', title: 'A slot opened up'},
+        {to: '13-device', title: 'En tid blev ledig'},
+      ],
+    );
+  } finally {
+    await db
+      .update(organizations)
+      .set({locales: ['sv']})
+      .where(eq(organizations.id, ORGANIZATION_ID));
+  }
+});
+
+test('a swap announces the slot the apartment gave up', async () => {
+  await book(NEIGHBOUR, {date: bookableDate, start: '07:00'});
+  await subscribe(TENANT, {date: bookableDate, start: '07:00'});
+  await addDevice(TENANT);
+  await addDevice(NEIGHBOUR);
+
+  const swapped = await book(NEIGHBOUR, {
+    date: bookableDate,
+    start: '10:00',
+    replaceExisting: true,
+  });
+
+  assert.equal(swapped.statusCode, 201);
+  assert.deepEqual(await pushed(), [
+    {to: '12-device', title: 'En tid blev ledig', start: '07:00'},
+  ]);
+});
+
+test('cancelling and swapping answer before the push service does', async () => {
+  const first = await book(NEIGHBOUR, {date: bookableDate, start: '07:00'});
+  await subscribe(TENANT, {date: bookableDate, start: '07:00'});
+  await addDevice(TENANT);
+  const release = push.hold();
+
+  try {
+    const swapped = await within(
+      book(NEIGHBOUR, {
+        date: bookableDate,
+        start: '10:00',
+        replaceExisting: true,
+      }),
+    );
+    await subscribe(TENANT, {date: bookableDate, start: '10:00'});
+    const cancelled = await within(
+      cancel(NEIGHBOUR, swapped.json<CreatedBooking>().id),
+    );
+
+    assert.equal(
+      swapped.json<CreatedBooking>().replacedId,
+      first.json<CreatedBooking>().id,
+    );
+    assert.equal(cancelled.statusCode, 204);
+    assert.deepEqual(push.sent, []);
+  } finally {
+    release();
+  }
+
+  assert.deepEqual((await pushed()).map((message) => message.start).sort(), [
+    '07:00',
+    '10:00',
+  ]);
+});
+
+test('a device the push service no longer knows is dropped', async () => {
+  const theirs = await book(NEIGHBOUR, {date: bookableDate, start: '07:00'});
+  await subscribe(TENANT, {date: bookableDate, start: '07:00'});
+  await subscribe('13', {date: bookableDate, start: '07:00'});
+  await addDevice(TENANT);
+  await addDevice('13');
+  push.failWith([
+    {token: '13-device', message: 'DeviceNotRegistered', unregistered: true},
+  ]);
+
+  await cancel(NEIGHBOUR, theirs.json<CreatedBooking>().id);
+  await server.notifier.idle();
+
+  assert.deepEqual(
+    await db.select({token: pushTokens.token}).from(pushTokens),
+    [{token: '12-device'}],
+  );
 });
 
 test('signing out ends the session', async () => {

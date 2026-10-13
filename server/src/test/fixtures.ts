@@ -11,11 +11,55 @@ import {
   resources,
 } from '../db/schema.js';
 import type {Locale} from '../lib/locale.js';
+import type {PushFailure, PushMessage, SendPush} from '../lib/push.js';
 
 export const PASSWORD = 'password';
 export const ORIGIN = 'http://localhost:5173';
 
 type Server = Awaited<ReturnType<typeof buildApp>>;
+
+// Push that stays in memory: keeps what the server would have sent, and
+// answers with the failures a test hands it. A held push does not answer
+// until the test lets it go, like a push service that hangs.
+export function memoryPush() {
+  const sent: PushMessage[] = [];
+  let failures: PushFailure[] = [];
+  let held: Promise<void> | null = null;
+  let release = () => {};
+
+  const send: SendPush = async (messages) => {
+    await held;
+    sent.push(...messages);
+    return failures.filter((failure) =>
+      messages.some((message) => message.to === failure.token),
+    );
+  };
+
+  return {
+    send,
+    sent,
+    failWith(next: PushFailure[]) {
+      failures = next;
+    },
+    hold(): () => void {
+      if (held) {
+        return release;
+      }
+      held = new Promise((resolve) => {
+        release = () => {
+          held = null;
+          resolve();
+        };
+      });
+      return release;
+    },
+    clear() {
+      release();
+      sent.length = 0;
+      failures = [];
+    },
+  };
+}
 
 export async function assertTestDatabase() {
   const [connection] = (

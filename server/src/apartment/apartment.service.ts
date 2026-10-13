@@ -1,8 +1,10 @@
 import {and, asc, eq, isNull, sql, type SQL} from 'drizzle-orm';
-import type {FastifyBaseLogger} from 'fastify';
 
 import {createUser, endSessions, setPassword} from '../auth/auth.service.js';
-import {notifySlotReleased} from '../booking/booking.notification.js';
+import {
+  announceReleased,
+  type ReleasedSlot,
+} from '../booking/booking.notification.js';
 import {lockApartmentBookings, stillActive} from '../booking/booking.query.js';
 import {violatedConstraint} from '../db/errors.js';
 import {db, type Transaction} from '../db/index.js';
@@ -19,6 +21,7 @@ import {appError} from '../lib/errors.js';
 import {generatePassword} from '../lib/password.js';
 import {slotHasStarted} from '../lib/time.js';
 import type {Organization} from '../lib/user.js';
+import type {Notifier} from '../notification/notification.service.js';
 import type {
   Apartment,
   CreateApartmentBody,
@@ -245,8 +248,6 @@ export async function resetPassword(
   return password;
 }
 
-type ReleasedSlot = Parameters<typeof notifySlotReleased>[0];
-
 // The apartment's upcoming bookings end the way a member cancelling them
 // would: a started one is released for walk-in, the rest are freed. The
 // freed slots are returned to announce once the transaction has committed.
@@ -300,29 +301,11 @@ async function clearResident(tx: Transaction, memberId: string) {
   await tx.delete(pushTokens).where(eq(pushTokens.memberId, memberId));
 }
 
-// Sent after the response, so a slow push service never holds up the admin
-// or loses the one-time password to a client timeout.
-function announceFreed(
-  freed: ReleasedSlot[],
-  releasedBy: Parameters<typeof notifySlotReleased>[1],
-  log: FastifyBaseLogger,
-) {
-  void (async () => {
-    for (const slot of freed) {
-      await notifySlotReleased(slot, releasedBy, log).catch(
-        (error: unknown) => {
-          log.error({err: error}, 'could not announce a freed slot');
-        },
-      );
-    }
-  })();
-}
-
 export async function replaceResident(
   {organizationId, timeZone, locales}: Organization,
   id: string,
   body: NewResidentBody,
-  log: FastifyBaseLogger,
+  notifier: Notifier,
 ): Promise<{apartment: Apartment; password: string}> {
   const password = generatePassword();
 
@@ -347,7 +330,7 @@ export async function replaceResident(
     })
     .catch(rethrowTaken);
 
-  announceFreed(freed, {id, timeZone, locales}, log);
+  announceReleased(notifier, freed, {id, timeZone, locales});
 
   return {apartment: await getApartment(organizationId, id), password};
 }
@@ -355,7 +338,7 @@ export async function replaceResident(
 export async function removeApartment(
   {organizationId, timeZone, locales}: Organization,
   id: string,
-  log: FastifyBaseLogger,
+  notifier: Notifier,
 ): Promise<void> {
   const freed = await db.transaction(async (tx) => {
     await lockApartment(tx, organizationId, id);
@@ -369,5 +352,5 @@ export async function removeApartment(
     return released;
   });
 
-  announceFreed(freed, {id, timeZone, locales}, log);
+  announceReleased(notifier, freed, {id, timeZone, locales});
 }

@@ -175,7 +175,9 @@ try {
     console.log(`No push token for apartment ${WATCHER}.`);
     console.log('Restart the app so it registers one, then run this again.');
   } else {
-    console.log(`Sent to ${tokens} device token(s). Watch the emulator.`);
+    console.log(
+      `Released for ${tokens} device token(s). The server sends push after answering, so watch the emulator, and the server log if nothing comes.`,
+    );
   }
 } finally {
   await pool.end();

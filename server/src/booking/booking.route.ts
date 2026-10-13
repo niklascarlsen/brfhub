@@ -48,7 +48,7 @@ export const bookingRoutes: FastifyPluginAsyncZod = async (app) => {
         start,
         resourceId,
         replaceExisting,
-        log: request.log,
+        notifier: app.notifier.forRequest(request.log),
       });
 
       return reply.code(201).send(booking);
@@ -68,7 +68,11 @@ export const bookingRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request, reply) => {
       const member = await getMember(request);
-      await deleteBooking(request.params.id, member, request.log);
+      await deleteBooking(
+        request.params.id,
+        member,
+        app.notifier.forRequest(request.log),
+      );
       return reply.code(204).send();
     },
   );

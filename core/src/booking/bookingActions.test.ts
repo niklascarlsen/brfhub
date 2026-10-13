@@ -275,7 +275,7 @@ describe('a failure is told', () => {
 
   test.each(failures)('%s', async (_, slot, title) => {
     const {actions, shown, onChange, press} = setup();
-    answer = {status: 409, code: 'NOT_FOUND'};
+    answer = {status: 500, code: 'SERVER_ERROR'};
 
     actions.confirmBook(slot, SAUNA, null);
     await press();
@@ -283,21 +283,23 @@ describe('a failure is told', () => {
     expect(shown[1]).toEqual({
       kind: 'alert',
       title,
-      message: errorMessage('NOT_FOUND', t),
+      message: errorMessage('SERVER_ERROR', t),
     });
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  const reloading: ClientErrorCode[] = [
-    'SLOT_TAKEN',
-    'SLOT_STARTED',
-    'SLOT_AVAILABLE',
-    'HAS_ACTIVE_BOOKING',
+  // NOT_FOUND among them: a resource or time that is no longer there.
+  const reloading: [ClientErrorCode, number][] = [
+    ['SLOT_TAKEN', 409],
+    ['SLOT_STARTED', 409],
+    ['SLOT_AVAILABLE', 409],
+    ['HAS_ACTIVE_BOOKING', 409],
+    ['NOT_FOUND', 404],
   ];
 
-  test.each(reloading)('%s reloads the times', async (code) => {
+  test.each(reloading)('%s reloads the times', async (code, status) => {
     const {actions, shown, onChange, press} = setup();
-    answer = {status: 409, code};
+    answer = {status, code};
 
     actions.confirmBook(available, SAUNA, null);
     await press();

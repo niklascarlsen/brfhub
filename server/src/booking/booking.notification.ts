@@ -1,7 +1,5 @@
 import {sql} from 'drizzle-orm';
 
-import type {FastifyBaseLogger} from 'fastify';
-
 import {db} from '../db/index.js';
 import {
   localize,
@@ -11,13 +9,14 @@ import {
 } from '../lib/locale.js';
 import {formatWhen, slotHasStarted} from '../lib/time.js';
 import type {Member} from '../lib/user.js';
-import {
-  notifyMembers,
-  type Notification,
+import type {
+  Notification,
+  Notifier,
+  Recipients,
 } from '../notification/notification.service.js';
 import {listSubscribers} from '../subscription/subscription.service.js';
 
-type ReleasedSlot = {
+export type ReleasedSlot = {
   date: string;
   resourceId: string;
   // In every language, since each device is told in its own.
@@ -65,11 +64,11 @@ export function releasedNotification(
 // The apartment that let the slot go, which is not told about it.
 type ReleasedBy = Pick<Member, 'id' | 'timeZone' | 'locales'>;
 
-export async function notifySlotReleased(
+// Who hears of the slot: its queue, unless it has started by now.
+async function recipientsOf(
   slot: ReleasedSlot,
   releasedBy: ReleasedBy,
-  log: FastifyBaseLogger,
-): Promise<void> {
+): Promise<Recipients | null> {
   const started = await db
     .execute<{
       started: boolean;
@@ -79,7 +78,7 @@ export async function notifySlotReleased(
     .then((result) => result.rows[0]?.started);
 
   if (started) {
-    return;
+    return null;
   }
 
   const subscribers = await listSubscribers(
@@ -88,14 +87,50 @@ export async function notifySlotReleased(
     slot.start,
   );
 
-  await notifyMembers(
-    subscribers
+  return {
+    memberIds: subscribers
       .map((row) => row.memberId)
       .filter((memberId) => memberId !== releasedBy.id),
     // A device keeps its language until it starts again, which can be
     // one the organization has stopped writing in since.
-    (locale) =>
+    build: (locale) =>
       releasedNotification(resolveLocale([locale], releasedBy.locales), slot),
-    log,
-  );
+  };
+}
+
+// Tells the queue of each freed slot after the caller has answered. Called
+// once the change has committed, so a change that rolls back announces
+// nothing.
+export function announceReleased(
+  notifier: Notifier,
+  slots: ReleasedSlot[],
+  releasedBy: ReleasedBy,
+): void {
+  if (slots.length === 0) {
+    return;
+  }
+
+  notifier.later(async () => {
+    const recipients: Recipients[] = [];
+    const failed: unknown[] = [];
+
+    // One after another, and a slot whose queue cannot be looked up does
+    // not keep the others quiet.
+    for (const slot of slots) {
+      try {
+        const found = await recipientsOf(slot, releasedBy);
+        if (found) {
+          recipients.push(found);
+        }
+      } catch (error) {
+        failed.push(error);
+      }
+    }
+
+    await notifier.notifyMembers(recipients);
+
+    if (failed.length > 0) {
+      throw new AggregateError(failed, 'Could not look up who to tell');
+    }
+  });
 }

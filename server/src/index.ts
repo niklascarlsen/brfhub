@@ -4,11 +4,13 @@ import closeWithGrace from 'close-with-grace';
 
 import {buildApp} from './app.js';
 import {pool} from './db/index.js';
+import {PUSH_TIMEOUT_MS, sendPush} from './lib/push.js';
 
 const port = Number(process.env.PORT ?? 3000);
 const host = process.env.HOST ?? '0.0.0.0';
 
 const server = await buildApp({
+  push: sendPush,
   logger: process.stdout.isTTY
     ? {
         transport: {
@@ -19,7 +21,9 @@ const server = await buildApp({
     : true,
 });
 
-closeWithGrace({delay: 500}, async ({signal, err}) => {
+// Gives push still on its way the time to be sent or give up, one call per
+// change. A runtime that kills the process sooner cuts it short.
+closeWithGrace({delay: PUSH_TIMEOUT_MS + 5000}, async ({signal, err}) => {
   if (err) {
     server.log.error({err}, 'shutting down after error');
   } else {

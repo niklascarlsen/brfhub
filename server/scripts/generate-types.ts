@@ -7,7 +7,8 @@ import {buildApp} from '../src/app.js';
 import {pool} from '../src/db/index.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const app = await buildApp();
+// Only reads the routes, so it never sends push.
+const app = await buildApp({push: async () => []});
 
 try {
   await app.ready();

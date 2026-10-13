@@ -18,6 +18,7 @@ import type {BookingWindow, ResourceSchedule} from '../slot/slot.dto.js';
 import {
   assertTestDatabase,
   codeOf,
+  memoryPush,
   ORIGIN,
   PASSWORD,
   resetDatabase,
@@ -63,7 +64,7 @@ function get(url: string, headers: {cookie: string}) {
 before(async () => {
   await assertTestDatabase();
 
-  server = await buildApp({logger: false});
+  server = await buildApp({logger: false, push: memoryPush().send});
   await resetDatabase();
 
   const north = await seedOrganization({

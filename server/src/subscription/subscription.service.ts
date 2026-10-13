@@ -198,8 +198,9 @@ export async function deleteSubscription(
     .where(eq(subscriptions.id, id))
     .then((rows) => rows[0]);
 
+  // Already gone is done, as for a cancelled booking.
   if (!existing) {
-    throw appError('NOT_FOUND', 'Subscription not found');
+    return;
   }
 
   if (existing.memberId !== memberId) {

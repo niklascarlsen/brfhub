@@ -14,6 +14,8 @@ import Fastify, {type FastifyServerOptions} from 'fastify';
 
 import {isAppError, sendError} from './lib/errors.js';
 import {WEB_ORIGIN} from './lib/env.js';
+import type {SendPush} from './lib/push.js';
+import {createNotifier} from './notification/notification.service.js';
 import {accountRoutes} from './account/account.route.js';
 import {announcementRoutes} from './announcement/announcement.route.js';
 import {apartmentRoutes} from './apartment/apartment.route.js';
@@ -26,8 +28,17 @@ import {resourceAdminRoutes} from './resourceAdmin/resourceAdmin.route.js';
 import {slotRoutes} from './slot/slot.route.js';
 import {subscriptionRoutes} from './subscription/subscription.route.js';
 
-export async function buildApp(options: FastifyServerOptions = {}) {
+// The server passes sendPush. The tests pass their own, to see who would be
+// told what without sending anything.
+export async function buildApp({
+  push,
+  ...options
+}: FastifyServerOptions & {push: SendPush}) {
   const server = Fastify(options).withTypeProvider<ZodTypeProvider>();
+
+  server.decorate('notifier', createNotifier(push, server.log));
+  // Push that is still on its way when the server stops is sent first.
+  server.addHook('onClose', () => server.notifier.idle());
 
   server.setValidatorCompiler(validatorCompiler);
   server.setSerializerCompiler(serializerCompiler);

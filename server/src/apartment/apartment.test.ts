@@ -17,6 +17,7 @@ import {addDays, isoDateIn, slotEndsAt} from '../lib/time.js';
 import {
   assertTestDatabase,
   codeOf,
+  memoryPush,
   resetDatabase,
   seedOrganization,
   signIn,
@@ -38,6 +39,7 @@ const SOUTH = {
 const SLOT = {start: '08:00', end: '12:00'};
 
 let server: Awaited<ReturnType<typeof buildApp>>;
+const push = memoryPush();
 let admin: {cookie: string};
 let southAdmin: {cookie: string};
 const ids = new Map<string, string>();
@@ -84,7 +86,7 @@ async function insertBooking(label: string, days: number) {
 before(async () => {
   await assertTestDatabase();
 
-  server = await buildApp({logger: false});
+  server = await buildApp({logger: false, push: push.send});
   await resetDatabase();
 
   const north = await seedOrganization({
@@ -479,7 +481,7 @@ test('an account replaced while it waited cannot book', async () => {
       start: SLOT.start,
       resourceId: 'north-laundry',
       replaceExisting: false,
-      log: server.log,
+      notifier: server.notifier,
     }),
     (error: unknown) => codeOf({json: () => error as never}) === 'UNAUTHORIZED',
   );
@@ -502,5 +504,38 @@ test('trims and lower-cases a typed email', async () => {
   assert.equal(
     response.json<{apartment: Apartment}>().apartment.email,
     'spaced@example.com',
+  );
+});
+
+test('the slots of a removed apartment are announced to their queue', async () => {
+  const added = await call('POST', '/admin/apartments', admin, {
+    label: '61',
+    residentName: 'Flyttar',
+    email: 'flyttar-61@example.com',
+  });
+  const id = added.json<{apartment: Apartment}>().apartment.id;
+  ids.set('61', id);
+  await insertBooking('61', 2);
+  const date = inDays(2);
+  await db.insert(subscriptions).values({
+    organizationId: NORTH.id,
+    memberId: ids.get('21') ?? '',
+    resourceId: 'north-laundry',
+    date,
+    start: SLOT.start,
+    end: SLOT.end,
+    endsAt: slotEndsAt(NORTH.timeZone, date, SLOT.end),
+  });
+  const token = await insertToken('21');
+  await server.notifier.idle();
+  push.clear();
+
+  const response = await call('DELETE', `/admin/apartments/${id}`, admin);
+  await server.notifier.idle();
+
+  assert.equal(response.statusCode, 204);
+  assert.deepEqual(
+    push.sent.map(({to, data}) => ({to, date: data?.date})),
+    [{to: token, date}],
   );
 });
