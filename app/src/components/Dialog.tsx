@@ -80,7 +80,7 @@ export function DialogProvider({children}: {children: ReactNode}) {
               <Text className='text-[17px] font-semibold tracking-tight text-theme-ink'>
                 {request.title}
               </Text>
-              <Text className='mt-1.5 text-sm leading-5 text-theme-muted'>
+              <Text className='mt-1.5 font-sans text-sm leading-5 text-theme-muted'>
                 {request.message}
               </Text>
               <View className='mt-5 gap-2'>

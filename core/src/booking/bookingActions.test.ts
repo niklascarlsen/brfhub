@@ -4,7 +4,7 @@ import {createApi} from '../api/createApi';
 import {errorMessage, type ClientErrorCode} from '../api/errors';
 import type {Held, HeldBooking, Resource, Slot} from '../api/types';
 import {sv} from '../i18n/sv';
-import {formatWhen, timeRange} from '../lib/dates';
+import {formatWhen, unbrokenRange} from '../lib/dates';
 import type {Dialog, DialogAction, DialogChoice} from '../lib/dialog';
 import {bookingActions} from './bookingActions';
 import {slotOffer} from './offer';
@@ -12,7 +12,7 @@ import {slotOffer} from './offer';
 const t = sv;
 const DATE = '2030-01-15';
 const SAUNA: Resource = {id: 'sauna', name: 'Bastu', kind: 'sauna', tags: []};
-const WHEN = `Bastu, ${formatWhen(DATE, timeRange('17:00', '19:00'), t)}`;
+const WHEN = `Bastu, ${formatWhen(DATE, unbrokenRange('17:00', '19:00'), t)}`;
 const TIMES = {date: DATE, start: '17:00', end: '19:00'};
 
 type Shown =
@@ -111,7 +111,7 @@ const MORNING = heldBooking('held-1', '07:00', '09:00');
 const NOON = heldBooking('held-2', '12:00', '14:00');
 
 function whenOf({start, end}: HeldBooking) {
-  return `Bastu, ${formatWhen(DATE, timeRange(start, end), t)}`;
+  return `Bastu, ${formatWhen(DATE, unbrokenRange(start, end), t)}`;
 }
 
 const available: Slot = {...TIMES, status: 'available', subscriptionId: null};
@@ -224,6 +224,7 @@ describe('pressing a time asks first', () => {
 
     expect(shown[0]).toMatchObject({
       kind: 'confirm',
+      title: t.booking.alreadyHolding(2),
       message: t.booking.swapQuestion(whenOf(NOON), WHEN),
     });
   });

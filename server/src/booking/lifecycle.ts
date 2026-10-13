@@ -197,22 +197,32 @@ async function letGo(
   return free(tx, booking, releasedBy);
 }
 
-// With the kind's cap reached, the apartment gives up the booking it named
-// for the new one. One that has started counts until it ends, released or
-// not, so it cannot be given up.
-async function swapOut(
+// The booking the apartment names to give up for the new one goes, at the
+// cap or under it, since that is what the apartment chose. One that has
+// started counts until it ends, released or not, so it cannot be given
+// up. One already gone leaves only the cap to check.
+async function giveUp(
   tx: Transaction,
   active: Held[],
   replaceBookingId: string | undefined,
+  max: number,
   member: Member,
-): Promise<{replaced: Held; told: Recipients}> {
-  const existing = active.find((booking) => booking.id === replaceBookingId);
+): Promise<{replaced: Held; told: Recipients} | null> {
+  const named = active.find((booking) => booking.id === replaceBookingId);
 
-  if (!existing || existing.started || existing.released) {
+  if (named && (named.started || named.released)) {
     throw appError('HAS_ACTIVE_BOOKING');
   }
 
-  return {replaced: existing, told: await free(tx, existing, member)};
+  if (named) {
+    return {replaced: named, told: await free(tx, named, member)};
+  }
+
+  if (active.length >= max) {
+    throw appError('HAS_ACTIVE_BOOKING');
+  }
+
+  return null;
 }
 
 function toldOf(found: (Recipients | null)[]): Recipients[] {
@@ -246,10 +256,13 @@ export async function book({
       const active = await selectHeld(tx, member.timeZone).where(
         and(stillActive(member.id), eq(resources.kindId, resource.kind)),
       );
-      const swapped =
-        active.length >= resource.maxActive
-          ? await swapOut(tx, active, replaceBookingId, member)
-          : null;
+      const swapped = await giveUp(
+        tx,
+        active,
+        replaceBookingId,
+        resource.maxActive,
+        member,
+      );
 
       const [row] = await tx
         .insert(bookings)

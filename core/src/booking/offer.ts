@@ -17,7 +17,8 @@ export type Identified = Times & Pick<Booking, 'id'>;
 export type BookingAction =
   | {kind: 'book'; target: Bookable}
   // The kind's cap is reached: give up one of the choices for the target.
-  | {kind: 'swap'; target: Bookable; choices: HeldBooking[]}
+  // held counts every booking of the kind, choices only those that can go.
+  | {kind: 'swap'; target: Bookable; choices: HeldBooking[]; held: number}
   // The cap is reached and every booking held has started or been
   // released, so nothing can be given up until one is over.
   | {kind: 'full'; max: number}
@@ -38,7 +39,7 @@ export function takeAction(target: Bookable, held: Held): BookingAction {
   );
 
   return choices.length > 0
-    ? {kind: 'swap', target, choices}
+    ? {kind: 'swap', target, choices, held: held.bookings.length}
     : {kind: 'full', max: held.max};
 }
 

@@ -43,6 +43,7 @@ describe('takeAction', () => {
       kind: 'swap',
       target: TARGET,
       choices: [HELD],
+      held: 2,
     });
   });
 
@@ -118,7 +119,7 @@ describe('slotOffer', () => {
 
     expect(
       slotOffer(free, SAUNA, {max: 1, bookings: [HELD]}, t).action,
-    ).toEqual({kind: 'swap', target: TARGET, choices: [HELD]});
+    ).toEqual({kind: 'swap', target: TARGET, choices: [HELD], held: 1});
   });
 });
 

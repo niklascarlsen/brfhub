@@ -2,7 +2,7 @@ import type {Api} from '../api/createApi';
 import {codeOf, errorMessage, type ClientErrorCode} from '../api/errors';
 import type {HeldBooking} from '../api/types';
 import type {Messages} from '../i18n/catalog';
-import {formatWhen, timeRange} from '../lib/dates';
+import {formatWhen, unbrokenRange} from '../lib/dates';
 import type {Dialog} from '../lib/dialog';
 import {exhaustive} from '../lib/exhaustive';
 
@@ -23,8 +23,9 @@ function shouldReload(code: ClientErrorCode) {
   }
 }
 
+// The range stays on one line, so a dialog never breaks it at the dash.
 function whenOf({date, start, end, resourceName}: Times, t: Messages) {
-  return `${resourceName}, ${formatWhen(date, timeRange(start, end), t)}`;
+  return `${resourceName}, ${formatWhen(date, unbrokenRange(start, end), t)}`;
 }
 
 type BookingActionsOptions = Api & {
@@ -105,13 +106,13 @@ export function bookingActions({
   }
 
   // One booking to give up is a yes or no, several a choice of which.
-  function confirmSwap(target: Bookable, choices: HeldBooking[]) {
+  function confirmSwap(target: Bookable, choices: HeldBooking[], held: number) {
     const to = whenOf(target, t);
     const [only] = choices;
 
     if (choices.length === 1 && only) {
       dialog.confirm(
-        t.booking.alreadyHolding(1),
+        t.booking.alreadyHolding(held),
         t.booking.swapQuestion(whenOf(only, t), to),
         {
           label: t.booking.swap,
@@ -208,7 +209,7 @@ export function bookingActions({
         confirmBook(action.target);
         return;
       case 'swap':
-        confirmSwap(action.target, action.choices);
+        confirmSwap(action.target, action.choices, action.held);
         return;
       case 'full':
         dialog.alert(

@@ -960,7 +960,7 @@ test('at the cap, refuses a swap that names no booking of the kind', async () =>
   assert.equal((await myBookings(TENANT)).json<Booking[]>().length, 3);
 });
 
-test('under the cap, books without giving up the booking it names', async () => {
+test('under the cap, still gives up the booking it names', async () => {
   const first = await book(TENANT, {
     date: bookableDate,
     start: '07:00',
@@ -975,8 +975,40 @@ test('under the cap, books without giving up the booking it names', async () => 
   });
 
   assert.equal(second.statusCode, 201);
-  assert.equal(second.json<CreatedBooking>().replacedId, null);
-  assert.equal((await myBookings(TENANT)).json<Booking[]>().length, 2);
+  assert.equal(
+    second.json<CreatedBooking>().replacedId,
+    first.json<CreatedBooking>().id,
+  );
+  assert.deepEqual(
+    (await myBookings(TENANT)).json<Booking[]>().map((booking) => booking.id),
+    [second.json<CreatedBooking>().id],
+  );
+});
+
+test('a named booking already gone leaves only the cap to check', async () => {
+  const first = await book(TENANT, {
+    date: bookableDate,
+    start: '07:00',
+    resourceId: SAUNA,
+  });
+  const {id: gone} = (
+    await book(TENANT, {date: bookableDate, start: '10:00', resourceId: SAUNA})
+  ).json<CreatedBooking>();
+  await cancel(TENANT, gone);
+
+  const response = await book(TENANT, {
+    date: bookableDate,
+    start: '13:00',
+    resourceId: SAUNA,
+    replaceBookingId: gone,
+  });
+
+  assert.equal(response.statusCode, 201);
+  assert.equal(response.json<CreatedBooking>().replacedId, null);
+  assert.deepEqual(
+    (await myBookings(TENANT)).json<Booking[]>().map((booking) => booking.id),
+    [first.json<CreatedBooking>().id, response.json<CreatedBooking>().id],
+  );
 });
 
 test('a queue place reports what the apartment holds of its kind', async () => {
