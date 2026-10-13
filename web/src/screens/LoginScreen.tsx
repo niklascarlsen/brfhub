@@ -21,10 +21,14 @@ function loginMessage(status: number, t: Messages): string {
   }
 }
 
+// The seeded apartment, so a development build signs in with one tap.
+const DEV_EMAIL = import.meta.env.DEV ? '12@example.com' : '';
+const DEV_PASSWORD = import.meta.env.DEV ? 'password' : '';
+
 export function LoginScreen() {
   const t = useMessages();
-  const [email, setEmail] = useState('12@example.com');
-  const [password, setPassword] = useState('password');
+  const [email, setEmail] = useState(DEV_EMAIL);
+  const [password, setPassword] = useState(DEV_PASSWORD);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
