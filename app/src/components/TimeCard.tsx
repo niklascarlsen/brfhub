@@ -1,4 +1,4 @@
-import {formatLongDate, timeRange} from '@booking/core/lib/dates';
+import {formatDayHeading, timeRange} from '@booking/core/lib/dates';
 import {Pressable, Text, View} from 'react-native';
 
 import {SkeletonBar} from '@/components/Skeleton';
@@ -70,7 +70,7 @@ export function TimeCard({
           {timeRange(start, end)}
         </Text>
         <Text className='text-[13px] font-medium text-theme-muted'>
-          {formatLongDate(date, t)}
+          {formatDayHeading(date, t)}
         </Text>
       </View>
       {actionLabel && onAction ? (

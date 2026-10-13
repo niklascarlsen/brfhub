@@ -1,5 +1,5 @@
 import {useResetWhenChanged} from '@booking/core/hooks/useResetWhenChanged';
-import {formatLongDate, isWithinBookingWindow} from '@booking/core/lib/dates';
+import {formatDayHeading, isWithinBookingWindow} from '@booking/core/lib/dates';
 import {useRoute, type RouteProp} from '@react-navigation/native';
 import {useState} from 'react';
 import {ScrollView, Text, View} from 'react-native';
@@ -67,7 +67,7 @@ export function BookingScreen() {
       >
         <AnnouncementBanner className='mb-4' />
         <Text className='text-[27px] font-semibold tracking-tight text-theme-ink'>
-          {formatLongDate(date, t)}
+          {formatDayHeading(date, t)}
         </Text>
         {resource.tags.length > 0 ? (
           <View className='mt-2 mb-1 flex-row flex-wrap gap-[6px]'>

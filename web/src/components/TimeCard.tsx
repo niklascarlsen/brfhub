@@ -1,4 +1,4 @@
-import {formatLongDate, timeRange} from '@booking/core/lib/dates';
+import {formatDayHeading, timeRange} from '@booking/core/lib/dates';
 
 import {SkeletonBar} from '@/components/Skeleton';
 import {useMessages} from '@/i18n/LocaleProvider';
@@ -102,7 +102,7 @@ export function TimeCard({
           {timeRange(start, end)}
         </span>
         <span className='text-[13px] font-medium text-theme-muted'>
-          {formatLongDate(date, t)}
+          {formatDayHeading(date, t)}
         </span>
       </div>
       <Actions {...actions} />

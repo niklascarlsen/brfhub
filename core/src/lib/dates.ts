@@ -87,6 +87,13 @@ export function formatLongDate(isoDate: string, t: Messages): string {
   });
 }
 
+// "Torsdag 3 september", for a date that stands on its own as a heading or
+// a line. Inside a sentence the weekday keeps the language's own case.
+export function formatDayHeading(isoDate: string, t: Messages): string {
+  const date = formatLongDate(isoDate, t);
+  return date.charAt(0).toLocaleUpperCase(t.dates.locale) + date.slice(1);
+}
+
 // "9 november", for a day the reader already knows is near.
 export function formatDayMonth(isoDate: string, t: Messages): string {
   return fromIsoDate(isoDate).toLocaleDateString(t.dates.locale, {

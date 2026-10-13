@@ -5,6 +5,7 @@ import {en} from '../i18n/en';
 import {sv} from '../i18n/sv';
 import {
   daysBetween,
+  formatDayHeading,
   formatDayMonth,
   formatLongDate,
   formatWhen,
@@ -236,6 +237,11 @@ describe('labels', () => {
     expect(formatWhen(WINDOW.today, timeRange(SLOT.start, SLOT.end), en)).toBe(
       'Thursday 3 September, 07:00–10:00',
     );
+  });
+
+  test('a date on its own starts with a capital, in a sentence it does not', () => {
+    expect(formatDayHeading(WINDOW.today, sv)).toBe('Torsdag 3 september');
+    expect(formatDayHeading(WINDOW.today, en)).toBe('Thursday 3 September');
   });
 
   test('a long date shows the server day number, never the day before', () => {
