@@ -17,7 +17,7 @@ import {withTimeout} from '../lib/timeout.js';
 import type {BookingRules, Resource} from '../resource/resource.dto.js';
 import type {ResourceSchedule, Slots} from '../slot/slot.dto.js';
 import type {Subscription} from '../subscription/subscription.dto.js';
-import {listSubscribers} from '../subscription/subscription.service.js';
+import {listSubscribers} from '../subscription/subscription.query.js';
 import {
   assertTestDatabase,
   codeOf,
@@ -27,9 +27,11 @@ import {
   resetDatabase,
   seedOrganization,
   signIn as signInTo,
+  waitUntilBlocked,
 } from '../test/fixtures.js';
 import type {Booking, CreatedBooking} from './booking.dto.js';
 import {releasedNotification} from './booking.notification.js';
+import {lockApartmentBookings} from './lifecycle.js';
 
 const LAUNDRY_1 = 'laundry-1';
 const LAUNDRY_2 = 'laundry-2';
@@ -462,6 +464,24 @@ test('rejects a new booking after the apartment opens a started slot', async () 
     mine.json<Booking[]>().map((booking) => booking.id),
     [id],
   );
+});
+
+test('refuses to swap away a booking that has started', async () => {
+  const {id} = await insertStartedBooking(TENANT);
+
+  const swap = await book(TENANT, {
+    date: bookableDate,
+    start: '07:00',
+    replaceExisting: true,
+  });
+  assert.equal(swap.statusCode, 409);
+  assert.equal(codeOf(swap), 'HAS_ACTIVE_BOOKING');
+
+  const [kept, ...rest] = (await myBookings(TENANT)).json<Booking[]>();
+  assert.equal(kept?.id, id);
+  assert.equal(kept?.started, true);
+  assert.equal(kept?.released, false);
+  assert.deepEqual(rest, []);
 });
 
 test('keeps the queue after a drop-in so the subscriber can leave', async () => {
@@ -1174,6 +1194,121 @@ test('a device the push service no longer knows is dropped', async () => {
     await db.select({token: pushTokens.token}).from(pushTokens),
     [{token: '12-device'}],
   );
+});
+
+// The tests below hold a lock from a transaction of their own and let go
+// once the request they fired waits on it, so the request meets the other
+// side of the race at the same point every run.
+
+test('a cancel that waited while its slot started opens it for walk-in', async () => {
+  const created = await book(TENANT, {date: bookableDate, start: '07:00'});
+  const {id} = created.json<CreatedBooking>();
+  let cancelled: ReturnType<typeof cancel> | undefined;
+
+  await db.transaction(async (tx) => {
+    await lockApartmentBookings(tx, memberId(TENANT));
+    cancelled = cancel(TENANT, id);
+    await waitUntilBlocked('advisory');
+
+    // The slot starts while the cancel waits: moved to one that has.
+    await tx
+      .update(bookings)
+      .set({
+        date: today,
+        start: ALL_DAY.start,
+        end: ALL_DAY.end,
+        endsAt: slotEndsAt(
+          ORGANIZATION.timeZone,
+          today,
+          ALL_DAY.end,
+          ALL_DAY.endOffsetDays,
+        ),
+      })
+      .where(eq(bookings.id, id));
+  });
+
+  assert.equal((await cancelled)?.statusCode, 204);
+
+  const [kept] = (await myBookings(TENANT)).json<Booking[]>();
+  assert.equal(kept?.id, id);
+  assert.equal(kept?.started, true);
+  assert.equal(kept?.released, true);
+});
+
+test('a queue place taken while a cancel waits hears of the slot', async () => {
+  const theirs = await book(NEIGHBOUR, {date: bookableDate, start: '07:00'});
+  await addDevice(TENANT);
+  let cancelled: ReturnType<typeof cancel> | undefined;
+
+  await db.transaction(async (tx) => {
+    await lockApartmentBookings(tx, memberId(NEIGHBOUR));
+    cancelled = cancel(NEIGHBOUR, theirs.json<CreatedBooking>().id);
+    await waitUntilBlocked('advisory');
+
+    const queued = await subscribe(TENANT, {
+      date: bookableDate,
+      start: '07:00',
+    });
+    assert.equal(queued.statusCode, 201);
+  });
+
+  assert.equal((await cancelled)?.statusCode, 204);
+  assert.deepEqual(await pushed(), [
+    {to: '12-device', title: 'En tid blev ledig', start: '07:00'},
+  ]);
+});
+
+test('a cancel that waits on a queue place being taken tells it', async () => {
+  const theirs = await book(NEIGHBOUR, {date: bookableDate, start: '07:00'});
+  const {id} = theirs.json<CreatedBooking>();
+  await addDevice(TENANT);
+  let cancelled: ReturnType<typeof cancel> | undefined;
+
+  // Holds the booking and adds a queue place behind it as queueing does,
+  // and commits only once the cancel waits on that booking.
+  await db.transaction(async (tx) => {
+    await tx
+      .select({id: bookings.id})
+      .from(bookings)
+      .where(eq(bookings.id, id))
+      .for('share');
+    await tx.insert(subscriptions).values({
+      organizationId: ORGANIZATION_ID,
+      memberId: memberId(TENANT),
+      date: bookableDate,
+      start: '07:00',
+      end: '10:00',
+      resourceId: LAUNDRY_1,
+      endsAt: slotEndsAt(ORGANIZATION.timeZone, bookableDate, '10:00'),
+    });
+    cancelled = cancel(NEIGHBOUR, id);
+    await waitUntilBlocked('transactionid');
+  });
+
+  assert.equal((await cancelled)?.statusCode, 204);
+  assert.deepEqual(await pushed(), [
+    {to: '12-device', title: 'En tid blev ledig', start: '07:00'},
+  ]);
+});
+
+test('queueing behind a cancel on its way answers that the slot is free', async () => {
+  const theirs = await book(NEIGHBOUR, {date: bookableDate, start: '07:00'});
+  let queued: ReturnType<typeof subscribe> | undefined;
+
+  // Deletes the booking as a cancel does, and commits only once the
+  // queueing has read the slot as booked and waits on that booking.
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(bookings)
+      .where(eq(bookings.id, theirs.json<CreatedBooking>().id));
+    queued = subscribe(TENANT, {date: bookableDate, start: '07:00'});
+    await waitUntilBlocked('transactionid');
+  });
+
+  const response = await queued;
+  assert.equal(response?.statusCode, 409);
+  assert.equal(response && codeOf(response), 'SLOT_AVAILABLE');
+  assert.deepEqual((await mySubscriptions(TENANT)).json<Subscription[]>(), []);
 });
 
 test('signing out ends the session', async () => {

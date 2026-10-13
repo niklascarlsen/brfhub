@@ -1,11 +1,8 @@
 import {and, asc, eq, isNull, sql, type SQL} from 'drizzle-orm';
 
 import {createUser, endSessions, setPassword} from '../auth/auth.service.js';
-import {
-  announceReleased,
-  type ReleasedSlot,
-} from '../booking/booking.notification.js';
-import {lockApartmentBookings, stillActive} from '../booking/booking.query.js';
+import {announceReleased} from '../booking/booking.notification.js';
+import {lockApartmentBookings, releaseAll} from '../booking/lifecycle.js';
 import {violatedConstraint} from '../db/errors.js';
 import {db, type Transaction} from '../db/index.js';
 import {
@@ -13,13 +10,12 @@ import {
   members,
   organizations,
   pushTokens,
-  resources,
   subscriptions,
   user,
 } from '../db/schema.js';
 import {appError} from '../lib/errors.js';
 import {generatePassword} from '../lib/password.js';
-import {slotHasStarted} from '../lib/time.js';
+import {notExpired} from '../lib/time.js';
 import type {Organization} from '../lib/user.js';
 import type {Notifier} from '../notification/notification.service.js';
 import type {
@@ -52,7 +48,7 @@ function selectApartments(organizationId: string, only?: SQL) {
       and(
         eq(bookings.organizationId, organizationId),
         isNull(bookings.releasedAt),
-        sql`${bookings.endsAt} > now()`,
+        notExpired(bookings.endsAt),
       ),
     )
     .groupBy(bookings.memberId)
@@ -112,11 +108,15 @@ async function getApartment(
 // Every change to an apartment starts here: the row and its bookings are
 // held until the transaction ends, so two admins acting at once, or the
 // resident booking meanwhile, wait their turn instead of interleaving.
+// The bookings come first, as booking takes them before its insert locks
+// the row: the other order deadlocks with a booking under way.
 async function lockApartment(
   tx: Transaction,
   organizationId: string,
   id: string,
 ): Promise<{userId: string; email: string}> {
+  await lockApartmentBookings(tx, id);
+
   const [apartment] = await tx
     .select({id: members.id})
     .from(members)
@@ -132,8 +132,6 @@ async function lockApartment(
   if (!apartment) {
     throw appError('NOT_FOUND', 'Unknown apartment');
   }
-
-  await lockApartmentBookings(tx, id);
 
   const [account] = await tx
     .select({userId: user.id, email: user.email})
@@ -248,51 +246,6 @@ export async function resetPassword(
   return password;
 }
 
-// The apartment's upcoming bookings end the way a member cancelling them
-// would: a started one is released for walk-in, the rest are freed. The
-// freed slots are returned to announce once the transaction has committed.
-async function releaseBookings(
-  tx: Transaction,
-  timeZone: string,
-  memberId: string,
-): Promise<ReleasedSlot[]> {
-  const upcoming = await tx
-    .select({
-      id: bookings.id,
-      date: bookings.date,
-      start: bookings.start,
-      end: bookings.end,
-      resourceId: bookings.resourceId,
-      resourceName: resources.name,
-      started: slotHasStarted(timeZone, bookings.date, bookings.start),
-      released: sql<boolean>`${bookings.releasedAt} is not null`,
-    })
-    .from(bookings)
-    .innerJoin(resources, eq(resources.id, bookings.resourceId))
-    .where(stillActive(memberId));
-
-  const freed: ReleasedSlot[] = [];
-
-  for (const booking of upcoming) {
-    if (booking.released) {
-      continue;
-    }
-
-    if (booking.started) {
-      await tx
-        .update(bookings)
-        .set({releasedAt: sql`now()`})
-        .where(eq(bookings.id, booking.id));
-      continue;
-    }
-
-    await tx.delete(bookings).where(eq(bookings.id, booking.id));
-    freed.push(booking);
-  }
-
-  return freed;
-}
-
 // What a resident leaves behind when they move out: their account and with
 // it their sessions, their queue places and the devices that got their push.
 async function clearResident(tx: Transaction, memberId: string) {
@@ -312,7 +265,7 @@ export async function replaceResident(
   const freed = await db
     .transaction(async (tx) => {
       await lockApartment(tx, organizationId, id);
-      const released = await releaseBookings(tx, timeZone, id);
+      const released = await releaseAll(tx, {id, timeZone, locales});
       await clearResident(tx, id);
       await createUser(
         {
@@ -330,7 +283,7 @@ export async function replaceResident(
     })
     .catch(rethrowTaken);
 
-  announceReleased(notifier, freed, {id, timeZone, locales});
+  announceReleased(notifier, freed);
 
   return {apartment: await getApartment(organizationId, id), password};
 }
@@ -342,7 +295,7 @@ export async function removeApartment(
 ): Promise<void> {
   const freed = await db.transaction(async (tx) => {
     await lockApartment(tx, organizationId, id);
-    const released = await releaseBookings(tx, timeZone, id);
+    const released = await releaseAll(tx, {id, timeZone, locales});
     await clearResident(tx, id);
     await tx
       .update(members)
@@ -352,5 +305,5 @@ export async function removeApartment(
     return released;
   });
 
-  announceReleased(notifier, freed, {id, timeZone, locales});
+  announceReleased(notifier, freed);
 }

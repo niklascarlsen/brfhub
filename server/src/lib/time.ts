@@ -39,6 +39,13 @@ export function addDays(isoDate: string, days: number): string {
   return date.toISOString().slice(0, 10);
 }
 
+// The moment the statement runs. Postgres's now() is when the transaction
+// began, which for one that waited on a lock can be before a slot it then
+// judges had started.
+export function currentTime(): SQL<Date> {
+  return sql`statement_timestamp()`;
+}
+
 export function slotStartsAt(
   timeZone: Value<string>,
   date: Value<string>,
@@ -61,7 +68,7 @@ export function slotHasStarted(
   date: Value<string>,
   slotStart: Value<string>,
 ): SQL<boolean> {
-  return sql`${slotStartsAt(timeZone, date, slotStart)} <= now()`;
+  return sql`${slotStartsAt(timeZone, date, slotStart)} <= ${currentTime()}`;
 }
 
 export function slotHasEnded(
@@ -70,11 +77,11 @@ export function slotHasEnded(
   slotEnd: Value<string>,
   endOffsetDays: Value<number> = 0,
 ): SQL<boolean> {
-  return sql`${slotEndsAt(timeZone, date, slotEnd, endOffsetDays)} <= now()`;
+  return sql`${slotEndsAt(timeZone, date, slotEnd, endOffsetDays)} <= ${currentTime()}`;
 }
 
 export function notExpired(endsAt: PgColumn) {
-  return gt(endsAt, sql`now()`);
+  return gt(endsAt, currentTime());
 }
 
 export function asIsoText(column: PgColumn): SQL<string> {
@@ -87,7 +94,7 @@ export function asDateText(value: PgColumn | SQL | SQL.Aliased): SQL<string> {
 
 // Today's date in the organization.
 export function todaySql(timeZone: Value<string>): SQL<string> {
-  return sql`(now() at time zone ${timeZone})::date`;
+  return sql`(${currentTime()} at time zone ${timeZone})::date`;
 }
 
 export function bookingWindowSql(timeZone: Value<string>, days: Value<number>) {

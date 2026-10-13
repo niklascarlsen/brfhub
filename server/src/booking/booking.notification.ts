@@ -1,20 +1,18 @@
-import {sql} from 'drizzle-orm';
-
-import {db} from '../db/index.js';
+import type {Executor} from '../db/index.js';
 import {
   localize,
   resolveLocale,
   type Locale,
   type LocalizedText,
 } from '../lib/locale.js';
-import {formatWhen, slotHasStarted} from '../lib/time.js';
+import {formatWhen} from '../lib/time.js';
 import type {Member} from '../lib/user.js';
 import type {
   Notification,
   Notifier,
   Recipients,
 } from '../notification/notification.service.js';
-import {listSubscribers} from '../subscription/subscription.service.js';
+import {listSubscribers} from '../subscription/subscription.query.js';
 
 export type ReleasedSlot = {
   date: string;
@@ -62,29 +60,20 @@ export function releasedNotification(
 }
 
 // The apartment that let the slot go, which is not told about it.
-type ReleasedBy = Pick<Member, 'id' | 'timeZone' | 'locales'>;
+type ReleasedBy = Pick<Member, 'id' | 'locales'>;
 
-// Who hears of the slot: its queue, unless it has started by now.
-async function recipientsOf(
+// Who hears of a freed slot: its queue as the freeing transaction sees it.
+// Only a slot that has not started is freed, so its queue can still book.
+export async function queueOf(
+  executor: Executor,
   slot: ReleasedSlot,
   releasedBy: ReleasedBy,
-): Promise<Recipients | null> {
-  const started = await db
-    .execute<{
-      started: boolean;
-    }>(
-      sql`select ${slotHasStarted(releasedBy.timeZone, slot.date, slot.start)} as started`,
-    )
-    .then((result) => result.rows[0]?.started);
-
-  if (started) {
-    return null;
-  }
-
+): Promise<Recipients> {
   const subscribers = await listSubscribers(
     slot.resourceId,
     slot.date,
     slot.start,
+    executor,
   );
 
   return {
@@ -98,39 +87,16 @@ async function recipientsOf(
   };
 }
 
-// Tells the queue of each freed slot after the caller has answered. Called
-// once the change has committed, so a change that rolls back announces
-// nothing.
+// Tells the queues found while freeing their slots, after the caller has
+// answered. Called once the change has committed, so a change that rolls
+// back announces nothing.
 export function announceReleased(
   notifier: Notifier,
-  slots: ReleasedSlot[],
-  releasedBy: ReleasedBy,
+  recipients: Recipients[],
 ): void {
-  if (slots.length === 0) {
+  if (recipients.every((group) => group.memberIds.length === 0)) {
     return;
   }
 
-  notifier.later(async () => {
-    const recipients: Recipients[] = [];
-    const failed: unknown[] = [];
-
-    // One after another, and a slot whose queue cannot be looked up does
-    // not keep the others quiet.
-    for (const slot of slots) {
-      try {
-        const found = await recipientsOf(slot, releasedBy);
-        if (found) {
-          recipients.push(found);
-        }
-      } catch (error) {
-        failed.push(error);
-      }
-    }
-
-    await notifier.notifyMembers(recipients);
-
-    if (failed.length > 0) {
-      throw new AggregateError(failed, 'Could not look up who to tell');
-    }
-  });
+  notifier.later(() => notifier.notifyMembers(recipients));
 }

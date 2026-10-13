@@ -1,6 +1,6 @@
-import {and, asc, eq, isNull, sql} from 'drizzle-orm';
+import {and, asc, eq, isNull, not, sql} from 'drizzle-orm';
 
-import {db} from '../db/index.js';
+import {db, type Executor} from '../db/index.js';
 import {
   bookings,
   organizations,
@@ -13,7 +13,7 @@ import {appError} from '../lib/errors.js';
 import {
   asDateText,
   bookingWindowSql,
-  slotEndsAt,
+  slotHasEnded,
   slotHasStarted,
 } from '../lib/time.js';
 import type {Member} from '../lib/user.js';
@@ -27,12 +27,13 @@ import type {BookingWindow, ResourceSchedule, Slot, Slots} from './slot.dto.js';
 
 export async function getBookingWindow(
   organizationId: string,
+  executor: Executor = db,
 ): Promise<BookingWindow> {
   const {today, from, to} = bookingWindowSql(
     organizations.timeZone,
     organizations.bookingWindowDays,
   );
-  const [row] = await db
+  const [row] = await executor
     .select({today, from, to})
     .from(organizations)
     .where(eq(organizations.id, organizationId));
@@ -109,7 +110,14 @@ function selectSlotRows(
         resourceId ? eq(resourceSlots.resourceId, resourceId) : undefined,
         slotInEffect(days.day),
         resourceOpenOn(days.day),
-        sql`${slotEndsAt(member.timeZone, days.day, resourceSlots.end, resourceSlots.endOffsetDays)} > now()`,
+        not(
+          slotHasEnded(
+            member.timeZone,
+            days.day,
+            resourceSlots.end,
+            resourceSlots.endOffsetDays,
+          ),
+        ),
       ),
     )
     .orderBy(asc(resources.sortOrder), asc(days.day), asc(resourceSlots.start));
