@@ -466,6 +466,24 @@ test('rejects a new booking after the apartment opens a started slot', async () 
   );
 });
 
+test('refuses to swap away a booking that has started', async () => {
+  const {id} = await insertStartedBooking(TENANT);
+
+  const swap = await book(TENANT, {
+    date: bookableDate,
+    start: '07:00',
+    replaceExisting: true,
+  });
+  assert.equal(swap.statusCode, 409);
+  assert.equal(codeOf(swap), 'HAS_ACTIVE_BOOKING');
+
+  const [kept, ...rest] = (await myBookings(TENANT)).json<Booking[]>();
+  assert.equal(kept?.id, id);
+  assert.equal(kept?.started, true);
+  assert.equal(kept?.released, false);
+  assert.deepEqual(rest, []);
+});
+
 test('keeps the queue after a drop-in so the subscriber can leave', async () => {
   const {id} = await insertStartedBooking(TENANT);
   await db.insert(subscriptions).values({

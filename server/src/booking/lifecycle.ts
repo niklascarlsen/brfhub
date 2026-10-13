@@ -160,18 +160,17 @@ type Held = Awaited<ReturnType<typeof selectHeld>>[number];
 // is not told about it.
 type ReleasedBy = Pick<Organization, 'locales'> & {id: string};
 
-// Deletes a booking and finds who to tell of its slot. A queue place being
-// taken on the slot holds the booking until it is in, so the lookup after
-// the delete finds it.
+// Deletes a booking that has not started and finds who to tell of its
+// slot. A queue place being taken on the slot holds the booking until it
+// is in, so the lookup after the delete finds it.
 async function free(
   tx: Transaction,
   booking: Held,
   releasedBy: ReleasedBy,
-): Promise<Recipients | null> {
+): Promise<Recipients> {
   await tx.delete(bookings).where(eq(bookings.id, booking.id));
 
-  // Nobody can book a slot that has started, so its queue is not told.
-  return booking.started ? null : queueOf(tx, booking, releasedBy);
+  return queueOf(tx, booking, releasedBy);
 }
 
 // Ends a booking the way cancelling does: one that has started stays,
@@ -198,21 +197,22 @@ async function letGo(
 }
 
 // With the kind's cap reached, a kind that allows one booking at a time
-// swaps it for the new one when asked to, unless it was opened for
-// walk-in. The swapped booking is deleted even once it has started.
+// swaps it for the new one when asked to. One that has started counts
+// until it ends, released or not, so it cannot be swapped away.
 async function swapOut(
   tx: Transaction,
   active: Held[],
   resource: BookableResource,
   replaceExisting: boolean,
   member: Member,
-): Promise<{replaced: Held; told: Recipients | null}> {
+): Promise<{replaced: Held; told: Recipients}> {
   const [existing] = active;
 
   if (
     resource.maxActive !== 1 ||
     !replaceExisting ||
     !existing ||
+    existing.started ||
     existing.released
   ) {
     throw appError('HAS_ACTIVE_BOOKING');
