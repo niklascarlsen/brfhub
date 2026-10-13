@@ -6,7 +6,7 @@ When working in `app/`, read the SDK page for the module you are touching before
 
 `server/openapi.json`, `core/src/generated/api.d.ts` and `core/src/generated/limits.ts` are generated. Never edit them by hand. Change the Zod schemas in `server/src/<feature>/<feature>.dto.ts`, then from `server/` run `npm run types:gen`, and `npm run types:check` to verify sync.
 
-`limits.ts` holds every length and range the request bodies set (and Better Auth's password rule), so the admin forms never write a limit of their own: read it through the checks in `core/src/admin/drafts.ts`.
+`limits.ts` is the server's limits copied out for the clients: each one is set in the Zod schema next to its field (Better Auth's password rule in `server/src/auth/auth.ts`), and the admin forms read the copy through the checks in `core/src/admin/drafts.ts`. To change a limit, change the schema and run `types:gen`.
 
 `web/src/theme.css`, `web/src/components/icons/` and the theme-color meta tag in `web/index.html` are generated from `app/src/theme.json` and the `ionicons` package: change colours or glyphs there and both clients follow. The generated files are committed; `npm run generate` in `web/` rewrites them, and `dev`, `build` and `check` run it first, so commit what it produces.
 
@@ -55,10 +55,11 @@ Agents may start, restart and stop the `server/` and `web/` dev servers. One may
 
 # Clients
 
-- The server owns the booking rules. The client renders what it is told.
+- The server owns the booking rules, all in `server/src/booking/lifecycle.ts` (book, queue, release, an apartment letting everything go), under the apartment's lock. Push to a queue goes out after the response through the notifier `buildApp` is given; tests pass `memoryPush()` from `server/src/test/fixtures.ts` and await `server.notifier.idle()` before looking at what was sent.
+- The client renders what it is told. What a time or a queue place offers (label, look, whether it can be pressed, what pressing does) is decided in `core/src/booking/offer.ts`; the clients only map it to their classes.
 - An account is an apartment (`role: member`) or its organization's one admin, and the organization always comes from the account. `AccountGate` in `src/auth/account.tsx` picks the app; the admin app mounts no booking screens or push.
 - `web/` is one app. Below 1024px it renders the same screens as `app/`; above it renders the calendar and day view in `src/desktop/`, which loads the whole booking window for every resource in one `/schedule` request.
-- `core/` (`@booking/core`) holds what both clients share: the API types and the client's core (`createApi`), error codes, i18n, date helpers and other logic such as `bookingActions`. It is TypeScript read straight by Metro and Vite, with no build step, and runs in plain Node: it never imports `react-native`, `expo-*`, the DOM, `app/` or `web/`. UI, platform calls and the adapters that feed core a platform (`src/api/client.ts`, `src/hooks/useBookingActions.ts`) stay in the clients, which depend on core and never on each other.
+- `core/` (`@booking/core`) holds what both clients share: the API types and the client's core (`createApi`), error codes, i18n, date helpers, the load state (`load/`), and the actions behind the member and admin screens (`booking/bookingActions.ts`, `admin/actions.ts`), which ask through the `Dialog` port. It is TypeScript read straight by Metro and Vite, with no build step, and runs in plain Node: it never imports `react-native`, `expo-*`, the DOM, `app/` or `web/`. UI, platform calls and the adapters that feed core a platform (`src/api/client.ts`, `src/hooks/useBookingActions.ts`, `src/hooks/useAdminActions.ts`, `src/hooks/useFocusLoad.ts`) stay in the clients, which depend on core and never on each other.
 - New date helpers, strings and other shared logic go in `core/`, tested there. What only the desktop calendar needs goes in `web/src/desktop/weeks.ts`.
 - Some client files read the same in both but bind platform code, such as `config.tsx` and `src/auth/session.tsx`. `scripts/check-mirrors.mjs` lists them and fails when the copies differ, so change both.
 - Every visible string lives in `core/src/i18n/sv.ts` and `core/src/i18n/en.ts`. A new string goes in both, and TypeScript refuses an English catalog that lacks a Swedish key. Components read it with `useMessages()`; helpers outside components take it as a `t: Messages` argument. Never write UI text inline.
@@ -67,7 +68,8 @@ Agents may start, restart and stop the `server/` and `web/` dev servers. One may
 - `web/` is on Tailwind v4 (CSS-first, tokens in `@theme`); `app/` stays on the v3 LTS that NativeWind needs. Do not copy config between them.
 - Match the app's result, not its layout mechanism. Anything sized from the viewport in React Native is wrong on web, where one breakpoint spans phone to laptop.
 - Keep the clients symmetric. No hook or helper file in one client unless the other gets the same shape. Short logic stays inline in the component.
-- Data loading is hand-rolled. Never add TanStack Query, SWR or another server-state library.
+- Data loading is hand-rolled, in `core/src/load/`; a screen loads through its client's `useFocusLoad`. Never add TanStack Query, SWR or another server-state library.
+- Ask and tell through `useDialog`. In the app `Alert.alert` appears only in `src/components/Dialog.tsx`, so the button conventions live in one place.
 - Layout that depends on the mobile viewport (`dvh`/`vh`, fixed bottom bars, safe areas) cannot be verified in desktop Chrome, nor by a script that fakes a width, since the toolbar never collapses there. Prefer designs without viewport units; otherwise report it as unverified and needing a real phone, and do not call it verified.
 - If web push shows as Chrome instead of Boka on macOS, that is Chrome's `AppShimNotificationAttribution` feature flag, not our code. Do not touch `push-sw.js` or the manifest for it.
 
