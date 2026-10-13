@@ -9,5 +9,6 @@
   "muted": "#77726A",
   "ink": "#14130F",
   "accent": "#4E6553",
-  "mist": "#ECF0EA"
+  "mist": "#ECF0EA",
+  "danger": "#A8452F"
 }

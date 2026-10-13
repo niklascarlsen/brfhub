@@ -1,5 +1,5 @@
-import {slotsProblem} from '@booking/core/admin/schedule';
-import {codeOf, errorMessage} from '@booking/core/api/errors';
+import {checkSchedule, failureMessage} from '@booking/core/admin/drafts';
+import {useProblems} from '@booking/core/admin/useProblems';
 import type {SlotInput} from '@booking/core/api/types';
 import {formatLongDate} from '@booking/core/lib/dates';
 import {useState} from 'react';
@@ -7,6 +7,7 @@ import {Text, View} from 'react-native';
 
 import {FormActions} from '@/admin/FormActions';
 import {SlotsEditor} from '@/admin/SlotsEditor';
+import {FieldProblem} from '@/components/FieldProblem';
 import {useMessages} from '@/i18n/LocaleProvider';
 
 type ScheduleFormProps = {
@@ -26,12 +27,12 @@ export function ScheduleForm({
   const [slots, setSlots] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const checked = checkSchedule(slots, initial, t);
+  const {problem, ready} = useProblems(checked);
+  const slotsProblem = problem('slots');
 
   async function submit() {
-    const problem = slotsProblem(slots, t);
-
-    if (problem) {
-      setError(problem);
+    if (!ready()) {
       return;
     }
 
@@ -39,9 +40,9 @@ export function ScheduleForm({
     setError(null);
 
     try {
-      await onSubmit(slots);
+      await onSubmit(checked.value);
     } catch (caught) {
-      setError(errorMessage(codeOf(caught), t));
+      setError(failureMessage(caught, t));
       setSubmitting(false);
     }
   }
@@ -51,7 +52,10 @@ export function ScheduleForm({
       <Text className='font-sans text-sm leading-5 text-theme-ink'>
         {t.admin.scheduleForm.note(formatLongDate(validFrom, t))}
       </Text>
-      <SlotsEditor slots={slots} onChange={setSlots} />
+      <View>
+        <SlotsEditor slots={slots} onChange={setSlots} />
+        {slotsProblem ? <FieldProblem message={slotsProblem} /> : null}
+      </View>
       {error ? (
         <Text
           accessibilityRole='alert'
@@ -62,8 +66,7 @@ export function ScheduleForm({
       ) : null}
       <FormActions
         submitLabel={t.admin.scheduleForm.save}
-        dirty={JSON.stringify(slots) !== JSON.stringify(initial)}
-        valid={slots.length > 0}
+        dirty={checked.changed}
         submitting={submitting}
         onSubmit={() => void submit()}
         onCancel={onCancel}

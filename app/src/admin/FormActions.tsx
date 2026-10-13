@@ -15,10 +15,9 @@ import {useMessages} from '@/i18n/LocaleProvider';
 type FormActionsProps = {
   submitLabel: string;
   // Changed from what was saved. A form that is not cannot be saved, and
-  // leaving one that is asks first.
+  // leaving one that is asks first. A save of a form with problems shows
+  // them instead of sending.
   dirty: boolean;
-  // Filled in well enough to send.
-  valid: boolean;
   submitting: boolean;
   onSubmit: () => void;
   onCancel?: () => void;
@@ -31,7 +30,6 @@ type FormActionsProps = {
 export function FormActions({
   submitLabel,
   dirty,
-  valid,
   submitting,
   onSubmit,
   onCancel,
@@ -39,7 +37,6 @@ export function FormActions({
 }: FormActionsProps) {
   const t = useMessages();
   const confirmLeave = useConfirmLeave();
-  const ready = dirty && valid;
 
   useUnsavedChanges(dirty);
 
@@ -56,11 +53,11 @@ export function FormActions({
       <View className='flex-row flex-wrap gap-2.5'>
         <Pressable
           onPress={onSubmit}
-          disabled={!ready || submitting}
-          accessibilityState={{disabled: !ready || submitting}}
-          className={ready ? PRIMARY_BUTTON : INACTIVE_BUTTON}
+          disabled={!dirty || submitting}
+          accessibilityState={{disabled: !dirty || submitting}}
+          className={dirty ? PRIMARY_BUTTON : INACTIVE_BUTTON}
         >
-          <Text className={ready ? PRIMARY_LABEL : INACTIVE_LABEL}>
+          <Text className={dirty ? PRIMARY_LABEL : INACTIVE_LABEL}>
             {submitLabel}
           </Text>
         </Pressable>

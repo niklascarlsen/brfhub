@@ -9,6 +9,7 @@ const MIRRORS = [
   'auth/account.tsx',
   'auth/session.tsx',
   'config.tsx',
+  'hooks/useAdminActions.ts',
   'hooks/useBookingActions.ts',
 ];
 

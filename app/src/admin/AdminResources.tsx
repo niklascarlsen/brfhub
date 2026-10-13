@@ -1,7 +1,6 @@
 import {useAdminAccount, useRefreshAccount} from '@booking/core/admin/account';
 import {missingLanguages} from '@booking/core/admin/localized';
 import {limitText, slotsText} from '@booking/core/admin/schedule';
-import {codeOf, errorMessage} from '@booking/core/api/errors';
 import type {AdminResource} from '@booking/core/api/types';
 import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
 import {localize, type Messages} from '@booking/core/i18n/catalog';
@@ -9,7 +8,7 @@ import {formatDayMonth} from '@booking/core/lib/dates';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {useIsFocused} from '@react-navigation/native';
 import {useEffect, useState} from 'react';
-import {Alert, BackHandler, Pressable, Text, View} from 'react-native';
+import {BackHandler, Pressable, Text, View} from 'react-native';
 
 import {AdminPage} from '@/admin/AdminPage';
 import {KindForm} from '@/admin/KindForm';
@@ -22,16 +21,12 @@ import {
   SECONDARY_BUTTON,
   SECONDARY_LABEL,
 } from '@/admin/styles';
-import {api, unwrap} from '@/api/client';
 import {Notice} from '@/components/Notice';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
+import {adminLoad, useAdminActions} from '@/hooks/useAdminActions';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
 import theme from '@/theme.json';
-
-function fetchResources() {
-  return unwrap(api.GET('/admin/resources'));
-}
 
 type Screen =
   | {kind: 'list'}
@@ -112,7 +107,7 @@ export function AdminResources() {
   const {organizationName, locales} = useAdminAccount();
   const t = useMessages();
   const {locale} = useLocale();
-  const {data, error, reload} = useFocusLoad(fetchResources);
+  const {data, error, reload} = useFocusLoad(adminLoad.resources);
   const showSkeleton = useSlowLoad(data === null && error === null);
   const [screen, setScreen] = useState<Screen>({kind: 'list'});
   const refreshAccount = useRefreshAccount();
@@ -127,6 +122,7 @@ export function AdminResources() {
     reload();
     refreshAccount();
   };
+  const actions = useAdminActions(changed);
 
   const toList = () => setScreen({kind: 'list'});
   const back = {label: t.tabs.resources, onPress: toList};
@@ -161,8 +157,7 @@ export function AdminResources() {
           submitLabel={t.admin.add}
           onCancel={toList}
           onSubmit={async (fields) => {
-            await unwrap(api.POST('/admin/kinds', {body: fields}));
-            changed();
+            await actions.kinds.create(fields);
             toList();
           }}
         />
@@ -191,35 +186,13 @@ export function AdminResources() {
           submitLabel={t.admin.save}
           onCancel={toList}
           onSubmit={async (fields) => {
-            await unwrap(
-              api.PATCH('/admin/kinds/{id}', {
-                params: {path: {id: editedKind.id}},
-                body: fields,
-              }),
-            );
-            changed();
+            await actions.kinds.update(editedKind.id, fields);
             toList();
           }}
           onDelete={
             inUse
               ? undefined
-              : () => {
-                  unwrap(
-                    api.DELETE('/admin/kinds/{id}', {
-                      params: {path: {id: editedKind.id}},
-                    }),
-                  )
-                    .then(() => {
-                      changed();
-                      toList();
-                    })
-                    .catch((caught: unknown) =>
-                      Alert.alert(
-                        t.admin.resources.removeKindFailed,
-                        errorMessage(codeOf(caught), t),
-                      ),
-                    );
-                }
+              : () => void actions.kinds.remove(editedKind.id, toList)
           }
         />
       </AdminPage>
@@ -245,10 +218,7 @@ export function AdminResources() {
           submitLabel={t.admin.add}
           onCancel={toList}
           onSubmit={async (fields) => {
-            const {id} = await unwrap(
-              api.POST('/admin/resources', {body: fields}),
-            );
-            changed();
+            const {id} = await actions.resources.create(fields);
             setScreen({
               kind: 'resource',
               id,

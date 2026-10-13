@@ -6,28 +6,22 @@ import {
   startOf,
 } from '@booking/core/admin/announcement';
 import {
-  fieldLabel,
-  isWritten,
-  trimmedText,
-  type Draft,
-} from '@booking/core/admin/localized';
-import {codeOf, errorMessage} from '@booking/core/api/errors';
-import type {LocalizedText} from '@booking/core/api/types';
+  checkAnnouncement,
+  failureMessage,
+  type AnnouncementFields,
+} from '@booking/core/admin/drafts';
+import {fieldLabel, type Draft} from '@booking/core/admin/localized';
+import {useProblems} from '@booking/core/admin/useProblems';
 import {formatLongDate} from '@booking/core/lib/dates';
 import {useState} from 'react';
 import {Pressable, Text, TextInput, View} from 'react-native';
 
 import {FormActions} from '@/admin/FormActions';
 import {SECONDARY_BUTTON, SECONDARY_LABEL} from '@/admin/styles';
+import {FieldProblem} from '@/components/FieldProblem';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {useMessages} from '@/i18n/LocaleProvider';
 import theme from '@/theme.json';
-
-export type AnnouncementFields = {
-  title: LocalizedText;
-  body: LocalizedText;
-  endsOn: string | null;
-};
 
 type AnnouncementFormProps = {
   initial: AnnouncementFields & {publishedOn: string};
@@ -57,25 +51,21 @@ export function AnnouncementForm({
   // given more days.
   const start = startOf(initial.publishedOn, today);
   const duration = durationOf(start, endsOn);
-  const dirty =
-    JSON.stringify(trimmedText(title, locales)) !==
-      JSON.stringify(trimmedText(initial.title, locales)) ||
-    JSON.stringify(trimmedText(body, locales)) !==
-      JSON.stringify(trimmedText(initial.body, locales)) ||
-    endsOn !== initial.endsOn;
+  const checked = checkAnnouncement({title, body, endsOn}, initial, locales, t);
+  const {problem, leave, ready} = useProblems(checked);
 
   async function submit() {
+    if (!ready()) {
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
 
     try {
-      await onSubmit({
-        title: trimmedText(title, locales),
-        body: trimmedText(body, locales),
-        endsOn,
-      });
+      await onSubmit(checked.value);
     } catch (caught) {
-      setError(errorMessage(codeOf(caught), t));
+      setError(failureMessage(caught, t));
       setSubmitting(false);
     }
   }
@@ -93,7 +83,8 @@ export function AnnouncementForm({
           )}
           value={title[language] ?? ''}
           onChangeText={(text) => setTitle({...title, [language]: text})}
-          maxLength={100}
+          onBlur={() => leave(`title.${language}`)}
+          problem={problem(`title.${language}`)}
           autoCapitalize='sentences'
         />
       ))}
@@ -105,21 +96,32 @@ export function AnnouncementForm({
           t,
         );
 
+        const shown = problem(`body.${language}`);
+
         return (
-          <View key={language} className='gap-1.5'>
-            <Text className='text-[13px] font-medium text-theme-muted'>
-              {label}
-            </Text>
-            <TextInput
-              value={body[language] ?? ''}
-              onChangeText={(text) => setBody({...body, [language]: text})}
-              multiline
-              maxLength={2000}
-              textAlignVertical='top'
-              accessibilityLabel={label}
-              className='min-h-[132px] rounded-sm border border-theme-edge bg-theme-surface px-4 py-3 text-base text-theme-ink'
-              style={{fontFamily: 'Merriweather_400Regular', color: theme.ink}}
-            />
+          <View key={language}>
+            <View className='gap-1.5'>
+              <Text className='text-[13px] font-medium text-theme-muted'>
+                {label}
+              </Text>
+              <TextInput
+                value={body[language] ?? ''}
+                onChangeText={(text) => setBody({...body, [language]: text})}
+                onBlur={() => leave(`body.${language}`)}
+                multiline
+                textAlignVertical='top'
+                accessibilityLabel={label}
+                accessibilityHint={shown ?? undefined}
+                className={`min-h-[132px] rounded-sm border bg-theme-surface px-4 py-3 text-base text-theme-ink ${
+                  shown ? 'border-theme-danger' : 'border-theme-edge'
+                }`}
+                style={{
+                  fontFamily: 'Merriweather_400Regular',
+                  color: theme.ink,
+                }}
+              />
+            </View>
+            {shown ? <FieldProblem message={shown} /> : null}
           </View>
         );
       })}
@@ -172,8 +174,7 @@ export function AnnouncementForm({
       ) : null}
       <FormActions
         submitLabel={submitLabel}
-        dirty={dirty}
-        valid={isWritten(title, locales) && isWritten(body, locales)}
+        dirty={checked.changed}
         submitting={submitting}
         onSubmit={() => void submit()}
         onCancel={onCancel}

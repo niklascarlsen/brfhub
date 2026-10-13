@@ -1,3 +1,4 @@
+import {canAddSlot} from '@booking/core/admin/drafts';
 import {nextSlot} from '@booking/core/admin/schedule';
 import type {SlotInput} from '@booking/core/api/types';
 
@@ -67,7 +68,7 @@ export function SlotsEditor({slots, onChange}: SlotsEditorProps) {
       <button
         type='button'
         onClick={() => onChange([...slots, nextSlot(slots)])}
-        disabled={slots.length >= 24}
+        disabled={!canAddSlot(slots)}
         className={`${SECONDARY_BUTTON} self-start`}
       >
         <AddIcon size={18} />

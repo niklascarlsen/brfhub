@@ -1,20 +1,18 @@
 import {useAdminAccount} from '@booking/core/admin/account';
 import {
-  fieldLabel,
-  isWritten,
-  trimmedText,
-  type Draft,
-} from '@booking/core/admin/localized';
-import {codeOf, errorMessage} from '@booking/core/api/errors';
-import type {LocalizedText} from '@booking/core/api/types';
+  checkKind,
+  failureMessage,
+  stepMaxActive,
+  type KindFields,
+} from '@booking/core/admin/drafts';
+import {fieldLabel, type Draft} from '@booking/core/admin/localized';
+import {useProblems} from '@booking/core/admin/useProblems';
 import {useState, type SubmitEvent} from 'react';
 
 import {FormActions} from '@/admin/FormActions';
 import {SECONDARY_BUTTON} from '@/admin/styles';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {useMessages} from '@/i18n/LocaleProvider';
-
-export type KindFields = {name: LocalizedText; maxActive: number};
 
 type KindFormProps = {
   initial: KindFields;
@@ -23,8 +21,6 @@ type KindFormProps = {
   onCancel: () => void;
   onDelete?: () => void;
 };
-
-const MAX_ACTIVE = 10;
 
 export function KindForm({
   initial,
@@ -40,31 +36,33 @@ export function KindForm({
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const dirty =
-    JSON.stringify(trimmedText(name, locales)) !==
-      JSON.stringify(trimmedText(initial.name, locales)) ||
-    maxActive !== initial.maxActive;
+  const checked = checkKind({name, maxActive}, initial, locales, t);
+  const {problem, leave, ready} = useProblems(checked);
 
   async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!ready()) {
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
 
     try {
-      await onSubmit({name: trimmedText(name, locales), maxActive});
+      await onSubmit(checked.value);
     } catch (caught) {
-      setError(errorMessage(codeOf(caught), t));
+      setError(failureMessage(caught, t));
       setSubmitting(false);
     }
   }
 
   const step = (by: number) =>
-    setMaxActive((previous) =>
-      Math.min(MAX_ACTIVE, Math.max(1, previous + by)),
-    );
+    setMaxActive((previous) => stepMaxActive(previous, by));
 
   return (
     <form
+      noValidate
       onSubmit={(event) => void submit(event)}
       className='flex flex-col gap-3'
     >
@@ -74,11 +72,12 @@ export function KindForm({
           lang={language}
           label={fieldLabel(t.admin.kindForm.name, language, locales, t)}
           required
-          maxLength={40}
           value={name[language] ?? ''}
           onChange={(event) =>
             setName({...name, [language]: event.target.value})
           }
+          onBlur={() => leave(`name.${language}`)}
+          problem={problem(`name.${language}`)}
         />
       ))}
       <div className='flex items-center justify-between gap-4 rounded-2xl border border-theme-line bg-theme-surface px-4.5 py-3'>
@@ -95,7 +94,7 @@ export function KindForm({
             type='button'
             aria-label={t.admin.kindForm.fewer}
             onClick={() => step(-1)}
-            disabled={maxActive <= 1}
+            disabled={stepMaxActive(maxActive, -1) === maxActive}
             className='h-10 w-10 rounded-full border border-theme-edge text-lg text-theme-ink transition-colors hover:bg-theme-sunk disabled:opacity-35'
           >
             −
@@ -107,7 +106,7 @@ export function KindForm({
             type='button'
             aria-label={t.admin.kindForm.more}
             onClick={() => step(1)}
-            disabled={maxActive >= MAX_ACTIVE}
+            disabled={stepMaxActive(maxActive, 1) === maxActive}
             className='h-10 w-10 rounded-full border border-theme-edge text-lg text-theme-ink transition-colors hover:bg-theme-sunk disabled:opacity-35'
           >
             +
@@ -124,8 +123,7 @@ export function KindForm({
       ) : null}
       <FormActions
         submitLabel={submitLabel}
-        dirty={dirty}
-        valid={isWritten(name, locales)}
+        dirty={checked.changed}
         submitting={submitting}
         onCancel={onCancel}
       >

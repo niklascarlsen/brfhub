@@ -26,22 +26,6 @@ export function trimmedText(draft: Draft, locales: readonly Locale[]): Draft {
   );
 }
 
-export function isWritten(draft: Draft, locales: readonly Locale[]): boolean {
-  return locales.every((locale) => (draft[locale] ?? '').trim().length > 0);
-}
-
-// Text that may be left out is written in every language or in none.
-export function isWrittenOrEmpty(
-  draft: Partial<Record<Locale, string | string[]>>,
-  locales: readonly Locale[],
-): boolean {
-  const written = locales.filter(
-    (locale) => (draft[locale]?.length ?? 0) > 0,
-  ).length;
-
-  return written === 0 || written === locales.length;
-}
-
 // The organization's languages the text is not yet written in, named for
 // a sentence, or null when it is in all of them. Text that is empty in
 // every language lacks nothing.

@@ -1,47 +1,35 @@
 import {useAdminAccount, useRefreshAccount} from '@booking/core/admin/account';
+import type {SettingsUpdate} from '@booking/core/admin/actions';
 import {
-  isWrittenOrEmpty,
-  trimmedText,
-  type Draft,
-} from '@booking/core/admin/localized';
-import {codeOf, errorMessage} from '@booking/core/api/errors';
+  checkDetails,
+  checkPassword,
+  checkRules,
+  failureMessage,
+  isSame,
+  passwordFailure,
+} from '@booking/core/admin/drafts';
+import type {Draft} from '@booking/core/admin/localized';
+import {useProblems} from '@booking/core/admin/useProblems';
+import {errorMessage} from '@booking/core/api/errors';
 import type {LocalizedText} from '@booking/core/api/types';
-import {
-  CATALOGS,
-  LOCALES,
-  type Locale,
-  type Messages,
-} from '@booking/core/i18n/catalog';
+import {CATALOGS, LOCALES, type Locale} from '@booking/core/i18n/catalog';
 import {useState, type ReactNode} from 'react';
 import {Pressable, Text, TextInput, View} from 'react-native';
 
 import {AdminPage} from '@/admin/AdminPage';
 import {FormActions} from '@/admin/FormActions';
 import {SECTION_LABEL} from '@/admin/styles';
-import {api, unwrap} from '@/api/client';
 import {authClient} from '@/auth/client';
 import {Account} from '@/components/Account';
+import {FieldProblem} from '@/components/FieldProblem';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {Notice} from '@/components/Notice';
+import {adminLoad, useAdminActions} from '@/hooks/useAdminActions';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useMessages} from '@/i18n/LocaleProvider';
 import theme from '@/theme.json';
 
-const MIN_PASSWORD_LENGTH = 8;
-const MAX_WINDOW_DAYS = 365;
-
-function fetchSettings() {
-  return unwrap(api.GET('/admin/organization'));
-}
-
 type Part = 'details' | 'languages' | 'rules';
-
-type SettingsUpdate = {
-  name?: string;
-  bookingWindowDays?: number;
-  locales?: Locale[];
-  rulesText?: LocalizedText;
-};
 
 type PartProps = {
   // Saved from this form since the page opened. The form starts over from
@@ -50,11 +38,11 @@ type PartProps = {
   onSaved: () => void;
 };
 
-// Each part of the settings is saved on its own, so a save sends only what
-// its own form shows. Says whether it was saved, so the form can take what
-// it sent as saved before the server's copy comes back.
+// Says whether it was saved, so the form can take what it sent as saved
+// before the server's copy comes back.
 function useSave(onSaved: () => void) {
   const t = useMessages();
+  const actions = useAdminActions(onSaved);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -62,18 +50,17 @@ function useSave(onSaved: () => void) {
     setError(null);
     setSubmitting(true);
     try {
-      await unwrap(api.PATCH('/admin/organization', {body}));
-      onSaved();
+      await actions.organization.save(body);
       setSubmitting(false);
       return true;
     } catch (caught) {
-      setError(errorMessage(codeOf(caught), t));
+      setError(failureMessage(caught, t));
       setSubmitting(false);
       return false;
     }
   };
 
-  return {error, setError, submitting, save};
+  return {error, submitting, save};
 }
 
 function Section({title, children}: {title: string; children: ReactNode}) {
@@ -118,24 +105,16 @@ function DetailsForm({
     name: initial.name,
     bookingWindowDays: initial.bookingWindowDays,
   });
-  const {error, setError, submitting, save} = useSave(onSaved);
-
-  // 030 is the same 30 days.
-  const dirty =
-    name.trim() !== stored.name || Number(days) !== stored.bookingWindowDays;
+  const {error, submitting, save} = useSave(onSaved);
+  const checked = checkDetails({name, days}, stored, t);
+  const {problem, leave, ready} = useProblems(checked);
 
   const submit = () => {
-    const bookingWindowDays = Number(days);
-    if (
-      !Number.isInteger(bookingWindowDays) ||
-      bookingWindowDays < 1 ||
-      bookingWindowDays > MAX_WINDOW_DAYS
-    ) {
-      setError(t.admin.organization.windowRange(MAX_WINDOW_DAYS));
+    if (!ready()) {
       return;
     }
 
-    const sent = {name: name.trim(), bookingWindowDays};
+    const sent = checked.value;
     void save(sent).then((done) => done && setStored(sent));
   };
 
@@ -145,28 +124,30 @@ function DetailsForm({
         label={t.admin.organization.name}
         value={name}
         onChangeText={setName}
-        maxLength={80}
+        onBlur={() => leave('name')}
+        problem={problem('name')}
       />
       <View className='gap-2'>
         <FloatingLabelInput
           label={t.admin.organization.windowDays}
           value={days}
           onChangeText={setDays}
+          onBlur={() => leave('days')}
+          problem={problem('days')}
           keyboardType='number-pad'
-          maxLength={3}
         />
         <Note>{t.admin.organization.windowNote}</Note>
       </View>
       <Status
         message={
           // Said until the form is edited again.
-          error ?? (saved && !dirty ? t.admin.organization.saved : null)
+          error ??
+          (saved && !checked.changed ? t.admin.organization.saved : null)
         }
       />
       <FormActions
         submitLabel={t.admin.save}
-        dirty={dirty}
-        valid={name.trim().length > 0 && days.trim().length > 0}
+        dirty={checked.changed}
         submitting={submitting}
         onSubmit={submit}
       />
@@ -183,7 +164,7 @@ function LanguagesForm({
   const [locales, setLocales] = useState(initial);
   const [stored, setStored] = useState(initial);
   const {error, submitting, save} = useSave(onSaved);
-  const dirty = locales.join() !== stored.join();
+  const dirty = !isSame(locales, stored);
 
   return (
     <View className='gap-4'>
@@ -234,7 +215,6 @@ function LanguagesForm({
       <FormActions
         submitLabel={t.admin.save}
         dirty={dirty}
-        valid
         submitting={submitting}
         onSubmit={() =>
           void save({locales}).then((done) => done && setStored(locales))
@@ -253,17 +233,16 @@ function RulesForm({
   const t = useMessages();
   const [rulesText, setRulesText] = useState<Draft>(initial);
   const [stored, setStored] = useState<Draft>(initial);
-  const {error, setError, submitting, save} = useSave(onSaved);
-  const rules = trimmedText(rulesText, locales);
-  const dirty =
-    JSON.stringify(rules) !== JSON.stringify(trimmedText(stored, locales));
+  const {error, submitting, save} = useSave(onSaved);
+  const checked = checkRules(rulesText, stored, locales, t);
+  const {problem, leave, ready} = useProblems(checked);
 
   const submit = () => {
-    if (!isWrittenOrEmpty(rules, locales)) {
-      setError(t.admin.localized.rulesInEvery);
+    if (!ready()) {
       return;
     }
 
+    const rules = checked.value;
     void save({rulesText: rules}).then((done) => done && setStored(rules));
   };
 
@@ -276,28 +255,38 @@ function RulesForm({
           locales.length > 1
             ? CATALOGS[language].language.name
             : t.admin.organization.rules;
+        const shown = problem(`rules.${language}`);
 
         return (
-          <View key={language} className='gap-2'>
-            {locales.length > 1 ? (
-              <Text className='text-[13px] font-medium text-theme-muted'>
-                {label}
-              </Text>
-            ) : null}
-            <TextInput
-              value={rulesText[language] ?? ''}
-              onChangeText={(text) =>
-                setRulesText({...rulesText, [language]: text})
-              }
-              multiline
-              maxLength={4000}
-              textAlignVertical='top'
-              placeholder={t.admin.organization.rulesPlaceholder}
-              placeholderTextColor={theme.faint}
-              accessibilityLabel={label}
-              className='min-h-[132px] rounded-sm border border-theme-edge bg-theme-surface px-4 py-3 text-base leading-6 text-theme-ink'
-              style={{fontFamily: 'Merriweather_400Regular', color: theme.ink}}
-            />
+          <View key={language}>
+            <View className='gap-2'>
+              {locales.length > 1 ? (
+                <Text className='text-[13px] font-medium text-theme-muted'>
+                  {label}
+                </Text>
+              ) : null}
+              <TextInput
+                value={rulesText[language] ?? ''}
+                onChangeText={(text) =>
+                  setRulesText({...rulesText, [language]: text})
+                }
+                onBlur={() => leave(`rules.${language}`)}
+                multiline
+                textAlignVertical='top'
+                placeholder={t.admin.organization.rulesPlaceholder}
+                placeholderTextColor={theme.faint}
+                accessibilityLabel={label}
+                accessibilityHint={shown ?? undefined}
+                className={`min-h-[132px] rounded-sm border bg-theme-surface px-4 py-3 text-base leading-6 text-theme-ink ${
+                  shown ? 'border-theme-danger' : 'border-theme-edge'
+                }`}
+                style={{
+                  fontFamily: 'Merriweather_400Regular',
+                  color: theme.ink,
+                }}
+              />
+            </View>
+            {shown ? <FieldProblem message={shown} /> : null}
           </View>
         );
       })}
@@ -305,13 +294,13 @@ function RulesForm({
       <Status
         message={
           // Said until the form is edited again.
-          error ?? (saved && !dirty ? t.admin.organization.saved : null)
+          error ??
+          (saved && !checked.changed ? t.admin.organization.saved : null)
         }
       />
       <FormActions
         submitLabel={t.admin.save}
-        dirty={dirty}
-        valid
+        dirty={checked.changed}
         submitting={submitting}
         onSubmit={submit}
       />
@@ -322,7 +311,7 @@ function RulesForm({
 function Settings() {
   const t = useMessages();
   const refresh = useRefreshAccount();
-  const {data, error, reload} = useFocusLoad(fetchSettings);
+  const {data, error, reload} = useFocusLoad(adminLoad.organization);
   const [saved, setSaved] = useState<Part | null>(null);
 
   // The languages decide which fields the rules have, and what the other
@@ -383,38 +372,24 @@ async function signOutAdmin() {
   await authClient.signOut();
 }
 
-function changeMessage(code: string | undefined, t: Messages): string {
-  switch (code) {
-    case 'INVALID_PASSWORD':
-      return t.admin.organization.wrongPassword;
-    case 'PASSWORD_TOO_SHORT':
-      return t.admin.organization.passwordTooShort(MIN_PASSWORD_LENGTH);
-    case 'PASSWORD_TOO_LONG':
-      return t.admin.organization.passwordTooLong;
-    default:
-      return errorMessage('UNKNOWN', t);
-  }
-}
-
 // The admin account is shared by the board, so a new password is how it is
-// handed over: every other device signed in to it is signed out.
+// handed over: every other device signed in to it is signed out. Better
+// Auth changes it, outside the admin's API.
 function ChangePassword() {
   const t = useMessages();
-  const [current, setCurrent] = useState('');
-  const [next, setNext] = useState('');
-  const [repeat, setRepeat] = useState('');
+  const [fields, setFields] = useState({current: '', next: '', repeat: ''});
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const checked = checkPassword(fields, t);
+  const {problem, leave, ready, reset} = useProblems(checked);
+
+  const set = (key: keyof typeof fields) => (value: string) =>
+    setFields((previous) => ({...previous, [key]: value}));
 
   async function submit() {
     setMessage(null);
 
-    if (next.length < MIN_PASSWORD_LENGTH) {
-      setMessage(changeMessage('PASSWORD_TOO_SHORT', t));
-      return;
-    }
-    if (next !== repeat) {
-      setMessage(t.admin.organization.passwordsDiffer);
+    if (!ready()) {
       return;
     }
 
@@ -422,8 +397,8 @@ function ChangePassword() {
     // Better Auth throws rather than answers when the network fails.
     const result = await authClient
       .changePassword({
-        currentPassword: current,
-        newPassword: next,
+        currentPassword: fields.current,
+        newPassword: fields.next,
         revokeOtherSessions: true,
       })
       .catch(() => null);
@@ -435,13 +410,12 @@ function ChangePassword() {
     }
 
     if (result.error) {
-      setMessage(changeMessage(result.error.code, t));
+      setMessage(passwordFailure(result.error.code, t));
       return;
     }
 
-    setCurrent('');
-    setNext('');
-    setRepeat('');
+    setFields({current: '', next: '', repeat: ''});
+    reset();
     setMessage(t.admin.organization.passwordChanged);
   }
 
@@ -450,16 +424,20 @@ function ChangePassword() {
       <View className='gap-4'>
         <FloatingLabelInput
           label={t.admin.organization.currentPassword}
-          value={current}
-          onChangeText={setCurrent}
+          value={fields.current}
+          onChangeText={set('current')}
+          onBlur={() => leave('current')}
+          problem={problem('current')}
           secureTextEntry
           autoComplete='current-password'
           textContentType='password'
         />
         <FloatingLabelInput
           label={t.admin.organization.newPassword}
-          value={next}
-          onChangeText={setNext}
+          value={fields.next}
+          onChangeText={set('next')}
+          onBlur={() => leave('next')}
+          problem={problem('next')}
           secureTextEntry
           autoComplete='new-password'
           textContentType='newPassword'
@@ -467,8 +445,10 @@ function ChangePassword() {
         <View className='gap-2'>
           <FloatingLabelInput
             label={t.admin.organization.repeatPassword}
-            value={repeat}
-            onChangeText={setRepeat}
+            value={fields.repeat}
+            onChangeText={set('repeat')}
+            onBlur={() => leave('repeat')}
+            problem={problem('repeat')}
             secureTextEntry
             autoComplete='new-password'
             textContentType='newPassword'
@@ -478,8 +458,7 @@ function ChangePassword() {
         <Status message={message} />
         <FormActions
           submitLabel={t.admin.organization.changePassword}
-          dirty={current.length > 0 || next.length > 0 || repeat.length > 0}
-          valid={current.length > 0 && next.length > 0 && repeat.length > 0}
+          dirty={checked.changed}
           submitting={submitting}
           onSubmit={() => void submit()}
         />

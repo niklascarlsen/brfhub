@@ -1,7 +1,8 @@
-import type {
-  Dialog,
-  DialogAction,
-  DialogChoice,
+import {
+  dismissLabel,
+  type Dialog,
+  type DialogAction,
+  type DialogChoice,
 } from '@booking/core/lib/dialog';
 import {
   createContext,
@@ -138,7 +139,7 @@ export function DialogProvider({children}: {children: ReactNode}) {
                     onClick={close}
                     className={`${BUTTON} border border-theme-edge bg-theme-surface text-theme-ink transition-colors hover:bg-theme-sunk`}
                   >
-                    {request.action.cancelLabel ?? t.common.cancel}
+                    {dismissLabel(request.action, t)}
                   </button>
                 ) : null}
                 <button

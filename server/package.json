@@ -16,7 +16,7 @@
     "org:create": "tsx scripts/create-organization.ts",
     "push:test": "tsx scripts/push-test.ts",
     "types:gen": "tsx scripts/generate-types.ts",
-    "types:check": "tsx scripts/generate-types.ts && git diff --exit-code -- openapi.json ../core/src/generated/api.d.ts",
+    "types:check": "tsx scripts/generate-types.ts && git diff --exit-code -- openapi.json ../core/src/generated/api.d.ts ../core/src/generated/limits.ts",
     "format": "prettier --write .",
     "test": "export DATABASE_URL=postgresql://postgres:postgres@localhost:5434/booking_test; tsx scripts/reset-test-db.ts && drizzle-kit push --force && node --import tsx --test --test-concurrency=1 \"src/**/*.test.ts\"",
     "check": "prettier --check . && npm run typecheck && npm run types:check"

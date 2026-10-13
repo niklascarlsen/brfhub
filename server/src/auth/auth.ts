@@ -11,6 +11,10 @@ export const AUTH_PATH = '/auth';
 
 const DAY = 60 * 60 * 24;
 
+// Better Auth's own bounds, written out so the type generation can hand
+// them to the clients' password form.
+export const PASSWORD_LENGTH = {min: 8, max: 128};
+
 // Mirrors the CORS rule in app.ts: WEB_ORIGIN pins production, unset
 // trusts whoever asks so dev works from any LAN address and Expo Go.
 function trustedOrigins(request?: Request): string[] {
@@ -26,7 +30,12 @@ export const auth = betterAuth({
   basePath: AUTH_PATH,
   database: drizzleAdapter(db, {provider: 'pg', schema}),
   // Accounts are created for residents, never by them: see createUser.
-  emailAndPassword: {enabled: true, disableSignUp: true},
+  emailAndPassword: {
+    enabled: true,
+    disableSignUp: true,
+    minPasswordLength: PASSWORD_LENGTH.min,
+    maxPasswordLength: PASSWORD_LENGTH.max,
+  },
   session: {expiresIn: 7 * DAY, updateAge: DAY},
   // Remembered on the user, so the admin still sees it after a new
   // password has ended every session.

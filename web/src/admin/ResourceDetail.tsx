@@ -1,21 +1,21 @@
 import {limitText, slotsText} from '@booking/core/admin/schedule';
-import {codeOf, errorMessage} from '@booking/core/api/errors';
 import type {AdminResource, AdminResources} from '@booking/core/api/types';
 import {localize} from '@booking/core/i18n/catalog';
-import {formatDayMonth, formatLongDate} from '@booking/core/lib/dates';
+import {formatDayMonth} from '@booking/core/lib/dates';
 import {useState} from 'react';
 
 import {ResourceForm} from '@/admin/ResourceForm';
 import {ScheduleForm} from '@/admin/ScheduleForm';
 import {CARD, SECONDARY_BUTTON, SECTION_LABEL} from '@/admin/styles';
-import {api, unwrap} from '@/api/client';
-import {useDialog} from '@/components/Dialog';
 import {ChevronForwardIcon} from '@/components/icons';
+import {useAdminActions} from '@/hooks/useAdminActions';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
 
 type ResourceDetailProps = {
   resource: AdminResource;
   data: AdminResources;
+  // After every change, and after a failure that means the resource shown
+  // is out of date.
   onChanged: () => void;
 };
 
@@ -54,7 +54,6 @@ export function ResourceDetail({
   data,
   onChanged,
 }: ResourceDetailProps) {
-  const dialog = useDialog();
   const t = useMessages();
   const {locale} = useLocale();
   const [mode, setMode] = useState<Mode>('view');
@@ -65,22 +64,8 @@ export function ResourceDetail({
   const latest = resource.schedules.at(-1);
   const closed = resource.closesFrom !== null && resource.closesFrom <= today;
 
-  const fail = (title: string) => (caught: unknown) =>
-    dialog.alert(title, errorMessage(codeOf(caught), t));
-
   const [busy, setBusy] = useState(false);
-
-  const run = (request: () => Promise<unknown>, failTitle: string) => {
-    if (busy) {
-      return;
-    }
-
-    setBusy(true);
-    request()
-      .then(onChanged)
-      .catch(fail(failTitle))
-      .finally(() => setBusy(false));
-  };
+  const actions = useAdminActions(onChanged, setBusy);
 
   // Members see the resources grouped by kind, so a move swaps places with
   // the neighbour of the same kind.
@@ -88,81 +73,6 @@ export function ResourceDetail({
     (item) => item.kindId === resource.kindId,
   );
   const position = siblings.findIndex((item) => item.id === resource.id);
-
-  const move = (by: number) => {
-    const neighbour = siblings[position + by];
-
-    if (!neighbour) {
-      return;
-    }
-
-    const ids = data.resources.map((item) =>
-      item.id === resource.id
-        ? neighbour.id
-        : item.id === neighbour.id
-          ? resource.id
-          : item.id,
-    );
-    run(
-      () => unwrap(api.PUT('/admin/resources/order', {body: {ids}})),
-      t.admin.resource.moveFailed,
-    );
-  };
-
-  const removeChange = (validFrom: string) =>
-    dialog.confirm(
-      t.admin.resource.removeChange,
-      t.admin.resource.removeChangeQuestion(formatLongDate(validFrom, t)),
-      {
-        label: t.admin.remove,
-        onPress: () => {
-          run(
-            () =>
-              unwrap(
-                api.DELETE('/admin/resources/{id}/schedule/{validFrom}', {
-                  params: {path: {id: resource.id, validFrom}},
-                }),
-              ),
-            t.admin.resource.removeChangeFailed,
-          );
-        },
-      },
-    );
-
-  const close = () =>
-    dialog.confirm(
-      t.admin.resource.close,
-      t.admin.resource.closeQuestion(
-        localize(resource.name, locale) ?? '',
-        formatLongDate(earliestChange, t),
-      ),
-      {
-        label: t.admin.resource.closeAction,
-        onPress: () => {
-          run(
-            () =>
-              unwrap(
-                api.PUT('/admin/resources/{id}/closing', {
-                  params: {path: {id: resource.id}},
-                  body: {closesFrom: earliestChange},
-                }),
-              ),
-            t.admin.resource.closeFailed,
-          );
-        },
-      },
-    );
-
-  const reopen = () =>
-    run(
-      () =>
-        unwrap(
-          api.DELETE('/admin/resources/{id}/closing', {
-            params: {path: {id: resource.id}},
-          }),
-        ),
-      closed ? t.admin.resource.reopenFailed : t.admin.resource.undoCloseFailed,
-    );
 
   if (mode === 'edit') {
     return (
@@ -172,15 +82,9 @@ export function ResourceDetail({
         withSlots={false}
         submitLabel={t.admin.save}
         onCancel={() => setMode('view')}
-        onSubmit={async ({name, kindId, tags}) => {
-          await unwrap(
-            api.PATCH('/admin/resources/{id}', {
-              params: {path: {id: resource.id}},
-              body: {name, kindId, tags},
-            }),
-          );
+        onSubmit={async (fields) => {
+          await actions.resources.update(resource.id, fields);
           setMode('view');
-          onChanged();
         }}
       />
     );
@@ -193,14 +97,12 @@ export function ResourceDetail({
         validFrom={earliestChange}
         onCancel={() => setMode('view')}
         onSubmit={async (slots) => {
-          await unwrap(
-            api.PUT('/admin/resources/{id}/schedule', {
-              params: {path: {id: resource.id}},
-              body: {validFrom: earliestChange, slots},
-            }),
+          await actions.resources.saveSchedule(
+            resource.id,
+            earliestChange,
+            slots,
           );
           setMode('view');
-          onChanged();
         }}
       />
     );
@@ -237,7 +139,12 @@ export function ResourceDetail({
               {schedule.validFrom >= earliestChange ? (
                 <button
                   type='button'
-                  onClick={() => removeChange(schedule.validFrom)}
+                  onClick={() =>
+                    actions.resources.confirmRemoveChange(
+                      resource.id,
+                      schedule.validFrom,
+                    )
+                  }
                   className='shrink-0 text-[13px] font-semibold text-theme-muted transition-colors hover:text-theme-ink'
                 >
                   {t.admin.remove}
@@ -305,7 +212,9 @@ export function ResourceDetail({
           <>
             <button
               type='button'
-              onClick={() => move(-1)}
+              onClick={() =>
+                actions.resources.move(data.resources, resource, -1)
+              }
               disabled={busy || position === 0}
               className={SECONDARY_BUTTON}
             >
@@ -313,7 +222,9 @@ export function ResourceDetail({
             </button>
             <button
               type='button'
-              onClick={() => move(1)}
+              onClick={() =>
+                actions.resources.move(data.resources, resource, 1)
+              }
               disabled={busy || position === siblings.length - 1}
               className={SECONDARY_BUTTON}
             >
@@ -324,7 +235,7 @@ export function ResourceDetail({
         {resource.closesFrom ? (
           <button
             type='button'
-            onClick={reopen}
+            onClick={() => void actions.resources.reopen(resource.id, closed)}
             disabled={busy}
             className={SECONDARY_BUTTON}
           >
@@ -333,7 +244,13 @@ export function ResourceDetail({
         ) : (
           <button
             type='button'
-            onClick={close}
+            onClick={() =>
+              actions.resources.confirmClose(
+                resource.id,
+                localize(resource.name, locale) ?? '',
+                earliestChange,
+              )
+            }
             disabled={busy}
             className={SECONDARY_BUTTON}
           >

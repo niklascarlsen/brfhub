@@ -8,17 +8,13 @@ import {ApartmentDetail} from '@/admin/ApartmentDetail';
 import {ApartmentForm} from '@/admin/ApartmentForm';
 import {PasswordCard} from '@/admin/PasswordCard';
 import {PRIMARY_BUTTON} from '@/admin/styles';
-import {api, unwrap} from '@/api/client';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {AddIcon, ChevronForwardIcon} from '@/components/icons';
 import {Notice} from '@/components/Notice';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
+import {adminLoad, useAdminActions} from '@/hooks/useAdminActions';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useMessages} from '@/i18n/LocaleProvider';
-
-function fetchApartments() {
-  return unwrap(api.GET('/admin/apartments'));
-}
 
 type Screen =
   | {kind: 'list'}
@@ -66,16 +62,15 @@ function ApartmentRow({
 export function AdminApartments() {
   const {organizationName} = useAdminAccount();
   const t = useMessages();
-  const {data: apartments, error, reload} = useFocusLoad(fetchApartments);
+  const {data: apartments, error, reload} = useFocusLoad(adminLoad.apartments);
   const showSkeleton = useSlowLoad(apartments === null && error === null);
   const [view, setView] = useState<Screen>({kind: 'list'});
   const [query, setQuery] = useState('');
 
   const toList = () => setView({kind: 'list'});
-  const showPassword = (apartment: Apartment, password: string) => {
-    reload();
+  const actions = useAdminActions(reload);
+  const showPassword = (apartment: Apartment, password: string) =>
     setView({kind: 'password', apartment, password});
-  };
 
   if (view.kind === 'add') {
     return (
@@ -91,9 +86,7 @@ export function AdminApartments() {
           submitLabel={t.admin.add}
           onCancel={toList}
           onSubmit={async (fields) => {
-            const result = await unwrap(
-              api.POST('/admin/apartments', {body: fields}),
-            );
+            const result = await actions.apartments.create(fields);
             showPassword(result.apartment, result.password);
           }}
         />
@@ -131,10 +124,7 @@ export function AdminApartments() {
             apartment={apartment}
             onChanged={reload}
             onPassword={showPassword}
-            onRemoved={() => {
-              reload();
-              toList();
-            }}
+            onRemoved={toList}
           />
         </AdminPage>
       );

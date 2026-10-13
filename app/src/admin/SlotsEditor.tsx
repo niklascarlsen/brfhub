@@ -1,3 +1,4 @@
+import {canAddSlot} from '@booking/core/admin/drafts';
 import {nextSlot} from '@booking/core/admin/schedule';
 import type {SlotInput} from '@booking/core/api/types';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -113,7 +114,7 @@ export function SlotsEditor({slots, onChange}: SlotsEditorProps) {
       ))}
       <Pressable
         onPress={() => onChange([...slots, nextSlot(slots)])}
-        disabled={slots.length >= 24}
+        disabled={!canAddSlot(slots)}
         className={`${SECONDARY_BUTTON} self-start`}
       >
         <Ionicons name='add' size={18} color={theme.ink} />
