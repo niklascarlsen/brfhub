@@ -177,6 +177,8 @@ before(async () => {
 });
 
 beforeEach(async () => {
+  // A test that freed a slot may still be announcing it.
+  await server.notifier.idle();
   await db.execute(sql`truncate bookings, subscriptions, push_tokens cascade`);
   push.clear();
 });
@@ -1039,14 +1041,18 @@ async function pushed() {
 // Fails instead of hanging when the response waits on something it should
 // not, such as a push service that never answers.
 function within<T>(promise: Promise<T>, ms = 2000): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+
   return Promise.race([
     promise,
-    new Promise<never>((_, reject) =>
-      setTimeout(() => {
+    new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
         reject(new Error(`No response within ${ms} ms`));
-      }, ms),
-    ),
-  ]);
+      }, ms);
+    }),
+  ]).finally(() => {
+    clearTimeout(timer);
+  });
 }
 
 test('a cancelled slot is announced to its queue and nobody else', async () => {

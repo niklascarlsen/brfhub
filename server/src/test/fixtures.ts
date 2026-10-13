@@ -53,6 +53,7 @@ export function memoryPush() {
     clear() {
       sent.length = 0;
       failures = [];
+      held = null;
     },
   };
 }

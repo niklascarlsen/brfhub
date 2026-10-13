@@ -97,16 +97,19 @@ async function notifySlotReleased(
   );
 }
 
-// Tells the queue of each freed slot after the caller has answered, each
-// slot on its own so one that fails does not keep the others quiet. Called
-// once the change has committed, so nobody hears of a slot that is not
-// free after all.
+// Tells the queue of each freed slot after the caller has answered. Called
+// once the change has committed, so a change that rolls back announces
+// nothing.
 export function announceReleased(
   notifier: Notifier,
   slots: ReleasedSlot[],
   releasedBy: ReleasedBy,
 ): void {
-  for (const slot of slots) {
-    notifier.later(() => notifySlotReleased(notifier, slot, releasedBy));
+  if (slots.length === 0) {
+    return;
   }
+
+  notifier.later(
+    slots.map((slot) => () => notifySlotReleased(notifier, slot, releasedBy)),
+  );
 }

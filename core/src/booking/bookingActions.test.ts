@@ -313,6 +313,23 @@ describe('a failure is told', () => {
     });
   });
 
+  const undoing: [string, Slot][] = [
+    ['leaving the queue', queued],
+    ['cancelling', mine],
+    ['releasing', running],
+  ];
+
+  test.each(undoing)('%s what is already gone is done', async (_, slot) => {
+    const {actions, shown, onChange, press} = setup();
+    answer = {status: 404, code: 'NOT_FOUND'};
+
+    actions.confirmBook(slot, SAUNA, null);
+    await press();
+
+    expect(onChange).toHaveBeenCalledOnce();
+    expect(shown).toHaveLength(1);
+  });
+
   const other: [ClientErrorCode, number][] = [
     ['SLOT_IN_PAST', 409],
     ['OUTSIDE_BOOKING_WINDOW', 409],

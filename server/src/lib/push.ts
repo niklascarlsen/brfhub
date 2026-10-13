@@ -12,7 +12,7 @@ const CHANNEL_ID = 'slots';
 const WEB_PUSH_TTL_SECONDS = 60 * 60;
 // A push service that takes the connection and never answers would
 // otherwise hold the send, and the slots queued behind it, forever.
-const PUSH_TIMEOUT_MS = 10_000;
+export const PUSH_TIMEOUT_MS = 10_000;
 
 // web-push only times out a socket that goes quiet, so a service that
 // answers slowly enough could still hold a send. This bounds the whole of it.

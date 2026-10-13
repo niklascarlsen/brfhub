@@ -527,6 +527,7 @@ test('the slots of a removed apartment are announced to their queue', async () =
     endsAt: slotEndsAt(NORTH.timeZone, date, SLOT.end),
   });
   const token = await insertToken('21');
+  await server.notifier.idle();
   push.clear();
 
   const response = await call('DELETE', `/admin/apartments/${id}`, admin);

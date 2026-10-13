@@ -56,17 +56,20 @@ export function createNotifier(push: SendPush, log: FastifyBaseLogger) {
     }
   }
 
-  // Runs the send after the caller has answered, so a slow push service
+  // Runs the sends after the caller has answered, so a slow push service
   // never holds up the request or turns a done change into a client
-  // timeout.
-  function later(send: () => Promise<void>): void {
-    const task = send()
-      .catch((error: unknown) => {
-        log.error({err: error}, 'could not send a notification');
-      })
-      .finally(() => {
-        pending.delete(task);
-      });
+  // timeout. They go one after another, and one that fails does not stop
+  // the rest.
+  function later(sends: (() => Promise<void>)[]): void {
+    const task = (async () => {
+      for (const send of sends) {
+        await send().catch((error: unknown) => {
+          log.error({err: error}, 'could not send a notification');
+        });
+      }
+    })().finally(() => {
+      pending.delete(task);
+    });
 
     pending.add(task);
   }
