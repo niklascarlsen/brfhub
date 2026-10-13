@@ -8,6 +8,7 @@ import {assertTestDatabase} from '../test/fixtures.js';
 import {
   addDays,
   asDateText,
+  currentTime,
   isoDateIn,
   isValidTimeZone,
   slotEndsAt,
@@ -100,4 +101,17 @@ test('only zones Postgres knows are valid', async () => {
   assert.equal(await isValidTimeZone(PAGO_PAGO), true);
   assert.equal(await isValidTimeZone('Mars/Olympus_Mons'), false);
   assert.equal(await isValidTimeZone(''), false);
+});
+
+test('the current time is when the statement runs, not when its transaction began', async () => {
+  const later = await db.transaction(async (tx) => {
+    await tx.execute(sql`select now()`);
+    await tx.execute(sql`select pg_sleep(0.05)`);
+    const {rows} = await tx.execute<{later: boolean}>(
+      sql`select ${currentTime()} > transaction_timestamp() as later`,
+    );
+    return rows[0]?.later;
+  });
+
+  assert.equal(later, true);
 });
