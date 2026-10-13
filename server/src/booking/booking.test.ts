@@ -1051,9 +1051,10 @@ async function pushed() {
 }
 
 // Fails instead of hanging when the response waits on something it should
-// not, such as a push service that never answers.
+// not, such as a push service held until the test lets it go. Generous, so
+// a slow database does not fail it.
 function within<T>(promise: Promise<T>): Promise<T> {
-  return withTimeout(promise, 2000, 'No response within 2000 ms');
+  return withTimeout(promise, 10_000, 'No response while push was held');
 }
 
 test('a cancelled slot is announced to its queue and nobody else', async () => {

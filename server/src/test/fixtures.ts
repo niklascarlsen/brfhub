@@ -42,6 +42,9 @@ export function memoryPush() {
       failures = next;
     },
     hold(): () => void {
+      if (held) {
+        return release;
+      }
       held = new Promise((resolve) => {
         release = () => {
           held = null;

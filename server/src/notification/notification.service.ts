@@ -53,11 +53,12 @@ export function createNotifier(
 
     try {
       const tokens = await listPushTokens(memberIds);
-      const messages = recipients.flatMap(({memberIds: group, build}) =>
-        tokens
-          .filter((token) => group.includes(token.memberId))
-          .map(({token, locale}) => ({to: token, ...build(locale)})),
-      );
+      const messages = recipients.flatMap(({memberIds: group, build}) => {
+        const members = new Set(group);
+        return tokens
+          .filter((token) => members.has(token.memberId))
+          .map(({token, locale}) => ({to: token, ...build(locale)}));
+      });
 
       if (messages.length === 0) {
         return;
@@ -83,7 +84,11 @@ export function createNotifier(
   // never holds up the request or turns a done change into a client
   // timeout.
   function later(send: () => Promise<void>): void {
-    const task = send()
+    // Starts once the caller's own queries have had their turn.
+    const task = new Promise<void>((resolve) => {
+      setImmediate(resolve);
+    })
+      .then(send)
       .catch((error: unknown) => {
         log.error({err: error}, 'could not send a notification');
       })
