@@ -1,5 +1,4 @@
 import {and, asc, eq, sql} from 'drizzle-orm';
-import type {FastifyBaseLogger} from 'fastify';
 
 import {isUniqueViolation} from '../db/errors.js';
 import {db} from '../db/index.js';
@@ -18,17 +17,18 @@ import {
   slotHasStarted,
 } from '../lib/time.js';
 import type {Member} from '../lib/user.js';
+import type {Notifier} from '../notification/notification.service.js';
 import {getResource, resourceRefFields} from '../resource/resource.service.js';
 import {resourceOpenOn, slotInEffect} from '../resource/schedule.query.js';
 import {getBookingWindow, isWithinBookingWindow} from '../slot/slot.service.js';
 import type {Booking, CreatedBooking} from './booking.dto.js';
 import {lockApartmentBookings, stillActive} from './booking.query.js';
-import {notifySlotReleased} from './booking.notification.js';
+import {announceReleased} from './booking.notification.js';
 
 export async function deleteBooking(
   id: string,
   member: Member,
-  log: FastifyBaseLogger,
+  notifier: Notifier,
 ): Promise<void> {
   const [existing] = await db
     .select({
@@ -78,15 +78,17 @@ export async function deleteBooking(
     throw appError('NOT_FOUND', 'Booking not found');
   }
 
-  await notifySlotReleased(
-    {
-      ...removed,
-      resourceId: existing.resourceId,
-      resourceName: existing.resourceName,
-      end: existing.end,
-    },
+  announceReleased(
+    notifier,
+    [
+      {
+        ...removed,
+        resourceId: existing.resourceId,
+        resourceName: existing.resourceName,
+        end: existing.end,
+      },
+    ],
     member,
-    log,
   );
 }
 
@@ -114,14 +116,14 @@ export async function createBooking({
   start,
   resourceId,
   replaceExisting,
-  log,
+  notifier,
 }: {
   member: Member;
   date: string;
   start: string;
   resourceId: string;
   replaceExisting: boolean;
-  log: FastifyBaseLogger;
+  notifier: Notifier;
 }): Promise<CreatedBooking> {
   const resource = await getResource(member, resourceId);
   if (!resource) {
@@ -283,7 +285,7 @@ export async function createBooking({
   }
 
   if (created.replaced) {
-    await notifySlotReleased(created.replaced, member, log);
+    announceReleased(notifier, [created.replaced], member);
   }
 
   return created.booking;

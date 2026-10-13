@@ -10,6 +10,9 @@ const CHANNEL_ID = 'slots';
 // A released slot is old news after an hour, so the push service drops
 // undelivered messages instead of waking the device later.
 const WEB_PUSH_TTL_SECONDS = 60 * 60;
+// A push service that takes the connection and never answers would
+// otherwise hold the send, and the slots queued behind it, forever.
+const PUSH_TIMEOUT_MS = 10_000;
 
 export type PushMessage = {
   to: string;
@@ -40,6 +43,7 @@ async function sendExpoPush(messages: PushMessage[]): Promise<PushFailure[]> {
   const response = await fetch(EXPO_PUSH_URL, {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
+    signal: AbortSignal.timeout(PUSH_TIMEOUT_MS),
     body: JSON.stringify(
       messages.map((message) => ({
         ...message,
@@ -106,6 +110,7 @@ async function sendWebPush(messages: PushMessage[]): Promise<PushFailure[]> {
             vapidDetails: vapid,
             TTL: WEB_PUSH_TTL_SECONDS,
             urgency: 'high',
+            timeout: PUSH_TIMEOUT_MS,
           },
         );
 
@@ -143,6 +148,8 @@ async function failuresFrom(
     }));
   }
 }
+
+export type SendPush = (messages: PushMessage[]) => Promise<PushFailure[]>;
 
 export async function sendPush(
   messages: PushMessage[],

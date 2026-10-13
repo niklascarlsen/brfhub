@@ -1,7 +1,5 @@
 import {sql} from 'drizzle-orm';
 
-import type {FastifyBaseLogger} from 'fastify';
-
 import {db} from '../db/index.js';
 import {
   localize,
@@ -11,13 +9,13 @@ import {
 } from '../lib/locale.js';
 import {formatWhen, slotHasStarted} from '../lib/time.js';
 import type {Member} from '../lib/user.js';
-import {
-  notifyMembers,
-  type Notification,
+import type {
+  Notification,
+  Notifier,
 } from '../notification/notification.service.js';
 import {listSubscribers} from '../subscription/subscription.service.js';
 
-type ReleasedSlot = {
+export type ReleasedSlot = {
   date: string;
   resourceId: string;
   // In every language, since each device is told in its own.
@@ -65,10 +63,10 @@ export function releasedNotification(
 // The apartment that let the slot go, which is not told about it.
 type ReleasedBy = Pick<Member, 'id' | 'timeZone' | 'locales'>;
 
-export async function notifySlotReleased(
+async function notifySlotReleased(
+  notifier: Notifier,
   slot: ReleasedSlot,
   releasedBy: ReleasedBy,
-  log: FastifyBaseLogger,
 ): Promise<void> {
   const started = await db
     .execute<{
@@ -88,7 +86,7 @@ export async function notifySlotReleased(
     slot.start,
   );
 
-  await notifyMembers(
+  await notifier.notifyMembers(
     subscribers
       .map((row) => row.memberId)
       .filter((memberId) => memberId !== releasedBy.id),
@@ -96,6 +94,19 @@ export async function notifySlotReleased(
     // one the organization has stopped writing in since.
     (locale) =>
       releasedNotification(resolveLocale([locale], releasedBy.locales), slot),
-    log,
   );
+}
+
+// Tells the queue of each freed slot after the caller has answered, each
+// slot on its own so one that fails does not keep the others quiet. Called
+// once the change has committed, so nobody hears of a slot that is not
+// free after all.
+export function announceReleased(
+  notifier: Notifier,
+  slots: ReleasedSlot[],
+  releasedBy: ReleasedBy,
+): void {
+  for (const slot of slots) {
+    notifier.later(() => notifySlotReleased(notifier, slot, releasedBy));
+  }
 }

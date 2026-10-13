@@ -16,6 +16,7 @@ function shouldReload(code: ClientErrorCode) {
     case 'SLOT_STARTED':
     case 'SLOT_AVAILABLE':
     case 'HAS_ACTIVE_BOOKING':
+    case 'NOT_FOUND':
       return true;
     default:
       return false;

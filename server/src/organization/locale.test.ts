@@ -16,6 +16,7 @@ import type {AdminResources} from '../resourceAdmin/resourceAdmin.dto.js';
 import {
   assertTestDatabase,
   codeOf,
+  memoryPush,
   resetDatabase,
   seedOrganization,
   signIn,
@@ -59,7 +60,7 @@ function call(
 before(async () => {
   await assertTestDatabase();
 
-  server = await buildApp({logger: false});
+  server = await buildApp({logger: false, push: memoryPush().send});
   await resetDatabase();
 
   await seedOrganization({
