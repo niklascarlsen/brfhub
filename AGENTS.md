@@ -49,7 +49,7 @@ Physical iPhone with a free Apple ID (no paid developer account):
 - `npm run generate` — rewrites the generated theme and icons, see Generated types. Runs by itself before `dev`, `build` and `check`.
 - `npm run check`: Prettier, TypeScript and ESLint.
 
-I keep the `server/` and `web/` dev servers running while testing. Never kill them (`pkill`, by port); check what is listening with `lsof -tiTCP:<port> -sTCP:LISTEN` and reuse it. Vite HMR and `tsx watch` pick up changes without a restart.
+Agents may start, restart and stop the `server/` and `web/` dev servers. One may already be running: check with `lsof -tiTCP:<port> -sTCP:LISTEN` and reuse it. Vite HMR and `tsx watch` pick up changes without a restart.
 
 # Clients
 
