@@ -14,6 +14,23 @@ const WEB_PUSH_TTL_SECONDS = 60 * 60;
 // otherwise hold the send, and the slots queued behind it, forever.
 const PUSH_TIMEOUT_MS = 10_000;
 
+// web-push only times out a socket that goes quiet, so a service that
+// answers slowly enough could still hold a send. This bounds the whole of it.
+function withinPushTimeout<T>(send: Promise<T>): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+
+  return Promise.race([
+    send,
+    new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        reject(new Error('Push timed out'));
+      }, PUSH_TIMEOUT_MS);
+    }),
+  ]).finally(() => {
+    clearTimeout(timer);
+  });
+}
+
 export type PushMessage = {
   to: string;
   title: string;
@@ -99,19 +116,22 @@ async function sendWebPush(messages: PushMessage[]): Promise<PushFailure[]> {
   const failures = await Promise.all(
     messages.map(async (message): Promise<PushFailure[]> => {
       try {
-        await webpush.sendNotification(
-          JSON.parse(message.to) as PushSubscription,
-          JSON.stringify({
-            title: message.title,
-            body: message.body,
-            data: message.data,
-          }),
-          {
-            vapidDetails: vapid,
-            TTL: WEB_PUSH_TTL_SECONDS,
-            urgency: 'high',
-            timeout: PUSH_TIMEOUT_MS,
-          },
+        await withinPushTimeout(
+          webpush.sendNotification(
+            JSON.parse(message.to) as PushSubscription,
+            JSON.stringify({
+              title: message.title,
+              body: message.body,
+              data: message.data,
+            }),
+            {
+              vapidDetails: vapid,
+              TTL: WEB_PUSH_TTL_SECONDS,
+              urgency: 'high',
+              // Closes the socket of a send the deadline gave up on.
+              timeout: PUSH_TIMEOUT_MS,
+            },
+          ),
         );
 
         return [];
