@@ -26,7 +26,12 @@ export type Member = Organization & {
   userId: string;
 };
 
-export type Admin = Organization;
+export type Admin = Organization & {
+  userId: string;
+  // The address at the time, which the event log names the admin by.
+  email: string;
+  twoFactorEnabled: boolean;
+};
 
 // An account is a resident's, an admin's, or both.
 export type SignedIn = {
@@ -95,7 +100,15 @@ export async function getSignedIn(request: FastifyRequest): Promise<SignedIn> {
     : [];
 
   const member = apartment ? {...common, ...apartment, userId: user.id} : null;
-  const admin = user.admin ? common : null;
+  const admin = user.admin
+    ? {
+        ...common,
+        userId: user.id,
+        email: user.email,
+        // Better Auth types the plugin's field as optional.
+        twoFactorEnabled: user.twoFactorEnabled === true,
+      }
+    : null;
 
   // Moved out and not an admin: the session is live, but there is nothing
   // the account may do.
@@ -116,11 +129,17 @@ export async function getMember(request: FastifyRequest): Promise<Member> {
   return member;
 }
 
+// Everything an admin does, beyond reading who they are, waits until an
+// authenticator is set up.
 export async function getAdmin(request: FastifyRequest): Promise<Admin> {
   const {admin} = await getSignedIn(request);
 
   if (admin === null) {
     throw appError('FORBIDDEN', 'Only an admin can do this');
+  }
+
+  if (!admin.twoFactorEnabled) {
+    throw appError('TWO_FACTOR_REQUIRED');
   }
 
   return admin;

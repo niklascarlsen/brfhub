@@ -2,6 +2,12 @@
 // server/openapi.json and the server's password rule. Do not edit.
 
 export const limits = {
+  "AddAdminBody": {
+    "name": {
+      "minLength": 1,
+      "maxLength": 100
+    }
+  },
   "AnnouncementBody": {
     "title": {
       "minLength": 1,

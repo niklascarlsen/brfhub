@@ -18,6 +18,8 @@ import {useState, type ReactNode} from 'react';
 import {Pressable, Text, TextInput, View} from 'react-native';
 
 import {AdminPage} from '@/admin/AdminPage';
+import {Admins} from '@/admin/Admins';
+import {Events} from '@/admin/Events';
 import {FormActions} from '@/admin/FormActions';
 import {SECTION_LABEL} from '@/admin/styles';
 import {authClient} from '@/auth/client';
@@ -493,6 +495,12 @@ export function AdminOrganization() {
       </View>
       <Settings />
       <ChangePassword />
+      <Section title={t.admin.admins.title}>
+        <Admins />
+      </Section>
+      <Section title={t.admin.events.title}>
+        <Events />
+      </Section>
     </AdminPage>
   );
 }

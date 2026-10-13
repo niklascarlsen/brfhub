@@ -18,6 +18,8 @@ import {CATALOGS, LOCALES, type Locale} from '@booking/core/i18n/catalog';
 import {useId, useState, type ReactNode, type SubmitEvent} from 'react';
 
 import {AdminPage} from '@/admin/AdminPage';
+import {Admins} from '@/admin/Admins';
+import {Events} from '@/admin/Events';
 import {FormActions} from '@/admin/FormActions';
 import {SECTION_LABEL} from '@/admin/styles';
 import {authClient} from '@/auth/client';
@@ -494,6 +496,12 @@ export function AdminOrganization() {
       </div>
       <Settings />
       <ChangePassword />
+      <Section title={t.admin.admins.title}>
+        <Admins />
+      </Section>
+      <Section title={t.admin.events.title}>
+        <Events />
+      </Section>
     </AdminPage>
   );
 }

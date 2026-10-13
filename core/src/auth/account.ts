@@ -33,6 +33,8 @@ export type AdminAccount = {
 export type AccountView =
   | {kind: 'member'; account: MemberAccount}
   | {kind: 'admin'; account: AdminAccount}
+  // An admin without an authenticator set up yet, who may do nothing else.
+  | {kind: 'two-factor-setup'; account: AdminAccount}
   // Retrying cannot fix it, only signing out.
   | {kind: 'moved-out'}
   | {kind: 'failed'; error: ClientErrorCode}
@@ -52,7 +54,7 @@ export function accountView(
 
     if (admin !== null && (member === null || mode === 'admin')) {
       return {
-        kind: 'admin',
+        kind: admin.twoFactorEnabled ? 'admin' : 'two-factor-setup',
         account: {
           organizationName,
           locales,

@@ -1,10 +1,20 @@
+import {
+  checkPasswordReset,
+  type PasswordResetFields,
+} from '@booking/core/admin/drafts';
+import {useProblems} from '@booking/core/admin/useProblems';
 import {codeOf, errorMessage} from '@booking/core/api/errors';
 import {
   codeFailure,
+  isStaleChallenge,
   nextStep,
   passwordFailure,
+  resetFailure,
+  totpFailure,
   type LoginStep,
 } from '@booking/core/auth/login';
+import {limits} from '@booking/core/generated/limits';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import {useState} from 'react';
 import {
   KeyboardAvoidingView,
@@ -19,6 +29,7 @@ import {api, unwrap} from '@/api/client';
 import {authClient} from '@/auth/client';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {useMessages} from '@/i18n/LocaleProvider';
+import theme from '@/theme.json';
 
 // The seeded apartment and admin password, so a development build signs
 // in with a couple of taps. The apartment's code is read in Mailpit.
@@ -31,6 +42,7 @@ const BUTTON_LABEL =
   'text-base font-semibold tracking-tight text-theme-surface';
 const LINK = 'self-start py-2 active:opacity-60';
 const LINK_LABEL = 'text-sm font-semibold text-theme-accent';
+const EMPTY_RESET: PasswordResetFields = {code: '', next: '', repeat: ''};
 
 // Signing in is two steps: the address, then the code it is mailed or, for
 // an admin, the password. On success useSession updates and the gate
@@ -41,9 +53,13 @@ export function LoginScreen() {
   const [email, setEmail] = useState(DEV_EMAIL);
   const [code, setCode] = useState('');
   const [password, setPassword] = useState(DEV_PASSWORD);
+  const [trustDevice, setTrustDevice] = useState(true);
+  const [reset, setReset] = useState(EMPTY_RESET);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const checkedReset = checkPasswordReset(reset, t);
+  const resetProblems = useProblems(checkedReset);
 
   async function sendCode(address: string): Promise<boolean> {
     // Better Auth throws rather than answers when the network fails.
@@ -96,15 +112,90 @@ export function LoginScreen() {
       }
     });
 
-  const signInWithPassword = (address: string) =>
+  // An admin with an authenticator is asked for its code next.
+  const signInWithPassword = (address: string, secret: string) =>
     run(async () => {
       const result = await authClient.signIn
-        .email({email: address, password})
+        .email({email: address, password: secret})
         .catch(() => null);
 
       if (result === null || result.error) {
         setError(passwordFailure(result?.error ?? null, t));
+        return;
       }
+
+      if ('twoFactorRedirect' in result.data) {
+        setCode('');
+        setStep({kind: 'totp', email: address, backup: false});
+      }
+    });
+
+  const signInWithTotp = (address: string, backup: boolean) =>
+    run(async () => {
+      const verify = backup
+        ? authClient.twoFactor.verifyBackupCode({
+            code: code.trim(),
+            trustDevice,
+          })
+        : authClient.twoFactor.verifyTotp({code: code.trim(), trustDevice});
+      const result = await verify.catch(() => null);
+
+      if (result === null || result.error) {
+        const failure = result?.error ?? null;
+        // Ten minutes passed since the password: back to it.
+        if (isStaleChallenge(failure)) {
+          setStep({kind: 'password', email: address});
+        }
+        setError(totpFailure(failure, t));
+      }
+    });
+
+  // An admin sets or resets the password with a code mailed to them, and
+  // is signed in with it at once.
+  const startReset = (address: string) =>
+    run(async () => {
+      const result = await authClient.emailOtp
+        .requestPasswordReset({email: address})
+        .catch(() => null);
+
+      if (result === null || result.error) {
+        setError(codeFailure(result?.error ?? null, t));
+        return;
+      }
+
+      setReset(EMPTY_RESET);
+      resetProblems.reset();
+      setStep({kind: 'reset', email: address});
+    });
+
+  const finishReset = (address: string) =>
+    run(async () => {
+      if (!resetProblems.ready()) {
+        return;
+      }
+
+      const result = await authClient.emailOtp
+        .resetPassword({
+          email: address,
+          otp: checkedReset.value.code,
+          password: checkedReset.value.next,
+        })
+        .catch(() => null);
+
+      if (result === null || result.error) {
+        setError(
+          resetFailure(
+            result?.error ?? null,
+            t,
+            limits.ChangePasswordBody.newPassword,
+          ),
+        );
+        return;
+      }
+
+      setPassword(checkedReset.value.next);
+      setStep({kind: 'password', email: address});
+      await signInWithPassword(address, checkedReset.value.next);
     });
 
   const resendCode = (address: string) =>
@@ -212,7 +303,7 @@ export function LoginScreen() {
         </View>
       </>
     );
-  } else {
+  } else if (step.kind === 'password') {
     const canSubmit = password.length > 0 && !submitting;
 
     body = (
@@ -234,18 +325,166 @@ export function LoginScreen() {
           textContentType='password'
           returnKeyType='go'
           onSubmitEditing={() =>
-            canSubmit && void signInWithPassword(step.email)
+            canSubmit && void signInWithPassword(step.email, password)
           }
         />
         {problem}
         <Pressable
-          onPress={() => void signInWithPassword(step.email)}
+          onPress={() => void signInWithPassword(step.email, password)}
           disabled={!canSubmit}
           className={BUTTON}
         >
           <Text className={BUTTON_LABEL}>{t.login.submit}</Text>
         </Pressable>
-        <View className='mt-3 flex-row'>
+        <View className='mt-3 flex-row flex-wrap gap-x-6'>
+          <Pressable
+            onPress={() => void startReset(step.email)}
+            disabled={submitting}
+            className={LINK}
+          >
+            <Text className={LINK_LABEL}>{t.login.setPassword}</Text>
+          </Pressable>
+          <Pressable onPress={backToEmail} className={LINK}>
+            <Text className={LINK_LABEL}>{t.login.changeEmail}</Text>
+          </Pressable>
+        </View>
+      </>
+    );
+  } else if (step.kind === 'totp') {
+    const canSubmit = code.trim().length > 0 && !submitting;
+    const {backup} = step;
+
+    body = (
+      <>
+        <Text className='mb-1 text-[27px] font-semibold tracking-tight text-theme-ink'>
+          {backup ? t.login.backupTitle : t.login.totpTitle}
+        </Text>
+        <Text className='mb-6 font-sans text-sm leading-5 text-theme-muted'>
+          {backup ? t.login.backupIntro : t.login.totpIntro}
+        </Text>
+        <FloatingLabelInput
+          className='mb-4'
+          label={backup ? t.login.backupCode : t.login.totpCode}
+          value={code}
+          onChangeText={setCode}
+          autoFocus
+          autoCapitalize='none'
+          autoComplete={backup ? 'off' : 'one-time-code'}
+          autoCorrect={false}
+          keyboardType={backup ? 'default' : 'number-pad'}
+          textContentType={backup ? 'none' : 'oneTimeCode'}
+          returnKeyType='go'
+          onSubmitEditing={() =>
+            canSubmit && void signInWithTotp(step.email, backup)
+          }
+        />
+        <Pressable
+          onPress={() => setTrustDevice((value) => !value)}
+          accessibilityRole='checkbox'
+          accessibilityState={{checked: trustDevice}}
+          className='mb-5 flex-row items-center gap-2.5 self-start py-1'
+        >
+          <Ionicons
+            name={trustDevice ? 'checkbox' : 'square-outline'}
+            size={22}
+            color={trustDevice ? theme.ink : theme.muted}
+          />
+          <Text className='font-sans text-sm text-theme-ink'>
+            {t.login.trustDevice}
+          </Text>
+        </Pressable>
+        {problem}
+        <Pressable
+          onPress={() => void signInWithTotp(step.email, backup)}
+          disabled={!canSubmit}
+          className={BUTTON}
+        >
+          <Text className={BUTTON_LABEL}>{t.login.submit}</Text>
+        </Pressable>
+        <View className='mt-3 flex-row flex-wrap gap-x-6'>
+          <Pressable
+            onPress={() => {
+              setCode('');
+              setError(null);
+              setStep({...step, backup: !backup});
+            }}
+            className={LINK}
+          >
+            <Text className={LINK_LABEL}>
+              {backup ? t.login.useTotp : t.login.useBackupCode}
+            </Text>
+          </Pressable>
+          <Pressable onPress={backToEmail} className={LINK}>
+            <Text className={LINK_LABEL}>{t.login.startOver}</Text>
+          </Pressable>
+        </View>
+      </>
+    );
+  } else {
+    const setField = (key: keyof PasswordResetFields) => (value: string) =>
+      setReset((previous) => ({...previous, [key]: value}));
+
+    body = (
+      <>
+        <Text className='mb-1 text-[27px] font-semibold tracking-tight text-theme-ink'>
+          {t.login.resetTitle}
+        </Text>
+        <Text className='mb-6 font-sans text-sm leading-5 text-theme-muted'>
+          {t.login.resetIntro(step.email)}
+        </Text>
+        <View className='mb-5 gap-3'>
+          <FloatingLabelInput
+            label={t.login.code}
+            value={reset.code}
+            onChangeText={setField('code')}
+            onBlur={() => resetProblems.leave('code')}
+            problem={resetProblems.problem('code')}
+            autoFocus
+            autoComplete='one-time-code'
+            keyboardType='number-pad'
+            textContentType='oneTimeCode'
+            returnKeyType='next'
+          />
+          <FloatingLabelInput
+            label={t.login.newPassword}
+            value={reset.next}
+            onChangeText={setField('next')}
+            onBlur={() => resetProblems.leave('next')}
+            problem={resetProblems.problem('next')}
+            secureTextEntry
+            autoComplete='new-password'
+            textContentType='newPassword'
+            returnKeyType='next'
+          />
+          <FloatingLabelInput
+            label={t.login.repeatPassword}
+            value={reset.repeat}
+            onChangeText={setField('repeat')}
+            onBlur={() => resetProblems.leave('repeat')}
+            problem={resetProblems.problem('repeat')}
+            secureTextEntry
+            autoComplete='new-password'
+            textContentType='newPassword'
+            returnKeyType='go'
+            onSubmitEditing={() => !submitting && void finishReset(step.email)}
+          />
+        </View>
+        {problem}
+        <Pressable
+          onPress={() => void finishReset(step.email)}
+          disabled={submitting}
+          className={BUTTON}
+        >
+          <Text className={BUTTON_LABEL}>{t.login.resetSubmit}</Text>
+        </Pressable>
+        <View className='mt-3 flex-row flex-wrap gap-x-6'>
+          <Pressable
+            onPress={() => void startReset(step.email)}
+            disabled={submitting}
+            className={LINK}
+          >
+            <Text className={LINK_LABEL}>{t.login.sendNewCode}</Text>
+          </Pressable>
           <Pressable onPress={backToEmail} className={LINK}>
             <Text className={LINK_LABEL}>{t.login.changeEmail}</Text>
           </Pressable>

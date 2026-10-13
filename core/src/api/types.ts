@@ -22,3 +22,5 @@ export type Held = components['schemas']['Held'];
 export type HeldBooking = components['schemas']['HeldBooking'];
 // Who signed in: a resident, an admin of the organization, or both.
 export type Account = components['schemas']['Account'];
+export type AdminUser = components['schemas']['AdminUser'];
+export type AdminEvent = components['schemas']['AdminEvent'];

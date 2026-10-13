@@ -19,6 +19,8 @@ import type {SendPush} from './lib/push.js';
 import {setMailTransport} from './mail/mail.service.js';
 import {createNotifier} from './notification/notification.service.js';
 import {accountRoutes} from './account/account.route.js';
+import {adminsRoutes} from './admins/admins.route.js';
+import {eventRoutes} from './event/event.route.js';
 import {announcementRoutes} from './announcement/announcement.route.js';
 import {apartmentRoutes} from './apartment/apartment.route.js';
 import {authRoutes} from './auth/auth.route.js';
@@ -114,6 +116,8 @@ export async function buildApp({
   await server.register(authRoutes);
   await server.register(accountRoutes);
   await server.register(apartmentRoutes);
+  await server.register(adminsRoutes);
+  await server.register(eventRoutes);
   await server.register(resourceAdminRoutes);
   await server.register(organizationRoutes);
   await server.register(announcementRoutes);

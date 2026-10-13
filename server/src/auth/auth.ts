@@ -2,7 +2,7 @@ import {expo} from '@better-auth/expo';
 import {betterAuth} from 'better-auth';
 import {APIError, createAuthMiddleware} from 'better-auth/api';
 import {drizzleAdapter} from 'better-auth/adapters/drizzle';
-import {emailOTP} from 'better-auth/plugins';
+import {emailOTP, twoFactor} from 'better-auth/plugins';
 import {eq} from 'drizzle-orm';
 
 import {db} from '../db/index.js';
@@ -83,15 +83,23 @@ export const auth = betterAuth({
     },
   },
   trustedOrigins,
-  // The password rule holds on the server too: a code never signs an admin
-  // in, however it was come by. Refused the way a wrong code is.
+  // The rules hold on the server too, whatever the login screen shows: a
+  // code never signs an admin in, and only an admin has a password to set.
+  // Both are refused the way a wrong code is.
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
-      if (
-        ctx.path === '/sign-in/email-otp' &&
-        typeof ctx.body?.email === 'string' &&
-        (await isAdmin(ctx.body.email))
-      ) {
+      const email = ctx.body?.email;
+
+      if (typeof email !== 'string') {
+        return;
+      }
+
+      const admin = await isAdmin(email);
+      const refused =
+        (ctx.path === '/sign-in/email-otp' && admin) ||
+        (ctx.path === '/email-otp/reset-password' && !admin);
+
+      if (refused) {
         throw new APIError('BAD_REQUEST', {
           message: 'Invalid OTP',
           code: 'INVALID_OTP',
@@ -108,12 +116,14 @@ export const auth = betterAuth({
       expiresIn: CODE_EXPIRES_IN_SECONDS,
       storeOTP: 'hashed',
       async sendVerificationOTP({email, otp, type}, ctx) {
-        if (type !== 'sign-in') {
+        if (type !== 'sign-in' && type !== 'forget-password') {
           throw new Error(`No mail for a ${type} code`);
         }
 
-        // An admin's address is answered like any other and mailed nothing.
-        if (await isAdmin(email)) {
+        // A sign-in code goes to an apartment, a password code to an
+        // admin. Any other address is answered like them and mailed
+        // nothing.
+        if ((await isAdmin(email)) !== (type === 'forget-password')) {
           return;
         }
 
@@ -122,8 +132,16 @@ export const auth = betterAuth({
           otp,
           CODE_EXPIRES_IN_SECONDS,
           ctx?.headers?.get('accept-language') ?? undefined,
+          type === 'sign-in' ? 'sign-in' : 'password',
         );
       },
+    }),
+    // The admin's second step. The authenticator's secret and the backup
+    // codes are stored encrypted; a trusted device skips the code for a
+    // month.
+    twoFactor({
+      issuer: 'Boka',
+      backupCodeOptions: {storeBackupCodes: 'encrypted'},
     }),
   ],
 });

@@ -20,6 +20,7 @@ import {isAdminRoute, startupSlot, useRoute} from '@/lib/route';
 import {ApartmentScreen} from '@/screens/ApartmentScreen';
 import {BookingScreen} from '@/screens/BookingScreen';
 import {ReservationScreen} from '@/screens/ReservationScreen';
+import {TwoFactorSetup} from '@/screens/TwoFactorSetup';
 
 function Shell() {
   const {window: bookingWindow, resources} = useConfig();
@@ -122,6 +123,9 @@ function Gate() {
         )}
         admin={(account, refresh) => (
           <AdminShell account={account} onRefresh={refresh} />
+        )}
+        twoFactorSetup={(account, refresh) => (
+          <TwoFactorSetup account={account} onDone={refresh} />
         )}
       />
     </SwitchModeContext.Provider>

@@ -15,6 +15,9 @@ export const errorCodeSchema = z.enum([
   'INVALID_SCHEDULE',
   'KIND_IN_USE',
   'LANGUAGES_CHANGED',
+  'TWO_FACTOR_REQUIRED',
+  'LAST_ADMIN',
+  'OWN_ACCOUNT',
   'NOT_FOUND',
   'UNAUTHORIZED',
   'FORBIDDEN',
@@ -78,6 +81,20 @@ const ERRORS: Record<ErrorCode, {status: number; message: string}> = {
   LANGUAGES_CHANGED: {
     status: 409,
     message: "The text is not in the organization's languages",
+  },
+  // An admin reads nothing but the account until an authenticator is set
+  // up.
+  TWO_FACTOR_REQUIRED: {
+    status: 403,
+    message: 'Set up two-factor authentication first',
+  },
+  LAST_ADMIN: {
+    status: 409,
+    message: 'The organization needs at least one admin',
+  },
+  OWN_ACCOUNT: {
+    status: 409,
+    message: 'An admin cannot do this to their own account',
   },
   NOT_FOUND: {
     status: 404,

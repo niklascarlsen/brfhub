@@ -4,7 +4,7 @@ import {after, before, test} from 'node:test';
 import {eq, sql} from 'drizzle-orm';
 
 import {buildApp} from '../app.js';
-import {createUser} from '../auth/auth.service.js';
+import {createUser, enrollTwoFactor} from '../auth/auth.service.js';
 import {violatedConstraint} from '../db/errors.js';
 import {db, pool} from '../db/index.js';
 import {announcements, members, pushTokens} from '../db/schema.js';
@@ -20,6 +20,7 @@ import {
   resetDatabase,
   seedOrganization,
   signIn,
+  TOTP_SECRET,
 } from '../test/fixtures.js';
 import type {Account} from './account.dto.js';
 
@@ -138,7 +139,7 @@ test('tells the admin who it is', async () => {
     organizationName: SOUTH.name,
     locales: ['sv'],
     member: null,
-    admin: {untranslated: null},
+    admin: {untranslated: null, twoFactorEnabled: true},
   });
 });
 
@@ -221,6 +222,7 @@ test('tells the admin what is not yet written in every language', async () => {
         announcements: 1,
         rules: true,
       },
+      twoFactorEnabled: true,
     },
   });
 });
@@ -379,7 +381,10 @@ test('allows several admins per organization', async () => {
     await cookieOf('second-admin@north.example.com'),
   );
   assert.equal(response.statusCode, 200);
-  assert.equal(response.json<Account>().admin?.untranslated, null);
+  assert.deepEqual(response.json<Account>().admin, {
+    untranslated: null,
+    twoFactorEnabled: false,
+  });
 });
 
 test('refuses an account that is neither an apartment nor an admin', async () => {
@@ -396,7 +401,7 @@ test('an admin can also be an apartment, and books as one', async () => {
     .insert(members)
     .values({organizationId: NORTH.id, label: 'styrelsen'})
     .returning({id: members.id});
-  await createUser({
+  const board = await createUser({
     email: 'board@north.example.com',
     password: PASSWORD,
     name: 'Styrelsen',
@@ -404,6 +409,7 @@ test('an admin can also be an apartment, and books as one', async () => {
     admin: true,
     memberId: apartment?.id,
   });
+  await enrollTwoFactor(board.id, TOTP_SECRET);
 
   const headers = await cookieOf('board@north.example.com');
   const account = await get('/account', headers);
@@ -412,7 +418,7 @@ test('an admin can also be an apartment, and books as one', async () => {
     organizationName: NORTH.name,
     locales: ['sv'],
     member: {apartment: 'styrelsen'},
-    admin: {untranslated: null},
+    admin: {untranslated: null, twoFactorEnabled: true},
   });
 
   assert.equal((await get('/bookings', headers)).statusCode, 200);

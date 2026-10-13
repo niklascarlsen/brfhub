@@ -102,6 +102,12 @@ export async function getAccount({member, admin}: SignedIn): Promise<Account> {
     organizationName: await organizationName(organization.organizationId),
     locales: organization.locales,
     member: member === null ? null : {apartment: member.label},
-    admin: admin === null ? null : {untranslated: await untranslatedOf(admin)},
+    admin:
+      admin === null
+        ? null
+        : {
+            untranslated: await untranslatedOf(admin),
+            twoFactorEnabled: admin.twoFactorEnabled,
+          },
   };
 }

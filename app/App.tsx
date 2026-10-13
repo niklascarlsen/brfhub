@@ -19,6 +19,7 @@ import {View} from 'react-native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 
 import {AdminShell} from '@/admin/AdminShell';
+import {TwoFactorSetup} from '@/screens/TwoFactorSetup';
 import {AccountGate} from '@/auth/account';
 import {SessionGate} from '@/auth/session';
 import {DialogProvider} from '@/components/Dialog';
@@ -66,6 +67,9 @@ function Gate({onReady}: {onReady: () => void}) {
         )}
         admin={(account, refresh) => (
           <AdminShell account={account} onRefresh={refresh} />
+        )}
+        twoFactorSetup={(account, refresh) => (
+          <TwoFactorSetup account={account} onDone={refresh} />
         )}
       />
     </SwitchModeContext.Provider>

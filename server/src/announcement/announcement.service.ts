@@ -3,7 +3,12 @@ import {and, desc, eq, gte, isNull, lte, or, sql} from 'drizzle-orm';
 import {db} from '../db/index.js';
 import {announcements} from '../db/schema.js';
 import {appError} from '../lib/errors.js';
-import {assertTranslated, localized, type Locale} from '../lib/locale.js';
+import {
+  assertTranslated,
+  localized,
+  type Locale,
+  type LocalizedText,
+} from '../lib/locale.js';
 import {asDateText, todaySql} from '../lib/time.js';
 import type {Organization} from '../lib/user.js';
 import type {
@@ -180,16 +185,19 @@ export async function updateAnnouncement(
   }
 }
 
+// Answers with the title, for the event log.
 export async function deleteAnnouncement(
   organizationId: string,
   id: string,
-): Promise<void> {
-  const removed = await db
+): Promise<LocalizedText> {
+  const [removed] = await db
     .delete(announcements)
     .where(ownAnnouncement(organizationId, id))
-    .returning({id: announcements.id});
+    .returning({title: announcements.title});
 
-  if (removed.length === 0) {
+  if (!removed) {
     throw appError('NOT_FOUND', 'Unknown announcement');
   }
+
+  return removed.title;
 }

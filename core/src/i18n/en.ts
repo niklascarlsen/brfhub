@@ -54,6 +54,9 @@ export const en: Messages = {
     KIND_IN_USE: 'Resources still use that type',
     LANGUAGES_CHANGED:
       "The association's languages changed since the page was opened. Reload and try again.",
+    TWO_FACTOR_REQUIRED: 'Set up two-step verification first',
+    LAST_ADMIN: 'The association needs at least one administrator',
+    OWN_ACCOUNT: 'That cannot be done to your own account',
     NOT_FOUND: 'Not found',
     UNAUTHORIZED: 'You are not signed in',
     FORBIDDEN: 'That is not your booking',
@@ -84,6 +87,49 @@ export const en: Messages = {
     wrongCredentials: 'Wrong email or password',
     tooManyAttempts: 'Too many attempts, wait a moment',
     originRefused: 'The server does not allow this address',
+    setPassword: 'Set or reset password',
+    totpTitle: 'Enter the code from your authenticator',
+    totpIntro: 'Open your authenticator app and type in the code it shows.',
+    totpCode: 'Code from the app',
+    useBackupCode: 'Use a backup code instead',
+    backupTitle: 'Enter a backup code',
+    backupIntro:
+      'One of the codes you got when you set up your authenticator. Each code works once.',
+    backupCode: 'Backup code',
+    useTotp: 'Use the authenticator app instead',
+    trustDevice: 'Trust this device for 30 days',
+    startOver: 'Start over',
+    resetTitle: 'Set a new password',
+    resetIntro: (email: string) =>
+      `We have sent a code to ${email}. Type it in and choose a password.`,
+    newPassword: 'New password',
+    repeatPassword: 'New password again',
+    resetSubmit: 'Save and sign in',
+  },
+  twoFactor: {
+    title: 'Set up two-step verification',
+    intro:
+      'As an admin you sign in with a password and a code from an authenticator app, such as Google Authenticator, 1Password or Passwords on iPhone. Confirm your password to begin.',
+    password: 'Password',
+    begin: 'Begin',
+    scanTitle: 'Scan the code',
+    scanIntro:
+      'Scan the QR code in your authenticator app, or type the key in by hand. Then enter the code the app shows.',
+    manualKey: 'Key to type in',
+    firstCode: 'Code from the app',
+    verify: 'Confirm',
+    backupTitle: 'Save your backup codes',
+    backupIntro:
+      'If you lose your phone, sign in with one of these codes instead. Each code works once. Keep them somewhere safe, they are shown only now.',
+    copyCodes: 'Copy the codes',
+    shareCodes: 'Share the codes',
+    copied: 'Codes copied',
+    done: 'Done',
+    wrongPassword: 'The password is wrong',
+    alreadyEnabled:
+      'Two-step verification is already on. Sign out and in again.',
+    wrongCode: 'Wrong code. Wait for the app to show a new one and try again.',
+    locked: 'Too many failures. Wait fifteen minutes and try again.',
   },
   account: {
     heading: 'Account',
@@ -357,6 +403,67 @@ export const en: Messages = {
       announcements: (count: number) =>
         count === 1 ? '1 notice' : `${count} notices`,
       rules: 'the house rules',
+    },
+    admins: {
+      title: 'Administrators',
+      note: 'Every administrator can do everything here. Whoever is added gets an email saying how to sign in.',
+      add: 'Add administrator',
+      name: 'Name',
+      you: 'you',
+      lives: (label: string) => `Lives in apartment ${label}`,
+      noTwoFactor: 'Has not set up two-step verification yet',
+      lastSignIn: (when: string) => `Last signed in ${when}`,
+      never: 'Has never signed in',
+      remove: 'Remove',
+      removeQuestion: (email: string) =>
+        `${email} is signed out and can no longer manage the association. A resident keeps their apartment.`,
+      removeFailed: 'Could not remove the administrator',
+      resetTwoFactor: 'Reset two-step verification',
+      resetQuestion: (email: string) =>
+        `${email} is signed out everywhere and sets up a new authenticator at the next sign-in. Do this when a phone has gone missing.`,
+      reset: 'Reset',
+      resetFailed: 'Could not reset',
+      checkEmail: 'Check the email address',
+    },
+    events: {
+      title: 'Events',
+      note: 'What the administrators have done, newest first.',
+      none: 'Nothing has happened yet.',
+      actions: {
+        'apartment.create': (subject: string) => `Added apartment ${subject}`,
+        'apartment.update': (subject: string) => `Changed apartment ${subject}`,
+        'apartment.newResident': (subject: string) =>
+          `Changed the residents of apartment ${subject}`,
+        'apartment.signOut': (subject: string) =>
+          `Signed apartment ${subject} out everywhere`,
+        'apartment.remove': (subject: string) => `Removed apartment ${subject}`,
+        'admin.add': (subject: string) =>
+          `Added ${subject} as an administrator`,
+        'admin.remove': (subject: string) =>
+          `Removed ${subject} as an administrator`,
+        'admin.resetTwoFactor': (subject: string) =>
+          `Reset two-step verification for ${subject}`,
+        'kind.create': (subject: string) => `Added the kind ${subject}`,
+        'kind.update': (subject: string) => `Changed the kind ${subject}`,
+        'kind.remove': (subject: string) => `Removed the kind ${subject}`,
+        'resource.create': (subject: string) => `Added ${subject}`,
+        'resource.update': (subject: string) => `Changed ${subject}`,
+        'resource.order': () => 'Changed the order of the resources',
+        'resource.close': (subject: string) => `Closed ${subject}`,
+        'resource.reopen': (subject: string) => `Reopened ${subject}`,
+        'schedule.put': (subject: string) =>
+          `Changed the schedule of ${subject}`,
+        'schedule.remove': (subject: string) =>
+          `Removed the schedule of ${subject}`,
+        'announcement.create': (subject: string) =>
+          `Published the announcement ${subject}`,
+        'announcement.update': (subject: string) =>
+          `Changed the announcement ${subject}`,
+        'announcement.remove': (subject: string) =>
+          `Removed the announcement ${subject}`,
+        'organization.update': (subject: string) =>
+          `Changed the settings: ${subject}`,
+      },
     },
     organization: {
       settings: 'Settings',

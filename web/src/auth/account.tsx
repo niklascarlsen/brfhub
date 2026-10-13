@@ -21,12 +21,19 @@ type AccountGateProps = {
   mode: Mode | null;
   member: (account: MemberAccount) => ReactNode;
   admin: (account: AdminAccount, refresh: () => void) => ReactNode;
+  // An admin without an authenticator yet sets one up, then refreshes.
+  twoFactorSetup: (account: AdminAccount, refresh: () => void) => ReactNode;
 };
 
 // Asks the server who signed in and renders that kind of account's app:
 // an apartment books, an admin manages the organization, and an account
 // that is both is shown the mode asked for.
-export function AccountGate({mode, member, admin}: AccountGateProps) {
+export function AccountGate({
+  mode,
+  member,
+  admin,
+  twoFactorSetup,
+}: AccountGateProps) {
   const t = useMessages();
   const {setOrganizationLocales} = useLocale();
   const {
@@ -56,6 +63,8 @@ export function AccountGate({mode, member, admin}: AccountGateProps) {
       return member(view.account);
     case 'admin':
       return admin(view.account, refresh);
+    case 'two-factor-setup':
+      return twoFactorSetup(view.account, refresh);
     case 'moved-out':
       return (
         <Blank>

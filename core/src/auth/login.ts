@@ -4,11 +4,15 @@ import type {Messages} from '../i18n/catalog';
 
 // Signing in is two steps: the address, then what the server says that
 // address continues with. An apartment types the code it is mailed, an
-// admin a password.
+// admin a password and then a code from their authenticator app, or a
+// backup code. An admin can also set the password with a code mailed to
+// them, which signs them in at once.
 export type LoginStep =
   | {kind: 'email'}
   | {kind: 'code'; email: string}
-  | {kind: 'password'; email: string};
+  | {kind: 'password'; email: string}
+  | {kind: 'totp'; email: string; backup: boolean}
+  | {kind: 'reset'; email: string};
 
 // The address is trimmed here, as the server trims it, so the next step
 // sends Better Auth the same one.
@@ -71,4 +75,49 @@ function commonFailure(failure: AuthFailure, t: Messages): string {
     default:
       return errorMessage('NETWORK', t);
   }
+}
+
+// The second step was refused. A stale challenge, from a sign-in started
+// more than ten minutes ago, sends the admin back to the password.
+export function totpFailure(failure: AuthFailure | null, t: Messages): string {
+  if (failure === null) {
+    return errorMessage('NETWORK', t);
+  }
+
+  switch (failure.code) {
+    case 'INVALID_CODE':
+    case 'INVALID_BACKUP_CODE':
+      return t.twoFactor.wrongCode;
+    case 'ACCOUNT_TEMPORARILY_LOCKED':
+      return t.twoFactor.locked;
+    case 'INVALID_TWO_FACTOR_COOKIE':
+      return t.login.startOver;
+  }
+
+  return commonFailure(failure, t);
+}
+
+export function isStaleChallenge(failure: AuthFailure | null): boolean {
+  return failure?.code === 'INVALID_TWO_FACTOR_COOKIE';
+}
+
+// Setting the password with a mailed code: the code or the password can
+// be refused.
+export function resetFailure(
+  failure: AuthFailure | null,
+  t: Messages,
+  limits: {minLength: number; maxLength: number},
+): string {
+  if (failure === null) {
+    return errorMessage('NETWORK', t);
+  }
+
+  switch (failure.code) {
+    case 'PASSWORD_TOO_SHORT':
+      return t.admin.organization.passwordTooShort(limits.minLength);
+    case 'PASSWORD_TOO_LONG':
+      return t.admin.organization.passwordTooLong(limits.maxLength);
+  }
+
+  return codeFailure(failure, t);
 }

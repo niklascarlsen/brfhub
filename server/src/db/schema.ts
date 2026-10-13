@@ -255,7 +255,7 @@ export const pushTokens = pgTable('push_tokens', {
     .defaultNow(),
 });
 
-// Better Auth owns the shape of these four tables. organizationId, memberId
+// Better Auth owns the shape of these five tables. organizationId, memberId
 // and admin are ours: an account books for its apartment, manages its
 // organization, or both, and always belongs to one organization.
 export const user = pgTable(
@@ -272,6 +272,9 @@ export const user = pgTable(
     // The apartment the account books for. Cleared when it moves out.
     memberId: uuid('member_id'),
     admin: boolean('admin').notNull().default(false),
+    // Better Auth's two-factor plugin sets it once the admin has verified
+    // an authenticator app. An admin without it may only read the account.
+    twoFactorEnabled: boolean('two_factor_enabled').notNull().default(false),
     // Kept apart from the sessions, which go when the account is signed
     // out everywhere.
     lastSignInAt: timestamp('last_sign_in_at', {withTimezone: true}),
@@ -367,4 +370,51 @@ export const verification = pgTable(
       .$onUpdate(() => new Date()),
   },
   (table) => [index('verification_identifier_idx').on(table.identifier)],
+);
+
+// Better Auth's two-factor plugin: the admin's TOTP secret and backup codes,
+// both encrypted with the auth secret.
+export const twoFactor = pgTable(
+  'two_factor',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, {onDelete: 'cascade'}),
+    secret: text('secret').notNull(),
+    backupCodes: text('backup_codes').notNull(),
+    verified: boolean('verified').notNull().default(true),
+    failedVerificationCount: integer('failed_verification_count')
+      .notNull()
+      .default(0),
+    lockedUntil: timestamp('locked_until', {withTimezone: true}),
+  },
+  (table) => [
+    index('two_factor_user_id_idx').on(table.userId),
+    index('two_factor_secret_idx').on(table.secret),
+  ],
+);
+
+// What the admins did, for the other admins to see: who removed apartment
+// 12, and when. The actor is the address at the time, since the account
+// may be gone by the time anyone reads it.
+export const adminEvents = pgTable(
+  'admin_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    actor: text('actor').notNull(),
+    action: text('action').notNull(),
+    // What it was done to, in the actor's language: a number, a name.
+    subject: text('subject').notNull(),
+    at: timestamp('at', {withTimezone: true}).notNull().defaultNow(),
+  },
+  (table) => [
+    index('admin_events_organization_at_idx').on(
+      table.organizationId,
+      table.at,
+    ),
+  ],
 );

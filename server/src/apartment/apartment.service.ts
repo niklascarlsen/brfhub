@@ -114,11 +114,11 @@ async function lockApartment(
   tx: Transaction,
   organizationId: string,
   id: string,
-): Promise<{userId: string; email: string}> {
+): Promise<{userId: string; email: string; label: string}> {
   await lockApartmentBookings(tx, id);
 
   const [apartment] = await tx
-    .select({id: members.id})
+    .select({id: members.id, label: members.label})
     .from(members)
     .where(
       and(
@@ -142,7 +142,7 @@ async function lockApartment(
     throw new Error(`Apartment ${id} has no account`);
   }
 
-  return account;
+  return {...account, label: apartment.label};
 }
 
 // A device that got the apartment's push keeps getting it until its token
@@ -244,13 +244,15 @@ export async function updateApartment(
   return getApartment(organizationId, id);
 }
 
+// Answers with the apartment's number, for the event log.
 export async function signOutApartment(
   organizationId: string,
   id: string,
-): Promise<void> {
-  await db.transaction(async (tx) => {
+): Promise<string> {
+  return db.transaction(async (tx) => {
     const account = await lockApartment(tx, organizationId, id);
     await signOutEverywhere(tx, account, id);
+    return account.label;
   });
 }
 
@@ -310,9 +312,9 @@ export async function removeApartment(
   {organizationId, timeZone, locales}: Organization,
   id: string,
   notifier: Notifier,
-): Promise<void> {
-  const freed = await db.transaction(async (tx) => {
-    await lockApartment(tx, organizationId, id);
+): Promise<string> {
+  const {freed, label} = await db.transaction(async (tx) => {
+    const account = await lockApartment(tx, organizationId, id);
     const released = await releaseAll(tx, {id, timeZone, locales});
     await clearResident(tx, id);
     await tx
@@ -320,8 +322,10 @@ export async function removeApartment(
       .set({leftAt: sql`now()`})
       .where(eq(members.id, id));
 
-    return released;
+    return {freed: released, label: account.label};
   });
 
   announceReleased(notifier, freed);
+
+  return label;
 }

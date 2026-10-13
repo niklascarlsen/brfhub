@@ -71,6 +71,51 @@ const WELCOME: Record<Locale, (organization: string, where: string) => Mail> = {
   }),
 };
 
+const PASSWORD_CODE: Record<Locale, (code: string, minutes: number) => Mail> = {
+  sv: (code, minutes) => ({
+    to: '',
+    subject: `${code} är din kod för att sätta lösenord i ${APP_NAME}`,
+    text: [
+      `Din kod för att sätta ett nytt lösenord i ${APP_NAME} är ${code}.`,
+      `Den gäller i ${minutes} minuter.`,
+      'Har du inte bett om den kan du bortse från det här mejlet.',
+    ].join('\n\n'),
+  }),
+  en: (code, minutes) => ({
+    to: '',
+    subject: `${code} is your ${APP_NAME} password code`,
+    text: [
+      `Your code to set a new password in ${APP_NAME} is ${code}.`,
+      `It is valid for ${minutes} minutes.`,
+      'If you did not ask for it, you can ignore this email.',
+    ].join('\n\n'),
+  }),
+};
+
+const ADMIN_INVITATION: Record<
+  Locale,
+  (organization: string, where: string) => Mail
+> = {
+  sv: (organization, where) => ({
+    to: '',
+    subject: `Du är admin för ${organization} i ${APP_NAME}`,
+    text: [
+      `Du har lagts till som admin för ${organization} med den här e-postadressen.`,
+      `Öppna ${where}, skriv in din e-post och välj "Sätt lösenord". Du får en kod hit och väljer sedan ett lösenord.`,
+      'Första gången du loggar in sätter du också upp en authenticator-app, som ger en kod vid varje inloggning.',
+    ].join('\n\n'),
+  }),
+  en: (organization, where) => ({
+    to: '',
+    subject: `You are an admin of ${organization} in ${APP_NAME}`,
+    text: [
+      `You have been added as an admin of ${organization} with this email address.`,
+      `Open ${where}, enter your email and choose "Set password". A code is sent here, and then you choose a password.`,
+      'The first time you sign in you also set up an authenticator app, which gives a code at every sign-in.',
+    ].join('\n\n'),
+  }),
+};
+
 // The code is written in the language the device asked for, when the
 // organization writes in it, like every other answer to that device.
 export async function sendSignInCode(
@@ -78,6 +123,7 @@ export async function sendSignInCode(
   code: string,
   expiresInSeconds: number,
   acceptLanguage: string | undefined,
+  purpose: 'sign-in' | 'password',
 ): Promise<void> {
   const [row] = await db
     .select({locales: organizations.locales})
@@ -90,7 +136,36 @@ export async function sendSignInCode(
   }
 
   const locale = resolveLocale(requestedLocales(acceptLanguage), row.locales);
-  const mail = SIGN_IN_CODE[locale](code, Math.round(expiresInSeconds / 60));
+  const words = purpose === 'sign-in' ? SIGN_IN_CODE : PASSWORD_CODE;
+  const mail = words[locale](code, Math.round(expiresInSeconds / 60));
+
+  await sendMail({...mail, to: email});
+}
+
+async function organizationOf(organizationId: string) {
+  const [organization] = await db
+    .select({name: organizations.name, locales: organizations.locales})
+    .from(organizations)
+    .where(eq(organizations.id, organizationId));
+
+  if (!organization) {
+    throw new Error(`Unknown organization ${organizationId}`);
+  }
+
+  return organization;
+}
+
+// A new admin is told what to do, in the organization's first language.
+export async function sendAdminInvitation(
+  organizationId: string,
+  email: string,
+): Promise<void> {
+  const organization = await organizationOf(organizationId);
+  const locale = organization.locales[0] ?? 'sv';
+  const mail = ADMIN_INVITATION[locale](
+    organization.name,
+    whereToSignIn(locale),
+  );
 
   await sendMail({...mail, to: email});
 }
@@ -101,15 +176,7 @@ export async function sendWelcome(
   organizationId: string,
   email: string,
 ): Promise<void> {
-  const [organization] = await db
-    .select({name: organizations.name, locales: organizations.locales})
-    .from(organizations)
-    .where(eq(organizations.id, organizationId));
-
-  if (!organization) {
-    throw new Error(`Unknown organization ${organizationId}`);
-  }
-
+  const organization = await organizationOf(organizationId);
   const locale = organization.locales[0] ?? 'sv';
   const mail = WELCOME[locale](organization.name, whereToSignIn(locale));
 

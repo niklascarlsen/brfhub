@@ -170,6 +170,25 @@ export function checkApartment(
   };
 }
 
+export type AdminFields = {name: string; email: string};
+
+export function checkAdmin(
+  draft: AdminFields,
+  t: Messages,
+): Checked<AdminFields, keyof AdminFields> {
+  const value = {name: draft.name.trim(), email: draft.email.trim()};
+
+  return {
+    value,
+    changed: value.name.length > 0 || value.email.length > 0,
+    problems: {
+      name: textProblem(value.name, limits.AddAdminBody.name, t),
+      // The server checks the address itself, as it is sent.
+      email: textProblem(value.email, {minLength: 1}, t),
+    },
+  };
+}
+
 export type AnnouncementFields = {
   title: LocalizedText;
   body: LocalizedText;
@@ -431,6 +450,26 @@ export function checkPassword(
       current: draft.current.length === 0 ? required : undefined,
       next,
       repeat,
+    },
+  };
+}
+
+// A new password set with a mailed code, by an admin who is not signed in.
+export type PasswordResetFields = {code: string; next: string; repeat: string};
+
+export function checkPasswordReset(
+  draft: PasswordResetFields,
+  t: Messages,
+): Checked<PasswordResetFields, keyof PasswordResetFields> {
+  const {problems} = checkPassword({current: draft.code, ...draft}, t);
+
+  return {
+    value: {...draft, code: draft.code.trim()},
+    changed: Object.values(draft).some((field) => field.length > 0),
+    problems: {
+      code: problems.current,
+      next: problems.next,
+      repeat: problems.repeat,
     },
   };
 }

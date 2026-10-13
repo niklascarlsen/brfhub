@@ -121,6 +121,46 @@ async function lockResource(
   }
 }
 
+// The names as the admin sees them, for the event log.
+export async function nameOfKind(
+  {organizationId, locale}: Organization,
+  id: string,
+): Promise<string> {
+  const [kind] = await db
+    .select({name: localized(resourceKinds.name, locale)})
+    .from(resourceKinds)
+    .where(
+      and(
+        eq(resourceKinds.organizationId, organizationId),
+        eq(resourceKinds.id, id),
+      ),
+    );
+
+  if (!kind) {
+    throw appError('NOT_FOUND', 'Unknown kind');
+  }
+
+  return kind.name;
+}
+
+export async function nameOfResource(
+  {organizationId, locale}: Organization,
+  id: string,
+): Promise<string> {
+  const [resource] = await db
+    .select({name: localized(resources.name, locale)})
+    .from(resources)
+    .where(
+      and(eq(resources.organizationId, organizationId), eq(resources.id, id)),
+    );
+
+  if (!resource) {
+    throw appError('NOT_FOUND', 'Unknown resource');
+  }
+
+  return resource.name;
+}
+
 async function assertKind(organizationId: string, kindId: string) {
   const [kind] = await db
     .select({id: resourceKinds.id})

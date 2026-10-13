@@ -14,14 +14,14 @@ const ADMIN: Account = {
   organizationName: 'Brf Exempel',
   locales: ['sv'],
   member: null,
-  admin: {untranslated: null},
+  admin: {untranslated: null, twoFactorEnabled: true},
 };
 
 const BOTH: Account = {
   organizationName: 'Brf Exempel',
   locales: ['sv'],
   member: {apartment: '12'},
-  admin: {untranslated: null},
+  admin: {untranslated: null, twoFactorEnabled: true},
 };
 
 describe('accountView', () => {
@@ -59,6 +59,23 @@ describe('accountView', () => {
       account: {apartment: '12'},
     });
     expect(accountView(BOTH, null, 'member')).toMatchObject({kind: 'member'});
+  });
+
+  test('an admin without an authenticator is shown the setup instead', () => {
+    const fresh: Account = {
+      ...ADMIN,
+      admin: {untranslated: null, twoFactorEnabled: false},
+    };
+    expect(accountView(fresh, null, null)).toMatchObject({
+      kind: 'two-factor-setup',
+    });
+    // A resident who is also a new admin still books meanwhile.
+    expect(
+      accountView({...fresh, member: {apartment: '12'}}, null, null),
+    ).toMatchObject({kind: 'member'});
+    expect(
+      accountView({...fresh, member: {apartment: '12'}}, null, 'admin'),
+    ).toMatchObject({kind: 'two-factor-setup'});
   });
 
   test('a mode the account lacks falls back to what it has', () => {

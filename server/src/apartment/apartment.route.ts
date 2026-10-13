@@ -1,6 +1,7 @@
 import type {FastifyPluginAsyncZod} from '@fastify/type-provider-zod';
 import {z} from 'zod';
 
+import {logEvent} from '../event/event.service.js';
 import {errorResponses} from '../lib/errors.js';
 import {getAdmin} from '../lib/user.js';
 import {
@@ -54,6 +55,7 @@ export const apartmentRoutes: FastifyPluginAsyncZod = async (app) => {
         request.body,
         app.notifier.forRequest(request.log),
       );
+      await logEvent(request, admin, 'apartment.create', created.label);
       return reply.code(201).send(created);
     },
   );
@@ -72,12 +74,14 @@ export const apartmentRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request) => {
       const admin = await getAdmin(request);
-      return updateApartment(
+      const updated = await updateApartment(
         admin.organizationId,
         request.params.id,
         request.body,
         app.notifier.forRequest(request.log),
       );
+      await logEvent(request, admin, 'apartment.update', updated.label);
+      return updated;
     },
   );
 
@@ -96,7 +100,11 @@ export const apartmentRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request, reply) => {
       const admin = await getAdmin(request);
-      await signOutApartment(admin.organizationId, request.params.id);
+      const label = await signOutApartment(
+        admin.organizationId,
+        request.params.id,
+      );
+      await logEvent(request, admin, 'apartment.signOut', label);
       return reply.code(204).send();
     },
   );
@@ -115,12 +123,14 @@ export const apartmentRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request) => {
       const admin = await getAdmin(request);
-      return replaceResident(
+      const replaced = await replaceResident(
         admin,
         request.params.id,
         request.body,
         app.notifier.forRequest(request.log),
       );
+      await logEvent(request, admin, 'apartment.newResident', replaced.label);
+      return replaced;
     },
   );
 
@@ -137,11 +147,12 @@ export const apartmentRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request, reply) => {
       const admin = await getAdmin(request);
-      await removeApartment(
+      const label = await removeApartment(
         admin,
         request.params.id,
         app.notifier.forRequest(request.log),
       );
+      await logEvent(request, admin, 'apartment.remove', label);
       return reply.code(204).send();
     },
   );

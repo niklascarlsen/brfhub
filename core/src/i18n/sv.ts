@@ -60,6 +60,9 @@ export const sv = {
     KIND_IN_USE: 'Typen används fortfarande av resurser',
     LANGUAGES_CHANGED:
       'Föreningens språk har ändrats sedan sidan öppnades. Ladda om och försök igen.',
+    TWO_FACTOR_REQUIRED: 'Sätt upp tvåstegsverifiering först',
+    LAST_ADMIN: 'Föreningen måste ha minst en administratör',
+    OWN_ACCOUNT: 'Det går inte att göra med ditt eget konto',
     NOT_FOUND: 'Hittades inte',
     UNAUTHORIZED: 'Du är inte inloggad',
     FORBIDDEN: 'Det där är inte din bokning',
@@ -90,6 +93,51 @@ export const sv = {
     wrongCredentials: 'Fel e-post eller lösenord',
     tooManyAttempts: 'För många försök, vänta en stund',
     originRefused: 'Servern tillåter inte den här adressen',
+    setPassword: 'Sätt eller återställ lösenord',
+    // The admin's second step after the password.
+    totpTitle: 'Ange kod från din authenticator',
+    totpIntro: 'Öppna din authenticator-app och skriv in koden den visar.',
+    totpCode: 'Kod från appen',
+    useBackupCode: 'Använd en backup-kod i stället',
+    backupTitle: 'Ange en backup-kod',
+    backupIntro:
+      'En av koderna du fick när du satte upp din authenticator. Varje kod fungerar en gång.',
+    backupCode: 'Backup-kod',
+    useTotp: 'Använd authenticator-appen i stället',
+    trustDevice: 'Lita på den här enheten i 30 dagar',
+    startOver: 'Börja om',
+    // Setting a password with a code from the mail.
+    resetTitle: 'Sätt nytt lösenord',
+    resetIntro: (email: string) =>
+      `Vi har skickat en kod till ${email}. Skriv in den och välj ett lösenord.`,
+    newPassword: 'Nytt lösenord',
+    repeatPassword: 'Nytt lösenord igen',
+    resetSubmit: 'Spara och logga in',
+  },
+  // The admin's authenticator app.
+  twoFactor: {
+    title: 'Sätt upp tvåstegsverifiering',
+    intro:
+      'Som admin loggar du in med lösenord och en kod från en authenticator-app, till exempel Google Authenticator, 1Password eller Lösenord på iPhone. Bekräfta lösenordet för att börja.',
+    password: 'Lösenord',
+    begin: 'Börja',
+    scanTitle: 'Skanna koden',
+    scanIntro:
+      'Skanna QR-koden i din authenticator-app, eller skriv in nyckeln för hand. Skriv sedan in koden appen visar.',
+    manualKey: 'Nyckel att skriva in',
+    firstCode: 'Kod från appen',
+    verify: 'Bekräfta',
+    backupTitle: 'Spara dina backup-koder',
+    backupIntro:
+      'Tappar du telefonen loggar du in med en av de här koderna i stället. Varje kod fungerar en gång. Spara dem på ett säkert ställe, de visas bara nu.',
+    copyCodes: 'Kopiera koderna',
+    shareCodes: 'Dela koderna',
+    copied: 'Koderna är kopierade',
+    done: 'Klar',
+    wrongPassword: 'Lösenordet stämmer inte',
+    alreadyEnabled: 'Tvåstegsverifiering är redan på. Logga ut och in igen.',
+    wrongCode: 'Fel kod. Vänta tills appen visar en ny och försök igen.',
+    locked: 'För många fel. Vänta en kvart och försök igen.',
   },
   account: {
     heading: 'Konto',
@@ -373,6 +421,67 @@ export const sv = {
       announcements: (count: number) =>
         count === 1 ? '1 anslag' : `${count} anslag`,
       rules: 'ordningsreglerna',
+    },
+    admins: {
+      title: 'Administratörer',
+      note: 'Alla administratörer kan allt här. Den som läggs till får ett mejl om hur de loggar in.',
+      add: 'Lägg till administratör',
+      name: 'Namn',
+      you: 'du',
+      lives: (label: string) => `Bor i lägenhet ${label}`,
+      noTwoFactor: 'Har inte satt upp tvåstegsverifiering än',
+      lastSignIn: (when: string) => `Senast inloggad ${when}`,
+      never: 'Har aldrig loggat in',
+      remove: 'Ta bort',
+      removeQuestion: (email: string) =>
+        `${email} loggas ut och kan inte längre administrera föreningen. Bor personen här behåller de sin lägenhet.`,
+      removeFailed: 'Kunde inte ta bort administratören',
+      resetTwoFactor: 'Nollställ tvåstegsverifiering',
+      resetQuestion: (email: string) =>
+        `${email} loggas ut överallt och sätter upp en ny authenticator vid nästa inloggning. Gör det när en telefon har försvunnit.`,
+      reset: 'Nollställ',
+      resetFailed: 'Kunde inte nollställa',
+      checkEmail: 'Kontrollera e-postadressen',
+    },
+    events: {
+      title: 'Händelser',
+      note: 'Vad administratörerna har gjort, senaste först.',
+      none: 'Inget har hänt än.',
+      actions: {
+        'apartment.create': (subject: string) =>
+          `Lade till lägenhet ${subject}`,
+        'apartment.update': (subject: string) => `Ändrade lägenhet ${subject}`,
+        'apartment.newResident': (subject: string) =>
+          `Bytte boende i lägenhet ${subject}`,
+        'apartment.signOut': (subject: string) =>
+          `Loggade ut lägenhet ${subject} överallt`,
+        'apartment.remove': (subject: string) => `Tog bort lägenhet ${subject}`,
+        'admin.add': (subject: string) =>
+          `Lade till ${subject} som administratör`,
+        'admin.remove': (subject: string) =>
+          `Tog bort ${subject} som administratör`,
+        'admin.resetTwoFactor': (subject: string) =>
+          `Nollställde tvåstegsverifiering för ${subject}`,
+        'kind.create': (subject: string) => `Lade till typen ${subject}`,
+        'kind.update': (subject: string) => `Ändrade typen ${subject}`,
+        'kind.remove': (subject: string) => `Tog bort typen ${subject}`,
+        'resource.create': (subject: string) => `Lade till ${subject}`,
+        'resource.update': (subject: string) => `Ändrade ${subject}`,
+        'resource.order': () => 'Ändrade ordningen på resurserna',
+        'resource.close': (subject: string) => `Stängde ${subject}`,
+        'resource.reopen': (subject: string) => `Öppnade ${subject} igen`,
+        'schedule.put': (subject: string) => `Ändrade schemat för ${subject}`,
+        'schedule.remove': (subject: string) =>
+          `Tog bort schemat för ${subject}`,
+        'announcement.create': (subject: string) =>
+          `Publicerade anslaget ${subject}`,
+        'announcement.update': (subject: string) =>
+          `Ändrade anslaget ${subject}`,
+        'announcement.remove': (subject: string) =>
+          `Tog bort anslaget ${subject}`,
+        'organization.update': (subject: string) =>
+          `Ändrade inställningarna: ${subject}`,
+      },
     },
     organization: {
       settings: 'Inställningar',

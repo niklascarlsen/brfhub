@@ -16,7 +16,8 @@
     "check": "prettier --check . && npm run typecheck && npm run lint && npm test"
   },
   "dependencies": {
-    "openapi-fetch": "^0.17.0"
+    "openapi-fetch": "^0.17.0",
+    "uqr": "^0.1.3"
   },
   "peerDependencies": {
     "react": "^19.2.3"

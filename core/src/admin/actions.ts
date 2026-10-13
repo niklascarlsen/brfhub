@@ -1,10 +1,16 @@
 import type {Api} from '../api/createApi';
 import {codeOf, errorMessage, type ClientErrorCode} from '../api/errors';
-import type {AdminResource, Apartment, LocalizedText} from '../api/types';
+import type {
+  AdminResource,
+  AdminUser,
+  Apartment,
+  LocalizedText,
+} from '../api/types';
 import type {Locale, Messages} from '../i18n/catalog';
 import {formatLongDate} from '../lib/dates';
 import type {Dialog} from '../lib/dialog';
 import type {
+  AdminFields,
   AnnouncementFields,
   ApartmentFields,
   KindFields,
@@ -41,6 +47,8 @@ export function adminLoads({api, unwrap}: Api) {
     announcements: () => unwrap(api.GET('/admin/announcements')),
     resources: () => unwrap(api.GET('/admin/resources')),
     organization: () => unwrap(api.GET('/admin/organization')),
+    admins: () => unwrap(api.GET('/admin/admins')),
+    events: () => unwrap(api.GET('/admin/events')),
   };
 }
 
@@ -165,6 +173,48 @@ export function adminActions({
                   }),
                 ),
               onRemoved,
+            );
+          },
+        },
+      ),
+  };
+
+  const admins = {
+    add: (fields: AdminFields) =>
+      save(() => unwrap(api.POST('/admin/admins', {body: fields}))),
+
+    confirmRemove: (admin: AdminUser) =>
+      dialog.confirm(
+        t.admin.admins.remove,
+        t.admin.admins.removeQuestion(admin.email),
+        {
+          label: t.admin.remove,
+          destructive: true,
+          onPress: () => {
+            void mutate(t.admin.admins.removeFailed, () =>
+              unwrap(
+                api.DELETE('/admin/admins/{id}', {
+                  params: {path: {id: admin.id}},
+                }),
+              ),
+            );
+          },
+        },
+      ),
+
+    confirmResetTwoFactor: (admin: AdminUser) =>
+      dialog.confirm(
+        t.admin.admins.resetTwoFactor,
+        t.admin.admins.resetQuestion(admin.email),
+        {
+          label: t.admin.admins.reset,
+          onPress: () => {
+            void mutate(t.admin.admins.resetFailed, () =>
+              unwrap(
+                api.POST('/admin/admins/{id}/reset-two-factor', {
+                  params: {path: {id: admin.id}},
+                }),
+              ),
             );
           },
         },
@@ -344,7 +394,7 @@ export function adminActions({
       save(() => unwrap(api.PATCH('/admin/organization', {body}))),
   };
 
-  return {apartments, announcements, kinds, resources, organization};
+  return {apartments, admins, announcements, kinds, resources, organization};
 }
 
 export type AdminActions = ReturnType<typeof adminActions>;

@@ -1,7 +1,7 @@
 import {eq, sql} from 'drizzle-orm';
 
 import type {buildApp} from '../app.js';
-import {createUser} from '../auth/auth.service.js';
+import {createUser, enrollTwoFactor, totpCode} from '../auth/auth.service.js';
 import {db} from '../db/index.js';
 import {
   members,
@@ -17,6 +17,8 @@ import type {PushFailure, PushMessage, SendPush} from '../lib/push.js';
 
 // The admins' password. Apartments sign in with a code from their mail.
 export const PASSWORD = 'password';
+// Every seeded admin's authenticator secret, so signIn can give the code.
+export const TOTP_SECRET = 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP';
 export const ORIGIN = 'http://localhost:5173';
 
 type Server = Awaited<ReturnType<typeof buildApp>>;
@@ -132,7 +134,8 @@ type OrganizationSeed = {
 };
 
 // One organization with its resources, an account per apartment and its
-// admin, who signs in with PASSWORD. Returns the member id per apartment.
+// admin, who signs in with PASSWORD and an authenticator on TOTP_SECRET.
+// Returns the member id per apartment.
 export async function seedOrganization(
   seed: OrganizationSeed,
 ): Promise<Map<string, string>> {
@@ -177,18 +180,21 @@ export async function seedOrganization(
     });
   }
 
-  await createUser({
+  const admin = await createUser({
     email: seed.adminEmail,
     password: PASSWORD,
     name: `Admin ${seed.organization.name}`,
     organizationId,
     admin: true,
   });
+  await enrollTwoFactor(admin.id, TOTP_SECRET);
 
   return new Map(rows.map((row) => [row.label, row.id]));
 }
 
-function cookieFrom(response: {headers: {'set-cookie'?: string | string[]}}) {
+export function cookieFrom(response: {
+  headers: {'set-cookie'?: string | string[]};
+}) {
   const setCookie = response.headers['set-cookie'] ?? [];
 
   return (Array.isArray(setCookie) ? setCookie : [setCookie])
@@ -213,6 +219,22 @@ export async function signIn(server: Server, email: string, password?: string) {
       headers: {origin: ORIGIN},
       payload: {email, password: password ?? PASSWORD},
     });
+
+    // An admin with an authenticator is asked for its code next, which the
+    // seeded secret gives.
+    if (
+      response.statusCode === 200 &&
+      response.json<{twoFactorRedirect?: boolean}>().twoFactorRedirect
+    ) {
+      const verified = await server.inject({
+        method: 'POST',
+        url: '/auth/two-factor/verify-totp',
+        headers: {origin: ORIGIN, cookie: cookieFrom(response)},
+        payload: {code: await totpCode(TOTP_SECRET)},
+      });
+
+      return {response: verified, cookie: cookieFrom(verified)};
+    }
 
     return {response, cookie: cookieFrom(response)};
   }

@@ -1,6 +1,7 @@
 import type {FastifyPluginAsyncZod} from '@fastify/type-provider-zod';
 import {z} from 'zod';
 
+import {logEvent} from '../event/event.service.js';
 import {errorResponses} from '../lib/errors.js';
 import {getAdmin} from '../lib/user.js';
 import {
@@ -22,6 +23,8 @@ import {
   deleteKind,
   deleteSchedule,
   listAdminResources,
+  nameOfKind,
+  nameOfResource,
   orderResources,
   putSchedule,
   reopenResource,
@@ -55,6 +58,12 @@ export const resourceAdminRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request, reply) => {
       const admin = await getAdmin(request);
       const id = await createKind(admin, request.body);
+      await logEvent(
+        request,
+        admin,
+        'kind.create',
+        await nameOfKind(admin, id),
+      );
       return reply.code(201).send({id});
     },
   );
@@ -71,6 +80,12 @@ export const resourceAdminRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request, reply) => {
       const admin = await getAdmin(request);
       await updateKind(admin, request.params.id, request.body);
+      await logEvent(
+        request,
+        admin,
+        'kind.update',
+        await nameOfKind(admin, request.params.id),
+      );
       return reply.code(204).send();
     },
   );
@@ -80,7 +95,9 @@ export const resourceAdminRoutes: FastifyPluginAsyncZod = async (app) => {
     {schema: {params: idParamsSchema, response: noContent}},
     async (request, reply) => {
       const admin = await getAdmin(request);
+      const name = await nameOfKind(admin, request.params.id);
       await deleteKind(admin.organizationId, request.params.id);
+      await logEvent(request, admin, 'kind.remove', name);
       return reply.code(204).send();
     },
   );
@@ -96,6 +113,12 @@ export const resourceAdminRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request, reply) => {
       const admin = await getAdmin(request);
       const id = await createResource(admin, request.body);
+      await logEvent(
+        request,
+        admin,
+        'resource.create',
+        await nameOfResource(admin, id),
+      );
       return reply.code(201).send({id});
     },
   );
@@ -106,6 +129,7 @@ export const resourceAdminRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request, reply) => {
       const admin = await getAdmin(request);
       await orderResources(admin.organizationId, request.body.ids);
+      await logEvent(request, admin, 'resource.order', '');
       return reply.code(204).send();
     },
   );
@@ -122,6 +146,12 @@ export const resourceAdminRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request, reply) => {
       const admin = await getAdmin(request);
       await updateResource(admin, request.params.id, request.body);
+      await logEvent(
+        request,
+        admin,
+        'resource.update',
+        await nameOfResource(admin, request.params.id),
+      );
       return reply.code(204).send();
     },
   );
@@ -143,6 +173,12 @@ export const resourceAdminRoutes: FastifyPluginAsyncZod = async (app) => {
         request.body.validFrom,
         request.body.slots,
       );
+      await logEvent(
+        request,
+        admin,
+        'schedule.put',
+        `${await nameOfResource(admin, request.params.id)} ${request.body.validFrom}`,
+      );
       return reply.code(204).send();
     },
   );
@@ -156,6 +192,12 @@ export const resourceAdminRoutes: FastifyPluginAsyncZod = async (app) => {
         admin.organizationId,
         request.params.id,
         request.params.validFrom,
+      );
+      await logEvent(
+        request,
+        admin,
+        'schedule.remove',
+        `${await nameOfResource(admin, request.params.id)} ${request.params.validFrom}`,
       );
       return reply.code(204).send();
     },
@@ -177,6 +219,12 @@ export const resourceAdminRoutes: FastifyPluginAsyncZod = async (app) => {
         request.params.id,
         request.body.closesFrom,
       );
+      await logEvent(
+        request,
+        admin,
+        'resource.close',
+        `${await nameOfResource(admin, request.params.id)} ${request.body.closesFrom}`,
+      );
       return reply.code(204).send();
     },
   );
@@ -187,6 +235,12 @@ export const resourceAdminRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request, reply) => {
       const admin = await getAdmin(request);
       await reopenResource(admin.organizationId, request.params.id);
+      await logEvent(
+        request,
+        admin,
+        'resource.reopen',
+        await nameOfResource(admin, request.params.id),
+      );
       return reply.code(204).send();
     },
   );

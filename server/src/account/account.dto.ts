@@ -26,9 +26,11 @@ const untranslatedSchema = z
   })
   .nullable();
 
-// What the account manages, when it is an admin's.
+// What the account manages, when it is an admin's. Until an authenticator
+// is set up, the admin's app is the setup and nothing else.
 const adminAccountSchema = z.object({
   untranslated: untranslatedSchema,
+  twoFactorEnabled: z.boolean(),
 });
 
 // Who signed in: a resident, an admin, or someone who is both.

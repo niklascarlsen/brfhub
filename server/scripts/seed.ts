@@ -1,8 +1,9 @@
 import 'dotenv/config';
 
+import {generateRandomString} from 'better-auth/crypto';
 import {and, eq, inArray} from 'drizzle-orm';
 
-import {createUser} from '../src/auth/auth.service.js';
+import {createUser, enrollTwoFactor} from '../src/auth/auth.service.js';
 import {db, pool} from '../src/db/index.js';
 import {
   announcements,
@@ -24,7 +25,8 @@ const CURRENT_APARTMENT = '12';
 // Apartments sign in with a code from their mail, in Brf Exempel as
 // <apartment>@example.com and in Brf Andra as <apartment>@andra.example.com.
 // Each admin signs in as admin@ on the same domain with this password, as
-// does the board member who lives in BOARD_APARTMENT and is both.
+// does the board member who lives in BOARD_APARTMENT and is both. Their
+// authenticator is set up already: npm run totp -- <email> prints the code.
 const PASSWORD = 'password';
 const BOARD_APARTMENT = '31';
 const BOARD_EMAIL = 'styrelse@example.com';
@@ -405,12 +407,13 @@ try {
     };
 
     if (label === BOARD_APARTMENT) {
-      await createUser({
+      const board = await createUser({
         ...resident,
         email: BOARD_EMAIL,
         password: PASSWORD,
         admin: true,
       });
+      await enrollTwoFactor(board.id, generateRandomString(32));
     } else {
       await createUser({...resident, email: `${label}@example.com`});
     }
@@ -435,20 +438,22 @@ try {
     });
   }
 
-  await createUser({
+  const admin = await createUser({
     email: 'admin@example.com',
     password: PASSWORD,
     name: `Admin ${ORGANIZATION.name}`,
     organizationId: ORGANIZATION_ID,
     admin: true,
   });
-  await createUser({
+  await enrollTwoFactor(admin.id, generateRandomString(32));
+  const otherAdmin = await createUser({
     email: 'admin@andra.example.com',
     password: PASSWORD,
     name: `Admin ${OTHER_ORGANIZATION.name}`,
     organizationId: OTHER_ORGANIZATION_ID,
     admin: true,
   });
+  await enrollTwoFactor(otherAdmin.id, generateRandomString(32));
 
   console.log('Seed complete');
 } finally {

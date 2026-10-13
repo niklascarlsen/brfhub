@@ -1,7 +1,13 @@
 import {describe, expect, test} from 'vitest';
 
 import {sv} from '../i18n/sv';
-import {codeFailure, passwordFailure} from './login';
+import {
+  codeFailure,
+  isStaleChallenge,
+  passwordFailure,
+  resetFailure,
+  totpFailure,
+} from './login';
 
 describe('codeFailure', () => {
   test('names what is wrong with the code', () => {
@@ -29,5 +35,35 @@ describe('passwordFailure', () => {
     expect(passwordFailure({status: 401}, sv)).toBe(sv.login.wrongCredentials);
     expect(passwordFailure({status: 429}, sv)).toBe(sv.login.tooManyAttempts);
     expect(passwordFailure(null, sv)).toBe(sv.errors.NETWORK);
+  });
+});
+
+describe('totpFailure', () => {
+  test('names a wrong code, a lockout and a stale challenge', () => {
+    expect(totpFailure({status: 401, code: 'INVALID_CODE'}, sv)).toBe(
+      sv.twoFactor.wrongCode,
+    );
+    expect(totpFailure({status: 401, code: 'INVALID_BACKUP_CODE'}, sv)).toBe(
+      sv.twoFactor.wrongCode,
+    );
+    expect(
+      totpFailure({status: 429, code: 'ACCOUNT_TEMPORARILY_LOCKED'}, sv),
+    ).toBe(sv.twoFactor.locked);
+    expect(
+      isStaleChallenge({status: 401, code: 'INVALID_TWO_FACTOR_COOKIE'}),
+    ).toBe(true);
+    expect(isStaleChallenge({status: 401, code: 'INVALID_CODE'})).toBe(false);
+  });
+});
+
+describe('resetFailure', () => {
+  test('tells a bad password apart from a bad code', () => {
+    const limits = {minLength: 8, maxLength: 128};
+    expect(
+      resetFailure({status: 400, code: 'PASSWORD_TOO_SHORT'}, sv, limits),
+    ).toBe(sv.admin.organization.passwordTooShort(8));
+    expect(resetFailure({status: 400, code: 'INVALID_OTP'}, sv, limits)).toBe(
+      sv.login.wrongCode,
+    );
   });
 });

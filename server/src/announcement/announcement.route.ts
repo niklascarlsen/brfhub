@@ -1,7 +1,9 @@
 import type {FastifyPluginAsyncZod} from '@fastify/type-provider-zod';
 import {z} from 'zod';
 
+import {logEvent} from '../event/event.service.js';
 import {errorResponses} from '../lib/errors.js';
+import {localize} from '../lib/locale.js';
 import {getAdmin, getMember} from '../lib/user.js';
 import {
   adminAnnouncementsSchema,
@@ -51,6 +53,12 @@ export const announcementRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request, reply) => {
       const admin = await getAdmin(request);
       const id = await createAnnouncement(admin, request.body);
+      await logEvent(
+        request,
+        admin,
+        'announcement.create',
+        localize(request.body.title, admin.locale) ?? '',
+      );
       return reply.code(201).send({id});
     },
   );
@@ -67,6 +75,12 @@ export const announcementRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request, reply) => {
       const admin = await getAdmin(request);
       await updateAnnouncement(admin, request.params.id, request.body);
+      await logEvent(
+        request,
+        admin,
+        'announcement.update',
+        localize(request.body.title, admin.locale) ?? '',
+      );
       return reply.code(204).send();
     },
   );
@@ -81,7 +95,16 @@ export const announcementRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request, reply) => {
       const admin = await getAdmin(request);
-      await deleteAnnouncement(admin.organizationId, request.params.id);
+      const title = await deleteAnnouncement(
+        admin.organizationId,
+        request.params.id,
+      );
+      await logEvent(
+        request,
+        admin,
+        'announcement.remove',
+        localize(title, admin.locale) ?? '',
+      );
       return reply.code(204).send();
     },
   );
