@@ -71,7 +71,20 @@ export const sv = {
   },
   login: {
     title: 'Logga in',
-    intro: 'Med e-posten för lägenheten eller föreningens admin.',
+    intro: 'Med e-posten för din lägenhet eller ditt adminkonto.',
+    continue: 'Fortsätt',
+    codeTitle: 'Ange koden',
+    codeIntro: (email: string) =>
+      `Vi har skickat en sexsiffrig kod till ${email}. Hittar du den inte, titta i skräpposten.`,
+    code: 'Kod',
+    wrongCode: 'Fel kod. Kontrollera mejlet och försök igen.',
+    codeExpired: 'Koden har gått ut. Skicka en ny.',
+    tooManyCodeAttempts: 'För många försök. Skicka en ny kod.',
+    sendNewCode: 'Skicka ny kod',
+    codeSent: 'En ny kod är skickad.',
+    changeEmail: 'Byt e-post',
+    passwordTitle: 'Ange lösenordet',
+    passwordIntro: (email: string) => `Lösenordet för ${email}.`,
     password: 'Lösenord',
     submit: 'Logga in',
     wrongCredentials: 'Fel e-post eller lösenord',
@@ -83,6 +96,9 @@ export const sv = {
     signedInAs: 'Inloggad som',
     signOut: 'Logga ut',
     signOutQuestion: (from: string) => `Vill du logga ut från ${from}?`,
+    // Shown to an account that is both a resident and an admin.
+    openAdmin: 'Administrera föreningen',
+    openBooking: 'Till bokningen',
     noApartmentTitle: 'Kontot saknar lägenhet',
     noApartmentMessage:
       'Ditt konto är inte kopplat till någon lägenhet. Kontakta styrelsen.',
@@ -207,8 +223,7 @@ export const sv = {
     },
     apartments: {
       newTitle: 'Ny lägenhet',
-      newNote:
-        'Lägenheten får ett lösenord som visas en gång, efter att du har sparat.',
+      newNote: 'De boende får ett mejl om hur de loggar in, när du har sparat.',
       addApartment: 'Lägg till lägenhet',
       none: 'Inga lägenheter än. Lägg till den första.',
       search: 'Sök nummer, namn eller e-post',
@@ -231,20 +246,19 @@ export const sv = {
 
         return `Lägenhetens ${bookings} avbokas, och den som köar får en notis.`;
       },
-      resetPassword: 'Återställ lösenord',
-      resetPasswordHint: 'När de boende har glömt det',
-      resetQuestion: (label: string) =>
-        `Lägenhet ${label} får ett nytt lösenord och loggas ut på alla enheter.`,
-      reset: 'Återställ',
-      resetFailed: 'Kunde inte återställa lösenordet',
+      signOut: 'Logga ut överallt',
+      signOutHint: 'När en telefon har försvunnit',
+      signOutQuestion: (label: string) =>
+        `Lägenhet ${label} loggas ut på alla enheter. De boende loggar in igen med en ny kod från mejlet.`,
+      signOutFailed: 'Kunde inte logga ut lägenheten',
       remove: 'Ta bort lägenheten',
       removeQuestion: (cancelNote: string) =>
         `${cancelNote} Kontot tas bort och numret kan användas igen.`,
       removeFailed: 'Kunde inte ta bort lägenheten',
       editNote:
-        'Ändras e-posten loggas lägenheten ut och loggar in med den nya adressen.',
+        'Ändras e-posten loggas lägenheten ut, och den nya adressen får ett mejl om hur man loggar in.',
       newResidentNote: (cancelNote: string) =>
-        `${cancelNote} Det gamla kontot tas bort och de nya boende får ett eget lösenord.`,
+        `${cancelNote} Det gamla kontot tas bort och de nya boende får ett mejl om hur de loggar in.`,
       replaceResident: 'Byt boende',
       never: 'Aldrig',
       resident: 'Boende',
@@ -388,21 +402,6 @@ export const sv = {
         `Det nya lösenordet får ha högst ${max} tecken`,
       passwordsDiffer: 'De nya lösenorden är inte lika',
       passwordChanged: 'Lösenordet är bytt. Alla andra enheter har loggats ut.',
-    },
-    password: {
-      title: (label: string) => `Lösenord för lägenhet ${label}`,
-      // Around the email address, which is shown highlighted between them.
-      beforeEmail:
-        'Visas bara nu. Ge det till de boende tillsammans med e-postadressen',
-      afterEmail: '. De loggar in med båda.',
-      login: (label: string, email: string, password: string) =>
-        `Inloggning för lägenhet ${label}\nE-post: ${email}\nLösenord: ${password}`,
-      share: 'Dela inloggningen',
-      copy: 'Kopiera inloggningen',
-      copied: 'Inloggningen kopierad',
-      copyFailed:
-        'Det gick inte att kopiera här. Markera lösenordet och kopiera det själv.',
-      done: 'Klar',
     },
     schedule: {
       noSlots: 'Lägg till minst ett pass',

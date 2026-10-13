@@ -1,6 +1,6 @@
 import {createContext, useContext} from 'react';
 
-import type {AdminAccount} from '../api/types';
+import type {AdminAccount} from '../auth/account';
 
 type AdminAccountValue = {
   account: AdminAccount;

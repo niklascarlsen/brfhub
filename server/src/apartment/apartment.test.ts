@@ -18,7 +18,9 @@ import {addDays, isoDateIn, slotEndsAt} from '../lib/time.js';
 import {
   assertTestDatabase,
   codeOf,
+  memoryMail,
   memoryPush,
+  PASSWORD,
   resetDatabase,
   seedOrganization,
   signIn,
@@ -42,6 +44,7 @@ const SLOT = {start: '08:00', end: '12:00'};
 
 let server: Awaited<ReturnType<typeof buildApp>>;
 const push = memoryPush();
+const mail = memoryMail();
 let admin: {cookie: string};
 let southAdmin: {cookie: string};
 const ids = new Map<string, string>();
@@ -92,7 +95,7 @@ async function insertBooking(
 before(async () => {
   await assertTestDatabase();
 
-  server = await buildApp({logger: false, push: push.send});
+  server = await buildApp({logger: false, push: push.send, mail: mail.send});
   await resetDatabase();
 
   const north = await seedOrganization({
@@ -158,7 +161,7 @@ test("an admin cannot touch another organization's apartment", async () => {
   const id = ids.get('14') ?? '';
   const requests = [
     call('PATCH', `/admin/apartments/${id}`, southAdmin, {label: '99'}),
-    call('POST', `/admin/apartments/${id}/reset-password`, southAdmin),
+    call('POST', `/admin/apartments/${id}/sign-out`, southAdmin),
     call('POST', `/admin/apartments/${id}/new-resident`, southAdmin, {
       residentName: 'Inkräktare',
       email: 'intruder@south.example.com',
@@ -174,7 +177,7 @@ test("an admin cannot touch another organization's apartment", async () => {
   assert.equal((await cookieOf(northEmail('14'))).status, 200);
 });
 
-test('adds an apartment whose password signs in', async () => {
+test('adds an apartment, welcomes the resident and signs it in by code', async () => {
   const response = await call('POST', '/admin/apartments', admin, {
     label: '41',
     residentName: 'Anna och Erik Svensson',
@@ -182,18 +185,26 @@ test('adds an apartment whose password signs in', async () => {
   });
 
   assert.equal(response.statusCode, 201);
-  const {apartment, password} = response.json<{
-    apartment: Apartment;
-    password: string;
-  }>();
+  const apartment = response.json<Apartment>();
   assert.equal(apartment.label, '41');
   assert.equal(apartment.email, 'anna@example.com');
-  assert.match(password, /^[a-z2-9]{4}-[a-z2-9]{4}-[a-z2-9]{4}$/);
 
-  const signedIn = await cookieOf('anna@example.com', password);
+  await server.notifier.idle();
+  const welcome = mail.lastTo('anna@example.com');
+  assert.match(welcome?.subject ?? '', /Brf Norr/);
+  assert.match(welcome?.text ?? '', /koden/);
+
+  const signedIn = await cookieOf('anna@example.com');
   assert.equal(signedIn.status, 200);
   const account = await call('GET', '/account', signedIn);
-  assert.equal(account.json<{apartment: string}>().apartment, '41');
+  assert.equal(
+    account.json<{member: {apartment: string}}>().member.apartment,
+    '41',
+  );
+});
+
+test('an apartment has no password to sign in with', async () => {
+  assert.equal((await cookieOf(northEmail('12'), PASSWORD)).status, 401);
 });
 
 test('refuses a taken number or email and adds nothing', async () => {
@@ -233,21 +244,19 @@ test('a new email signs out whoever used the old one', async () => {
   assert.equal((await cookieOf('karin@example.com')).status, 200);
 });
 
-test('resetting the password signs the apartment out', async () => {
+test('signing the apartment out ends every session, and a new code gets back in', async () => {
   const id = ids.get('9') ?? '';
   const old = await cookieOf(northEmail('9'));
 
   const response = await call(
     'POST',
-    `/admin/apartments/${id}/reset-password`,
+    `/admin/apartments/${id}/sign-out`,
     admin,
   );
-  assert.equal(response.statusCode, 200);
-  const {password} = response.json<{password: string}>();
+  assert.equal(response.statusCode, 204);
 
   assert.equal((await call('GET', '/account', old)).statusCode, 401);
-  assert.equal((await cookieOf(northEmail('9'))).status, 401);
-  assert.equal((await cookieOf(northEmail('9'), password)).status, 200);
+  assert.equal((await cookieOf(northEmail('9'))).status, 200);
 });
 
 test('a new resident replaces the account and cancels its bookings', async () => {
@@ -274,16 +283,13 @@ test('a new resident replaces the account and cancels its bookings', async () =>
     {residentName: 'Ny Boende', email: 'ny@example.com'},
   );
   assert.equal(response.statusCode, 200);
-  const {apartment, password} = response.json<{
-    apartment: Apartment;
-    password: string;
-  }>();
+  const apartment = response.json<Apartment>();
   assert.equal(apartment.id, id);
   assert.equal(apartment.upcomingBookings, 0);
 
   assert.equal((await call('GET', '/account', old)).statusCode, 401);
-  assert.equal((await cookieOf(northEmail('14'))).status, 401);
-  assert.equal((await cookieOf('ny@example.com', password)).status, 200);
+  assert.equal((await cookieOf(northEmail('14'))).status, 400);
+  assert.equal((await cookieOf('ny@example.com')).status, 200);
   assert.deepEqual(
     await db.select().from(subscriptions).where(eq(subscriptions.memberId, id)),
     [],
@@ -396,7 +402,7 @@ test('refuses to change to a taken number or email', async () => {
   }
 });
 
-test('a new email or password also stops the old device getting push', async () => {
+test('a new email or a sign-out also stops the old device getting push', async () => {
   await insertToken('32');
   const byEmail = await call(
     'PATCH',
@@ -408,16 +414,16 @@ test('a new email or password also stops the old device getting push', async () 
   assert.deepEqual(await tokensOf('32'), []);
 
   await insertToken('31');
-  const byPassword = await call(
+  const bySignOut = await call(
     'POST',
-    `/admin/apartments/${ids.get('31') ?? ''}/reset-password`,
+    `/admin/apartments/${ids.get('31') ?? ''}/sign-out`,
     admin,
   );
-  assert.equal(byPassword.statusCode, 200);
+  assert.equal(bySignOut.statusCode, 204);
   assert.deepEqual(await tokensOf('31'), []);
 });
 
-test('remembers the last sign-in after a new password', async () => {
+test('remembers the last sign-in after a sign-out', async () => {
   const id = ids.get('33') ?? '';
   const never = (await apartmentsOf(admin)).find((item) => item.id === id);
   assert.equal(never?.lastSignInOn, null);
@@ -427,7 +433,7 @@ test('remembers the last sign-in after a new password', async () => {
   const signedIn = (await apartmentsOf(admin)).find((item) => item.id === id);
   assert.equal(signedIn?.lastSignInOn, isoDateIn(NORTH.timeZone));
 
-  await call('POST', `/admin/apartments/${id}/reset-password`, admin);
+  await call('POST', `/admin/apartments/${id}/sign-out`, admin);
   const after = (await apartmentsOf(admin)).find((item) => item.id === id);
   assert.equal(after?.lastSignInOn, signedIn.lastSignInOn);
 });
@@ -506,10 +512,7 @@ test('trims and lower-cases a typed email', async () => {
     email: '  Spaced@Example.com ',
   });
   assert.equal(response.statusCode, 201);
-  assert.equal(
-    response.json<{apartment: Apartment}>().apartment.email,
-    'spaced@example.com',
-  );
+  assert.equal(response.json<Apartment>().email, 'spaced@example.com');
 });
 
 test('the slots of a removed apartment are announced to their queue', async () => {
@@ -518,7 +521,7 @@ test('the slots of a removed apartment are announced to their queue', async () =
     residentName: 'Flyttar',
     email: 'flyttar-61@example.com',
   });
-  const id = added.json<{apartment: Apartment}>().apartment.id;
+  const id = added.json<Apartment>().id;
   ids.set('61', id);
   await insertBooking('61', 2);
   const date = inDays(2);
@@ -551,7 +554,7 @@ test('a booking under way and a new resident wait their turn instead of deadlock
     residentName: 'Bokar',
     email: 'bokar-62@example.com',
   });
-  const id = added.json<{apartment: Apartment}>().apartment.id;
+  const id = added.json<Apartment>().id;
   ids.set('62', id);
   let replaced: ReturnType<typeof call> | undefined;
 

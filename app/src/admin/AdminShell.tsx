@@ -1,5 +1,5 @@
 import {AdminAccountContext} from '@booking/core/admin/account';
-import type {AdminAccount} from '@booking/core/api/types';
+import type {AdminAccount} from '@booking/core/auth/account';
 import {NavigationContainer} from '@react-navigation/native';
 import {useEffect} from 'react';
 
@@ -18,12 +18,17 @@ export function AdminShell({account, onRefresh}: AdminShellProps) {
   const unsaved = useUnsavedRoot();
 
   // A phone an apartment used before may still hand its push to the
-  // apartment; the admin should not get those notifications.
+  // apartment; an admin without one should not get those notifications.
+  const booksToo = account.apartment !== null;
   useEffect(() => {
+    if (booksToo) {
+      return;
+    }
+
     dropPushToken().catch((error: unknown) => {
       console.warn('[push] could not drop push token', error);
     });
-  }, []);
+  }, [booksToo]);
 
   return (
     <AdminAccountContext.Provider value={{account, refresh: onRefresh}}>

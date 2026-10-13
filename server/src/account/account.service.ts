@@ -9,7 +9,7 @@ import {
 } from '../db/schema.js';
 import {LOCALES, type Locale} from '../lib/locale.js';
 import {todaySql} from '../lib/time.js';
-import type {Admin, SignedIn} from '../lib/user.js';
+import type {Admin, Organization, SignedIn} from '../lib/user.js';
 import type {Account, Untranslated} from './account.dto.js';
 
 async function organizationName(organizationId: string): Promise<string> {
@@ -95,24 +95,13 @@ async function untranslatedOf({
     : {locales: LOCALES.filter((locale) => missing.has(locale)), ...result};
 }
 
-export async function getAccount(signedIn: SignedIn): Promise<Account> {
-  if (signedIn.role === 'admin') {
-    const {admin} = signedIn;
-
-    return {
-      role: 'admin',
-      organizationName: await organizationName(admin.organizationId),
-      locales: admin.locales,
-      untranslated: await untranslatedOf(admin),
-    };
-  }
-
-  const {member} = signedIn;
+export async function getAccount({member, admin}: SignedIn): Promise<Account> {
+  const organization = (member ?? admin) as Organization;
 
   return {
-    role: 'member',
-    organizationName: await organizationName(member.organizationId),
-    locales: member.locales,
-    apartment: member.label,
+    organizationName: await organizationName(organization.organizationId),
+    locales: organization.locales,
+    member: member === null ? null : {apartment: member.label},
+    admin: admin === null ? null : {untranslated: await untranslatedOf(admin)},
   };
 }

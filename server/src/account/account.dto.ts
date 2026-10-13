@@ -6,10 +6,8 @@ import {localeSchema} from '../lib/locale.js';
 // so its own text is never in another language than the rest.
 const localesSchema = localeSchema.array();
 
+// What the account books for, when it is a resident's.
 const memberAccountSchema = z.object({
-  role: z.literal('member'),
-  organizationName: z.string(),
-  locales: localesSchema,
   apartment: z.string(),
 });
 
@@ -28,17 +26,18 @@ const untranslatedSchema = z
   })
   .nullable();
 
+// What the account manages, when it is an admin's.
 const adminAccountSchema = z.object({
-  role: z.literal('admin'),
-  organizationName: z.string(),
-  locales: localesSchema,
   untranslated: untranslatedSchema,
 });
 
-export const accountSchema = z.discriminatedUnion('role', [
-  memberAccountSchema,
-  adminAccountSchema,
-]);
+// Who signed in: a resident, an admin, or someone who is both.
+export const accountSchema = z.object({
+  organizationName: z.string(),
+  locales: localesSchema,
+  member: memberAccountSchema.nullable(),
+  admin: adminAccountSchema.nullable(),
+});
 
 export type Account = z.infer<typeof accountSchema>;
 export type Untranslated = z.infer<typeof untranslatedSchema>;

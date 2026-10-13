@@ -1,6 +1,11 @@
 import {errorMessage} from '@booking/core/api/errors';
-import type {AdminAccount, MemberAccount} from '@booking/core/api/types';
-import {accountView, forgetsAccount} from '@booking/core/auth/account';
+import {
+  accountView,
+  forgetsAccount,
+  type AdminAccount,
+  type MemberAccount,
+  type Mode,
+} from '@booking/core/auth/account';
 import {useLoad} from '@booking/core/load/useLoad';
 import {useEffect, type ReactNode} from 'react';
 
@@ -12,13 +17,16 @@ import {useOnReturn} from '@/hooks/useOnReturn';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
 
 type AccountGateProps = {
+  // Which app an account with both is shown. Null shows the apartment's.
+  mode: Mode | null;
   member: (account: MemberAccount) => ReactNode;
   admin: (account: AdminAccount, refresh: () => void) => ReactNode;
 };
 
 // Asks the server who signed in and renders that kind of account's app:
-// an apartment books, the admin manages the organization.
-export function AccountGate({member, admin}: AccountGateProps) {
+// an apartment books, an admin manages the organization, and an account
+// that is both is shown the mode asked for.
+export function AccountGate({mode, member, admin}: AccountGateProps) {
   const t = useMessages();
   const {setOrganizationLocales} = useLocale();
   const {
@@ -41,7 +49,7 @@ export function AccountGate({member, admin}: AccountGateProps) {
   // a moved-out apartment shows without a restart.
   useOnReturn(refresh);
 
-  const view = accountView(data, error);
+  const view = accountView(data, error, mode);
 
   switch (view.kind) {
     case 'member':

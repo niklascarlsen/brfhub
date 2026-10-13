@@ -4,6 +4,8 @@ import closeWithGrace from 'close-with-grace';
 
 import {buildApp} from './app.js';
 import {pool} from './db/index.js';
+import {MAIL} from './lib/env.js';
+import {smtpMail} from './lib/mail.js';
 import {PUSH_TIMEOUT_MS, sendPush} from './lib/push.js';
 
 const port = Number(process.env.PORT ?? 3000);
@@ -11,6 +13,7 @@ const host = process.env.HOST ?? '0.0.0.0';
 
 const server = await buildApp({
   push: sendPush,
+  mail: smtpMail(MAIL.smtpUrl, MAIL.from),
   logger: process.stdout.isTTY
     ? {
         transport: {

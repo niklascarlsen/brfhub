@@ -20,7 +20,5 @@ export type Subscription = components['schemas']['Subscription'];
 // What an apartment holds of a kind, and the bookings that count.
 export type Held = components['schemas']['Held'];
 export type HeldBooking = components['schemas']['HeldBooking'];
-// Who signed in: an apartment, or its organization's one admin.
+// Who signed in: a resident, an admin of the organization, or both.
 export type Account = components['schemas']['Account'];
-export type MemberAccount = components['schemas']['MemberAccount'];
-export type AdminAccount = components['schemas']['AdminAccount'];

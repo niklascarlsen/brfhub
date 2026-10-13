@@ -10,6 +10,7 @@ import type {BookingWindow, Slots} from '../slot/slot.dto.js';
 import {
   assertTestDatabase,
   codeOf,
+  memoryMail,
   memoryPush,
   resetDatabase,
   seedOrganization,
@@ -78,7 +79,11 @@ async function slotOn({member, resourceId}: Side, date: string) {
 before(async () => {
   await assertTestDatabase();
 
-  server = await buildApp({logger: false, push: memoryPush().send});
+  server = await buildApp({
+    logger: false,
+    push: memoryPush().send,
+    mail: memoryMail().send,
+  });
   await resetDatabase();
 
   for (const organization of [EAST, WEST]) {

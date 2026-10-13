@@ -65,7 +65,20 @@ export const en: Messages = {
   },
   login: {
     title: 'Sign in',
-    intro: "Use the apartment's email, or the association admin's.",
+    intro: "With your apartment's email, or your admin account's.",
+    continue: 'Continue',
+    codeTitle: 'Enter the code',
+    codeIntro: (email: string) =>
+      `We have sent a six-digit code to ${email}. If it is not there, check your spam folder.`,
+    code: 'Code',
+    wrongCode: 'Wrong code. Check the email and try again.',
+    codeExpired: 'The code has expired. Send a new one.',
+    tooManyCodeAttempts: 'Too many attempts. Send a new code.',
+    sendNewCode: 'Send a new code',
+    codeSent: 'A new code has been sent.',
+    changeEmail: 'Change email',
+    passwordTitle: 'Enter the password',
+    passwordIntro: (email: string) => `The password for ${email}.`,
     password: 'Password',
     submit: 'Sign in',
     wrongCredentials: 'Wrong email or password',
@@ -77,6 +90,8 @@ export const en: Messages = {
     signedInAs: 'Signed in as',
     signOut: 'Sign out',
     signOutQuestion: (from: string) => `Sign out of ${from}?`,
+    openAdmin: 'Manage the association',
+    openBooking: 'Back to booking',
     noApartmentTitle: 'The account has no apartment',
     noApartmentMessage:
       'Your account is not linked to an apartment. Contact the board.',
@@ -198,7 +213,7 @@ export const en: Messages = {
     apartments: {
       newTitle: 'New apartment',
       newNote:
-        'The apartment gets a password that is shown once, after you save.',
+        'The residents get an email saying how to sign in, once you save.',
       addApartment: 'Add apartment',
       none: 'No apartments yet. Add the first one.',
       search: 'Search number, name or email',
@@ -219,20 +234,19 @@ export const en: Messages = {
 
         return `The apartment's ${bookings} will be cancelled, and anyone queuing gets a notification.`;
       },
-      resetPassword: 'Reset password',
-      resetPasswordHint: 'When the residents have forgotten it',
-      resetQuestion: (label: string) =>
-        `Apartment ${label} gets a new password and is signed out on every device.`,
-      reset: 'Reset',
-      resetFailed: 'Could not reset the password',
+      signOut: 'Sign out everywhere',
+      signOutHint: 'When a phone has gone missing',
+      signOutQuestion: (label: string) =>
+        `Apartment ${label} is signed out on every device. The residents sign in again with a new code from their email.`,
+      signOutFailed: 'Could not sign the apartment out',
       remove: 'Remove apartment',
       removeQuestion: (cancelNote: string) =>
         `${cancelNote} The account is removed and the number can be used again.`,
       removeFailed: 'Could not remove the apartment',
       editNote:
-        'If the email changes, the apartment is signed out and signs in with the new address.',
+        'If the email changes, the apartment is signed out, and the new address gets an email saying how to sign in.',
       newResidentNote: (cancelNote: string) =>
-        `${cancelNote} The old account is removed and the new residents get their own password.`,
+        `${cancelNote} The old account is removed and the new residents get an email saying how to sign in.`,
       replaceResident: 'Change residents',
       never: 'Never',
       resident: 'Residents',
@@ -374,20 +388,6 @@ export const en: Messages = {
       passwordsDiffer: 'The new passwords do not match',
       passwordChanged:
         'The password has been changed. Every other device has been signed out.',
-    },
-    password: {
-      title: (label: string) => `Password for apartment ${label}`,
-      beforeEmail:
-        'Shown only now. Give it to the residents together with the email address',
-      afterEmail: '. They sign in with both.',
-      login: (label: string, email: string, password: string) =>
-        `Sign-in for apartment ${label}\nEmail: ${email}\nPassword: ${password}`,
-      share: 'Share sign-in details',
-      copy: 'Copy sign-in details',
-      copied: 'Sign-in details copied',
-      copyFailed:
-        'Copying does not work here. Select the password and copy it yourself.',
-      done: 'Done',
     },
     schedule: {
       noSlots: 'Add at least one slot',

@@ -11,6 +11,7 @@ import {
 import type {Draft} from '@booking/core/admin/localized';
 import {useProblems} from '@booking/core/admin/useProblems';
 import {errorMessage} from '@booking/core/api/errors';
+import {useSwitchMode} from '@booking/core/auth/mode';
 import type {LocalizedText} from '@booking/core/api/types';
 import {limits} from '@booking/core/generated/limits';
 import {CATALOGS, LOCALES, type Locale} from '@booking/core/i18n/catalog';
@@ -469,6 +470,7 @@ function ChangePassword() {
 
 export function AdminOrganization() {
   const account = useAdminAccount();
+  const switchMode = useSwitchMode();
   const t = useMessages();
 
   return (
@@ -479,6 +481,15 @@ export function AdminOrganization() {
         <Account
           signOutFrom={account.organizationName}
           onSignOut={signOutAdmin}
+          switchTo={
+            account.apartment === null
+              ? null
+              : {
+                  label: t.account.openBooking,
+                  route: 'book',
+                  onPress: () => switchMode('member'),
+                }
+          }
         />
       </div>
       <Settings />

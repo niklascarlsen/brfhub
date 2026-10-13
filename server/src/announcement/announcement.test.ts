@@ -12,6 +12,7 @@ import type {BookingWindow} from '../slot/slot.dto.js';
 import {
   assertTestDatabase,
   codeOf,
+  memoryMail,
   memoryPush,
   resetDatabase,
   seedOrganization,
@@ -77,7 +78,11 @@ async function adminView(headers = admin) {
 before(async () => {
   await assertTestDatabase();
 
-  server = await buildApp({logger: false, push: memoryPush().send});
+  server = await buildApp({
+    logger: false,
+    push: memoryPush().send,
+    mail: memoryMail().send,
+  });
   await resetDatabase();
 
   for (const id of ['north', 'south']) {

@@ -21,6 +21,7 @@ import {listSubscribers} from '../subscription/subscription.query.js';
 import {
   assertTestDatabase,
   codeOf,
+  memoryMail,
   memoryPush,
   ORIGIN,
   PASSWORD,
@@ -137,13 +138,14 @@ function memberId(label: string): string {
 
 let server: Awaited<ReturnType<typeof buildApp>>;
 const push = memoryPush();
+const mail = memoryMail();
 const cookies = new Map<string, string>();
 
 function emailOf(label: string) {
   return `${label}@example.com`;
 }
 
-function signIn(email: string, password = PASSWORD) {
+function signIn(email: string, password?: string) {
   return signInTo(server, email, password);
 }
 
@@ -160,7 +162,7 @@ function signedInAs(label: string) {
 before(async () => {
   await assertTestDatabase();
 
-  server = await buildApp({logger: false, push: push.send});
+  server = await buildApp({logger: false, push: push.send, mail: mail.send});
   await resetDatabase();
 
   const ids = await seedOrganization({
@@ -1126,8 +1128,22 @@ test('releasing a started laundry booking still blocks the other laundry room', 
   assert.equal(codeOf(response), 'HAS_ACTIVE_BOOKING');
 });
 
-test('rejects a wrong password and a forged cookie', async () => {
-  const {response} = await signIn(emailOf(TENANT), 'wrong');
+test('rejects a wrong code, a wrong password and a forged cookie', async () => {
+  await server.inject({
+    method: 'POST',
+    url: '/auth/email-otp/send-verification-otp',
+    headers: {origin: ORIGIN},
+    payload: {email: emailOf(TENANT), type: 'sign-in'},
+  });
+  const wrongCode = await server.inject({
+    method: 'POST',
+    url: '/auth/sign-in/email-otp',
+    headers: {origin: ORIGIN},
+    payload: {email: emailOf(TENANT), otp: '000000'},
+  });
+  assert.equal(wrongCode.statusCode, 400);
+
+  const {response} = await signIn('admin@example.com', 'wrong');
   assert.equal(response.statusCode, 401);
 
   const forged = await server.inject({
@@ -1493,7 +1509,10 @@ test('signing out ends the session', async () => {
     headers: {cookie},
   });
   assert.equal(before.statusCode, 200);
-  assert.equal(before.json<{apartment: string}>().apartment, NEIGHBOUR);
+  assert.equal(
+    before.json<{member: {apartment: string}}>().member.apartment,
+    NEIGHBOUR,
+  );
 
   const signOut = await server.inject({
     method: 'POST',

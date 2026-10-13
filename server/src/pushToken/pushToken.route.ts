@@ -43,9 +43,9 @@ export const pushTokenRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request, reply) => {
       const signedIn = await getSignedIn(request);
 
-      // The admin signs in on a phone an apartment used before: holding the
+      // An admin signs in on a phone an apartment used before: holding the
       // token is enough to stop the apartment's push reaching this device.
-      if (signedIn.role === 'admin') {
+      if (signedIn.member === null) {
         await removePushTokens([request.body.token]);
       } else {
         await removeMemberPushToken(signedIn.member.id, request.body.token);

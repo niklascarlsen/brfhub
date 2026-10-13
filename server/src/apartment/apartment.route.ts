@@ -6,10 +6,8 @@ import {getAdmin} from '../lib/user.js';
 import {
   apartmentParamsSchema,
   apartmentSchema,
-  apartmentWithPasswordSchema,
   createApartmentBodySchema,
   newResidentBodySchema,
-  passwordSchema,
   updateApartmentBodySchema,
 } from './apartment.dto.js';
 import {
@@ -17,7 +15,7 @@ import {
   listApartments,
   removeApartment,
   replaceResident,
-  resetPassword,
+  signOutApartment,
   updateApartment,
 } from './apartment.service.js';
 
@@ -44,14 +42,18 @@ export const apartmentRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         body: createApartmentBodySchema,
         response: {
-          201: apartmentWithPasswordSchema,
+          201: apartmentSchema,
           ...errorResponses,
         },
       },
     },
     async (request, reply) => {
       const admin = await getAdmin(request);
-      const created = await createApartment(admin.organizationId, request.body);
+      const created = await createApartment(
+        admin.organizationId,
+        request.body,
+        app.notifier.forRequest(request.log),
+      );
       return reply.code(201).send(created);
     },
   );
@@ -74,28 +76,28 @@ export const apartmentRoutes: FastifyPluginAsyncZod = async (app) => {
         admin.organizationId,
         request.params.id,
         request.body,
+        app.notifier.forRequest(request.log),
       );
     },
   );
 
+  // Every device signed in as the apartment has to sign in again, after a
+  // phone has gone missing.
   app.post(
-    '/admin/apartments/:id/reset-password',
+    '/admin/apartments/:id/sign-out',
     {
       schema: {
         params: apartmentParamsSchema,
         response: {
-          200: passwordSchema,
+          204: z.undefined(),
           ...errorResponses,
         },
       },
     },
-    async (request) => {
+    async (request, reply) => {
       const admin = await getAdmin(request);
-      const password = await resetPassword(
-        admin.organizationId,
-        request.params.id,
-      );
-      return {password};
+      await signOutApartment(admin.organizationId, request.params.id);
+      return reply.code(204).send();
     },
   );
 
@@ -106,7 +108,7 @@ export const apartmentRoutes: FastifyPluginAsyncZod = async (app) => {
         params: apartmentParamsSchema,
         body: newResidentBodySchema,
         response: {
-          200: apartmentWithPasswordSchema,
+          200: apartmentSchema,
           ...errorResponses,
         },
       },

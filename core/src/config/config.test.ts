@@ -1,14 +1,15 @@
 import {afterEach, describe, expect, test, vi} from 'vitest';
 
 import {createApi} from '../api/createApi';
-import type {BookingWindow, MemberAccount, Resource} from '../api/types';
+import type {BookingWindow, Resource} from '../api/types';
+import type {MemberAccount} from '../auth/account';
 import {configView, fetchConfig} from './config';
 
 const ACCOUNT: MemberAccount = {
-  role: 'member',
   organizationName: 'Brf Exempel',
   locales: ['sv'],
   apartment: '12',
+  admin: false,
 };
 
 const WINDOW: BookingWindow = {
@@ -40,6 +41,7 @@ describe('configView', () => {
         resources: [LAUNDRY, SAUNA],
         apartment: '12',
         organizationName: 'Brf Exempel',
+        admin: false,
       },
     });
   });

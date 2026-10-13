@@ -7,17 +7,13 @@ import {buildApp} from '../app.js';
 import {createUser} from '../auth/auth.service.js';
 import {violatedConstraint} from '../db/errors.js';
 import {db, pool} from '../db/index.js';
-import {
-  announcements,
-  members,
-  organizations,
-  pushTokens,
-} from '../db/schema.js';
+import {announcements, members, pushTokens} from '../db/schema.js';
 import type {BookingRules, Resource} from '../resource/resource.dto.js';
 import type {BookingWindow, ResourceSchedule} from '../slot/slot.dto.js';
 import {
   assertTestDatabase,
   codeOf,
+  memoryMail,
   memoryPush,
   ORIGIN,
   PASSWORD,
@@ -64,7 +60,11 @@ function get(url: string, headers: {cookie: string}) {
 before(async () => {
   await assertTestDatabase();
 
-  server = await buildApp({logger: false, push: memoryPush().send});
+  server = await buildApp({
+    logger: false,
+    push: memoryPush().send,
+    mail: memoryMail().send,
+  });
   await resetDatabase();
 
   const north = await seedOrganization({
@@ -120,10 +120,10 @@ test('tells an apartment who it is', async () => {
 
   assert.equal(response.statusCode, 200);
   assert.deepEqual(response.json<Account>(), {
-    role: 'member',
     organizationName: NORTH.name,
     locales: ['sv'],
-    apartment: '1',
+    member: {apartment: '1'},
+    admin: null,
   });
 });
 
@@ -135,10 +135,10 @@ test('tells the admin who it is', async () => {
 
   assert.equal(response.statusCode, 200);
   assert.deepEqual(response.json<Account>(), {
-    role: 'admin',
     organizationName: SOUTH.name,
     locales: ['sv'],
-    untranslated: null,
+    member: null,
+    admin: {untranslated: null},
   });
 });
 
@@ -210,15 +210,17 @@ test('tells the admin what is not yet written in every language', async () => {
 
   assert.equal(response.statusCode, 200);
   assert.deepEqual(response.json<Account>(), {
-    role: 'admin',
     organizationName: 'Brf Båda',
     locales: ['sv', 'en'],
-    untranslated: {
-      locales: ['sv', 'en'],
-      kinds: 1,
-      resources: 2,
-      announcements: 1,
-      rules: true,
+    member: null,
+    admin: {
+      untranslated: {
+        locales: ['sv', 'en'],
+        kinds: 1,
+        resources: 2,
+        announcements: 1,
+        rules: true,
+      },
     },
   });
 });
@@ -274,7 +276,7 @@ test('nobody can change their own role, organization or apartment', async () => 
   const headers = await cookieOf(northEmail('1'));
 
   for (const field of [
-    {role: 'admin'},
+    {admin: true},
     {organizationId: SOUTH.id},
     {memberId: ids.get('south-1') ?? ''},
   ]) {
@@ -289,10 +291,10 @@ test('nobody can change their own role, organization or apartment', async () => 
 
   const account = await get('/account', headers);
   assert.deepEqual(account.json<Account>(), {
-    role: 'member',
     organizationName: NORTH.name,
     locales: ['sv'],
-    apartment: '1',
+    member: {apartment: '1'},
+    admin: null,
   });
 });
 
@@ -363,47 +365,58 @@ function refusedBy(constraint: string) {
   };
 }
 
-test('allows only one admin per organization', async () => {
-  await assert.rejects(
-    createUser({
-      email: 'second-admin@north.example.com',
-      password: PASSWORD,
-      name: 'Admin två',
-      organizationId: NORTH.id,
-      role: 'admin',
-    }),
-    refusedBy('user_one_admin_per_organization'),
+test('allows several admins per organization', async () => {
+  await createUser({
+    email: 'second-admin@north.example.com',
+    password: PASSWORD,
+    name: 'Admin två',
+    organizationId: NORTH.id,
+    admin: true,
+  });
+
+  const response = await get(
+    '/account',
+    await cookieOf('second-admin@north.example.com'),
   );
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.json<Account>().admin?.untranslated, null);
 });
 
-test('refuses an apartment account without an apartment', async () => {
+test('refuses an account that is neither an apartment nor an admin', async () => {
   await assert.rejects(
     db.execute(
-      sql`insert into "user" (id, name, email, role, organization_id) values ('x', 'Ingen', 'nobody@north.example.com', 'member', 'north')`,
+      sql`insert into "user" (id, name, email, organization_id) values ('x', 'Ingen', 'nobody@north.example.com', 'north')`,
     ),
-    refusedBy('user_role_member_check'),
+    refusedBy('user_has_role_check'),
   );
 });
 
-test('refuses an admin tied to an apartment', async () => {
-  await db.insert(organizations).values({
-    id: 'east',
-    name: 'Brf Öster',
-    timeZone: 'Europe/Stockholm',
-    bookingWindowDays: 30,
-    locales: ['sv'],
-  });
+test('an admin can also be an apartment, and books as one', async () => {
   const [apartment] = await db
     .insert(members)
-    .values({organizationId: 'east', label: '1'})
+    .values({organizationId: NORTH.id, label: 'styrelsen'})
     .returning({id: members.id});
+  await createUser({
+    email: 'board@north.example.com',
+    password: PASSWORD,
+    name: 'Styrelsen',
+    organizationId: NORTH.id,
+    admin: true,
+    memberId: apartment?.id,
+  });
 
-  await assert.rejects(
-    db.execute(
-      sql`insert into "user" (id, name, email, role, organization_id, member_id) values ('y', 'Admin', 'admin@east.example.com', 'admin', 'east', ${apartment?.id})`,
-    ),
-    refusedBy('user_role_member_check'),
-  );
+  const headers = await cookieOf('board@north.example.com');
+  const account = await get('/account', headers);
+  assert.equal(account.statusCode, 200);
+  assert.deepEqual(account.json<Account>(), {
+    organizationName: NORTH.name,
+    locales: ['sv'],
+    member: {apartment: 'styrelsen'},
+    admin: {untranslated: null},
+  });
+
+  assert.equal((await get('/bookings', headers)).statusCode, 200);
+  assert.equal((await get('/admin/apartments', headers)).statusCode, 200);
 });
 
 test("refuses an account tied to another organization's apartment", async () => {
@@ -418,7 +431,6 @@ test("refuses an account tied to another organization's apartment", async () => 
       password: PASSWORD,
       name: 'Fel förening',
       organizationId: SOUTH.id,
-      role: 'member',
       memberId: empty?.id ?? '',
     }),
     refusedBy('user_member_fk'),

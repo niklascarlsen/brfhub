@@ -9,7 +9,6 @@ import {BackHandler, Pressable, Text, View} from 'react-native';
 import {AdminPage} from '@/admin/AdminPage';
 import {ApartmentDetail} from '@/admin/ApartmentDetail';
 import {ApartmentForm} from '@/admin/ApartmentForm';
-import {PasswordCard} from '@/admin/PasswordCard';
 import {useConfirmLeave} from '@/admin/unsaved';
 import {PRIMARY_BUTTON, PRIMARY_LABEL} from '@/admin/styles';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
@@ -20,11 +19,7 @@ import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useMessages} from '@/i18n/LocaleProvider';
 import theme from '@/theme.json';
 
-type Screen =
-  | {kind: 'list'}
-  | {kind: 'add'}
-  | {kind: 'apartment'; id: string}
-  | {kind: 'password'; apartment: Apartment; password: string};
+type Screen = {kind: 'list'} | {kind: 'add'} | {kind: 'apartment'; id: string};
 
 function matches(apartment: Apartment, query: string): boolean {
   const needle = query.trim().toLowerCase();
@@ -107,8 +102,6 @@ export function AdminApartments() {
     return () => subscription.remove();
   }, [view.kind, focused, confirmLeave]);
   const actions = useAdminActions(reload);
-  const showPassword = (apartment: Apartment, password: string) =>
-    setView({kind: 'password', apartment, password});
 
   if (view.kind === 'add') {
     return (
@@ -124,24 +117,9 @@ export function AdminApartments() {
           submitLabel={t.admin.add}
           onCancel={toList}
           onSubmit={async (fields) => {
-            const result = await actions.apartments.create(fields);
-            showPassword(result.apartment, result.password);
+            const created = await actions.apartments.create(fields);
+            setView({kind: 'apartment', id: created.id});
           }}
-        />
-      </AdminPage>
-    );
-  }
-
-  if (view.kind === 'password') {
-    return (
-      <AdminPage
-        title={t.apartment.title(view.apartment.label)}
-        subtitle={organizationName}
-      >
-        <PasswordCard
-          apartment={view.apartment}
-          password={view.password}
-          onDone={() => setView({kind: 'apartment', id: view.apartment.id})}
         />
       </AdminPage>
     );
@@ -161,7 +139,6 @@ export function AdminApartments() {
             key={apartment.id}
             apartment={apartment}
             onChanged={reload}
-            onPassword={showPassword}
             onRemoved={toList}
           />
         </AdminPage>

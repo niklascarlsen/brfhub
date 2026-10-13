@@ -2,7 +2,8 @@ import {createContext, useContext} from 'react';
 
 import type {Api} from '../api/createApi';
 import type {ClientErrorCode} from '../api/errors';
-import type {BookingWindow, MemberAccount, Resource} from '../api/types';
+import type {BookingWindow, Resource} from '../api/types';
+import type {MemberAccount} from '../auth/account';
 
 // Refetched whenever the user comes back: the window's dates move at
 // midnight, and the device clock cannot tell what the server's day is.
@@ -11,6 +12,8 @@ export type Config = {
   resources: [Resource, ...Resource[]];
   apartment: string;
   organizationName: string;
+  // The account also manages the organization.
+  admin: boolean;
 };
 
 export const ConfigContext = createContext<Config | null>(null);
@@ -67,6 +70,7 @@ export function configView(
       resources: [first, ...rest],
       apartment: account.apartment,
       organizationName: account.organizationName,
+      admin: account.admin,
     },
   };
 }

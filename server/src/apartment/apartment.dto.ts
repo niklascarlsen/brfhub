@@ -35,15 +35,6 @@ export const apartmentParamsSchema = z.object({
   id: z.uuid(),
 });
 
-export const apartmentWithPasswordSchema = z.object({
-  apartment: apartmentSchema,
-  password: z.string(),
-});
-
-export const passwordSchema = z.object({
-  password: z.string(),
-});
-
 export type Apartment = z.infer<typeof apartmentSchema>;
 export type CreateApartmentBody = z.infer<typeof createApartmentBodySchema>;
 export type UpdateApartmentBody = z.infer<typeof updateApartmentBodySchema>;
@@ -53,7 +44,3 @@ z.globalRegistry.add(apartmentSchema, {id: 'Apartment'});
 z.globalRegistry.add(createApartmentBodySchema, {id: 'CreateApartmentBody'});
 z.globalRegistry.add(updateApartmentBodySchema, {id: 'UpdateApartmentBody'});
 z.globalRegistry.add(newResidentBodySchema, {id: 'NewResidentBody'});
-z.globalRegistry.add(apartmentWithPasswordSchema, {
-  id: 'ApartmentWithPassword',
-});
-z.globalRegistry.add(passwordSchema, {id: 'GeneratedPassword'});

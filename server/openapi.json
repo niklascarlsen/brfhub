@@ -85,27 +85,11 @@
       "MemberAccountInput": {
         "type": "object",
         "properties": {
-          "role": {
-            "type": "string",
-            "const": "member"
-          },
-          "organizationName": {
-            "type": "string"
-          },
-          "locales": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/LocaleInput"
-            }
-          },
           "apartment": {
             "type": "string"
           }
         },
         "required": [
-          "role",
-          "organizationName",
-          "locales",
           "apartment"
         ]
       },
@@ -155,10 +139,17 @@
       "AdminAccountInput": {
         "type": "object",
         "properties": {
-          "role": {
-            "type": "string",
-            "const": "admin"
-          },
+          "untranslated": {
+            "$ref": "#/components/schemas/UntranslatedInput"
+          }
+        },
+        "required": [
+          "untranslated"
+        ]
+      },
+      "AccountInput": {
+        "type": "object",
+        "properties": {
           "organizationName": {
             "type": "string"
           },
@@ -168,25 +159,32 @@
               "$ref": "#/components/schemas/LocaleInput"
             }
           },
-          "untranslated": {
-            "$ref": "#/components/schemas/UntranslatedInput"
+          "member": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MemberAccountInput"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "admin": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminAccountInput"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
-          "role",
           "organizationName",
           "locales",
-          "untranslated"
-        ]
-      },
-      "AccountInput": {
-        "oneOf": [
-          {
-            "$ref": "#/components/schemas/MemberAccountInput"
-          },
-          {
-            "$ref": "#/components/schemas/AdminAccountInput"
-          }
+          "member",
+          "admin"
         ]
       },
       "AnnouncementInput": {
@@ -464,30 +462,30 @@
           "email"
         ]
       },
-      "ApartmentWithPasswordInput": {
+      "SignInMethodBodyInput": {
         "type": "object",
         "properties": {
-          "apartment": {
-            "$ref": "#/components/schemas/ApartmentInput"
-          },
-          "password": {
+          "email": {
             "type": "string"
           }
         },
         "required": [
-          "apartment",
-          "password"
+          "email"
         ]
       },
-      "GeneratedPasswordInput": {
+      "SignInMethodInput": {
         "type": "object",
         "properties": {
-          "password": {
-            "type": "string"
+          "method": {
+            "type": "string",
+            "enum": [
+              "code",
+              "password"
+            ]
           }
         },
         "required": [
-          "password"
+          "method"
         ]
       },
       "ResourceInput": {
@@ -1678,27 +1676,11 @@
       "MemberAccount": {
         "type": "object",
         "properties": {
-          "role": {
-            "type": "string",
-            "const": "member"
-          },
-          "organizationName": {
-            "type": "string"
-          },
-          "locales": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Locale"
-            }
-          },
           "apartment": {
             "type": "string"
           }
         },
         "required": [
-          "role",
-          "organizationName",
-          "locales",
           "apartment"
         ],
         "additionalProperties": false
@@ -1750,10 +1732,18 @@
       "AdminAccount": {
         "type": "object",
         "properties": {
-          "role": {
-            "type": "string",
-            "const": "admin"
-          },
+          "untranslated": {
+            "$ref": "#/components/schemas/Untranslated"
+          }
+        },
+        "required": [
+          "untranslated"
+        ],
+        "additionalProperties": false
+      },
+      "Account": {
+        "type": "object",
+        "properties": {
           "organizationName": {
             "type": "string"
           },
@@ -1763,27 +1753,34 @@
               "$ref": "#/components/schemas/Locale"
             }
           },
-          "untranslated": {
-            "$ref": "#/components/schemas/Untranslated"
+          "member": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MemberAccount"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "admin": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminAccount"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
-          "role",
           "organizationName",
           "locales",
-          "untranslated"
+          "member",
+          "admin"
         ],
         "additionalProperties": false
-      },
-      "Account": {
-        "oneOf": [
-          {
-            "$ref": "#/components/schemas/MemberAccount"
-          },
-          {
-            "$ref": "#/components/schemas/AdminAccount"
-          }
-        ]
       },
       "Announcement": {
         "type": "object",
@@ -2076,31 +2073,33 @@
         ],
         "additionalProperties": false
       },
-      "ApartmentWithPassword": {
+      "SignInMethodBody": {
         "type": "object",
         "properties": {
-          "apartment": {
-            "$ref": "#/components/schemas/Apartment"
-          },
-          "password": {
-            "type": "string"
+          "email": {
+            "type": "string",
+            "format": "email",
+            "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
           }
         },
         "required": [
-          "apartment",
-          "password"
+          "email"
         ],
         "additionalProperties": false
       },
-      "GeneratedPassword": {
+      "SignInMethod": {
         "type": "object",
         "properties": {
-          "password": {
-            "type": "string"
+          "method": {
+            "type": "string",
+            "enum": [
+              "code",
+              "password"
+            ]
           }
         },
         "required": [
-          "password"
+          "method"
         ],
         "additionalProperties": false
       },
@@ -3251,6 +3250,92 @@
     }
   },
   "paths": {
+    "/sign-in/method": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignInMethodBodyInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInMethod"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/account": {
       "get": {
         "responses": {
@@ -3422,7 +3507,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApartmentWithPassword"
+                  "$ref": "#/components/schemas/Apartment"
                 }
               }
             }
@@ -3667,7 +3752,7 @@
         }
       }
     },
-    "/admin/apartments/{id}/reset-password": {
+    "/admin/apartments/{id}/sign-out": {
       "post": {
         "parameters": [
           {
@@ -3682,15 +3767,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GeneratedPassword"
-                }
-              }
-            }
+          "204": {
+            "description": "Default Response"
           },
           "400": {
             "description": "Default Response",
@@ -3785,7 +3863,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApartmentWithPassword"
+                  "$ref": "#/components/schemas/Apartment"
                 }
               }
             }

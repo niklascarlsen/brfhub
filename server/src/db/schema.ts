@@ -255,11 +255,9 @@ export const pushTokens = pgTable('push_tokens', {
     .defaultNow(),
 });
 
-export const userRole = pgEnum('user_role', ['member', 'admin']);
-
-// Better Auth owns the shape of these four tables. role, organizationId and
-// memberId are ours: a member account books for one apartment, the one
-// admin account of an organization manages it and books nothing.
+// Better Auth owns the shape of these four tables. organizationId, memberId
+// and admin are ours: an account books for its apartment, manages its
+// organization, or both, and always belongs to one organization.
 export const user = pgTable(
   'user',
   {
@@ -268,12 +266,14 @@ export const user = pgTable(
     email: text('email').notNull().unique(),
     emailVerified: boolean('email_verified').notNull().default(false),
     image: text('image'),
-    role: userRole('role').notNull(),
     organizationId: text('organization_id')
       .notNull()
       .references(() => organizations.id),
+    // The apartment the account books for. Cleared when it moves out.
     memberId: uuid('member_id'),
-    // Kept apart from the sessions, which go when the password changes.
+    admin: boolean('admin').notNull().default(false),
+    // Kept apart from the sessions, which go when the account is signed
+    // out everywhere.
     lastSignInAt: timestamp('last_sign_in_at', {withTimezone: true}),
     createdAt: timestamp('created_at', {withTimezone: true})
       .notNull()
@@ -289,16 +289,14 @@ export const user = pgTable(
       columns: [table.organizationId, table.memberId],
       foreignColumns: [members.organizationId, members.id],
     }),
+    // An account with nothing to do cannot be made.
     check(
-      'user_role_member_check',
-      sql`(${table.role} = 'member') = (${table.memberId} is not null)`,
+      'user_has_role_check',
+      sql`${table.memberId} is not null or ${table.admin}`,
     ),
     uniqueIndex('user_one_account_per_apartment')
       .on(table.memberId)
       .where(sql`${table.memberId} is not null`),
-    uniqueIndex('user_one_admin_per_organization')
-      .on(table.organizationId)
-      .where(sql`${table.role} = 'admin'`),
   ],
 );
 

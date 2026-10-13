@@ -1,5 +1,5 @@
 import {AdminAccountContext} from '@booking/core/admin/account';
-import type {AdminAccount} from '@booking/core/api/types';
+import type {AdminAccount} from '@booking/core/auth/account';
 import {useEffect} from 'react';
 
 import {AdminAnnouncements} from '@/admin/AdminAnnouncements';
@@ -69,12 +69,17 @@ export function AdminShell({account, onRefresh}: AdminShellProps) {
   useHistoryGuard(leaveTo);
 
   // A browser an apartment used before may still hand its push to the
-  // apartment; the admin should not get those notifications.
+  // apartment; an admin without one should not get those notifications.
+  const booksToo = account.apartment !== null;
   useEffect(() => {
+    if (booksToo) {
+      return;
+    }
+
     dropPushSubscription().catch((error: unknown) => {
       console.warn('[push] could not drop subscription', error);
     });
-  }, []);
+  }, [booksToo]);
 
   // A booking page left in the address bar, or a tab not built yet.
   const known = ADMIN_TABS.some((tab) => tab.route === route);

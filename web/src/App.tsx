@@ -1,6 +1,8 @@
 import {useConfig} from '@booking/core/config/config';
 import {isWithinBookingWindow} from '@booking/core/lib/dates';
-import {useEffect, useState} from 'react';
+import type {Mode} from '@booking/core/auth/account';
+import {SwitchModeContext} from '@booking/core/auth/mode';
+import {useCallback, useEffect, useState} from 'react';
 
 import {AdminShell} from '@/admin/AdminShell';
 import {AccountGate} from '@/auth/account';
@@ -100,21 +102,38 @@ function Shell() {
   );
 }
 
+// On the web the mode is the route: an account that both books and
+// manages is on the admin's pages or the apartment's.
+function Gate() {
+  const [route, navigate] = useRoute();
+  const switchMode = useCallback(
+    (mode: Mode) => navigate(mode === 'admin' ? 'admin/apartments' : 'book'),
+    [navigate],
+  );
+
+  return (
+    <SwitchModeContext.Provider value={switchMode}>
+      <AccountGate
+        mode={isAdminRoute(route) ? 'admin' : 'member'}
+        member={(account) => (
+          <ConfigProvider account={account}>
+            <Shell />
+          </ConfigProvider>
+        )}
+        admin={(account, refresh) => (
+          <AdminShell account={account} onRefresh={refresh} />
+        )}
+      />
+    </SwitchModeContext.Provider>
+  );
+}
+
 export function App() {
   return (
     <LocaleProvider>
       <DialogProvider>
         <SessionGate>
-          <AccountGate
-            member={(account) => (
-              <ConfigProvider account={account}>
-                <Shell />
-              </ConfigProvider>
-            )}
-            admin={(account, refresh) => (
-              <AdminShell account={account} onRefresh={refresh} />
-            )}
-          />
+          <Gate />
         </SessionGate>
       </DialogProvider>
     </LocaleProvider>

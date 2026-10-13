@@ -6,12 +6,14 @@ import {db, type Executor} from '../db/index.js';
 import {account, session, user} from '../db/schema.js';
 import {auth} from './auth.js';
 
+// An apartment's account signs in with a code from its mail and has no
+// password. An admin's has one, and so a credential account.
 type NewUser = {
   email: string;
-  password: string;
   name: string;
   organizationId: string;
-} & ({role: 'member'; memberId: string} | {role: 'admin'});
+  memberId?: string;
+} & ({admin: true; password: string} | {admin?: false});
 
 async function hashPassword(password: string): Promise<string> {
   const {password: passwords} = await auth.$context;
@@ -19,23 +21,24 @@ async function hashPassword(password: string): Promise<string> {
 }
 
 // Sign-up over HTTP is disabled, so accounts are written here the way the
-// sign-up route would: a user plus a credential account with the hash. Plain
-// inserts rather than Better Auth's adapter, so both rows can join the
-// caller's transaction.
+// sign-up route would. Plain inserts rather than Better Auth's adapter, so
+// the rows can join the caller's transaction. The address comes from an
+// admin, so it counts as verified: an unverified account has its password
+// and sessions revoked the first time a code signs it in.
 export async function createUser(newUser: NewUser, executor: Executor = db) {
-  const {email, password, name, organizationId, role} = newUser;
+  const {email, name, organizationId, memberId} = newUser;
   const id = randomUUID();
-  const hash = await hashPassword(password);
 
   const [created] = await executor
     .insert(user)
     .values({
       id,
       email: email.toLowerCase(),
+      emailVerified: true,
       name,
-      role,
       organizationId,
-      memberId: newUser.role === 'member' ? newUser.memberId : null,
+      memberId: memberId ?? null,
+      admin: newUser.admin === true,
     })
     .returning();
 
@@ -43,13 +46,15 @@ export async function createUser(newUser: NewUser, executor: Executor = db) {
     throw new Error('Insert returned no user');
   }
 
-  await executor.insert(account).values({
-    id: randomUUID(),
-    userId: id,
-    providerId: 'credential',
-    accountId: id,
-    password: hash,
-  });
+  if (newUser.admin) {
+    await executor.insert(account).values({
+      id: randomUUID(),
+      userId: id,
+      providerId: 'credential',
+      accountId: id,
+      password: await hashPassword(newUser.password),
+    });
+  }
 
   return created;
 }

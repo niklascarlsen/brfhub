@@ -1,15 +1,19 @@
 import {authClient} from '@/auth/client';
 import {useDialog} from '@/components/Dialog';
+import {ChevronForwardIcon} from '@/components/icons';
 import {LanguagePicker} from '@/components/LanguagePicker';
 import {useMessages} from '@/i18n/LocaleProvider';
+import {linkProps, type Route} from '@/lib/route';
 
 type AccountProps = {
   // Completes the sign-out question, such as "lägenhet 12".
   signOutFrom: string;
   onSignOut: () => Promise<void>;
+  // The account's other app, for one that both books and manages.
+  switchTo: {label: string; route: Route; onPress: () => void} | null;
 };
 
-export function Account({signOutFrom, onSignOut}: AccountProps) {
+export function Account({signOutFrom, onSignOut, switchTo}: AccountProps) {
   const {data: session} = authClient.useSession();
   const dialog = useDialog();
   const t = useMessages();
@@ -45,6 +49,15 @@ export function Account({signOutFrom, onSignOut}: AccountProps) {
             {t.account.signOut}
           </button>
         </div>
+        {switchTo ? (
+          <a
+            {...linkProps(switchTo.route, switchTo.onPress)}
+            className='mt-2.5 flex h-12 items-center justify-center gap-2 rounded-2xl border border-theme-line bg-theme-surface px-4.5 text-sm font-semibold tracking-tight text-theme-ink transition-colors hover:bg-theme-sunk active:opacity-70'
+          >
+            {switchTo.label}
+            <ChevronForwardIcon size={16} className='text-theme-faint' />
+          </a>
+        ) : null}
       </div>
       <LanguagePicker />
     </>

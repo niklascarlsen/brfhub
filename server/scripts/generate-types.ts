@@ -9,8 +9,8 @@ import {pool} from '../src/db/index.js';
 import {limitsModule, limitsOf} from './limits.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-// Only reads the routes, so it never sends push.
-const app = await buildApp({push: async () => []});
+// Only reads the routes, so it never sends push or mail.
+const app = await buildApp({push: async () => [], mail: async () => {}});
 
 try {
   await app.ready();

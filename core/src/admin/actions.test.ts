@@ -135,21 +135,20 @@ describe('a button asks first, then sends', () => {
     expect(shown).toHaveLength(1);
   });
 
-  test('a new password is handed on once it is made', async () => {
-    const {actions, shown, press, settled} = setup();
-    const onPassword = vi.fn();
-    answer = {status: 200, body: {password: 'abcd-efgh-jkmn'}};
+  test('signing an apartment out everywhere asks first', async () => {
+    const {actions, shown, onChange, press, settled} = setup();
 
-    actions.apartments.confirmResetPassword(APARTMENT, onPassword);
+    actions.apartments.confirmSignOut(APARTMENT);
 
     expect(shown[0]).toMatchObject({
-      title: t.admin.apartment.resetPassword,
-      message: t.admin.apartment.resetQuestion('12'),
-      action: {label: t.admin.apartment.reset},
+      title: t.admin.apartment.signOut,
+      message: t.admin.apartment.signOutQuestion('12'),
+      action: {label: t.account.signOut},
     });
     expect(shown[0]?.kind === 'confirm' && shown[0].action.destructive).toBe(
       undefined,
     );
+    expect(sent).toEqual([]);
 
     press();
     await settled();
@@ -157,11 +156,11 @@ describe('a button asks first, then sends', () => {
     expect(sent).toEqual([
       {
         method: 'POST',
-        path: '/admin/apartments/apartment-1/reset-password',
+        path: '/admin/apartments/apartment-1/sign-out',
         body: null,
       },
     ]);
-    expect(onPassword).toHaveBeenCalledWith('abcd-efgh-jkmn');
+    expect(onChange).toHaveBeenCalledOnce();
   });
 
   test('removing a notice names it', async () => {

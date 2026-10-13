@@ -20,7 +20,6 @@ type ApartmentDetailProps = {
   // After every change, and after a failure that means the apartment
   // shown is out of date.
   onChanged: () => void;
-  onPassword: (apartment: Apartment, password: string) => void;
   onRemoved: () => void;
 };
 
@@ -91,7 +90,6 @@ type Mode = 'view' | 'edit' | 'new-resident';
 export function ApartmentDetail({
   apartment,
   onChanged,
-  onPassword,
   onRemoved,
 }: ApartmentDetailProps) {
   const t = useMessages();
@@ -131,11 +129,8 @@ export function ApartmentDetail({
         submitLabel={t.admin.apartment.replaceResident}
         onCancel={() => setMode('view')}
         onSubmit={async (fields) => {
-          const result = await actions.apartments.newResident(
-            apartment.id,
-            fields,
-          );
-          onPassword(result.apartment, result.password);
+          await actions.apartments.newResident(apartment.id, fields);
+          setMode('view');
         }}
       />
     );
@@ -172,14 +167,10 @@ export function ApartmentDetail({
             onPress={() => setMode('edit')}
           />
           <Action
-            label={t.admin.apartment.resetPassword}
-            description={t.admin.apartment.resetPasswordHint}
+            label={t.admin.apartment.signOut}
+            description={t.admin.apartment.signOutHint}
             disabled={busy}
-            onPress={() =>
-              actions.apartments.confirmResetPassword(apartment, (password) =>
-                onPassword(apartment, password),
-              )
-            }
+            onPress={() => actions.apartments.confirmSignOut(apartment)}
           />
           <Action
             label={t.admin.apartment.newResident}

@@ -21,10 +21,13 @@ import {addDays, isoDateIn, slotEndsAt} from '../src/lib/time.js';
 const ORGANIZATION_ID = 'demo';
 const OTHER_ORGANIZATION_ID = 'andra';
 const CURRENT_APARTMENT = '12';
-// Every account signs in with this password: apartments in Brf Exempel as
-// <apartment>@example.com, in Brf Andra as <apartment>@andra.example.com,
-// and each admin as admin@ on the same domain.
+// Apartments sign in with a code from their mail, in Brf Exempel as
+// <apartment>@example.com and in Brf Andra as <apartment>@andra.example.com.
+// Each admin signs in as admin@ on the same domain with this password, as
+// does the board member who lives in BOARD_APARTMENT and is both.
 const PASSWORD = 'password';
+const BOARD_APARTMENT = '31';
+const BOARD_EMAIL = 'styrelse@example.com';
 
 // Writes in Swedish and English, so its apartments can pick either.
 const ORGANIZATION = {
@@ -395,14 +398,22 @@ try {
   ]);
 
   for (const label of APARTMENTS) {
-    await createUser({
-      email: `${label}@example.com`,
-      password: PASSWORD,
+    const resident = {
       name: RESIDENTS[label] ?? `Lägenhet ${label}`,
       organizationId: ORGANIZATION_ID,
-      role: 'member',
       memberId: memberId(label),
-    });
+    };
+
+    if (label === BOARD_APARTMENT) {
+      await createUser({
+        ...resident,
+        email: BOARD_EMAIL,
+        password: PASSWORD,
+        admin: true,
+      });
+    } else {
+      await createUser({...resident, email: `${label}@example.com`});
+    }
   }
 
   const otherMembers = await db
@@ -418,10 +429,8 @@ try {
   for (const {id, label} of otherMembers) {
     await createUser({
       email: `${label}@andra.example.com`,
-      password: PASSWORD,
       name: RESIDENTS[label] ?? `Lägenhet ${label}`,
       organizationId: OTHER_ORGANIZATION_ID,
-      role: 'member',
       memberId: id,
     });
   }
@@ -431,14 +440,14 @@ try {
     password: PASSWORD,
     name: `Admin ${ORGANIZATION.name}`,
     organizationId: ORGANIZATION_ID,
-    role: 'admin',
+    admin: true,
   });
   await createUser({
     email: 'admin@andra.example.com',
     password: PASSWORD,
     name: `Admin ${OTHER_ORGANIZATION.name}`,
     organizationId: OTHER_ORGANIZATION_ID,
-    role: 'admin',
+    admin: true,
   });
 
   console.log('Seed complete');

@@ -93,7 +93,7 @@ try {
         password,
         name: `Admin ${name}`,
         organizationId: id,
-        role: 'admin',
+        admin: true,
       },
       tx,
     );

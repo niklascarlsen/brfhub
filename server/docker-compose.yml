@@ -33,5 +33,13 @@ services:
       timeout: 5s
       retries: 10
 
+  # Catches every mail the server sends in dev, shown at http://localhost:8025.
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: booking-mailpit
+    ports:
+      - '1025:1025'
+      - '8025:8025'
+
 volumes:
   booking_pg_data:

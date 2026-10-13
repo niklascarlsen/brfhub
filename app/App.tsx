@@ -12,7 +12,9 @@ import {
   NavigationContainer,
 } from '@react-navigation/native';
 import {StatusBar} from 'expo-status-bar';
-import {useCallback, useEffect, useRef} from 'react';
+import type {Mode} from '@booking/core/auth/account';
+import {SwitchModeContext} from '@booking/core/auth/mode';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {View} from 'react-native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 
@@ -41,6 +43,33 @@ function PushRegistration() {
   }, [locale, channelName]);
 
   return null;
+}
+
+// Which app an account that both books and manages is shown. Lives under
+// SessionGate, so signing out forgets it.
+function Gate({onReady}: {onReady: () => void}) {
+  const [mode, setMode] = useState<Mode | null>(null);
+
+  return (
+    <SwitchModeContext.Provider value={setMode}>
+      <AccountGate
+        mode={mode}
+        member={(account) => (
+          <>
+            <PushRegistration />
+            <ConfigProvider account={account}>
+              <NavigationContainer ref={navigationRef} onReady={onReady}>
+                <AppTabNavigator />
+              </NavigationContainer>
+            </ConfigProvider>
+          </>
+        )}
+        admin={(account, refresh) => (
+          <AdminShell account={account} onRefresh={refresh} />
+        )}
+      />
+    </SwitchModeContext.Provider>
+  );
 }
 
 export default function App() {
@@ -83,21 +112,7 @@ export default function App() {
       <SafeAreaProvider>
         <DialogProvider>
           <SessionGate>
-            <AccountGate
-              member={(account) => (
-                <>
-                  <PushRegistration />
-                  <ConfigProvider account={account}>
-                    <NavigationContainer ref={navigationRef} onReady={onReady}>
-                      <AppTabNavigator />
-                    </NavigationContainer>
-                  </ConfigProvider>
-                </>
-              )}
-              admin={(account, refresh) => (
-                <AdminShell account={account} onRefresh={refresh} />
-              )}
-            />
+            <Gate onReady={onReady} />
             <StatusBar style='dark' />
           </SessionGate>
         </DialogProvider>

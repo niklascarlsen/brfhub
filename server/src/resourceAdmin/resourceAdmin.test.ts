@@ -12,6 +12,7 @@ import type {BookingWindow, Slots} from '../slot/slot.dto.js';
 import {
   assertTestDatabase,
   codeOf,
+  memoryMail,
   memoryPush,
   resetDatabase,
   seedOrganization,
@@ -76,7 +77,11 @@ const slot = (start: string, end: string, endOffsetDays: 0 | 1 = 0) => ({
 before(async () => {
   await assertTestDatabase();
 
-  server = await buildApp({logger: false, push: memoryPush().send});
+  server = await buildApp({
+    logger: false,
+    push: memoryPush().send,
+    mail: memoryMail().send,
+  });
   await resetDatabase();
 
   await seedOrganization({

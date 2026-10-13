@@ -126,25 +126,21 @@ export function adminActions({
         ),
       ),
 
-    confirmResetPassword: (
-      apartment: Apartment,
-      onPassword: (password: string) => void,
-    ) =>
+    // Every device signed in as the apartment has to sign in again, after
+    // a phone has gone missing.
+    confirmSignOut: (apartment: Apartment) =>
       dialog.confirm(
-        t.admin.apartment.resetPassword,
-        t.admin.apartment.resetQuestion(apartment.label),
+        t.admin.apartment.signOut,
+        t.admin.apartment.signOutQuestion(apartment.label),
         {
-          label: t.admin.apartment.reset,
+          label: t.account.signOut,
           onPress: () => {
-            void mutate(
-              t.admin.apartment.resetFailed,
-              () =>
-                unwrap(
-                  api.POST('/admin/apartments/{id}/reset-password', {
-                    params: {path: {id: apartment.id}},
-                  }),
-                ),
-              ({password}) => onPassword(password),
+            void mutate(t.admin.apartment.signOutFailed, () =>
+              unwrap(
+                api.POST('/admin/apartments/{id}/sign-out', {
+                  params: {path: {id: apartment.id}},
+                }),
+              ),
             );
           },
         },

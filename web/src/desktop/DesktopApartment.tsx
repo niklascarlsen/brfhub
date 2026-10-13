@@ -1,3 +1,4 @@
+import {useSwitchMode} from '@booking/core/auth/mode';
 import {useConfig} from '@booking/core/config/config';
 
 import {signOut} from '@/auth/signOut';
@@ -15,7 +16,8 @@ export function DesktopApartment({
 }: {
   onNavigate: (route: Route) => void;
 }) {
-  const {apartment, organizationName} = useConfig();
+  const {apartment, organizationName, admin} = useConfig();
+  const switchMode = useSwitchMode();
   const t = useMessages();
 
   return (
@@ -38,6 +40,15 @@ export function DesktopApartment({
           <Account
             signOutFrom={t.apartment.signOutFrom(apartment)}
             onSignOut={signOut}
+            switchTo={
+              admin
+                ? {
+                    label: t.account.openAdmin,
+                    route: 'admin/apartments',
+                    onPress: () => switchMode('admin'),
+                  }
+                : null
+            }
           />
           <AnnouncementList />
         </div>

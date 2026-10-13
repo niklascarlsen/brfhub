@@ -23,3 +23,21 @@ function readWebOrigin(): string | undefined {
 }
 
 export const WEB_ORIGIN = readWebOrigin();
+
+// Where mail goes out. Unset sends to Mailpit from docker-compose, which
+// only dev may do.
+function readMailSettings(): {smtpUrl: string; from: string} {
+  const smtpUrl = process.env.SMTP_URL;
+  const from = process.env.MAIL_FROM;
+
+  if (production && (!smtpUrl || !from)) {
+    throw new Error('SMTP_URL and MAIL_FROM are required in production');
+  }
+
+  return {
+    smtpUrl: smtpUrl || 'smtp://localhost:1025',
+    from: from || 'Boka <boka@localhost>',
+  };
+}
+
+export const MAIL = readMailSettings();

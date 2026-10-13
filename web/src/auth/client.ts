@@ -1,9 +1,11 @@
+import {emailOTPClient} from 'better-auth/client/plugins';
 import {createAuthClient} from 'better-auth/react';
 
 import {apiBaseUrl} from '@/api/baseUrl';
 
 export const authClient = createAuthClient({
   baseURL: `${apiBaseUrl()}/auth`,
+  plugins: [emailOTPClient()],
 });
 
 // Makes useSession refetch, so a session the server no longer accepts

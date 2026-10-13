@@ -4,6 +4,99 @@
  */
 
 export interface paths {
+    "/sign-in/method": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SignInMethodBodyInput"];
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SignInMethod"];
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/account": {
         parameters: {
             query?: never;
@@ -194,7 +287,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ApartmentWithPassword"];
+                        "application/json": components["schemas"]["Apartment"];
                     };
                 };
                 /** @description Default Response */
@@ -427,7 +520,7 @@ export interface paths {
         };
         trace?: never;
     };
-    "/admin/apartments/{id}/reset-password": {
+    "/admin/apartments/{id}/sign-out": {
         parameters: {
             query?: never;
             header?: never;
@@ -448,13 +541,11 @@ export interface paths {
             requestBody?: never;
             responses: {
                 /** @description Default Response */
-                200: {
+                204: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content: {
-                        "application/json": components["schemas"]["GeneratedPassword"];
-                    };
+                    content?: never;
                 };
                 /** @description Default Response */
                 400: {
@@ -548,7 +639,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ApartmentWithPassword"];
+                        "application/json": components["schemas"]["Apartment"];
                     };
                 };
                 /** @description Default Response */
@@ -3314,10 +3405,6 @@ export interface components {
             en?: string[];
         };
         MemberAccountInput: {
-            /** @constant */
-            role: "member";
-            organizationName: string;
-            locales: components["schemas"]["LocaleInput"][];
             apartment: string;
         };
         UntranslatedInput: {
@@ -3328,13 +3415,14 @@ export interface components {
             rules: boolean;
         } | null;
         AdminAccountInput: {
-            /** @constant */
-            role: "admin";
-            organizationName: string;
-            locales: components["schemas"]["LocaleInput"][];
             untranslated: components["schemas"]["UntranslatedInput"];
         };
-        AccountInput: components["schemas"]["MemberAccountInput"] | components["schemas"]["AdminAccountInput"];
+        AccountInput: {
+            organizationName: string;
+            locales: components["schemas"]["LocaleInput"][];
+            member: components["schemas"]["MemberAccountInput"] | null;
+            admin: components["schemas"]["AdminAccountInput"] | null;
+        };
         AnnouncementInput: {
             /** Format: uuid */
             id: string;
@@ -3398,12 +3486,12 @@ export interface components {
             residentName: string;
             email: string;
         };
-        ApartmentWithPasswordInput: {
-            apartment: components["schemas"]["ApartmentInput"];
-            password: string;
+        SignInMethodBodyInput: {
+            email: string;
         };
-        GeneratedPasswordInput: {
-            password: string;
+        SignInMethodInput: {
+            /** @enum {string} */
+            method: "code" | "password";
         };
         ResourceInput: {
             id: string;
@@ -3684,10 +3772,6 @@ export interface components {
             en?: string[];
         };
         MemberAccount: {
-            /** @constant */
-            role: "member";
-            organizationName: string;
-            locales: components["schemas"]["Locale"][];
             apartment: string;
         };
         Untranslated: {
@@ -3698,13 +3782,14 @@ export interface components {
             rules: boolean;
         } | null;
         AdminAccount: {
-            /** @constant */
-            role: "admin";
-            organizationName: string;
-            locales: components["schemas"]["Locale"][];
             untranslated: components["schemas"]["Untranslated"];
         };
-        Account: components["schemas"]["MemberAccount"] | components["schemas"]["AdminAccount"];
+        Account: {
+            organizationName: string;
+            locales: components["schemas"]["Locale"][];
+            member: components["schemas"]["MemberAccount"] | null;
+            admin: components["schemas"]["AdminAccount"] | null;
+        };
         Announcement: {
             /** Format: uuid */
             id: string;
@@ -3771,12 +3856,13 @@ export interface components {
             /** Format: email */
             email: string;
         };
-        ApartmentWithPassword: {
-            apartment: components["schemas"]["Apartment"];
-            password: string;
+        SignInMethodBody: {
+            /** Format: email */
+            email: string;
         };
-        GeneratedPassword: {
-            password: string;
+        SignInMethod: {
+            /** @enum {string} */
+            method: "code" | "password";
         };
         Resource: {
             id: string;

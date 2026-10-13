@@ -1,5 +1,5 @@
 import {errorMessage} from '@booking/core/api/errors';
-import type {MemberAccount} from '@booking/core/api/types';
+import type {MemberAccount} from '@booking/core/auth/account';
 import {
   ConfigContext,
   configView,

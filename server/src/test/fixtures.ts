@@ -1,4 +1,4 @@
-import {sql} from 'drizzle-orm';
+import {eq, sql} from 'drizzle-orm';
 
 import type {buildApp} from '../app.js';
 import {createUser} from '../auth/auth.service.js';
@@ -9,10 +9,13 @@ import {
   resourceKinds,
   resourceSlots,
   resources,
+  user,
 } from '../db/schema.js';
 import type {Locale} from '../lib/locale.js';
+import type {Mail, SendMail} from '../lib/mail.js';
 import type {PushFailure, PushMessage, SendPush} from '../lib/push.js';
 
+// The admins' password. Apartments sign in with a code from their mail.
 export const PASSWORD = 'password';
 export const ORIGIN = 'http://localhost:5173';
 
@@ -61,6 +64,39 @@ export function memoryPush() {
   };
 }
 
+// Mail that stays in memory. The newest mailbox is the one signIn reads
+// the apartments' codes from, so a test file makes one and hands its send
+// to buildApp.
+let mailbox: ReturnType<typeof memoryMail> | null = null;
+
+export function memoryMail() {
+  const sent: Mail[] = [];
+  const send: SendMail = async (mail) => {
+    sent.push(mail);
+  };
+
+  const box = {
+    send,
+    sent,
+    // The newest mail to the address, sent after the given count of mails.
+    lastTo(to: string, since = 0): Mail | undefined {
+      return sent
+        .slice(since)
+        .filter((mail) => mail.to === to.toLowerCase())
+        .at(-1);
+    },
+  };
+  mailbox = box;
+
+  return box;
+}
+
+// The sign-in code in the newest mail to the address, or null when none
+// has come since the given count of sent mails.
+export function codeSentTo(email: string, since = 0): string | null {
+  return mailbox?.lastTo(email, since)?.text.match(/\b\d{6}\b/)?.[0] ?? null;
+}
+
 export async function assertTestDatabase() {
   const [connection] = (
     await db.execute<{name: string}>(sql`select current_database() as name`)
@@ -96,7 +132,7 @@ type OrganizationSeed = {
 };
 
 // One organization with its resources, an account per apartment and its
-// admin, all signing in with PASSWORD. Returns the member id per apartment.
+// admin, who signs in with PASSWORD. Returns the member id per apartment.
 export async function seedOrganization(
   seed: OrganizationSeed,
 ): Promise<Map<string, string>> {
@@ -135,10 +171,8 @@ export async function seedOrganization(
   for (const row of rows) {
     await createUser({
       email: seed.emailOf(row.label),
-      password: PASSWORD,
       name: `Lägenhet ${row.label}`,
       organizationId,
-      role: 'member',
       memberId: row.id,
     });
   }
@@ -148,32 +182,63 @@ export async function seedOrganization(
     password: PASSWORD,
     name: `Admin ${seed.organization.name}`,
     organizationId,
-    role: 'admin',
+    admin: true,
   });
 
   return new Map(rows.map((row) => [row.label, row.id]));
 }
 
-// Signs in through the auth route the clients use and folds Set-Cookie into
-// the Cookie header the next request sends.
-export async function signIn(
-  server: Server,
-  email: string,
-  password = PASSWORD,
-) {
-  const response = await server.inject({
-    method: 'POST',
-    url: '/auth/sign-in/email',
-    headers: {origin: ORIGIN},
-    payload: {email, password},
-  });
-
+function cookieFrom(response: {headers: {'set-cookie'?: string | string[]}}) {
   const setCookie = response.headers['set-cookie'] ?? [];
-  const cookie = (Array.isArray(setCookie) ? setCookie : [setCookie])
+
+  return (Array.isArray(setCookie) ? setCookie : [setCookie])
     .map((entry) => entry.split(';')[0])
     .join('; ');
+}
 
-  return {response, cookie};
+// Signs in through the auth routes the clients use, with the password when
+// the account is an admin's and otherwise with the code it is mailed, and
+// folds Set-Cookie into the Cookie header the next request sends. A given
+// password is always tried, so a test can see one refused.
+export async function signIn(server: Server, email: string, password?: string) {
+  const [account] = await db
+    .select({admin: user.admin})
+    .from(user)
+    .where(eq(user.email, email.toLowerCase()));
+
+  if (password !== undefined || account?.admin) {
+    const response = await server.inject({
+      method: 'POST',
+      url: '/auth/sign-in/email',
+      headers: {origin: ORIGIN},
+      payload: {email, password: password ?? PASSWORD},
+    });
+
+    return {response, cookie: cookieFrom(response)};
+  }
+
+  const before = mailbox?.sent.length ?? 0;
+  const sent = await server.inject({
+    method: 'POST',
+    url: '/auth/email-otp/send-verification-otp',
+    headers: {origin: ORIGIN},
+    payload: {email, type: 'sign-in'},
+  });
+
+  if (sent.statusCode !== 200) {
+    return {response: sent, cookie: ''};
+  }
+
+  // An unknown address is mailed nothing, and a made-up code is refused
+  // the way the client would be.
+  const response = await server.inject({
+    method: 'POST',
+    url: '/auth/sign-in/email-otp',
+    headers: {origin: ORIGIN},
+    payload: {email, otp: codeSentTo(email, before) ?? '000000'},
+  });
+
+  return {response, cookie: cookieFrom(response)};
 }
 
 export function codeOf(response: {json: <T>() => T}) {
