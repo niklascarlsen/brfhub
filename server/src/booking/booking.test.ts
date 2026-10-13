@@ -347,13 +347,13 @@ test('rejects a second booking for the same apartment', async () => {
   );
 });
 
-test('replaces the active booking when replaceExisting is set', async () => {
+test('replaces the booking it names when the cap is reached', async () => {
   const first = await book(TENANT, {date: bookableDate, start: '07:00'});
 
   const response = await book(TENANT, {
     date: bookableDate,
     start: '13:00',
-    replaceExisting: true,
+    replaceBookingId: first.json<CreatedBooking>().id,
   });
   const created = response.json<CreatedBooking>();
 
@@ -454,7 +454,7 @@ test('rejects a new booking after the apartment opens a started slot', async () 
   const replace = await book(TENANT, {
     date: bookableDate,
     start: '07:00',
-    replaceExisting: true,
+    replaceBookingId: id,
   });
   assert.equal(replace.statusCode, 409);
   assert.equal(codeOf(replace), 'HAS_ACTIVE_BOOKING');
@@ -472,7 +472,7 @@ test('refuses to swap away a booking that has started', async () => {
   const swap = await book(TENANT, {
     date: bookableDate,
     start: '07:00',
-    replaceExisting: true,
+    replaceBookingId: id,
   });
   assert.equal(swap.statusCode, 409);
   assert.equal(codeOf(swap), 'HAS_ACTIVE_BOOKING');
@@ -786,7 +786,7 @@ test('replaces only the laundry booking when switching rooms', async () => {
     date: bookableDate,
     start: '13:00',
     resourceId: LAUNDRY_2,
-    replaceExisting: true,
+    replaceBookingId: first.json<CreatedBooking>().id,
   });
 
   assert.equal(swapped.statusCode, 201);
@@ -849,17 +849,151 @@ test('keeps the laundry queue off the other room', async () => {
   assert.ok(slot?.status === 'booked' && slot.subscriptionId);
 });
 
-test('slots report the active booking of the same kind', async () => {
-  const before = await slotsFor(TENANT, bookableDate, LAUNDRY_2);
-  assert.equal(before.json<Slots>().active, null);
+function heldIds(held: Slots['held']) {
+  return held.bookings.map((booking) => booking.id);
+}
 
-  await book(TENANT, {date: bookableDate, start: '07:00'});
+test('slots report what the apartment holds of the same kind', async () => {
+  const before = await slotsFor(TENANT, bookableDate, LAUNDRY_2);
+  assert.deepEqual(before.json<Slots>().held, {max: 1, bookings: []});
+
+  const created = (
+    await book(TENANT, {date: bookableDate, start: '07:00'})
+  ).json<CreatedBooking>();
 
   const sameKind = await slotsFor(TENANT, bookableDate, LAUNDRY_2);
-  assert.deepEqual(sameKind.json<Slots>().active, {released: false});
+  assert.deepEqual(sameKind.json<Slots>().held, {
+    max: 1,
+    bookings: [
+      {
+        id: created.id,
+        date: bookableDate,
+        start: '07:00',
+        end: '10:00',
+        resourceName: 'Tvättstuga 1',
+        started: false,
+        released: false,
+      },
+    ],
+  });
 
   const otherKind = await slotsFor(TENANT, bookableDate, DRYING);
-  assert.equal(otherKind.json<Slots>().active, null);
+  assert.deepEqual(heldIds(otherKind.json<Slots>().held), []);
+});
+
+test('a kind with room for two reports both bookings and its cap', async () => {
+  const first = await book(TENANT, {
+    date: bookableDate,
+    start: '07:00',
+    resourceId: SAUNA,
+  });
+  const second = await book(TENANT, {
+    date: bookableDate,
+    start: '10:00',
+    resourceId: SAUNA,
+  });
+
+  const {held} = (await slotsFor(TENANT, bookableDate, SAUNA)).json<Slots>();
+
+  assert.equal(held.max, 2);
+  assert.deepEqual(heldIds(held), [
+    first.json<CreatedBooking>().id,
+    second.json<CreatedBooking>().id,
+  ]);
+});
+
+test('at the cap of two, swaps the booking it names and keeps the other', async () => {
+  const first = await book(TENANT, {
+    date: bookableDate,
+    start: '07:00',
+    resourceId: SAUNA,
+  });
+  const second = await book(TENANT, {
+    date: bookableDate,
+    start: '10:00',
+    resourceId: SAUNA,
+  });
+
+  const third = await book(TENANT, {
+    date: bookableDate,
+    start: '13:00',
+    resourceId: SAUNA,
+    replaceBookingId: second.json<CreatedBooking>().id,
+  });
+
+  assert.equal(third.statusCode, 201);
+  assert.equal(
+    third.json<CreatedBooking>().replacedId,
+    second.json<CreatedBooking>().id,
+  );
+  assert.deepEqual(
+    (await myBookings(TENANT)).json<Booking[]>().map((booking) => booking.id),
+    [first.json<CreatedBooking>().id, third.json<CreatedBooking>().id],
+  );
+});
+
+test('at the cap, refuses a swap that names no booking of the kind', async () => {
+  const drying = await book(TENANT, {
+    date: bookableDate,
+    start: '07:00',
+    resourceId: DRYING,
+  });
+  for (const start of ['07:00', '10:00']) {
+    await book(TENANT, {date: bookableDate, start, resourceId: SAUNA});
+  }
+
+  for (const replaceBookingId of [
+    undefined,
+    drying.json<CreatedBooking>().id,
+    UNKNOWN_ID,
+  ]) {
+    const response = await book(TENANT, {
+      date: bookableDate,
+      start: '13:00',
+      resourceId: SAUNA,
+      ...(replaceBookingId ? {replaceBookingId} : {}),
+    });
+
+    assert.equal(response.statusCode, 409);
+    assert.equal(codeOf(response), 'HAS_ACTIVE_BOOKING');
+  }
+  assert.equal((await myBookings(TENANT)).json<Booking[]>().length, 3);
+});
+
+test('under the cap, books without giving up the booking it names', async () => {
+  const first = await book(TENANT, {
+    date: bookableDate,
+    start: '07:00',
+    resourceId: SAUNA,
+  });
+
+  const second = await book(TENANT, {
+    date: bookableDate,
+    start: '10:00',
+    resourceId: SAUNA,
+    replaceBookingId: first.json<CreatedBooking>().id,
+  });
+
+  assert.equal(second.statusCode, 201);
+  assert.equal(second.json<CreatedBooking>().replacedId, null);
+  assert.equal((await myBookings(TENANT)).json<Booking[]>().length, 2);
+});
+
+test('a queue place reports what the apartment holds of its kind', async () => {
+  await book(NEIGHBOUR, {date: bookableDate, start: '07:00'});
+  const mine = await book(TENANT, {date: bookableDate, start: '10:00'});
+  const queued = await subscribe(TENANT, {date: bookableDate, start: '07:00'});
+
+  const expected = {max: 1, ids: [mine.json<CreatedBooking>().id]};
+  const fromQueueing = queued.json<Subscription>().held;
+  const [listed] = (await mySubscriptions(TENANT)).json<Subscription[]>();
+
+  for (const held of [fromQueueing, listed?.held]) {
+    assert.deepEqual(
+      {max: held?.max, ids: held?.bookings.map((booking) => booking.id)},
+      expected,
+    );
+  }
 });
 
 test('slots report a released booking as still active', async () => {
@@ -867,7 +1001,14 @@ test('slots report a released booking as still active', async () => {
   await cancel(TENANT, id);
 
   const listed = await slotsFor(TENANT, bookableDate, LAUNDRY_2);
-  assert.deepEqual(listed.json<Slots>().active, {released: true});
+  assert.deepEqual(
+    listed.json<Slots>().held.bookings.map(({id: held, started, released}) => ({
+      id: held,
+      started,
+      released,
+    })),
+    [{id, started: true, released: true}],
+  );
 });
 
 test('a started booking in one room does not occupy the other', async () => {
@@ -1125,7 +1266,7 @@ test('each device hears of a freed slot in its own language', async () => {
 });
 
 test('a swap announces the slot the apartment gave up', async () => {
-  await book(NEIGHBOUR, {date: bookableDate, start: '07:00'});
+  const first = await book(NEIGHBOUR, {date: bookableDate, start: '07:00'});
   await subscribe(TENANT, {date: bookableDate, start: '07:00'});
   await addDevice(TENANT);
   await addDevice(NEIGHBOUR);
@@ -1133,7 +1274,7 @@ test('a swap announces the slot the apartment gave up', async () => {
   const swapped = await book(NEIGHBOUR, {
     date: bookableDate,
     start: '10:00',
-    replaceExisting: true,
+    replaceBookingId: first.json<CreatedBooking>().id,
   });
 
   assert.equal(swapped.statusCode, 201);
@@ -1153,7 +1294,7 @@ test('cancelling and swapping answer before the push service does', async () => 
       book(NEIGHBOUR, {
         date: bookableDate,
         start: '10:00',
-        replaceExisting: true,
+        replaceBookingId: first.json<CreatedBooking>().id,
       }),
     );
     await subscribe(TENANT, {date: bookableDate, start: '10:00'});
@@ -1484,8 +1625,8 @@ test('a schedule matches the slots of each resource', async () => {
     const entry = schedule.find((item) => item.resourceId === resource.id);
 
     assert.deepEqual(
-      {slots: entry?.slots, active: entry?.active},
-      {slots: single.slots, active: single.active},
+      {slots: entry?.slots, held: entry?.held},
+      {slots: single.slots, held: single.held},
     );
   }
 });
@@ -1496,13 +1637,13 @@ test('a schedule reports the active booking only on its own kind', async () => {
   const schedule = (
     await scheduleBetween(TENANT, bookableDate, bookableDate)
   ).json<ResourceSchedule[]>();
-  const activeOf = (id: string) =>
-    schedule.find((entry) => entry.resourceId === id)?.active;
+  const heldOn = (id: string) =>
+    schedule.find((entry) => entry.resourceId === id)?.held.bookings.length;
 
-  assert.deepEqual(activeOf(LAUNDRY_1), {released: false});
-  assert.deepEqual(activeOf(LAUNDRY_2), {released: false});
-  assert.equal(activeOf(DRYING), null);
-  assert.equal(activeOf(SAUNA), null);
+  assert.equal(heldOn(LAUNDRY_1), 1);
+  assert.equal(heldOn(LAUNDRY_2), 1);
+  assert.equal(heldOn(DRYING), 0);
+  assert.equal(heldOn(SAUNA), 0);
 });
 
 test('rejects a schedule outside the booking window', async () => {

@@ -32,6 +32,7 @@ import type {Subscription} from '../subscription/subscription.dto.js';
 import type {CreatedBooking} from './booking.dto.js';
 import {announceReleased, queueOf} from './booking.notification.js';
 import {stillActive} from './booking.query.js';
+import {heldBookingsByKind, heldOf} from './held.js';
 
 // How a booking begins and ends: booking a slot, queueing for one another
 // apartment holds, letting one go, and an apartment letting all of its go.
@@ -196,25 +197,18 @@ async function letGo(
   return free(tx, booking, releasedBy);
 }
 
-// With the kind's cap reached, a kind that allows one booking at a time
-// swaps it for the new one when asked to. One that has started counts
-// until it ends, released or not, so it cannot be swapped away.
+// With the kind's cap reached, the apartment gives up the booking it named
+// for the new one. One that has started counts until it ends, released or
+// not, so it cannot be given up.
 async function swapOut(
   tx: Transaction,
   active: Held[],
-  resource: BookableResource,
-  replaceExisting: boolean,
+  replaceBookingId: string | undefined,
   member: Member,
 ): Promise<{replaced: Held; told: Recipients}> {
-  const [existing] = active;
+  const existing = active.find((booking) => booking.id === replaceBookingId);
 
-  if (
-    resource.maxActive !== 1 ||
-    !replaceExisting ||
-    !existing ||
-    existing.started ||
-    existing.released
-  ) {
+  if (!existing || existing.started || existing.released) {
     throw appError('HAS_ACTIVE_BOOKING');
   }
 
@@ -230,14 +224,14 @@ export async function book({
   date,
   start,
   resourceId,
-  replaceExisting,
+  replaceBookingId,
   notifier,
 }: {
   member: Member;
   date: string;
   start: string;
   resourceId: string;
-  replaceExisting: boolean;
+  replaceBookingId?: string;
   notifier: Notifier;
 }): Promise<CreatedBooking> {
   const resource = await bookableResource(member, resourceId);
@@ -254,7 +248,7 @@ export async function book({
       );
       const swapped =
         active.length >= resource.maxActive
-          ? await swapOut(tx, active, resource, replaceExisting, member)
+          ? await swapOut(tx, active, replaceBookingId, member)
           : null;
 
       const [row] = await tx
@@ -421,6 +415,11 @@ export async function queue({
     resourceId: resource.id,
     resourceName: resource.name,
     resourceKind: resource.kind,
+    held: heldOf(
+      resource.kind,
+      resource.maxActive,
+      await heldBookingsByKind(member),
+    ),
   };
 }
 

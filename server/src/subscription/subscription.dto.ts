@@ -1,5 +1,6 @@
 import {z} from 'zod';
 
+import {heldSchema} from '../booking/booking.dto.js';
 import {resourceRefSchema} from '../resource/resource.dto.js';
 
 export const subscriptionSchema = resourceRefSchema.extend({
@@ -10,6 +11,8 @@ export const subscriptionSchema = resourceRefSchema.extend({
   endsAt: z.iso.datetime(),
   available: z.boolean(),
   started: z.boolean(),
+  // What the apartment holds of the slot's kind, to offer booking it.
+  held: heldSchema,
 });
 
 export const createSubscriptionBodySchema = z.object({

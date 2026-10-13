@@ -486,7 +486,6 @@ test('an account replaced while it waited cannot book', async () => {
       date: inDays(2),
       start: SLOT.start,
       resourceId: 'north-laundry',
-      replaceExisting: false,
       notifier: server.notifier,
     }),
     (error: unknown) => codeOf({json: () => error as never}) === 'UNAUTHORIZED',

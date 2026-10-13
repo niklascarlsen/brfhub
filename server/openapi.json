@@ -781,14 +781,75 @@
             "type": "string",
             "minLength": 1
           },
-          "replaceExisting": {
-            "type": "boolean"
+          "replaceBookingId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
           }
         },
         "required": [
           "date",
           "start",
           "resourceId"
+        ]
+      },
+      "HeldBookingInput": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "start": {
+            "type": "string"
+          },
+          "end": {
+            "type": "string"
+          },
+          "resourceName": {
+            "type": "string"
+          },
+          "started": {
+            "type": "boolean"
+          },
+          "released": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "date",
+          "start",
+          "end",
+          "resourceName",
+          "started",
+          "released"
+        ]
+      },
+      "HeldInput": {
+        "type": "object",
+        "properties": {
+          "max": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "bookings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HeldBookingInput"
+            }
+          }
+        },
+        "required": [
+          "max",
+          "bookings"
         ]
       },
       "OrganizationSettingsInput": {
@@ -1399,28 +1460,13 @@
               "$ref": "#/components/schemas/SlotInput"
             }
           },
-          "active": {
-            "anyOf": [
-              {
-                "type": "object",
-                "properties": {
-                  "released": {
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "released"
-                ]
-              },
-              {
-                "type": "null"
-              }
-            ]
+          "held": {
+            "$ref": "#/components/schemas/HeldInput"
           }
         },
         "required": [
           "slots",
-          "active"
+          "held"
         ]
       },
       "ResourceScheduleInput": {
@@ -1432,23 +1478,8 @@
               "$ref": "#/components/schemas/SlotInput"
             }
           },
-          "active": {
-            "anyOf": [
-              {
-                "type": "object",
-                "properties": {
-                  "released": {
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "released"
-                ]
-              },
-              {
-                "type": "null"
-              }
-            ]
+          "held": {
+            "$ref": "#/components/schemas/HeldInput"
           },
           "resourceId": {
             "type": "string"
@@ -1456,7 +1487,7 @@
         },
         "required": [
           "slots",
-          "active",
+          "held",
           "resourceId"
         ]
       },
@@ -1523,6 +1554,9 @@
           },
           "started": {
             "type": "boolean"
+          },
+          "held": {
+            "$ref": "#/components/schemas/HeldInput"
           }
         },
         "required": [
@@ -1535,7 +1569,8 @@
           "end",
           "endsAt",
           "available",
-          "started"
+          "started",
+          "held"
         ]
       },
       "CreateSubscriptionBodyInput": {
@@ -2369,14 +2404,77 @@
             "type": "string",
             "minLength": 1
           },
-          "replaceExisting": {
-            "type": "boolean"
+          "replaceBookingId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
           }
         },
         "required": [
           "date",
           "start",
           "resourceId"
+        ],
+        "additionalProperties": false
+      },
+      "HeldBooking": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "start": {
+            "type": "string"
+          },
+          "end": {
+            "type": "string"
+          },
+          "resourceName": {
+            "type": "string"
+          },
+          "started": {
+            "type": "boolean"
+          },
+          "released": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "date",
+          "start",
+          "end",
+          "resourceName",
+          "started",
+          "released"
+        ],
+        "additionalProperties": false
+      },
+      "Held": {
+        "type": "object",
+        "properties": {
+          "max": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "bookings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HeldBooking"
+            }
+          }
+        },
+        "required": [
+          "max",
+          "bookings"
         ],
         "additionalProperties": false
       },
@@ -3009,29 +3107,13 @@
               "$ref": "#/components/schemas/Slot"
             }
           },
-          "active": {
-            "anyOf": [
-              {
-                "type": "object",
-                "properties": {
-                  "released": {
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "released"
-                ],
-                "additionalProperties": false
-              },
-              {
-                "type": "null"
-              }
-            ]
+          "held": {
+            "$ref": "#/components/schemas/Held"
           }
         },
         "required": [
           "slots",
-          "active"
+          "held"
         ],
         "additionalProperties": false
       },
@@ -3044,24 +3126,8 @@
               "$ref": "#/components/schemas/Slot"
             }
           },
-          "active": {
-            "anyOf": [
-              {
-                "type": "object",
-                "properties": {
-                  "released": {
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "released"
-                ],
-                "additionalProperties": false
-              },
-              {
-                "type": "null"
-              }
-            ]
+          "held": {
+            "$ref": "#/components/schemas/Held"
           },
           "resourceId": {
             "type": "string"
@@ -3069,7 +3135,7 @@
         },
         "required": [
           "slots",
-          "active",
+          "held",
           "resourceId"
         ],
         "additionalProperties": false
@@ -3138,6 +3204,9 @@
           },
           "started": {
             "type": "boolean"
+          },
+          "held": {
+            "$ref": "#/components/schemas/Held"
           }
         },
         "required": [
@@ -3150,7 +3219,8 @@
           "end",
           "endsAt",
           "available",
-          "started"
+          "started",
+          "held"
         ],
         "additionalProperties": false
       },
