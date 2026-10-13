@@ -97,7 +97,6 @@ export const sv = {
       'När du tar en lucka eller ställer dig i kö dyker den upp här.',
     bookings: 'Bokningar',
     queue: 'Reserv',
-    ended: 'Avslutad',
     done: 'Jag är klar',
     cancel: 'Avboka',
     dropIn: 'Drop-in',
@@ -111,9 +110,16 @@ export const sv = {
     leaveQueueFailed: 'Kunde inte lämna kön',
     cancelFailed: 'Kunde inte avboka',
     releaseFailed: 'Kunde inte öppna tiden',
-    alreadyBookedTitle: 'Du har redan en bokning',
+    alreadyHolding: (count: number) =>
+      count === 1
+        ? 'Du har redan en bokning'
+        : `Du har redan ${count} bokningar`,
     swap: 'Byt',
-    swapQuestion: (when: string) => `Vill du byta till ${when}?`,
+    swapQuestion: (from: string, to: string) =>
+      `Vill du byta ${from} mot ${to}?`,
+    chooseSwapTitle: 'Byt ut vilken?',
+    chooseSwapQuestion: (to: string) =>
+      `Vilken av dina bokningar vill du byta mot ${to}?`,
     queueTitle: 'Ställ dig i kö',
     queueMe: 'Ställ mig i kö',
     queueQuestion: (when: string) =>
@@ -124,7 +130,10 @@ export const sv = {
     releaseTitle: 'Öppna för drop-in',
     releaseQuestion: (when: string) =>
       `Andra kan ta ${when} som drop-in. Du kan inte boka en ny tid förrän luckan är slut.`,
-    releasedBlocks: 'Du kan inte boka en ny tid förrän luckan är slut.',
+    fullUntilOver: (count: number): string =>
+      count === 1
+        ? 'Du kan inte boka en ny tid förrän luckan är slut.'
+        : 'Du kan inte boka en ny tid förrän någon av dina luckor är slut.',
     freeSlots: (count: number) =>
       count === 1 ? '1 ledigt pass' : `${count} lediga pass`,
     previousDay: 'Föregående dag',
