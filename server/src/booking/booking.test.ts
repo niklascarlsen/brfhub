@@ -17,7 +17,7 @@ import {withTimeout} from '../lib/timeout.js';
 import type {BookingRules, Resource} from '../resource/resource.dto.js';
 import type {ResourceSchedule, Slots} from '../slot/slot.dto.js';
 import type {Subscription} from '../subscription/subscription.dto.js';
-import {listSubscribers} from '../subscription/subscription.service.js';
+import {listSubscribers} from '../subscription/subscription.query.js';
 import {
   assertTestDatabase,
   codeOf,

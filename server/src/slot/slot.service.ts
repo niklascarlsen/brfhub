@@ -1,6 +1,6 @@
 import {and, asc, eq, isNull, not, sql} from 'drizzle-orm';
 
-import {db} from '../db/index.js';
+import {db, type Executor} from '../db/index.js';
 import {
   bookings,
   organizations,
@@ -27,12 +27,13 @@ import type {BookingWindow, ResourceSchedule, Slot, Slots} from './slot.dto.js';
 
 export async function getBookingWindow(
   organizationId: string,
+  executor: Executor = db,
 ): Promise<BookingWindow> {
   const {today, from, to} = bookingWindowSql(
     organizations.timeZone,
     organizations.bookingWindowDays,
   );
-  const [row] = await db
+  const [row] = await executor
     .select({today, from, to})
     .from(organizations)
     .where(eq(organizations.id, organizationId));

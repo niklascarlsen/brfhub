@@ -12,7 +12,7 @@ import {
   subscriptions,
   user,
 } from '../db/schema.js';
-import {lockApartmentBookings} from '../booking/booking.query.js';
+import {lockApartmentBookings} from '../booking/lifecycle.js';
 import {createBooking} from '../booking/booking.service.js';
 import {addDays, isoDateIn, slotEndsAt} from '../lib/time.js';
 import {
