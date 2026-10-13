@@ -1,3 +1,4 @@
+import {confirmLeave, createUnsavedForms} from '@booking/core/admin/unsaved';
 import {createContext, useContext, useEffect, useMemo, useState} from 'react';
 
 import {useDialog} from '@/components/Dialog';
@@ -17,13 +18,13 @@ export const UnsavedContext = createContext<UnsavedValue | null>(null);
 export function useUnsavedRoot(): UnsavedValue {
   const t = useMessages();
   const dialog = useDialog();
-  const [dirty] = useState(() => new Set<object>());
+  const [forms] = useState(createUnsavedForms);
 
   // Closing the tab or reloading cannot be asked about in our own dialog,
   // so the browser asks in its own words.
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => {
-      if (dirty.size > 0) {
+      if (forms.any()) {
         event.preventDefault();
       }
     };
@@ -31,34 +32,14 @@ export function useUnsavedRoot(): UnsavedValue {
     window.addEventListener('beforeunload', warn);
 
     return () => window.removeEventListener('beforeunload', warn);
-  }, [dirty]);
+  }, [forms]);
 
   return useMemo(
     () => ({
-      mark: (form, isDirty) => {
-        if (isDirty) {
-          dirty.add(form);
-        } else {
-          dirty.delete(form);
-        }
-      },
-      confirmLeave: (leave) => {
-        if (dirty.size === 0) {
-          leave();
-          return true;
-        }
-
-        dialog.confirm(t.admin.unsaved.title, t.admin.unsaved.message, {
-          label: t.admin.unsaved.leave,
-          destructive: true,
-          onPress: leave,
-          cancelLabel: t.admin.unsaved.stay,
-        });
-
-        return false;
-      },
+      mark: forms.mark,
+      confirmLeave: (leave) => confirmLeave(forms, leave, dialog, t),
     }),
-    [dirty, dialog, t],
+    [forms, dialog, t],
   );
 }
 

@@ -1,11 +1,12 @@
-import {slotsProblem} from '@booking/core/admin/schedule';
-import {codeOf, errorMessage} from '@booking/core/api/errors';
+import {checkSchedule, failureMessage} from '@booking/core/admin/drafts';
+import {useProblems} from '@booking/core/admin/useProblems';
 import type {SlotInput} from '@booking/core/api/types';
 import {formatLongDate} from '@booking/core/lib/dates';
 import {useState, type SubmitEvent} from 'react';
 
 import {FormActions} from '@/admin/FormActions';
 import {SlotsEditor} from '@/admin/SlotsEditor';
+import {FieldProblem} from '@/components/FieldProblem';
 import {useMessages} from '@/i18n/LocaleProvider';
 
 type ScheduleFormProps = {
@@ -25,13 +26,13 @@ export function ScheduleForm({
   const [slots, setSlots] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const checked = checkSchedule(slots, initial, t);
+  const {problem, ready} = useProblems(checked);
+  const slotsProblem = problem('slots');
 
   async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    const problem = slotsProblem(slots, t);
-
-    if (problem) {
-      setError(problem);
+    if (!ready()) {
       return;
     }
 
@@ -39,22 +40,26 @@ export function ScheduleForm({
     setError(null);
 
     try {
-      await onSubmit(slots);
+      await onSubmit(checked.value);
     } catch (caught) {
-      setError(errorMessage(codeOf(caught), t));
+      setError(failureMessage(caught, t));
       setSubmitting(false);
     }
   }
 
   return (
     <form
+      noValidate
       onSubmit={(event) => void submit(event)}
       className='flex flex-col gap-4'
     >
       <p className='text-sm leading-5 text-theme-ink'>
         {t.admin.scheduleForm.note(formatLongDate(validFrom, t))}
       </p>
-      <SlotsEditor slots={slots} onChange={setSlots} />
+      <div>
+        <SlotsEditor slots={slots} onChange={setSlots} />
+        {slotsProblem ? <FieldProblem message={slotsProblem} /> : null}
+      </div>
       {error ? (
         <p role='alert' className='text-sm text-theme-ink'>
           {error}
@@ -62,8 +67,7 @@ export function ScheduleForm({
       ) : null}
       <FormActions
         submitLabel={t.admin.scheduleForm.save}
-        dirty={JSON.stringify(slots) !== JSON.stringify(initial)}
-        valid={slots.length > 0}
+        dirty={checked.changed}
         submitting={submitting}
         onCancel={onCancel}
       />

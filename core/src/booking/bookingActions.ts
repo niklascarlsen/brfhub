@@ -169,6 +169,7 @@ export function bookingActions({
       {
         label: t.times.leaveQueue,
         destructive: true,
+        cancelLabel: t.booking.stayInQueue,
         onPress: () => {
           void unsubscribe(subscription.id);
         },

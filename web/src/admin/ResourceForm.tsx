@@ -1,35 +1,22 @@
 import {useAdminAccount} from '@booking/core/admin/account';
 import {
-  fieldLabel,
-  isWritten,
-  isWrittenOrEmpty,
-  tagsOf,
-  trimmedText,
-  type Draft,
-} from '@booking/core/admin/localized';
-import {slotsProblem} from '@booking/core/admin/schedule';
-import {codeOf, errorMessage} from '@booking/core/api/errors';
-import type {
-  AdminKind,
-  LocalizedTags,
-  LocalizedText,
-  SlotInput,
-} from '@booking/core/api/types';
+  checkResource,
+  failureMessage,
+  tagsText,
+  type ResourceFields,
+} from '@booking/core/admin/drafts';
+import {fieldLabel, type Draft} from '@booking/core/admin/localized';
+import {useProblems} from '@booking/core/admin/useProblems';
+import type {AdminKind} from '@booking/core/api/types';
 import {localize} from '@booking/core/i18n/catalog';
 import {useState, type SubmitEvent} from 'react';
 
 import {FormActions} from '@/admin/FormActions';
 import {SlotsEditor} from '@/admin/SlotsEditor';
 import {SECTION_LABEL} from '@/admin/styles';
+import {FieldProblem} from '@/components/FieldProblem';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
-
-export type ResourceFields = {
-  name: LocalizedText;
-  kindId: string;
-  tags: LocalizedTags;
-  slots: SlotInput[];
-};
 
 type ResourceFormProps = {
   kinds: AdminKind[];
@@ -55,41 +42,23 @@ export function ResourceForm({
   const {locales} = useAdminAccount();
   const [name, setName] = useState<Draft>(initial.name);
   const [kindId, setKindId] = useState(initial.kindId);
-  const [tags, setTags] = useState<Draft>(() =>
-    Object.fromEntries(
-      Object.entries(initial.tags).map(([language, list]) => [
-        language,
-        list.join(', '),
-      ]),
-    ),
-  );
+  const [tags, setTags] = useState<Draft>(() => tagsText(initial.tags));
   const [slots, setSlots] = useState(initial.slots);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const tagLists = Object.fromEntries(
-    locales.map((language) => [language, tagsOf(tags[language] ?? '')]),
+  const checked = checkResource(
+    {name, kindId, tags, slots},
+    initial,
+    {locales, withSlots},
+    t,
   );
-  const initialTags = Object.fromEntries(
-    locales.map((language) => [language, initial.tags[language] ?? []]),
-  );
-  const dirty =
-    JSON.stringify(trimmedText(name, locales)) !==
-      JSON.stringify(trimmedText(initial.name, locales)) ||
-    kindId !== initial.kindId ||
-    JSON.stringify(tagLists) !== JSON.stringify(initialTags) ||
-    JSON.stringify(slots) !== JSON.stringify(initial.slots);
+  const {problem, leave, ready} = useProblems(checked);
+  const slotsProblem = problem('slots');
 
   async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    const problem = !isWrittenOrEmpty(tagLists, locales)
-      ? t.admin.localized.tagsInEvery
-      : withSlots
-        ? slotsProblem(slots, t)
-        : null;
-
-    if (problem) {
-      setError(problem);
+    if (!ready()) {
       return;
     }
 
@@ -97,20 +66,16 @@ export function ResourceForm({
     setError(null);
 
     try {
-      await onSubmit({
-        name: trimmedText(name, locales),
-        kindId,
-        tags: tagLists,
-        slots,
-      });
+      await onSubmit(checked.value);
     } catch (caught) {
-      setError(errorMessage(codeOf(caught), t));
+      setError(failureMessage(caught, t));
       setSubmitting(false);
     }
   }
 
   return (
     <form
+      noValidate
       onSubmit={(event) => void submit(event)}
       className='flex flex-col gap-3'
     >
@@ -120,11 +85,12 @@ export function ResourceForm({
           lang={language}
           label={fieldLabel(t.admin.resourceForm.name, language, locales, t)}
           required
-          maxLength={40}
           value={name[language] ?? ''}
           onChange={(event) =>
             setName({...name, [language]: event.target.value})
           }
+          onBlur={() => leave(`name.${language}`)}
+          problem={problem(`name.${language}`)}
         />
       ))}
       <fieldset className='flex flex-col gap-2'>
@@ -162,12 +128,15 @@ export function ResourceForm({
           onChange={(event) =>
             setTags({...tags, [language]: event.target.value})
           }
+          onBlur={() => leave(`tags.${language}`)}
+          problem={problem(`tags.${language}`)}
         />
       ))}
       {withSlots ? (
         <section className='mt-3'>
           <h2 className={SECTION_LABEL}>{t.admin.resourceForm.slots}</h2>
           <SlotsEditor slots={slots} onChange={setSlots} />
+          {slotsProblem ? <FieldProblem message={slotsProblem} /> : null}
         </section>
       ) : null}
       {error ? (
@@ -177,8 +146,7 @@ export function ResourceForm({
       ) : null}
       <FormActions
         submitLabel={submitLabel}
-        dirty={dirty}
-        valid={kindId !== '' && isWritten(name, locales)}
+        dirty={checked.changed}
         submitting={submitting}
         onCancel={onCancel}
       />

@@ -1,7 +1,8 @@
+import {confirmLeave, createUnsavedForms} from '@booking/core/admin/unsaved';
 import {useIsFocused} from '@react-navigation/native';
 import {createContext, useContext, useEffect, useMemo, useState} from 'react';
-import {Alert} from 'react-native';
 
+import {useDialog} from '@/components/Dialog';
 import {useMessages} from '@/i18n/LocaleProvider';
 
 type UnsavedValue = {
@@ -17,32 +18,15 @@ export const UnsavedContext = createContext<UnsavedValue | null>(null);
 // What AdminShell hands to every admin screen.
 export function useUnsavedRoot(): UnsavedValue {
   const t = useMessages();
-  const [dirty] = useState(() => new Set<object>());
+  const dialog = useDialog();
+  const [forms] = useState(createUnsavedForms);
 
   return useMemo(
     () => ({
-      mark: (form, isDirty) => {
-        if (isDirty) {
-          dirty.add(form);
-        } else {
-          dirty.delete(form);
-        }
-      },
-      confirmLeave: (leave) => {
-        if (dirty.size === 0) {
-          leave();
-          return true;
-        }
-
-        Alert.alert(t.admin.unsaved.title, t.admin.unsaved.message, [
-          {text: t.admin.unsaved.stay, style: 'cancel'},
-          {text: t.admin.unsaved.leave, style: 'destructive', onPress: leave},
-        ]);
-
-        return false;
-      },
+      mark: forms.mark,
+      confirmLeave: (leave) => confirmLeave(forms, leave, dialog, t),
     }),
-    [dirty, t],
+    [forms, dialog, t],
   );
 }
 

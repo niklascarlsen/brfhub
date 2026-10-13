@@ -25,6 +25,7 @@ export const en: Messages = {
   common: {
     retry: 'Try again',
     cancel: 'Cancel',
+    keep: 'Keep',
     ok: 'OK',
     email: 'Email',
     loading: 'Loading',
@@ -119,6 +120,7 @@ export const en: Messages = {
     queueQuestion: (when: string) =>
       `We will let you know if ${when} becomes free. First come, first served.`,
     leaveQueueQuestion: (when: string) => `Leave the queue for ${when}?`,
+    stayInQueue: 'Stay in queue',
     cancelTitle: 'Cancel booking',
     cancelQuestion: (when: string) => `Cancel ${when}?`,
     releaseTitle: 'Open for drop-in',
@@ -306,6 +308,15 @@ export const en: Messages = {
       endsNextDay: 'Ends the next day',
       add: 'Add slot',
     },
+    field: {
+      required: 'Required',
+      tooLong: (length: number, max: number) =>
+        `Too long, ${length} of at most ${max} characters`,
+      tagTooLong: (max: number) => `A tag can have at most ${max} characters`,
+      tooManyTags: (max: number) => `At most ${max} tags`,
+      rejected:
+        'The server did not accept the details. Check the fields and try again.',
+    },
     apartmentForm: {
       number: 'Apartment number',
       residentName: "Residents' names",
@@ -340,7 +351,8 @@ export const en: Messages = {
         "Apartments can pick among the languages turned on. With more than one, you write the association's texts in each. Anything not yet translated shows in the language it was written in.",
       name: 'Association name',
       windowDays: 'Days bookable ahead',
-      windowRange: (max: number) => `The booking window is 1 to ${max} days`,
+      windowRange: (min: number, max: number) =>
+        `The booking window is ${min} to ${max} days`,
       windowNote:
         'A longer window opens more days at once. A shorter one does not remove bookings already made.',
       rules: 'House rules',
@@ -357,7 +369,8 @@ export const en: Messages = {
       wrongPassword: 'The current password is wrong',
       passwordTooShort: (min: number) =>
         `The new password must be at least ${min} characters`,
-      passwordTooLong: 'The new password is too long',
+      passwordTooLong: (max: number) =>
+        `The new password can have at most ${max} characters`,
       passwordsDiffer: 'The new passwords do not match',
       passwordChanged:
         'The password has been changed. Every other device has been signed out.',

@@ -1,12 +1,12 @@
 import {useAdminAccount} from '@booking/core/admin/account';
 import {
-  fieldLabel,
-  isWritten,
-  trimmedText,
-  type Draft,
-} from '@booking/core/admin/localized';
-import {codeOf, errorMessage} from '@booking/core/api/errors';
-import type {LocalizedText} from '@booking/core/api/types';
+  checkKind,
+  failureMessage,
+  stepMaxActive,
+  type KindFields,
+} from '@booking/core/admin/drafts';
+import {fieldLabel, type Draft} from '@booking/core/admin/localized';
+import {useProblems} from '@booking/core/admin/useProblems';
 import {useState} from 'react';
 import {Pressable, Text, View} from 'react-native';
 
@@ -15,8 +15,6 @@ import {SECONDARY_BUTTON, SECONDARY_LABEL} from '@/admin/styles';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {useMessages} from '@/i18n/LocaleProvider';
 
-export type KindFields = {name: LocalizedText; maxActive: number};
-
 type KindFormProps = {
   initial: KindFields;
   submitLabel: string;
@@ -24,8 +22,6 @@ type KindFormProps = {
   onCancel: () => void;
   onDelete?: () => void;
 };
-
-const MAX_ACTIVE = 10;
 
 function StepButton({
   label,
@@ -63,27 +59,27 @@ export function KindForm({
   const [maxActive, setMaxActive] = useState(initial.maxActive);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const dirty =
-    JSON.stringify(trimmedText(name, locales)) !==
-      JSON.stringify(trimmedText(initial.name, locales)) ||
-    maxActive !== initial.maxActive;
+  const checked = checkKind({name, maxActive}, initial, locales, t);
+  const {problem, leave, ready} = useProblems(checked);
 
   async function submit() {
+    if (!ready()) {
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
 
     try {
-      await onSubmit({name: trimmedText(name, locales), maxActive});
+      await onSubmit(checked.value);
     } catch (caught) {
-      setError(errorMessage(codeOf(caught), t));
+      setError(failureMessage(caught, t));
       setSubmitting(false);
     }
   }
 
   const step = (by: number) =>
-    setMaxActive((previous) =>
-      Math.min(MAX_ACTIVE, Math.max(1, previous + by)),
-    );
+    setMaxActive((previous) => stepMaxActive(previous, by));
 
   return (
     <View className='gap-3'>
@@ -93,7 +89,8 @@ export function KindForm({
           label={fieldLabel(t.admin.kindForm.name, language, locales, t)}
           value={name[language] ?? ''}
           onChangeText={(text) => setName({...name, [language]: text})}
-          maxLength={40}
+          onBlur={() => leave(`name.${language}`)}
+          problem={problem(`name.${language}`)}
           autoCapitalize='sentences'
         />
       ))}
@@ -110,7 +107,7 @@ export function KindForm({
           <StepButton
             label={t.admin.kindForm.fewer}
             glyph='−'
-            disabled={maxActive <= 1}
+            disabled={stepMaxActive(maxActive, -1) === maxActive}
             onPress={() => step(-1)}
           />
           <Text className='w-5 text-center text-lg font-semibold text-theme-ink'>
@@ -119,7 +116,7 @@ export function KindForm({
           <StepButton
             label={t.admin.kindForm.more}
             glyph='+'
-            disabled={maxActive >= MAX_ACTIVE}
+            disabled={stepMaxActive(maxActive, 1) === maxActive}
             onPress={() => step(1)}
           />
         </View>
@@ -137,8 +134,7 @@ export function KindForm({
       ) : null}
       <FormActions
         submitLabel={submitLabel}
-        dirty={dirty}
-        valid={isWritten(name, locales)}
+        dirty={checked.changed}
         submitting={submitting}
         onSubmit={() => void submit()}
         onCancel={onCancel}

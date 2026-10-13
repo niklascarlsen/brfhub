@@ -1,6 +1,5 @@
 import {useAdminAccount, useRefreshAccount} from '@booking/core/admin/account';
 import {missingLanguages} from '@booking/core/admin/localized';
-import {codeOf, errorMessage} from '@booking/core/api/errors';
 import type {AdminAnnouncement} from '@booking/core/api/types';
 import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
 import {localize, type Messages} from '@booking/core/i18n/catalog';
@@ -10,17 +9,12 @@ import {useState} from 'react';
 import {AdminPage} from '@/admin/AdminPage';
 import {AnnouncementForm} from '@/admin/AnnouncementForm';
 import {PRIMARY_BUTTON, SECTION_LABEL} from '@/admin/styles';
-import {api, unwrap} from '@/api/client';
-import {useDialog} from '@/components/Dialog';
 import {AddIcon, ChevronForwardIcon} from '@/components/icons';
 import {Notice} from '@/components/Notice';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
+import {adminLoad, useAdminActions} from '@/hooks/useAdminActions';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
-
-function fetchAnnouncements() {
-  return unwrap(api.GET('/admin/announcements'));
-}
 
 type Screen = {kind: 'list'} | {kind: 'add'} | {kind: 'edit'; id: string};
 
@@ -45,8 +39,7 @@ export function AdminAnnouncements() {
   const {organizationName, locales} = useAdminAccount();
   const t = useMessages();
   const {locale} = useLocale();
-  const dialog = useDialog();
-  const {data, error, reload} = useFocusLoad(fetchAnnouncements);
+  const {data, error, reload} = useFocusLoad(adminLoad.announcements);
   const showSkeleton = useSlowLoad(data === null && error === null);
   const [screen, setScreen] = useState<Screen>({kind: 'list'});
 
@@ -55,10 +48,10 @@ export function AdminAnnouncements() {
 
   // What lacks a language is counted on the account, so it follows every
   // change here.
-  const changed = () => {
+  const actions = useAdminActions(() => {
     reload();
     refreshAccount();
-  };
+  });
   const back = {label: t.tabs.announcements, onPress: toList};
 
   if (data && screen.kind === 'add') {
@@ -79,8 +72,7 @@ export function AdminAnnouncements() {
           submitLabel={t.admin.announcements.publish}
           onCancel={toList}
           onSubmit={async (fields) => {
-            await unwrap(api.POST('/admin/announcements', {body: fields}));
-            changed();
+            await actions.announcements.create(fields);
             toList();
           }}
         />
@@ -107,40 +99,11 @@ export function AdminAnnouncements() {
           submitLabel={t.admin.save}
           onCancel={toList}
           onSubmit={async (fields) => {
-            await unwrap(
-              api.PUT('/admin/announcements/{id}', {
-                params: {path: {id: edited.id}},
-                body: fields,
-              }),
-            );
-            changed();
+            await actions.announcements.update(edited.id, fields);
             toList();
           }}
           onDelete={() =>
-            dialog.confirm(
-              t.admin.announcements.remove,
-              t.admin.announcements.removeQuestion(title),
-              {
-                label: t.admin.remove,
-                onPress: () => {
-                  unwrap(
-                    api.DELETE('/admin/announcements/{id}', {
-                      params: {path: {id: edited.id}},
-                    }),
-                  )
-                    .then(() => {
-                      changed();
-                      toList();
-                    })
-                    .catch((caught: unknown) =>
-                      dialog.alert(
-                        t.admin.announcements.removeFailed,
-                        errorMessage(codeOf(caught), t),
-                      ),
-                    );
-                },
-              },
-            )
+            actions.announcements.confirmRemove(edited.id, title, toList)
           }
         />
       </AdminPage>

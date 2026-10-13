@@ -1,9 +1,8 @@
-import {codeOf, errorMessage} from '@booking/core/api/errors';
 import type {Apartment} from '@booking/core/api/types';
 import {formatLongDate} from '@booking/core/lib/dates';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {useState} from 'react';
-import {Alert, Pressable, Text, View} from 'react-native';
+import {Pressable, Text, View} from 'react-native';
 
 import {ApartmentForm} from '@/admin/ApartmentForm';
 import {
@@ -12,12 +11,14 @@ import {
   SECONDARY_LABEL,
   SECTION_LABEL,
 } from '@/admin/styles';
-import {api, unwrap} from '@/api/client';
+import {useAdminActions} from '@/hooks/useAdminActions';
 import {useMessages} from '@/i18n/LocaleProvider';
 import theme from '@/theme.json';
 
 type ApartmentDetailProps = {
   apartment: Apartment;
+  // After every change, and after a failure that means the apartment
+  // shown is out of date.
   onChanged: () => void;
   onPassword: (apartment: Apartment, password: string) => void;
   onRemoved: () => void;
@@ -54,17 +55,20 @@ function Row({
 function Action({
   label,
   description,
+  disabled = false,
   onPress,
   last,
 }: {
   label: string;
   description: string;
+  disabled?: boolean;
   onPress: () => void;
   last?: boolean;
 }) {
   return (
     <Pressable
       onPress={onPress}
+      disabled={disabled}
       className={`flex-row items-center gap-3 px-[18px] py-3.5 active:bg-theme-sunk ${
         last ? '' : 'border-b border-theme-line'
       }`}
@@ -94,67 +98,7 @@ export function ApartmentDetail({
   const [mode, setMode] = useState<Mode>('view');
   // A second tap while a request runs would reset twice or remove twice.
   const [busy, setBusy] = useState(false);
-
-  const run = (request: Promise<void>, failTitle: string) => {
-    setBusy(true);
-    request.catch(fail(failTitle)).finally(() => setBusy(false));
-  };
-
-  const fail = (title: string) => (caught: unknown) =>
-    Alert.alert(title, errorMessage(codeOf(caught), t));
-
-  const resetPassword = () =>
-    Alert.alert(
-      t.admin.apartment.resetPassword,
-      t.admin.apartment.resetQuestion(apartment.label),
-      [
-        {text: t.common.cancel, style: 'cancel'},
-        {
-          text: t.admin.apartment.reset,
-          onPress: () => {
-            if (busy) {
-              return;
-            }
-            run(
-              unwrap(
-                api.POST('/admin/apartments/{id}/reset-password', {
-                  params: {path: {id: apartment.id}},
-                }),
-              ).then(({password}) => onPassword(apartment, password)),
-              t.admin.apartment.resetFailed,
-            );
-          },
-        },
-      ],
-    );
-
-  const remove = () =>
-    Alert.alert(
-      t.admin.apartment.remove,
-      t.admin.apartment.removeQuestion(
-        t.admin.apartment.cancelNote(apartment.upcomingBookings),
-      ),
-      [
-        {text: t.common.cancel, style: 'cancel'},
-        {
-          text: t.admin.remove,
-          style: 'destructive',
-          onPress: () => {
-            if (busy) {
-              return;
-            }
-            run(
-              unwrap(
-                api.DELETE('/admin/apartments/{id}', {
-                  params: {path: {id: apartment.id}},
-                }),
-              ).then(onRemoved),
-              t.admin.apartment.removeFailed,
-            );
-          },
-        },
-      ],
-    );
+  const actions = useAdminActions(onChanged, setBusy);
 
   if (mode === 'edit') {
     return (
@@ -169,14 +113,8 @@ export function ApartmentDetail({
         submitLabel={t.admin.save}
         onCancel={() => setMode('view')}
         onSubmit={async (fields) => {
-          await unwrap(
-            api.PATCH('/admin/apartments/{id}', {
-              params: {path: {id: apartment.id}},
-              body: fields,
-            }),
-          );
+          await actions.apartments.update(apartment.id, fields);
           setMode('view');
-          onChanged();
         }}
       />
     );
@@ -192,12 +130,10 @@ export function ApartmentDetail({
         )}
         submitLabel={t.admin.apartment.replaceResident}
         onCancel={() => setMode('view')}
-        onSubmit={async ({residentName, email}) => {
-          const result = await unwrap(
-            api.POST('/admin/apartments/{id}/new-resident', {
-              params: {path: {id: apartment.id}},
-              body: {residentName, email},
-            }),
+        onSubmit={async (fields) => {
+          const result = await actions.apartments.newResident(
+            apartment.id,
+            fields,
           );
           onPassword(result.apartment, result.password);
         }}
@@ -238,7 +174,12 @@ export function ApartmentDetail({
           <Action
             label={t.admin.apartment.resetPassword}
             description={t.admin.apartment.resetPasswordHint}
-            onPress={resetPassword}
+            disabled={busy}
+            onPress={() =>
+              actions.apartments.confirmResetPassword(apartment, (password) =>
+                onPassword(apartment, password),
+              )
+            }
           />
           <Action
             label={t.admin.apartment.newResident}
@@ -248,7 +189,11 @@ export function ApartmentDetail({
           />
         </View>
       </View>
-      <Pressable onPress={remove} className={`${SECONDARY_BUTTON} self-start`}>
+      <Pressable
+        onPress={() => actions.apartments.confirmRemove(apartment, onRemoved)}
+        disabled={busy}
+        className={`${SECONDARY_BUTTON} self-start`}
+      >
         <Text className={SECONDARY_LABEL}>{t.admin.apartment.remove}</Text>
       </Pressable>
     </View>

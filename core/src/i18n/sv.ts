@@ -26,6 +26,9 @@ export const sv = {
   common: {
     retry: 'Försök igen',
     cancel: 'Avbryt',
+    // Closes a question about removing or cancelling something, where
+    // "Avbryt" would read as the action itself.
+    keep: 'Behåll',
     ok: 'OK',
     email: 'E-post',
     loading: 'Laddar',
@@ -125,6 +128,7 @@ export const sv = {
     queueQuestion: (when: string) =>
       `Vi meddelar dig om ${when} blir ledig. Först till kvarn gäller.`,
     leaveQueueQuestion: (when: string) => `Vill du lämna kön för ${when}?`,
+    stayInQueue: 'Stanna i kön',
     cancelTitle: 'Avboka tid',
     cancelQuestion: (when: string) => `Vill du avboka ${when}?`,
     releaseTitle: 'Öppna för drop-in',
@@ -316,6 +320,17 @@ export const sv = {
       endsNextDay: 'Slutar nästa dag',
       add: 'Lägg till pass',
     },
+    // Said at a field while it is being filled in.
+    field: {
+      required: 'Måste fyllas i',
+      tooLong: (length: number, max: number) =>
+        `För lång, ${length} av högst ${max} tecken`,
+      tagTooLong: (max: number) => `En tagg får ha högst ${max} tecken`,
+      tooManyTags: (max: number) => `Högst ${max} taggar`,
+      // The server refused what the fields allowed.
+      rejected:
+        'Servern godtog inte uppgifterna. Kontrollera fälten och försök igen.',
+    },
     apartmentForm: {
       number: 'Lägenhetsnummer',
       residentName: 'De boendes namn',
@@ -352,7 +367,8 @@ export const sv = {
         'Lägenheterna kan välja bland språken som är på. Med flera språk skriver du föreningens texter på vart och ett. Det som inte är översatt visas på det språk det är skrivet på.',
       name: 'Föreningens namn',
       windowDays: 'Bokningsbart antal dagar framåt',
-      windowRange: (max: number) => `Bokningsfönstret är 1 till ${max} dagar`,
+      windowRange: (min: number, max: number) =>
+        `Bokningsfönstret är ${min} till ${max} dagar`,
       windowNote:
         'Ett längre fönster öppnar fler dagar direkt. Ett kortare tar inte bort bokningar som redan är gjorda.',
       rules: 'Ordningsregler',
@@ -368,7 +384,8 @@ export const sv = {
       wrongPassword: 'Det nuvarande lösenordet stämmer inte',
       passwordTooShort: (min: number) =>
         `Det nya lösenordet måste ha minst ${min} tecken`,
-      passwordTooLong: 'Det nya lösenordet är för långt',
+      passwordTooLong: (max: number) =>
+        `Det nya lösenordet får ha högst ${max} tecken`,
       passwordsDiffer: 'De nya lösenorden är inte lika',
       passwordChanged: 'Lösenordet är bytt. Alla andra enheter har loggats ut.',
     },

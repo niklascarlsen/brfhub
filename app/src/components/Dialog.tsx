@@ -1,4 +1,8 @@
-import type {Dialog, DialogChoice} from '@booking/core/lib/dialog';
+import {
+  dismissLabel,
+  type Dialog,
+  type DialogChoice,
+} from '@booking/core/lib/dialog';
 import {
   createContext,
   useContext,
@@ -28,7 +32,8 @@ export function useDialog(): Dialog {
   return dialog;
 }
 
-// The platform's own alert, in the same shape as the web's dialog. A
+// The platform's own alert, in the same shape as the web's dialog, and the
+// only place the app calls it, so every button follows one convention. A
 // choice can be longer than an alert holds, Android's three buttons, so it
 // gets a dialog of its own.
 export function DialogProvider({children}: {children: ReactNode}) {
@@ -40,7 +45,7 @@ export function DialogProvider({children}: {children: ReactNode}) {
       alert: (title, message) => Alert.alert(title, message),
       confirm: (title, message, action) =>
         Alert.alert(title, message, [
-          {text: action.cancelLabel ?? t.common.cancel, style: 'cancel'},
+          {text: dismissLabel(action, t), style: 'cancel'},
           action.destructive
             ? {
                 text: action.label,

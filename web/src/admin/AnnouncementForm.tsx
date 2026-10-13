@@ -6,26 +6,20 @@ import {
   startOf,
 } from '@booking/core/admin/announcement';
 import {
-  fieldLabel,
-  isWritten,
-  trimmedText,
-  type Draft,
-} from '@booking/core/admin/localized';
-import {codeOf, errorMessage} from '@booking/core/api/errors';
-import type {LocalizedText} from '@booking/core/api/types';
+  checkAnnouncement,
+  failureMessage,
+  type AnnouncementFields,
+} from '@booking/core/admin/drafts';
+import {fieldLabel, type Draft} from '@booking/core/admin/localized';
+import {useProblems} from '@booking/core/admin/useProblems';
 import {formatLongDate} from '@booking/core/lib/dates';
-import {useState, type SubmitEvent} from 'react';
+import {useId, useState, type SubmitEvent} from 'react';
 
 import {FormActions} from '@/admin/FormActions';
 import {SECONDARY_BUTTON} from '@/admin/styles';
+import {FieldProblem} from '@/components/FieldProblem';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {useMessages} from '@/i18n/LocaleProvider';
-
-export type AnnouncementFields = {
-  title: LocalizedText;
-  body: LocalizedText;
-  endsOn: string | null;
-};
 
 type AnnouncementFormProps = {
   initial: AnnouncementFields & {publishedOn: string};
@@ -51,36 +45,35 @@ export function AnnouncementForm({
   const [endsOn, setEndsOn] = useState(initial.endsOn);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const formId = useId();
   // A new duration counts from today, also when an older announcement is
   // given more days.
   const start = startOf(initial.publishedOn, today);
   const duration = durationOf(start, endsOn);
-  const dirty =
-    JSON.stringify(trimmedText(title, locales)) !==
-      JSON.stringify(trimmedText(initial.title, locales)) ||
-    JSON.stringify(trimmedText(body, locales)) !==
-      JSON.stringify(trimmedText(initial.body, locales)) ||
-    endsOn !== initial.endsOn;
+  const checked = checkAnnouncement({title, body, endsOn}, initial, locales, t);
+  const {problem, leave, ready} = useProblems(checked);
 
   async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!ready()) {
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
 
     try {
-      await onSubmit({
-        title: trimmedText(title, locales),
-        body: trimmedText(body, locales),
-        endsOn,
-      });
+      await onSubmit(checked.value);
     } catch (caught) {
-      setError(errorMessage(codeOf(caught), t));
+      setError(failureMessage(caught, t));
       setSubmitting(false);
     }
   }
 
   return (
     <form
+      noValidate
       onSubmit={(event) => void submit(event)}
       className='flex flex-col gap-3'
     >
@@ -95,31 +88,51 @@ export function AnnouncementForm({
             t,
           )}
           required
-          maxLength={100}
           value={title[language] ?? ''}
           onChange={(event) =>
             setTitle({...title, [language]: event.target.value})
           }
+          onBlur={() => leave(`title.${language}`)}
+          problem={problem(`title.${language}`)}
         />
       ))}
-      {locales.map((language) => (
-        <label key={language} className='flex flex-col gap-1.5'>
-          <span className='text-[13px] font-medium text-theme-muted'>
-            {fieldLabel(t.admin.announcementForm.body, language, locales, t)}
-          </span>
-          <textarea
-            lang={language}
-            required
-            maxLength={2000}
-            rows={6}
-            value={body[language] ?? ''}
-            onChange={(event) =>
-              setBody({...body, [language]: event.target.value})
-            }
-            className='w-full rounded-xs border border-theme-edge bg-theme-surface px-4 py-3 text-base leading-6 text-theme-ink focus:border-theme-ink'
-          />
-        </label>
-      ))}
+      {locales.map((language) => {
+        const shown = problem(`body.${language}`);
+        const problemId = `${formId}-body-${language}`;
+
+        return (
+          <div key={language}>
+            <label className='flex flex-col gap-1.5'>
+              <span className='text-[13px] font-medium text-theme-muted'>
+                {fieldLabel(
+                  t.admin.announcementForm.body,
+                  language,
+                  locales,
+                  t,
+                )}
+              </span>
+              <textarea
+                lang={language}
+                required
+                rows={6}
+                value={body[language] ?? ''}
+                onChange={(event) =>
+                  setBody({...body, [language]: event.target.value})
+                }
+                onBlur={() => leave(`body.${language}`)}
+                aria-invalid={shown ? true : undefined}
+                aria-describedby={shown ? problemId : undefined}
+                className={`w-full rounded-xs border bg-theme-surface px-4 py-3 text-base leading-6 text-theme-ink ${
+                  shown
+                    ? 'border-theme-danger'
+                    : 'border-theme-edge focus:border-theme-ink'
+                }`}
+              />
+            </label>
+            {shown ? <FieldProblem id={problemId} message={shown} /> : null}
+          </div>
+        );
+      })}
       <fieldset className='flex flex-col gap-2'>
         <legend className='mb-2 text-[13px] font-medium text-theme-muted'>
           {t.admin.announcementForm.shownFor}
@@ -161,8 +174,7 @@ export function AnnouncementForm({
       ) : null}
       <FormActions
         submitLabel={submitLabel}
-        dirty={dirty}
-        valid={isWritten(title, locales) && isWritten(body, locales)}
+        dirty={checked.changed}
         submitting={submitting}
         onCancel={onCancel}
       >

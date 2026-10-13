@@ -9,11 +9,14 @@ import {
   type TextInputProps,
 } from 'react-native';
 
+import {FieldProblem} from '@/components/FieldProblem';
 import {useMessages} from '@/i18n/LocaleProvider';
 import theme from '@/theme.json';
 
 type FloatingLabelInputProps = TextInputProps & {
   label: string;
+  // What is wrong with what is typed, said under the field.
+  problem?: string | null;
 };
 
 // Where the text and the label start, as px-4 is on the other fields.
@@ -28,6 +31,7 @@ export function FloatingLabelInput({
   secureTextEntry,
   onFocus,
   onBlur,
+  problem,
   ...props
 }: FloatingLabelInputProps) {
   const t = useMessages();
@@ -57,7 +61,11 @@ export function FloatingLabelInput({
     >
       <View
         className={`h-[52px] justify-end rounded-sm border bg-theme-surface pb-[5px] ${
-          focused ? 'border-theme-ink' : 'border-theme-edge'
+          problem
+            ? 'border-theme-danger'
+            : focused
+              ? 'border-theme-ink'
+              : 'border-theme-edge'
         }`}
         style={{paddingLeft: INSET, paddingRight: right}}
       >
@@ -68,6 +76,7 @@ export function FloatingLabelInput({
             value={value}
             secureTextEntry={secureTextEntry && !revealed}
             accessibilityLabel={label}
+            accessibilityHint={problem ?? undefined}
             textAlignVertical='center'
             underlineColorAndroid='transparent'
             onFocus={(event) => {
@@ -139,6 +148,7 @@ export function FloatingLabelInput({
           </Pressable>
         ) : null}
       </View>
+      {problem ? <FieldProblem message={problem} /> : null}
     </Pressable>
   );
 }

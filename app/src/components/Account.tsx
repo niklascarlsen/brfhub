@@ -1,6 +1,7 @@
-import {Alert, Pressable, Text, View} from 'react-native';
+import {Pressable, Text, View} from 'react-native';
 
 import {authClient} from '@/auth/client';
+import {useDialog} from '@/components/Dialog';
 import {LanguagePicker} from '@/components/LanguagePicker';
 import {useMessages} from '@/i18n/LocaleProvider';
 
@@ -12,18 +13,16 @@ type AccountProps = {
 
 export function Account({signOutFrom, onSignOut}: AccountProps) {
   const {data: session} = authClient.useSession();
+  const dialog = useDialog();
   const t = useMessages();
 
   const confirmSignOut = () =>
-    Alert.alert(t.account.signOut, t.account.signOutQuestion(signOutFrom), [
-      {text: t.common.cancel, style: 'cancel'},
-      {
-        text: t.account.signOut,
-        onPress: () => {
-          void onSignOut();
-        },
+    dialog.confirm(t.account.signOut, t.account.signOutQuestion(signOutFrom), {
+      label: t.account.signOut,
+      onPress: () => {
+        void onSignOut();
       },
-    ]);
+    });
 
   return (
     <>

@@ -289,6 +289,7 @@ describe('pressing a time asks first', () => {
         action: {
           label: t.times.leaveQueue,
           destructive: true,
+          cancelLabel: t.booking.stayInQueue,
           onPress: expect.any(Function),
         },
       },

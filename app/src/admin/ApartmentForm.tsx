@@ -1,16 +1,15 @@
-import {codeOf, errorMessage} from '@booking/core/api/errors';
+import {
+  checkApartment,
+  failureMessage,
+  type ApartmentFields,
+} from '@booking/core/admin/drafts';
+import {useProblems} from '@booking/core/admin/useProblems';
 import {useState} from 'react';
 import {Text, View} from 'react-native';
 
 import {FormActions} from '@/admin/FormActions';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {useMessages} from '@/i18n/LocaleProvider';
-
-export type ApartmentFields = {
-  label: string;
-  residentName: string;
-  email: string;
-};
 
 type ApartmentFormProps = {
   initial: ApartmentFields;
@@ -34,38 +33,25 @@ export function ApartmentForm({
   const [fields, setFields] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const checked = checkApartment(fields, initial, withLabel, t);
+  const {problem, leave, ready} = useProblems(checked);
 
   const set = (key: keyof ApartmentFields) => (value: string) =>
     setFields((previous) => ({...previous, [key]: value}));
 
-  const trimmed = {
-    label: fields.label.trim(),
-    residentName: fields.residentName.trim(),
-    email: fields.email.trim(),
-  };
-  const dirty =
-    trimmed.label !== initial.label ||
-    trimmed.residentName !== initial.residentName ||
-    trimmed.email !== initial.email;
-  const valid =
-    trimmed.residentName.length > 0 &&
-    trimmed.email.length > 0 &&
-    (!withLabel || trimmed.label.length > 0);
-
   async function submit() {
+    if (!ready()) {
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
 
     try {
-      await onSubmit(trimmed);
+      await onSubmit(checked.value);
     } catch (caught) {
-      const code = codeOf(caught);
       // The server checks the email more closely than the field does.
-      setError(
-        code === 'VALIDATION'
-          ? t.admin.apartmentForm.checkEmail
-          : errorMessage(code, t),
-      );
+      setError(failureMessage(caught, t, t.admin.apartmentForm.checkEmail));
       setSubmitting(false);
     }
   }
@@ -77,7 +63,8 @@ export function ApartmentForm({
           label={t.admin.apartmentForm.number}
           value={fields.label}
           onChangeText={set('label')}
-          maxLength={20}
+          onBlur={() => leave('label')}
+          problem={problem('label')}
           autoCorrect={false}
           returnKeyType='next'
         />
@@ -86,7 +73,8 @@ export function ApartmentForm({
         label={t.admin.apartmentForm.residentName}
         value={fields.residentName}
         onChangeText={set('residentName')}
-        maxLength={100}
+        onBlur={() => leave('residentName')}
+        problem={problem('residentName')}
         autoCapitalize='words'
         autoCorrect={false}
         returnKeyType='next'
@@ -95,6 +83,8 @@ export function ApartmentForm({
         label={t.common.email}
         value={fields.email}
         onChangeText={set('email')}
+        onBlur={() => leave('email')}
+        problem={problem('email')}
         autoCapitalize='none'
         autoComplete='off'
         autoCorrect={false}
@@ -116,8 +106,7 @@ export function ApartmentForm({
       ) : null}
       <FormActions
         submitLabel={submitLabel}
-        dirty={dirty}
-        valid={valid}
+        dirty={checked.changed}
         submitting={submitting}
         onSubmit={() => void submit()}
         onCancel={onCancel}
