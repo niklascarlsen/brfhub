@@ -12,6 +12,7 @@ import type {Member} from '../lib/user.js';
 import type {
   Notification,
   Notifier,
+  Recipients,
 } from '../notification/notification.service.js';
 import {listSubscribers} from '../subscription/subscription.service.js';
 
@@ -63,11 +64,11 @@ export function releasedNotification(
 // The apartment that let the slot go, which is not told about it.
 type ReleasedBy = Pick<Member, 'id' | 'timeZone' | 'locales'>;
 
-async function notifySlotReleased(
-  notifier: Notifier,
+// Who hears of the slot: its queue, unless it has started by now.
+async function recipientsOf(
   slot: ReleasedSlot,
   releasedBy: ReleasedBy,
-): Promise<void> {
+): Promise<Recipients | null> {
   const started = await db
     .execute<{
       started: boolean;
@@ -77,7 +78,7 @@ async function notifySlotReleased(
     .then((result) => result.rows[0]?.started);
 
   if (started) {
-    return;
+    return null;
   }
 
   const subscribers = await listSubscribers(
@@ -86,15 +87,15 @@ async function notifySlotReleased(
     slot.start,
   );
 
-  await notifier.notifyMembers(
-    subscribers
+  return {
+    memberIds: subscribers
       .map((row) => row.memberId)
       .filter((memberId) => memberId !== releasedBy.id),
     // A device keeps its language until it starts again, which can be
     // one the organization has stopped writing in since.
-    (locale) =>
+    build: (locale) =>
       releasedNotification(resolveLocale([locale], releasedBy.locales), slot),
-  );
+  };
 }
 
 // Tells the queue of each freed slot after the caller has answered. Called
@@ -109,7 +110,13 @@ export function announceReleased(
     return;
   }
 
-  notifier.later(
-    slots.map((slot) => () => notifySlotReleased(notifier, slot, releasedBy)),
-  );
+  notifier.later(async () => {
+    const recipients = await Promise.all(
+      slots.map((slot) => recipientsOf(slot, releasedBy)),
+    );
+
+    await notifier.notifyMembers(
+      recipients.filter((item): item is Recipients => item !== null),
+    );
+  });
 }

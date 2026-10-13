@@ -25,6 +25,7 @@ export function memoryPush() {
   const sent: PushMessage[] = [];
   let failures: PushFailure[] = [];
   let held: Promise<void> | null = null;
+  let release = () => {};
 
   const send: SendPush = async (messages) => {
     await held;
@@ -41,7 +42,6 @@ export function memoryPush() {
       failures = next;
     },
     hold(): () => void {
-      let release = () => {};
       held = new Promise((resolve) => {
         release = () => {
           held = null;
@@ -51,9 +51,9 @@ export function memoryPush() {
       return release;
     },
     clear() {
+      release();
       sent.length = 0;
       failures = [];
-      held = null;
     },
   };
 }

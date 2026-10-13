@@ -4,12 +4,13 @@ import closeWithGrace from 'close-with-grace';
 
 import {buildApp} from './app.js';
 import {pool} from './db/index.js';
-import {PUSH_TIMEOUT_MS} from './lib/push.js';
+import {PUSH_TIMEOUT_MS, sendPush} from './lib/push.js';
 
 const port = Number(process.env.PORT ?? 3000);
 const host = process.env.HOST ?? '0.0.0.0';
 
 const server = await buildApp({
+  push: sendPush,
   logger: process.stdout.isTTY
     ? {
         transport: {
@@ -20,8 +21,9 @@ const server = await buildApp({
     : true,
 });
 
-// Long enough for push still on its way to be sent or give up first.
-closeWithGrace({delay: PUSH_TIMEOUT_MS + 2000}, async ({signal, err}) => {
+// Long enough for push still on its way to be sent or give up first. Each
+// change sends its push in one call, and the changes send side by side.
+closeWithGrace({delay: PUSH_TIMEOUT_MS + 5000}, async ({signal, err}) => {
   if (err) {
     server.log.error({err}, 'shutting down after error');
   } else {

@@ -13,7 +13,12 @@ export type Notification = {
   data?: Record<string, string>;
 };
 
-export type Notifier = ReturnType<typeof createNotifier>;
+export type Notifier = {
+  notifyMembers: (recipients: Recipients[]) => Promise<void>;
+  later: (send: () => Promise<void>) => void;
+  idle: () => Promise<void>;
+  forRequest: (log: FastifyBaseLogger) => Notifier;
+};
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -21,26 +26,42 @@ declare module 'fastify' {
   }
 }
 
-// Sends push through the transport it is given: Expo and Web Push in the
-// server, one in memory in the tests.
-export function createNotifier(push: SendPush, log: FastifyBaseLogger) {
-  const pending = new Set<Promise<void>>();
+// Who to tell, and what in each language.
+export type Recipients = {
+  memberIds: string[];
+  build: (locale: Locale) => Notification;
+};
 
-  // Each device gets the notification in its own language.
-  async function notifyMembers(
-    memberIds: string[],
-    build: (locale: Locale) => Notification,
-  ): Promise<void> {
-    if (memberIds.length === 0) {
+// Sends push through the transport it is given: Expo and Web Push in the
+// server, one in memory in the tests. Each request gets its own, logging
+// with the request's id, and all of them share what is still on its way.
+export function createNotifier(
+  push: SendPush,
+  log: FastifyBaseLogger,
+  pending = new Set<Promise<void>>(),
+) {
+  // Every device gets its message in its own language, all of them in one
+  // call to the push service.
+  async function notifyMembers(recipients: Recipients[]): Promise<void> {
+    const messages = (
+      await Promise.all(
+        recipients
+          .filter(({memberIds}) => memberIds.length > 0)
+          .map(async ({memberIds, build}) =>
+            (await listPushTokens(memberIds)).map(({token, locale}) => ({
+              to: token,
+              ...build(locale),
+            })),
+          ),
+      )
+    ).flat();
+
+    if (messages.length === 0) {
       return;
     }
 
-    const tokens = await listPushTokens(memberIds);
-
     try {
-      const failures = await push(
-        tokens.map(({token, locale}) => ({to: token, ...build(locale)})),
-      );
+      const failures = await push(messages);
 
       await removePushTokens(
         failures
@@ -56,20 +77,17 @@ export function createNotifier(push: SendPush, log: FastifyBaseLogger) {
     }
   }
 
-  // Runs the sends after the caller has answered, so a slow push service
+  // Runs the send after the caller has answered, so a slow push service
   // never holds up the request or turns a done change into a client
-  // timeout. They go one after another, and one that fails does not stop
-  // the rest.
-  function later(sends: (() => Promise<void>)[]): void {
-    const task = (async () => {
-      for (const send of sends) {
-        await send().catch((error: unknown) => {
-          log.error({err: error}, 'could not send a notification');
-        });
-      }
-    })().finally(() => {
-      pending.delete(task);
-    });
+  // timeout.
+  function later(send: () => Promise<void>): void {
+    const task = send()
+      .catch((error: unknown) => {
+        log.error({err: error}, 'could not send a notification');
+      })
+      .finally(() => {
+        pending.delete(task);
+      });
 
     pending.add(task);
   }
@@ -82,5 +100,9 @@ export function createNotifier(push: SendPush, log: FastifyBaseLogger) {
     }
   }
 
-  return {notifyMembers, later, idle};
+  function forRequest(requestLog: FastifyBaseLogger): Notifier {
+    return createNotifier(push, requestLog, pending);
+  }
+
+  return {notifyMembers, later, idle, forRequest};
 }

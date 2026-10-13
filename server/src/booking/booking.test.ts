@@ -13,6 +13,7 @@ import {
 } from '../db/schema.js';
 import type {Locale} from '../lib/locale.js';
 import {addDays, isoDateIn, slotEndsAt} from '../lib/time.js';
+import {withTimeout} from '../lib/timeout.js';
 import type {BookingRules, Resource} from '../resource/resource.dto.js';
 import type {ResourceSchedule, Slots} from '../slot/slot.dto.js';
 import type {Subscription} from '../subscription/subscription.dto.js';
@@ -1040,19 +1041,8 @@ async function pushed() {
 
 // Fails instead of hanging when the response waits on something it should
 // not, such as a push service that never answers.
-function within<T>(promise: Promise<T>, ms = 2000): Promise<T> {
-  let timer: NodeJS.Timeout | undefined;
-
-  return Promise.race([
-    promise,
-    new Promise<never>((_, reject) => {
-      timer = setTimeout(() => {
-        reject(new Error(`No response within ${ms} ms`));
-      }, ms);
-    }),
-  ]).finally(() => {
-    clearTimeout(timer);
-  });
+function within<T>(promise: Promise<T>): Promise<T> {
+  return withTimeout(promise, 2000, 'No response within 2000 ms');
 }
 
 test('a cancelled slot is announced to its queue and nobody else', async () => {

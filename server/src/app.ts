@@ -14,7 +14,7 @@ import Fastify, {type FastifyServerOptions} from 'fastify';
 
 import {isAppError, sendError} from './lib/errors.js';
 import {WEB_ORIGIN} from './lib/env.js';
-import {sendPush, type SendPush} from './lib/push.js';
+import type {SendPush} from './lib/push.js';
 import {createNotifier} from './notification/notification.service.js';
 import {accountRoutes} from './account/account.route.js';
 import {announcementRoutes} from './announcement/announcement.route.js';
@@ -28,12 +28,12 @@ import {resourceAdminRoutes} from './resourceAdmin/resourceAdmin.route.js';
 import {slotRoutes} from './slot/slot.route.js';
 import {subscriptionRoutes} from './subscription/subscription.route.js';
 
-// The tests pass their own push, to see who would be told what without
-// sending anything.
+// The server passes sendPush. The tests pass their own, to see who would be
+// told what without sending anything.
 export async function buildApp({
-  push = sendPush,
+  push,
   ...options
-}: FastifyServerOptions & {push?: SendPush} = {}) {
+}: FastifyServerOptions & {push: SendPush}) {
   const server = Fastify(options).withTypeProvider<ZodTypeProvider>();
 
   server.decorate('notifier', createNotifier(push, server.log));

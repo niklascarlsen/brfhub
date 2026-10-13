@@ -5,9 +5,10 @@ import {fileURLToPath} from 'node:url';
 
 import {buildApp} from '../src/app.js';
 import {pool} from '../src/db/index.js';
+import {sendPush} from '../src/lib/push.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const app = await buildApp();
+const app = await buildApp({push: sendPush});
 
 try {
   await app.ready();

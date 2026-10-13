@@ -5,31 +5,18 @@
 // Failures come back per token so the caller can drop dead ones.
 import webpush, {WebPushError, type PushSubscription} from 'web-push';
 
+import {withTimeout} from './timeout.js';
+
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 const CHANNEL_ID = 'slots';
+// The most messages Expo takes in one request.
+const EXPO_BATCH_SIZE = 100;
 // A released slot is old news after an hour, so the push service drops
 // undelivered messages instead of waking the device later.
 const WEB_PUSH_TTL_SECONDS = 60 * 60;
 // A push service that takes the connection and never answers would
 // otherwise hold the send, and the slots queued behind it, forever.
 export const PUSH_TIMEOUT_MS = 10_000;
-
-// web-push only times out a socket that goes quiet, so a service that
-// answers slowly enough could still hold a send. This bounds the whole of it.
-function withinPushTimeout<T>(send: Promise<T>): Promise<T> {
-  let timer: NodeJS.Timeout | undefined;
-
-  return Promise.race([
-    send,
-    new Promise<never>((_, reject) => {
-      timer = setTimeout(() => {
-        reject(new Error('Push timed out'));
-      }, PUSH_TIMEOUT_MS);
-    }),
-  ]).finally(() => {
-    clearTimeout(timer);
-  });
-}
 
 export type PushMessage = {
   to: string;
@@ -52,11 +39,7 @@ function isWebSubscription(token: string): boolean {
   return token.startsWith('{');
 }
 
-async function sendExpoPush(messages: PushMessage[]): Promise<PushFailure[]> {
-  if (messages.length === 0) {
-    return [];
-  }
-
+async function sendExpoBatch(messages: PushMessage[]): Promise<PushFailure[]> {
   const response = await fetch(EXPO_PUSH_URL, {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
@@ -116,7 +99,9 @@ async function sendWebPush(messages: PushMessage[]): Promise<PushFailure[]> {
   const failures = await Promise.all(
     messages.map(async (message): Promise<PushFailure[]> => {
       try {
-        await withinPushTimeout(
+        // web-push only times out a socket that goes quiet, so a service
+        // that answers slowly enough could still hold the send.
+        await withTimeout(
           webpush.sendNotification(
             JSON.parse(message.to) as PushSubscription,
             JSON.stringify({
@@ -132,6 +117,8 @@ async function sendWebPush(messages: PushMessage[]): Promise<PushFailure[]> {
               timeout: PUSH_TIMEOUT_MS,
             },
           ),
+          PUSH_TIMEOUT_MS,
+          'Push timed out',
         );
 
         return [];
@@ -174,16 +161,20 @@ export type SendPush = (messages: PushMessage[]) => Promise<PushFailure[]>;
 export async function sendPush(
   messages: PushMessage[],
 ): Promise<PushFailure[]> {
-  const [expo, web] = await Promise.all([
-    failuresFrom(
-      messages.filter((message) => !isWebSubscription(message.to)),
-      sendExpoPush,
-    ),
+  const expo = messages.filter((message) => !isWebSubscription(message.to));
+  const batches = Array.from(
+    {length: Math.ceil(expo.length / EXPO_BATCH_SIZE)},
+    (_, index) =>
+      expo.slice(index * EXPO_BATCH_SIZE, (index + 1) * EXPO_BATCH_SIZE),
+  );
+
+  const failures = await Promise.all([
+    ...batches.map((batch) => failuresFrom(batch, sendExpoBatch)),
     failuresFrom(
       messages.filter((message) => isWebSubscription(message.to)),
       sendWebPush,
     ),
   ]);
 
-  return [...expo, ...web];
+  return failures.flat();
 }
