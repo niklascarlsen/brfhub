@@ -67,7 +67,7 @@ export function PushToggle() {
   };
 
   return (
-    <div className='mb-6.5 flex items-center gap-3.5 rounded-2xl border border-theme-line bg-theme-surface px-4.5 py-4'>
+    <div className='mt-2.5 flex items-center gap-3.5 rounded-2xl border border-theme-line bg-theme-surface px-4.5 py-4'>
       <div className='flex min-w-0 flex-1 flex-col gap-1'>
         <span className='text-sm font-semibold text-theme-ink'>
           {t.push.toggle}

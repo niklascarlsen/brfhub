@@ -2,12 +2,7 @@ import {and, eq, isNull} from 'drizzle-orm';
 
 import {db} from '../db/index.js';
 import {members} from '../db/schema.js';
-import {
-  localize,
-  resolveLocale,
-  type Locale,
-  type LocalizedText,
-} from '../lib/locale.js';
+import {localize, type Locale, type LocalizedText} from '../lib/locale.js';
 import type {Organization} from '../lib/user.js';
 import type {
   Notification,
@@ -16,7 +11,6 @@ import type {
 } from '../notification/notification.service.js';
 
 export type PublishedAnnouncement = {
-  id: string;
   // In every language, since each device is told in its own.
   title: LocalizedText;
   body: LocalizedText;
@@ -40,7 +34,6 @@ export function announcementNotification(
     title: localize(announcement.title, locale) ?? '',
     body: shortened(localize(announcement.body, locale) ?? ''),
     channel: 'announcements',
-    data: {announcementId: announcement.id},
   };
 }
 
@@ -48,7 +41,7 @@ export function announcementNotification(
 // announcement, in its own language, after the caller has answered.
 export async function announceToApartments(
   notifier: Notifier,
-  {organizationId, locales}: Organization,
+  {organizationId}: Organization,
   announcement: PublishedAnnouncement,
 ): Promise<void> {
   const rows = await db
@@ -58,12 +51,12 @@ export async function announceToApartments(
       and(eq(members.organizationId, organizationId), isNull(members.leftAt)),
     );
 
+  // A device keeps its language until it starts again, which can be one
+  // the organization has stopped writing in since: localize then falls
+  // back to a language the text is written in.
   const recipients: Recipients = {
     memberIds: rows.map((row) => row.id),
-    // A device keeps its language until it starts again, which can be
-    // one the organization has stopped writing in since.
-    build: (locale) =>
-      announcementNotification(resolveLocale([locale], locales), announcement),
+    build: (locale) => announcementNotification(locale, announcement),
   };
 
   if (recipients.memberIds.length > 0) {

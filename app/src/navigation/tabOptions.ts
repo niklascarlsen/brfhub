@@ -12,6 +12,8 @@ const LABEL_LINE = BAR_HEIGHT - ITEM_PADDING * 2 - ICON_SLOT - LABEL_GAP;
 // Shared by the apartment's and the admin's tab bars.
 export const TAB_SCREEN_OPTIONS: BottomTabNavigationOptions = {
   headerShown: false,
+  // The keyboard toolbar sits right on the keyboard, not a tab bar above it.
+  tabBarHideOnKeyboard: true,
   tabBarStyle: {
     backgroundColor: theme.bg,
     borderTopColor: theme.line,

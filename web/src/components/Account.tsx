@@ -1,3 +1,5 @@
+import type {ReactNode} from 'react';
+
 import {authClient} from '@/auth/client';
 import {useDialog} from '@/components/Dialog';
 import {ChevronForwardIcon} from '@/components/icons';
@@ -11,9 +13,16 @@ type AccountProps = {
   onSignOut: () => Promise<void>;
   // The account's other app, for one that both books and manages.
   switchTo: {label: string; route: Route; onPress: () => void} | null;
+  // Shown under the card, such as the apartment's push switch.
+  children?: ReactNode;
 };
 
-export function Account({signOutFrom, onSignOut, switchTo}: AccountProps) {
+export function Account({
+  signOutFrom,
+  onSignOut,
+  switchTo,
+  children,
+}: AccountProps) {
   const {data: session} = authClient.useSession();
   const dialog = useDialog();
   const t = useMessages();
@@ -58,6 +67,7 @@ export function Account({signOutFrom, onSignOut, switchTo}: AccountProps) {
             <ChevronForwardIcon size={16} className='text-theme-faint' />
           </a>
         ) : null}
+        {children}
       </div>
       <LanguagePicker />
     </>

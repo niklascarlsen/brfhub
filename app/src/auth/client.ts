@@ -9,7 +9,8 @@ export const authClient = createAuthClient({
   baseURL: `${API_BASE_URL}/auth`,
   plugins: [
     emailOTPClient(),
-    twoFactorClient(),
+    // The login screen shows the second step itself.
+    twoFactorClient({onTwoFactorRedirect: () => {}}),
     expoClient({
       scheme: 'bookslot',
       storagePrefix: 'booking',

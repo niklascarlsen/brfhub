@@ -139,7 +139,7 @@ export async function createAnnouncement(
     throw new Error('Insert returned no announcement');
   }
 
-  await announceToApartments(notifier, organization, {id: created.id, ...text});
+  await announceToApartments(notifier, organization, text);
 
   return created.id;
 }
@@ -195,12 +195,9 @@ export async function updateAnnouncement(
     throw appError('NOT_FOUND', 'Unknown announcement');
   }
 
-  const shown =
-    existing.publishedOn <= current &&
-    (body.endsOn === null || body.endsOn >= current);
-
-  if (shown) {
-    await announceToApartments(notifier, organization, {id, ...text});
+  // Published the day it was written, so only an end can hide it.
+  if (body.endsOn === null || body.endsOn >= current) {
+    await announceToApartments(notifier, organization, text);
   }
 }
 

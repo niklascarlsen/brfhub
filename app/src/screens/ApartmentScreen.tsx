@@ -35,8 +35,9 @@ export function ApartmentScreen() {
               ? {label: t.account.openAdmin, onPress: () => switchMode('admin')}
               : null
           }
-        />
-        <PushToggle />
+        >
+          <PushToggle />
+        </Account>
         <AnnouncementList />
         <BookingRules />
       </ScrollView>

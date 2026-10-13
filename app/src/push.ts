@@ -129,11 +129,16 @@ export async function registerPushToken(
   }
 }
 
+// The OS also reports the token whenever it is asked for it, so a device
+// whose apartment turned push off is left alone here too: dropping the
+// token asks for it, and must not register it again.
 export function onPushTokenChange(locale: Locale): () => void {
   const subscription = Notifications.addPushTokenListener((devicePushToken) => {
-    sendToken(locale, devicePushToken).catch((error: unknown) => {
-      console.warn('[push] could not register rotated push token', error);
-    });
+    readPushEnabled()
+      .then((enabled) => (enabled ? sendToken(locale, devicePushToken) : null))
+      .catch((error: unknown) => {
+        console.warn('[push] could not register rotated push token', error);
+      });
   });
 
   return () => subscription.remove();

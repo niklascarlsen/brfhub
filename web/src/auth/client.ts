@@ -5,7 +5,8 @@ import {apiBaseUrl} from '@/api/baseUrl';
 
 export const authClient = createAuthClient({
   baseURL: `${apiBaseUrl()}/auth`,
-  plugins: [emailOTPClient(), twoFactorClient()],
+  // The login screen shows the second step itself.
+  plugins: [emailOTPClient(), twoFactorClient({onTwoFactorRedirect: () => {}})],
 });
 
 // Makes useSession refetch, so a session the server no longer accepts

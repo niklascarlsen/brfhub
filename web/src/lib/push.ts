@@ -127,10 +127,6 @@ export function markPushPromptShown(): void {
 // Whether the browser lets the app send push: granted, askable, or
 // blocked until changed in the browser's own settings.
 export function pushPermission(): 'granted' | 'askable' | 'blocked' {
-  if (!isSupported() || !VAPID_PUBLIC_KEY) {
-    return 'blocked';
-  }
-
   switch (Notification.permission) {
     case 'granted':
       return 'granted';

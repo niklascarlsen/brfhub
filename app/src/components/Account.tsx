@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import type {ReactNode} from 'react';
 import {Pressable, Text, View} from 'react-native';
 
 import {authClient} from '@/auth/client';
@@ -13,9 +14,16 @@ type AccountProps = {
   onSignOut: () => Promise<void>;
   // The account's other app, for one that both books and manages.
   switchTo: {label: string; onPress: () => void} | null;
+  // Shown under the card, such as the apartment's push switch.
+  children?: ReactNode;
 };
 
-export function Account({signOutFrom, onSignOut, switchTo}: AccountProps) {
+export function Account({
+  signOutFrom,
+  onSignOut,
+  switchTo,
+  children,
+}: AccountProps) {
   const {data: session} = authClient.useSession();
   const dialog = useDialog();
   const t = useMessages();
@@ -66,6 +74,7 @@ export function Account({signOutFrom, onSignOut, switchTo}: AccountProps) {
             <Ionicons name='chevron-forward' size={16} color={theme.faint} />
           </Pressable>
         ) : null}
+        {children}
       </View>
       <LanguagePicker />
     </>

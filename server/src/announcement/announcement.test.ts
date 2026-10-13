@@ -381,7 +381,7 @@ test('a new announcement is pushed to every apartment in its own language', asyn
         title: 'Vattnet stängs av',
         body: 'Vattnet stängs av i detalj',
         channel: 'announcements',
-        data: {announcementId: id},
+        data: undefined,
       },
       // Written in Swedish alone, which an English device gets too.
       {
@@ -389,7 +389,7 @@ test('a new announcement is pushed to every apartment in its own language', asyn
         title: 'Vattnet stängs av',
         body: 'Vattnet stängs av i detalj',
         channel: 'announcements',
-        data: {announcementId: id},
+        data: undefined,
       },
     ],
   );

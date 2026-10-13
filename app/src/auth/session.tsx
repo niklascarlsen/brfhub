@@ -1,6 +1,6 @@
 import {errorMessage} from '@booking/core/api/errors';
 import {sessionView} from '@booking/core/auth/session';
-import type {ReactNode} from 'react';
+import {useState, type ReactNode} from 'react';
 
 import {authClient} from '@/auth/client';
 import {Blank} from '@/components/Blank';
@@ -13,8 +13,16 @@ import {LoginScreen} from '@/screens/LoginScreen';
 export function SessionGate({children}: {children: ReactNode}) {
   const {data: session, isPending, error, refetch} = authClient.useSession();
   const t = useMessages();
+  // Whether the session has been checked once, so a later check does not
+  // unmount the sign-in screen between its steps. Set during the render
+  // that sees the first answer, as React allows for a component's own state.
+  const [answered, setAnswered] = useState(false);
 
-  switch (sessionView({session, isPending, error})) {
+  if (!isPending && !answered) {
+    setAnswered(true);
+  }
+
+  switch (sessionView({session, isPending, error, answered})) {
     case 'signed-in':
       return children;
     case 'waiting':

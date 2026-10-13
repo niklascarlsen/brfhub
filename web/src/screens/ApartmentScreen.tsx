@@ -34,8 +34,9 @@ export function ApartmentScreen() {
                 }
               : null
           }
-        />
-        <PushToggle />
+        >
+          <PushToggle />
+        </Account>
         <AnnouncementList />
         <BookingRules listClassName='flex flex-col gap-2.5' />
       </div>
