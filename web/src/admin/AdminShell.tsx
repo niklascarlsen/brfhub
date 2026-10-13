@@ -1,12 +1,12 @@
+import {AdminAccountContext} from '@booking/core/admin/account';
+import type {AdminAccount} from '@booking/core/api/types';
 import {useEffect} from 'react';
 
-import {AdminAccountContext} from '@/admin/account';
 import {AdminAnnouncements} from '@/admin/AdminAnnouncements';
 import {AdminApartments} from '@/admin/AdminApartments';
 import {AdminOrganization} from '@/admin/AdminOrganization';
 import {AdminResources} from '@/admin/AdminResources';
 import {UnsavedContext, useUnsavedRoot} from '@/admin/unsaved';
-import type {AdminAccount} from '@/auth/account';
 import {
   GridOutlineIcon,
   MegaphoneOutlineIcon,

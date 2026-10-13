@@ -1,3 +1,4 @@
+import {useAdminAccount} from '@booking/core/admin/account';
 import {untranslatedMessage} from '@booking/core/admin/localized';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {useEffect, useRef, type ReactNode} from 'react';
@@ -11,7 +12,6 @@ import {
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
-import {useAdminAccount} from '@/admin/account';
 import {useConfirmLeave} from '@/admin/unsaved';
 import {NoticeBar} from '@/components/Notice';
 import {useMessages} from '@/i18n/LocaleProvider';

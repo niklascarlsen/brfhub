@@ -1,59 +1,29 @@
-import {
-  codeOf,
-  errorMessage,
-  type ClientErrorCode,
-} from '@booking/core/api/errors';
-import {useResetWhenChanged} from '@booking/core/hooks/useResetWhenChanged';
-import {useEffect, useRef, useState} from 'react';
+import {errorMessage} from '@booking/core/api/errors';
+import {screenError} from '@booking/core/load/loader';
+import {useLoad} from '@booking/core/load/useLoad';
+import {useEffect} from 'react';
 
 import {useOnReturn} from '@/hooks/useOnReturn';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
 
+// Loads when the screen mounts, when the page returns and when the
+// identity or the language changes; the server answers in the language
+// shown. A route change mounts its screen afresh, so mounting is the
+// web's focus. The app's useFocusLoad has the same shape.
 export function useFocusLoad<T>(load: () => Promise<T>, identity?: string) {
-  // The server answers in the language shown, so a new one loads again.
-  // What is shown stays until the answer comes.
   const {locale} = useLocale();
-  const [loaded, setLoaded] = useState<{key: string; value: T} | null>(null);
-  const [error, setError] = useState<ClientErrorCode | null>(null);
-  const [attempt, setAttempt] = useState(0);
-  const reload = () => setAttempt((previous) => previous + 1);
-
-  const scope = identity ?? '';
-  const loadRef = useRef(load);
-
-  useEffect(() => {
-    loadRef.current = load;
-  });
+  const t = useMessages();
+  const loaded = useLoad(load, {key: identity});
+  const {reload} = loaded;
 
   useOnReturn(reload);
 
-  useResetWhenChanged(`${scope}:${attempt}`, () => setError(null));
+  useEffect(reload, [reload, identity, locale]);
 
-  useEffect(() => {
-    let current = true;
-
-    loadRef
-      .current()
-      .then((value) => {
-        if (current) {
-          setLoaded({key: scope, value});
-        }
-      })
-      .catch((caught: unknown) => {
-        if (current) {
-          setError(codeOf(caught));
-        }
-      });
-
-    return () => {
-      current = false;
-    };
-  }, [scope, attempt, locale]);
-
-  const t = useMessages();
+  const error = screenError(loaded);
 
   return {
-    data: loaded?.key === scope ? loaded.value : null,
+    data: loaded.data,
     error: error === null ? null : errorMessage(error, t),
     reload,
   };

@@ -1,7 +1,7 @@
+import {useAdminAccount} from '@booking/core/admin/account';
 import {untranslatedMessage} from '@booking/core/admin/localized';
 import {useEffect, useRef, type ReactNode} from 'react';
 
-import {useAdminAccount} from '@/admin/account';
 import {useConfirmLeave} from '@/admin/unsaved';
 import {ChevronBackIcon} from '@/components/icons';
 import {NoticeBar} from '@/components/Notice';

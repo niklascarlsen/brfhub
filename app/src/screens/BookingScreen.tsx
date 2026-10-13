@@ -1,3 +1,4 @@
+import {useConfig} from '@booking/core/config/config';
 import {useResetWhenChanged} from '@booking/core/hooks/useResetWhenChanged';
 import {formatDayHeading, isWithinBookingWindow} from '@booking/core/lib/dates';
 import {useRoute, type RouteProp} from '@react-navigation/native';
@@ -9,7 +10,6 @@ import {api, unwrap} from '@/api/client';
 import {AnnouncementBanner} from '@/components/Announcements';
 import {BookingHeader} from '@/components/BookingHeader';
 import {SlotList} from '@/components/SlotList';
-import {useConfig} from '@/config';
 import {useBookingActions} from '@/hooks/useBookingActions';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useMessages} from '@/i18n/LocaleProvider';

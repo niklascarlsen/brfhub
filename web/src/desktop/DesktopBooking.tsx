@@ -1,10 +1,10 @@
 import type {Booking, BookingWindow, Resource} from '@booking/core/api/types';
+import {useConfig} from '@booking/core/config/config';
 import {fromIsoDate, getWeekdayLabel, timeRange} from '@booking/core/lib/dates';
 
 import {api, unwrap} from '@/api/client';
 import {MyTimesList} from '@/components/MyTimes';
 import {AnnouncementBanner} from '@/components/Announcements';
-import {useConfig} from '@/config';
 import {DayPanel, type ResourceDay} from '@/desktop/DayPanel';
 import {SHELL} from '@/desktop/layout';
 import {MonthCalendar, type DaySummary} from '@/desktop/MonthCalendar';

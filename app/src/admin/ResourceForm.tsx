@@ -1,3 +1,4 @@
+import {useAdminAccount} from '@booking/core/admin/account';
 import {
   fieldLabel,
   isWritten,
@@ -18,7 +19,6 @@ import {localize} from '@booking/core/i18n/catalog';
 import {useState} from 'react';
 import {Pressable, Text, View} from 'react-native';
 
-import {useAdminAccount} from '@/admin/account';
 import {FormActions} from '@/admin/FormActions';
 import {SlotsEditor} from '@/admin/SlotsEditor';
 import {SECTION_LABEL} from '@/admin/styles';

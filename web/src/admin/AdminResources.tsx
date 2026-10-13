@@ -1,3 +1,4 @@
+import {useAdminAccount, useRefreshAccount} from '@booking/core/admin/account';
 import {missingLanguages} from '@booking/core/admin/localized';
 import {limitText, slotsText} from '@booking/core/admin/schedule';
 import {codeOf, errorMessage} from '@booking/core/api/errors';
@@ -7,7 +8,6 @@ import {localize, type Messages} from '@booking/core/i18n/catalog';
 import {formatDayMonth} from '@booking/core/lib/dates';
 import {useState} from 'react';
 
-import {useAdminAccount, useRefreshAccount} from '@/admin/account';
 import {AdminPage} from '@/admin/AdminPage';
 import {KindForm} from '@/admin/KindForm';
 import {ResourceDetail} from '@/admin/ResourceDetail';

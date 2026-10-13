@@ -1,8 +1,8 @@
+import {useAdminAccount} from '@booking/core/admin/account';
 import type {Apartment} from '@booking/core/api/types';
 import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
 import {useState} from 'react';
 
-import {useAdminAccount} from '@/admin/account';
 import {AdminPage} from '@/admin/AdminPage';
 import {ApartmentDetail} from '@/admin/ApartmentDetail';
 import {ApartmentForm} from '@/admin/ApartmentForm';

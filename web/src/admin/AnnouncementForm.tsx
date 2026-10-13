@@ -1,3 +1,4 @@
+import {useAdminAccount} from '@booking/core/admin/account';
 import {
   DURATIONS,
   durationOf,
@@ -15,7 +16,6 @@ import type {LocalizedText} from '@booking/core/api/types';
 import {formatLongDate} from '@booking/core/lib/dates';
 import {useState, type SubmitEvent} from 'react';
 
-import {useAdminAccount} from '@/admin/account';
 import {FormActions} from '@/admin/FormActions';
 import {SECONDARY_BUTTON} from '@/admin/styles';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';

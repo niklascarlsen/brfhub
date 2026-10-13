@@ -1,3 +1,4 @@
+import {useAdminAccount, useRefreshAccount} from '@booking/core/admin/account';
 import {missingLanguages} from '@booking/core/admin/localized';
 import {codeOf, errorMessage} from '@booking/core/api/errors';
 import type {AdminAnnouncement} from '@booking/core/api/types';
@@ -9,7 +10,6 @@ import {useIsFocused} from '@react-navigation/native';
 import {useEffect, useState} from 'react';
 import {Alert, BackHandler, Pressable, Text, View} from 'react-native';
 
-import {useAdminAccount, useRefreshAccount} from '@/admin/account';
 import {AdminPage} from '@/admin/AdminPage';
 import {AnnouncementForm} from '@/admin/AnnouncementForm';
 import {PRIMARY_BUTTON, PRIMARY_LABEL, SECTION_LABEL} from '@/admin/styles';

@@ -1,9 +1,9 @@
+import {AdminAccountContext} from '@booking/core/admin/account';
+import type {AdminAccount} from '@booking/core/api/types';
 import {NavigationContainer} from '@react-navigation/native';
 import {useEffect} from 'react';
 
-import {AdminAccountContext} from '@/admin/account';
 import {UnsavedContext, useUnsavedRoot} from '@/admin/unsaved';
-import type {AdminAccount} from '@/auth/account';
 import AdminTabNavigator from '@/navigation/AdminTabNavigator';
 import {dropPushToken} from '@/push';
 

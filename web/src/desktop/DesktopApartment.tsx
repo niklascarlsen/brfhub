@@ -1,9 +1,10 @@
+import {useConfig} from '@booking/core/config/config';
+
 import {signOut} from '@/auth/signOut';
 import {Account} from '@/components/Account';
 import {AnnouncementList} from '@/components/Announcements';
 import {BookingRules} from '@/components/BookingRules';
 import {ChevronBackIcon} from '@/components/icons';
-import {useConfig} from '@/config';
 import {SHELL} from '@/desktop/layout';
 import {PageHeader} from '@/desktop/PageHeader';
 import {useMessages} from '@/i18n/LocaleProvider';

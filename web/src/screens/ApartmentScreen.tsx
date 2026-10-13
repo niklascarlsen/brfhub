@@ -1,8 +1,9 @@
+import {useConfig} from '@booking/core/config/config';
+
 import {signOut} from '@/auth/signOut';
 import {Account} from '@/components/Account';
 import {AnnouncementList} from '@/components/Announcements';
 import {BookingRules} from '@/components/BookingRules';
-import {useConfig} from '@/config';
 import {useMessages} from '@/i18n/LocaleProvider';
 
 export function ApartmentScreen() {

@@ -1,3 +1,4 @@
+import {useAdminAccount} from '@booking/core/admin/account';
 import {
   fieldLabel,
   isWritten,
@@ -17,7 +18,6 @@ import type {
 import {localize} from '@booking/core/i18n/catalog';
 import {useState, type SubmitEvent} from 'react';
 
-import {useAdminAccount} from '@/admin/account';
 import {FormActions} from '@/admin/FormActions';
 import {SlotsEditor} from '@/admin/SlotsEditor';
 import {SECTION_LABEL} from '@/admin/styles';
