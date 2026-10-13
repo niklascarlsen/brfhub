@@ -21,8 +21,8 @@ const server = await buildApp({
     : true,
 });
 
-// Long enough for push still on its way to be sent or give up first. Each
-// change sends its push in one call, and the changes send side by side.
+// Gives push still on its way the time to be sent or give up, one call per
+// change. A runtime that kills the process sooner cuts it short.
 closeWithGrace({delay: PUSH_TIMEOUT_MS + 5000}, async ({signal, err}) => {
   if (err) {
     server.log.error({err}, 'shutting down after error');

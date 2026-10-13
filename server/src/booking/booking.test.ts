@@ -527,11 +527,22 @@ test('rejects cancelling another apartment booking', async () => {
   assert.equal(theirs.json<Booking[]>().length, 1);
 });
 
-test('rejects cancelling an unknown booking', async () => {
-  const response = await cancel(TENANT, UNKNOWN_ID);
+test('cancelling a booking already gone is done', async () => {
+  const created = await book(TENANT, {date: bookableDate, start: '07:00'});
+  const {id} = created.json<CreatedBooking>();
 
-  assert.equal(response.statusCode, 404);
-  assert.equal(codeOf(response), 'NOT_FOUND');
+  assert.equal((await cancel(TENANT, id)).statusCode, 204);
+  assert.equal((await cancel(TENANT, id)).statusCode, 204);
+  assert.equal((await cancel(TENANT, UNKNOWN_ID)).statusCode, 204);
+});
+
+test('leaving a queue already left is done', async () => {
+  await book(NEIGHBOUR, {date: bookableDate, start: '07:00'});
+  const queued = await subscribe(TENANT, {date: bookableDate, start: '07:00'});
+  const {id} = queued.json<Subscription>();
+
+  assert.equal((await unsubscribe(TENANT, id)).statusCode, 204);
+  assert.equal((await unsubscribe(TENANT, id)).statusCode, 204);
 });
 
 test('lets only one apartment take a slot when several book at once', async () => {

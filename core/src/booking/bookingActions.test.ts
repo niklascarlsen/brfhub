@@ -288,8 +288,7 @@ describe('a failure is told', () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  // NOT_FOUND among them: a time someone else already freed, or a change
-  // that went through although its answer never arrived.
+  // NOT_FOUND among them: a resource or time that is no longer there.
   const reloading: [ClientErrorCode, number][] = [
     ['SLOT_TAKEN', 409],
     ['SLOT_STARTED', 409],
@@ -311,23 +310,6 @@ describe('a failure is told', () => {
       title: t.booking.bookFailed,
       message: errorMessage(code, t),
     });
-  });
-
-  const undoing: [string, Slot][] = [
-    ['leaving the queue', queued],
-    ['cancelling', mine],
-    ['releasing', running],
-  ];
-
-  test.each(undoing)('%s what is already gone is done', async (_, slot) => {
-    const {actions, shown, onChange, press} = setup();
-    answer = {status: 404, code: 'NOT_FOUND'};
-
-    actions.confirmBook(slot, SAUNA, null);
-    await press();
-
-    expect(onChange).toHaveBeenCalledOnce();
-    expect(shown).toHaveLength(1);
   });
 
   const other: [ClientErrorCode, number][] = [

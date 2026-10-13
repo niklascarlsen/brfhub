@@ -111,12 +111,26 @@ export function announceReleased(
   }
 
   notifier.later(async () => {
-    const recipients = await Promise.all(
-      slots.map((slot) => recipientsOf(slot, releasedBy)),
-    );
+    const recipients: Recipients[] = [];
+    const failed: unknown[] = [];
 
-    await notifier.notifyMembers(
-      recipients.filter((item): item is Recipients => item !== null),
-    );
+    // One after another, and a slot whose queue cannot be looked up does
+    // not keep the others quiet.
+    for (const slot of slots) {
+      try {
+        const found = await recipientsOf(slot, releasedBy);
+        if (found) {
+          recipients.push(found);
+        }
+      } catch (error) {
+        failed.push(error);
+      }
+    }
+
+    await notifier.notifyMembers(recipients);
+
+    if (failed.length > 0) {
+      throw new AggregateError(failed, 'Could not look up who to tell');
+    }
   });
 }

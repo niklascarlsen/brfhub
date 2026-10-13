@@ -41,26 +41,28 @@ export function createNotifier(
   pending = new Set<Promise<void>>(),
 ) {
   // Every device gets its message in its own language, all of them in one
-  // call to the push service.
+  // call to the push service. A member in two groups hears of both.
   async function notifyMembers(recipients: Recipients[]): Promise<void> {
-    const messages = (
-      await Promise.all(
-        recipients
-          .filter(({memberIds}) => memberIds.length > 0)
-          .map(async ({memberIds, build}) =>
-            (await listPushTokens(memberIds)).map(({token, locale}) => ({
-              to: token,
-              ...build(locale),
-            })),
-          ),
-      )
-    ).flat();
+    const memberIds = [
+      ...new Set(recipients.flatMap((group) => group.memberIds)),
+    ];
 
-    if (messages.length === 0) {
+    if (memberIds.length === 0) {
       return;
     }
 
     try {
+      const tokens = await listPushTokens(memberIds);
+      const messages = recipients.flatMap(({memberIds: group, build}) =>
+        tokens
+          .filter((token) => group.includes(token.memberId))
+          .map(({token, locale}) => ({to: token, ...build(locale)})),
+      );
+
+      if (messages.length === 0) {
+        return;
+      }
+
       const failures = await push(messages);
 
       await removePushTokens(

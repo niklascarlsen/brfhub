@@ -19,9 +19,13 @@ export async function savePushToken(
 
 export function listPushTokens(
   memberIds: string[],
-): Promise<{token: string; locale: Locale}[]> {
+): Promise<{memberId: string; token: string; locale: Locale}[]> {
   return db
-    .select({token: pushTokens.token, locale: pushTokens.locale})
+    .select({
+      memberId: pushTokens.memberId,
+      token: pushTokens.token,
+      locale: pushTokens.locale,
+    })
     .from(pushTokens)
     .where(inArray(pushTokens.memberId, memberIds));
 }

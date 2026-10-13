@@ -45,8 +45,10 @@ export async function deleteBooking(
     .innerJoin(resources, eq(bookings.resourceId, resources.id))
     .where(eq(bookings.id, id));
 
+  // Already gone is done: the cancel a client retries because its answer
+  // never arrived has done what was asked.
   if (!existing) {
-    throw appError('NOT_FOUND', 'Booking not found');
+    return;
   }
 
   if (existing.memberId !== member.id) {
@@ -75,7 +77,7 @@ export async function deleteBooking(
     });
 
   if (!removed) {
-    throw appError('NOT_FOUND', 'Booking not found');
+    return;
   }
 
   announceReleased(

@@ -44,13 +44,7 @@ export function bookingActions({
   t,
   onChange,
 }: BookingActionsOptions) {
-  // goneIsDone: undoing something that is already gone, a booking cancelled
-  // by a request whose answer never arrived, has done what was asked.
-  async function mutate(
-    failTitle: string,
-    request: () => Promise<unknown>,
-    goneIsDone = false,
-  ) {
+  async function mutate(failTitle: string, request: () => Promise<unknown>) {
     try {
       await request();
       onChange?.();
@@ -58,9 +52,6 @@ export function bookingActions({
       const code = codeOf(error);
       if (shouldReload(code)) {
         onChange?.();
-      }
-      if (goneIsDone && code === 'NOT_FOUND') {
-        return;
       }
       dialog.alert(failTitle, errorMessage(code, t));
     }
@@ -96,26 +87,20 @@ export function bookingActions({
   }
 
   async function unsubscribe(id: string) {
-    await mutate(
-      t.booking.leaveQueueFailed,
-      () => unwrap(api.DELETE('/subscriptions/{id}', {params: {path: {id}}})),
-      true,
+    await mutate(t.booking.leaveQueueFailed, () =>
+      unwrap(api.DELETE('/subscriptions/{id}', {params: {path: {id}}})),
     );
   }
 
   async function cancel(id: string) {
-    await mutate(
-      t.booking.cancelFailed,
-      () => unwrap(api.DELETE('/bookings/{id}', {params: {path: {id}}})),
-      true,
+    await mutate(t.booking.cancelFailed, () =>
+      unwrap(api.DELETE('/bookings/{id}', {params: {path: {id}}})),
     );
   }
 
   async function release(id: string) {
-    await mutate(
-      t.booking.releaseFailed,
-      () => unwrap(api.DELETE('/bookings/{id}', {params: {path: {id}}})),
-      true,
+    await mutate(t.booking.releaseFailed, () =>
+      unwrap(api.DELETE('/bookings/{id}', {params: {path: {id}}})),
     );
   }
 
