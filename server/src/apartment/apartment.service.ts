@@ -112,11 +112,15 @@ async function getApartment(
 // Every change to an apartment starts here: the row and its bookings are
 // held until the transaction ends, so two admins acting at once, or the
 // resident booking meanwhile, wait their turn instead of interleaving.
+// The bookings come first, as booking takes them before its insert locks
+// the row: the other order deadlocks with a booking under way.
 async function lockApartment(
   tx: Transaction,
   organizationId: string,
   id: string,
 ): Promise<{userId: string; email: string}> {
+  await lockApartmentBookings(tx, id);
+
   const [apartment] = await tx
     .select({id: members.id})
     .from(members)
@@ -132,8 +136,6 @@ async function lockApartment(
   if (!apartment) {
     throw appError('NOT_FOUND', 'Unknown apartment');
   }
-
-  await lockApartmentBookings(tx, id);
 
   const [account] = await tx
     .select({userId: user.id, email: user.email})

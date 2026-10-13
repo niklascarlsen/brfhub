@@ -4,7 +4,7 @@ import {after, before, test} from 'node:test';
 import {eq} from 'drizzle-orm';
 
 import {buildApp} from '../app.js';
-import {db, pool} from '../db/index.js';
+import {db, pool, type Executor} from '../db/index.js';
 import {
   bookings,
   members,
@@ -12,6 +12,7 @@ import {
   subscriptions,
   user,
 } from '../db/schema.js';
+import {lockApartmentBookings} from '../booking/booking.query.js';
 import {createBooking} from '../booking/booking.service.js';
 import {addDays, isoDateIn, slotEndsAt} from '../lib/time.js';
 import {
@@ -21,6 +22,7 @@ import {
   resetDatabase,
   seedOrganization,
   signIn,
+  waitUntilBlocked,
 } from '../test/fixtures.js';
 import type {Apartment} from './apartment.dto.js';
 
@@ -70,9 +72,13 @@ async function apartmentsOf(headers: {cookie: string}) {
   return (await call('GET', '/admin/apartments', headers)).json<Apartment[]>();
 }
 
-async function insertBooking(label: string, days: number) {
+async function insertBooking(
+  label: string,
+  days: number,
+  executor: Executor = db,
+) {
   const date = inDays(days);
-  await db.insert(bookings).values({
+  await executor.insert(bookings).values({
     organizationId: NORTH.id,
     memberId: ids.get(label) ?? '',
     resourceId: 'north-laundry',
@@ -537,5 +543,37 @@ test('the slots of a removed apartment are announced to their queue', async () =
   assert.deepEqual(
     push.sent.map(({to, data}) => ({to, date: data?.date})),
     [{to: token, date}],
+  );
+});
+
+test('a booking under way and a new resident wait their turn instead of deadlocking', async () => {
+  const added = await call('POST', '/admin/apartments', admin, {
+    label: '62',
+    residentName: 'Bokar',
+    email: 'bokar-62@example.com',
+  });
+  const id = added.json<{apartment: Apartment}>().apartment.id;
+  ids.set('62', id);
+  let replaced: ReturnType<typeof call> | undefined;
+
+  // Holds the apartment's lock and then writes a booking, as booking does,
+  // with the new resident arriving in between.
+  await db.transaction(async (tx) => {
+    await lockApartmentBookings(tx, id);
+    replaced = call('POST', `/admin/apartments/${id}/new-resident`, admin, {
+      residentName: 'Efter',
+      email: 'efter-62@example.com',
+    });
+    await waitUntilBlocked('advisory');
+    await insertBooking('62', 5, tx);
+  });
+
+  assert.equal((await replaced)?.statusCode, 200);
+  assert.deepEqual(
+    await db
+      .select({id: bookings.id})
+      .from(bookings)
+      .where(eq(bookings.memberId, id)),
+    [],
   );
 });

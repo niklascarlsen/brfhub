@@ -179,3 +179,29 @@ export async function signIn(
 export function codeOf(response: {json: <T>() => T}) {
   return response.json<{code: string}>().code;
 }
+
+// Resolves once another connection waits on a lock of the given kind:
+// 'advisory', or 'transactionid' for a row another transaction is
+// changing. A test that holds a lock then knows the request it fired has
+// reached it, without guessing how long that takes.
+export async function waitUntilBlocked(waitEvent: string): Promise<void> {
+  const deadline = Date.now() + 5_000;
+
+  for (;;) {
+    const {rows} = await db.execute<{waiting: number}>(
+      sql`select count(*)::int as waiting from pg_stat_activity
+          where datname = current_database()
+            and wait_event_type = 'Lock' and wait_event = ${waitEvent}`,
+    );
+
+    if ((rows[0]?.waiting ?? 0) > 0) {
+      return;
+    }
+
+    if (Date.now() > deadline) {
+      throw new Error(`Nothing waited on a lock of kind ${waitEvent}`);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+}
