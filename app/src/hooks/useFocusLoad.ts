@@ -1,63 +1,35 @@
-import {
-  codeOf,
-  errorMessage,
-  type ClientErrorCode,
-} from '@booking/core/api/errors';
+import {errorMessage} from '@booking/core/api/errors';
+import {screenError} from '@booking/core/load/loader';
+import {useLoad} from '@booking/core/load/useLoad';
 import {useFocusEffect} from '@react-navigation/native';
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback} from 'react';
 
 import {useOnReturn} from '@/hooks/useOnReturn';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
 
+// Loads when the screen gains focus, when the app returns and when the
+// identity or the language changes; the server answers in the language
+// shown. The web's useFocusLoad has the same shape.
 export function useFocusLoad<T>(load: () => Promise<T>, identity?: string) {
-  // The server answers in the language shown, so a new one loads again.
-  // What is shown stays until the answer comes.
   const {locale} = useLocale();
-  const [loaded, setLoaded] = useState<{key: string; value: T} | null>(null);
-  const [error, setError] = useState<ClientErrorCode | null>(null);
-  const [attempt, setAttempt] = useState(0);
-  const reload = () => setAttempt((previous) => previous + 1);
-
-  const scope = identity ?? '';
-  const loadRef = useRef(load);
-
-  useEffect(() => {
-    loadRef.current = load;
-  });
+  const t = useMessages();
+  const loaded = useLoad(load, {key: identity});
+  const {reload} = loaded;
 
   useOnReturn(reload);
 
   useFocusEffect(
     useCallback(() => {
-      let current = true;
-
-      setError(null);
-
-      loadRef
-        .current()
-        .then((value) => {
-          if (current) {
-            setLoaded({key: scope, value});
-          }
-        })
-        .catch((caught: unknown) => {
-          if (current) {
-            setError(codeOf(caught));
-          }
-        });
-
-      return () => {
-        current = false;
-      };
-      // attempt and locale are triggers, not values the load reads.
+      reload();
+      // identity and locale are triggers, not values the callback reads.
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [scope, attempt, locale]),
+    }, [reload, identity, locale]),
   );
 
-  const t = useMessages();
+  const error = screenError(loaded);
 
   return {
-    data: loaded?.key === scope ? loaded.value : null,
+    data: loaded.data,
     error: error === null ? null : errorMessage(error, t),
     reload,
   };
