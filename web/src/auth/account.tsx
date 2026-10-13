@@ -52,11 +52,17 @@ export function AccountGate({
   // Signed out: the sign-in screen may show any language again.
   useEffect(() => () => setOrganizationLocales(null), [setOrganizationLocales]);
 
-  // Asked again whenever the user comes back, so a renamed organization or
-  // a moved-out apartment shows without a restart.
-  useOnReturn(refresh);
-
   const view = accountView(data, error, mode);
+
+  // Asked again whenever the user comes back, so a renamed organization or
+  // a moved-out apartment shows without a restart. Not during the two-factor
+  // setup: back from sharing the backup codes, the answer that the
+  // authenticator is on would take them away before Done.
+  useOnReturn(() => {
+    if (view.kind !== 'two-factor-setup') {
+      refresh();
+    }
+  });
 
   switch (view.kind) {
     case 'member':

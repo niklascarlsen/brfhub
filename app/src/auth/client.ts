@@ -4,9 +4,18 @@ import {createAuthClient} from 'better-auth/react';
 import * as SecureStore from 'expo-secure-store';
 
 import {API_BASE_URL} from '@/api/baseUrl';
+import {getRequestLocale} from '@/lib/locale';
 
 export const authClient = createAuthClient({
   baseURL: `${API_BASE_URL}/auth`,
+  // The server mails the sign-in and password codes in this language,
+  // the one the app is shown in rather than the platform's own.
+  fetchOptions: {
+    onRequest: (context) => {
+      context.headers.set('accept-language', getRequestLocale());
+      return context;
+    },
+  },
   plugins: [
     emailOTPClient(),
     // The login screen shows the second step itself.

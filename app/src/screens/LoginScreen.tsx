@@ -23,6 +23,7 @@ import {
 } from 'react-native-keyboard-controller';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
+import {API_BASE_URL} from '@/api/baseUrl';
 import {api, unwrap} from '@/api/client';
 import {authClient} from '@/auth/client';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
@@ -33,6 +34,25 @@ import theme from '@/theme.json';
 // in with a couple of taps. The apartment's code is read in Mailpit.
 const DEV_EMAIL = __DEV__ ? '12@example.com' : '';
 const DEV_PASSWORD = __DEV__ ? 'password' : '';
+// Every mailed code is this one in dev, and the server tells the
+// authenticator's code, so dev signs in with taps alone.
+const DEV_CODE = __DEV__ ? '123456' : '';
+
+async function devTotp(email: string): Promise<string> {
+  if (!__DEV__) {
+    return '';
+  }
+
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/dev/totp?email=${encodeURIComponent(email)}`,
+    );
+    const {code} = (await response.json()) as {code: string | null};
+    return code ?? '';
+  } catch {
+    return '';
+  }
+}
 
 const BUTTON =
   'h-14 items-center justify-center rounded-sm bg-theme-ink active:opacity-70 disabled:opacity-50';
@@ -95,7 +115,7 @@ export function LoginScreen() {
         return;
       }
 
-      setCode('');
+      setCode(next.kind === 'code' ? DEV_CODE : '');
       setStep(next);
     });
 
@@ -123,7 +143,7 @@ export function LoginScreen() {
       }
 
       if ('twoFactorRedirect' in result.data) {
-        setCode('');
+        setCode(await devTotp(address));
         setStep({kind: 'totp', email: address, backup: false});
       }
     });
@@ -161,7 +181,7 @@ export function LoginScreen() {
         return;
       }
 
-      setReset(EMPTY_RESET);
+      setReset({...EMPTY_RESET, code: DEV_CODE});
       resetProblems.reset();
       setStep({kind: 'reset', email: address});
     });

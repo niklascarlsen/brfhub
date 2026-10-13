@@ -29,6 +29,7 @@ export function FloatingLabelInput({
   value,
   className,
   secureTextEntry,
+  autoFocus,
   onFocus,
   onBlur,
   problem,
@@ -42,6 +43,19 @@ export function FloatingLabelInput({
   const floated = focused || Boolean(value);
   const [progress] = useState(() => new Animated.Value(Boolean(value) ? 1 : 0));
   const right = secureTextEntry ? REVEAL_WIDTH : INSET;
+
+  // Focused a frame after the whole form is mounted, not by autoFocus as
+  // this field mounts: the keyboard toolbar counts the fields when focus
+  // lands, and would otherwise see only this one and leave its arrows off.
+  // Focusing within the same frame leaves the keyboard down.
+  useEffect(() => {
+    if (!autoFocus) {
+      return;
+    }
+
+    const frame = requestAnimationFrame(() => inputRef.current?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [autoFocus]);
 
   useEffect(() => {
     Animated.timing(progress, {

@@ -121,8 +121,9 @@ export default function App() {
           <DialogProvider>
             <SessionGate>
               <Gate onReady={onReady} />
-              <StatusBar style='dark' />
             </SessionGate>
+            {/* Outside the gate, so the sign-in screen gets it too. */}
+            <StatusBar style='dark' />
           </DialogProvider>
         </KeyboardProvider>
       </SafeAreaProvider>

@@ -1,4 +1,4 @@
-const production = process.env.NODE_ENV === 'production';
+export const production = process.env.NODE_ENV === 'production';
 
 // Better Auth only rate limits and refuses a default secret in production,
 // so the mode has to be set on purpose and the secret has to be there.

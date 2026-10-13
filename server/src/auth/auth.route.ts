@@ -5,7 +5,9 @@ import {eq} from 'drizzle-orm';
 import {db} from '../db/index.js';
 import {user} from '../db/schema.js';
 import {errorResponses} from '../lib/errors.js';
+import {production} from '../lib/env.js';
 import {AUTH_PATH, auth} from './auth.js';
+import {totpCode, twoFactorSecret} from './auth.service.js';
 import {
   signInMethodBodySchema,
   signInMethodSchema,
@@ -67,4 +69,23 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       return {method: account?.admin ? 'password' : 'code'};
     },
   );
+
+  // What the admin's authenticator would show, so dev signs in without
+  // one. Never in production, and hidden from the API document.
+  if (!production) {
+    app.get(
+      '/dev/totp',
+      {schema: {hide: true}},
+      async (request): Promise<{code: string | null}> => {
+        const email = (request.query as {email?: string}).email ?? '';
+        const [account] = await db
+          .select({id: user.id})
+          .from(user)
+          .where(eq(user.email, email.toLowerCase()));
+        const secret = account ? await twoFactorSecret(account.id) : null;
+
+        return {code: secret === null ? null : await totpCode(secret)};
+      },
+    );
+  }
 };

@@ -15,6 +15,10 @@ import {NoticeBar} from '@/components/Notice';
 import {useMessages} from '@/i18n/LocaleProvider';
 import theme from '@/theme.json';
 
+// The focused field stays this far above the keyboard: clear of the
+// toolbar on it (42, which the library does not export) and a little more.
+const KEYBOARD_GAP = 42 + 24;
+
 type AdminPageProps = {
   title: string;
   subtitle: string;
@@ -51,7 +55,7 @@ export function AdminPage({
     <SafeAreaView className='flex-1 bg-theme-bg' edges={['top']}>
       <KeyboardAwareScrollView
         ref={scroll}
-        bottomOffset={24}
+        bottomOffset={KEYBOARD_GAP}
         className='flex-1'
         contentContainerClassName='grow px-5 pb-8 pt-2'
         keyboardShouldPersistTaps='handled'
