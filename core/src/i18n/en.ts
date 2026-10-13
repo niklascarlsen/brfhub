@@ -92,7 +92,6 @@ export const en: Messages = {
     emptyMessage: 'When you book a time or join a queue, it shows up here.',
     bookings: 'Bookings',
     queue: 'Queued',
-    ended: 'Ended',
     done: "I'm done",
     cancel: 'Cancel booking',
     dropIn: 'Drop-in',
@@ -106,9 +105,15 @@ export const en: Messages = {
     leaveQueueFailed: 'Could not leave the queue',
     cancelFailed: 'Could not cancel',
     releaseFailed: 'Could not open the time for drop-in',
-    alreadyBookedTitle: 'You already have a booking',
+    alreadyHolding: (count: number) =>
+      count === 1
+        ? 'You already have a booking'
+        : `You already have ${count} bookings`,
     swap: 'Switch',
-    swapQuestion: (when: string) => `Switch to ${when}?`,
+    swapQuestion: (from: string, to: string) => `Switch ${from} for ${to}?`,
+    chooseSwapTitle: 'Switch which one?',
+    chooseSwapQuestion: (to: string) =>
+      `Which of your bookings do you want to switch for ${to}?`,
     queueTitle: 'Join the queue',
     queueMe: 'Join the queue',
     queueQuestion: (when: string) =>
@@ -119,7 +124,10 @@ export const en: Messages = {
     releaseTitle: 'Open for drop-in',
     releaseQuestion: (when: string) =>
       `Others can take ${when} as drop-in. You cannot book a new time until this one is over.`,
-    releasedBlocks: 'You cannot book a new time until this one is over.',
+    fullUntilOver: (count: number) =>
+      count === 1
+        ? 'You cannot book a new time until this one is over.'
+        : 'You cannot book a new time until one of yours is over.',
     freeSlots: (count: number) =>
       count === 1 ? '1 free slot' : `${count} free slots`,
     previousDay: 'Previous day',

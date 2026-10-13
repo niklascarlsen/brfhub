@@ -1,9 +1,10 @@
 import type {
-  ActiveBooking,
   BookingWindow,
+  Held,
   Resource,
   Slot,
 } from '@booking/core/api/types';
+import {slotOffer, type BookingAction} from '@booking/core/booking/offer';
 import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
 import {timeRange} from '@booking/core/lib/dates';
 import {useRef} from 'react';
@@ -18,12 +19,12 @@ import {Skeleton, SkeletonBar} from '@/components/Skeleton';
 import {Tag} from '@/components/Tag';
 import {addDays, formatHeadingDate, relativeDay} from '@/desktop/weeks';
 import {useMessages} from '@/i18n/LocaleProvider';
-import {isLocked, slotAppearance} from '@/lib/slots';
+import {slotAppearance} from '@/lib/slots';
 
 export type ResourceDay = {
   resource: Resource;
   slots: Slot[];
-  active: ActiveBooking | null;
+  held: Held;
 };
 
 type DayPanelProps = {
@@ -34,7 +35,7 @@ type DayPanelProps = {
   error: string | null;
   onRetry: () => void;
   onSelectDate: (isoDate: string) => void;
-  onSelect: (slot: Slot, entry: ResourceDay) => void;
+  onSelect: (action: BookingAction) => void;
 };
 
 function DayNavButton({
@@ -66,19 +67,26 @@ function DayNavButton({
 
 function SlotChip({
   slot,
+  entry,
   onSelect,
 }: {
   slot: Slot;
-  onSelect: (slot: Slot) => void;
+  entry: ResourceDay;
+  onSelect: (action: BookingAction) => void;
 }) {
   const t = useMessages();
-  const {surface, label, tone, mark} = slotAppearance(slot, t);
-  const locked = isLocked(slot);
+  const offer = slotOffer(slot, entry.resource, entry.held, t);
+  const {locked, label, mark, action} = offer;
+  const {surface, tone} = slotAppearance(offer);
 
   return (
     <button
       type='button'
-      onClick={() => onSelect(slot)}
+      onClick={() => {
+        if (action) {
+          onSelect(action);
+        }
+      }}
       disabled={locked}
       className={`flex min-h-14.5 min-w-30 flex-col items-start justify-center gap-0.5 rounded-xl px-3.5 py-2 text-left ${surface} ${
         locked
@@ -239,7 +247,8 @@ export function DayPanel({
                     <SlotChip
                       key={slot.start}
                       slot={slot}
-                      onSelect={(picked) => onSelect(picked, entry)}
+                      entry={entry}
+                      onSelect={onSelect}
                     />
                   ))}
                 </div>

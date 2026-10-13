@@ -1,3 +1,9 @@
+import {
+  bookingCard,
+  queueCard,
+  type BookingAction,
+  type CardOffer,
+} from '@booking/core/booking/offer';
 import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
 import type {ReactNode} from 'react';
 
@@ -32,6 +38,21 @@ function TimesSection({
   );
 }
 
+// What a card offers, as the props TimeCard takes.
+function cardActions(
+  {badge, primary, secondary}: CardOffer,
+  confirm: (action: BookingAction) => void,
+) {
+  return {
+    badge,
+    actionLabel: primary?.label,
+    actionTone: primary?.solid ? ('solid' as const) : ('outline' as const),
+    onAction: primary ? () => confirm(primary.action) : undefined,
+    secondaryLabel: secondary?.label,
+    onSecondary: secondary ? () => confirm(secondary.action) : undefined,
+  };
+}
+
 async function fetchBookingsAndSubscriptions() {
   const [bookings, subscriptions] = await Promise.all([
     unwrap(api.GET('/bookings')),
@@ -64,8 +85,7 @@ export function MyTimesList({
   error: string | null;
   reload: () => void;
 }) {
-  const {confirmBookable, confirmCancel, confirmRelease, confirmUnsubscribe} =
-    useBookingActions(reload);
+  const {confirm} = useBookingActions(reload);
   const t = useMessages();
 
   const showSkeleton = useSlowLoad(times === null && error === null);
@@ -112,72 +132,28 @@ export function MyTimesList({
         />
       ) : null}
       <TimesSection title={t.times.bookings} count={bookings.length}>
-        {bookings.map((entry) => {
-          if (entry.released) {
-            return (
-              <TimeCard
-                key={entry.id}
-                date={entry.date}
-                start={entry.start}
-                end={entry.end}
-                resourceName={entry.resourceName}
-                badge={{label: t.times.ended, tone: 'muted'}}
-              />
-            );
-          }
-
-          return (
-            <TimeCard
-              key={entry.id}
-              date={entry.date}
-              start={entry.start}
-              end={entry.end}
-              resourceName={entry.resourceName}
-              badge={null}
-              actionLabel={entry.started ? t.times.done : t.times.cancel}
-              onAction={() =>
-                entry.started ? confirmRelease(entry) : confirmCancel(entry)
-              }
-            />
-          );
-        })}
+        {bookings.map((entry) => (
+          <TimeCard
+            key={entry.id}
+            date={entry.date}
+            start={entry.start}
+            end={entry.end}
+            resourceName={entry.resourceName}
+            {...cardActions(bookingCard(entry, t), confirm)}
+          />
+        ))}
       </TimesSection>
       <TimesSection title={t.times.queue} count={subscriptions.length}>
-        {subscriptions.map((entry) => {
-          const bookable = entry.available && !entry.started;
-          const activeSameKind =
-            bookings.find(
-              (booking) => booking.resourceKind === entry.resourceKind,
-            ) ?? null;
-
-          return (
-            <TimeCard
-              key={entry.id}
-              date={entry.date}
-              start={entry.start}
-              end={entry.end}
-              resourceName={entry.resourceName}
-              badge={
-                entry.available && entry.started
-                  ? {label: t.times.dropIn, tone: 'accent'}
-                  : entry.available
-                    ? {label: t.times.freeNow, tone: 'accent'}
-                    : {label: t.times.queue, tone: 'muted'}
-              }
-              actionLabel={bookable ? t.times.book : t.times.leaveQueue}
-              actionTone={bookable ? 'solid' : 'outline'}
-              onAction={() =>
-                bookable
-                  ? confirmBookable(entry, activeSameKind)
-                  : confirmUnsubscribe(entry)
-              }
-              secondaryLabel={bookable ? t.times.leaveQueue : undefined}
-              onSecondary={
-                bookable ? () => confirmUnsubscribe(entry) : undefined
-              }
-            />
-          );
-        })}
+        {subscriptions.map((entry) => (
+          <TimeCard
+            key={entry.id}
+            date={entry.date}
+            start={entry.start}
+            end={entry.end}
+            resourceName={entry.resourceName}
+            {...cardActions(queueCard(entry, t), confirm)}
+          />
+        ))}
       </TimesSection>
     </>
   );

@@ -32,6 +32,7 @@ import type {Subscription} from '../subscription/subscription.dto.js';
 import type {CreatedBooking} from './booking.dto.js';
 import {announceReleased, queueOf} from './booking.notification.js';
 import {stillActive} from './booking.query.js';
+import {heldBookingsByKind, heldOf} from './held.js';
 
 // How a booking begins and ends: booking a slot, queueing for one another
 // apartment holds, letting one go, and an apartment letting all of its go.
@@ -196,29 +197,32 @@ async function letGo(
   return free(tx, booking, releasedBy);
 }
 
-// With the kind's cap reached, a kind that allows one booking at a time
-// swaps it for the new one when asked to. One that has started counts
-// until it ends, released or not, so it cannot be swapped away.
-async function swapOut(
+// The booking the apartment names to give up for the new one goes, at the
+// cap or under it, since that is what the apartment chose. One that has
+// started counts until it ends, released or not, so it cannot be given
+// up. One already gone leaves only the cap to check.
+async function giveUp(
   tx: Transaction,
   active: Held[],
-  resource: BookableResource,
-  replaceExisting: boolean,
+  replaceBookingId: string | undefined,
+  max: number,
   member: Member,
-): Promise<{replaced: Held; told: Recipients}> {
-  const [existing] = active;
+): Promise<{replaced: Held; told: Recipients} | null> {
+  const named = active.find((booking) => booking.id === replaceBookingId);
 
-  if (
-    resource.maxActive !== 1 ||
-    !replaceExisting ||
-    !existing ||
-    existing.started ||
-    existing.released
-  ) {
+  if (named && (named.started || named.released)) {
     throw appError('HAS_ACTIVE_BOOKING');
   }
 
-  return {replaced: existing, told: await free(tx, existing, member)};
+  if (named) {
+    return {replaced: named, told: await free(tx, named, member)};
+  }
+
+  if (active.length >= max) {
+    throw appError('HAS_ACTIVE_BOOKING');
+  }
+
+  return null;
 }
 
 function toldOf(found: (Recipients | null)[]): Recipients[] {
@@ -230,14 +234,14 @@ export async function book({
   date,
   start,
   resourceId,
-  replaceExisting,
+  replaceBookingId,
   notifier,
 }: {
   member: Member;
   date: string;
   start: string;
   resourceId: string;
-  replaceExisting: boolean;
+  replaceBookingId?: string;
   notifier: Notifier;
 }): Promise<CreatedBooking> {
   const resource = await bookableResource(member, resourceId);
@@ -252,10 +256,13 @@ export async function book({
       const active = await selectHeld(tx, member.timeZone).where(
         and(stillActive(member.id), eq(resources.kindId, resource.kind)),
       );
-      const swapped =
-        active.length >= resource.maxActive
-          ? await swapOut(tx, active, resource, replaceExisting, member)
-          : null;
+      const swapped = await giveUp(
+        tx,
+        active,
+        replaceBookingId,
+        resource.maxActive,
+        member,
+      );
 
       const [row] = await tx
         .insert(bookings)
@@ -421,6 +428,11 @@ export async function queue({
     resourceId: resource.id,
     resourceName: resource.name,
     resourceKind: resource.kind,
+    held: heldOf(
+      resource.kind,
+      resource.maxActive,
+      await heldBookingsByKind(member),
+    ),
   };
 }
 

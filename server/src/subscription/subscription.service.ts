@@ -1,6 +1,7 @@
 import {and, asc, eq, isNull, sql} from 'drizzle-orm';
 
 import {db} from '../db/index.js';
+import {capsByKind, heldBookingsByKind, heldOf} from '../booking/held.js';
 import {queue} from '../booking/lifecycle.js';
 import {bookings, resources, subscriptions} from '../db/schema.js';
 import {appError} from '../lib/errors.js';
@@ -16,7 +17,22 @@ function stillActive(memberId: string) {
   );
 }
 
-export function listSubscriptions(member: Member): Promise<Subscription[]> {
+export async function listSubscriptions(
+  member: Member,
+): Promise<Subscription[]> {
+  const [rows, heldByKind, caps] = await Promise.all([
+    selectSubscriptions(member),
+    heldBookingsByKind(member),
+    capsByKind(member),
+  ]);
+
+  return rows.map((row) => ({
+    ...row,
+    held: heldOf(row.resourceKind, caps.get(row.resourceKind) ?? 1, heldByKind),
+  }));
+}
+
+function selectSubscriptions(member: Member) {
   return db
     .select({
       id: subscriptions.id,

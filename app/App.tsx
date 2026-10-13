@@ -19,6 +19,7 @@ import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {AdminShell} from '@/admin/AdminShell';
 import {AccountGate} from '@/auth/account';
 import {SessionGate} from '@/auth/session';
+import {DialogProvider} from '@/components/Dialog';
 import {ConfigProvider} from '@/config';
 import {LocaleProvider, useLocale, useMessages} from '@/i18n/LocaleProvider';
 import AppTabNavigator, {
@@ -80,24 +81,26 @@ export default function App() {
   return (
     <LocaleProvider>
       <SafeAreaProvider>
-        <SessionGate>
-          <AccountGate
-            member={(account) => (
-              <>
-                <PushRegistration />
-                <ConfigProvider account={account}>
-                  <NavigationContainer ref={navigationRef} onReady={onReady}>
-                    <AppTabNavigator />
-                  </NavigationContainer>
-                </ConfigProvider>
-              </>
-            )}
-            admin={(account, refresh) => (
-              <AdminShell account={account} onRefresh={refresh} />
-            )}
-          />
-          <StatusBar style='dark' />
-        </SessionGate>
+        <DialogProvider>
+          <SessionGate>
+            <AccountGate
+              member={(account) => (
+                <>
+                  <PushRegistration />
+                  <ConfigProvider account={account}>
+                    <NavigationContainer ref={navigationRef} onReady={onReady}>
+                      <AppTabNavigator />
+                    </NavigationContainer>
+                  </ConfigProvider>
+                </>
+              )}
+              admin={(account, refresh) => (
+                <AdminShell account={account} onRefresh={refresh} />
+              )}
+            />
+            <StatusBar style='dark' />
+          </SessionGate>
+        </DialogProvider>
       </SafeAreaProvider>
     </LocaleProvider>
   );

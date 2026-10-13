@@ -3473,7 +3473,23 @@ export interface components {
             date: string;
             start: string;
             resourceId: string;
-            replaceExisting?: boolean;
+            /** Format: uuid */
+            replaceBookingId?: string;
+        };
+        HeldBookingInput: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date */
+            date: string;
+            start: string;
+            end: string;
+            resourceName: string;
+            started: boolean;
+            released: boolean;
+        };
+        HeldInput: {
+            max: number;
+            bookings: components["schemas"]["HeldBookingInput"][];
         };
         OrganizationSettingsInput: {
             name: string;
@@ -3614,15 +3630,11 @@ export interface components {
         };
         SlotsInput: {
             slots: components["schemas"]["SlotInput"][];
-            active: {
-                released: boolean;
-            } | null;
+            held: components["schemas"]["HeldInput"];
         };
         ResourceScheduleInput: {
             slots: components["schemas"]["SlotInput"][];
-            active: {
-                released: boolean;
-            } | null;
+            held: components["schemas"]["HeldInput"];
             resourceId: string;
         };
         BookingWindowInput: {
@@ -3647,6 +3659,7 @@ export interface components {
             endsAt: string;
             available: boolean;
             started: boolean;
+            held: components["schemas"]["HeldInput"];
         };
         CreateSubscriptionBodyInput: {
             /** Format: date */
@@ -3833,7 +3846,23 @@ export interface components {
             date: string;
             start: string;
             resourceId: string;
-            replaceExisting?: boolean;
+            /** Format: uuid */
+            replaceBookingId?: string;
+        };
+        HeldBooking: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date */
+            date: string;
+            start: string;
+            end: string;
+            resourceName: string;
+            started: boolean;
+            released: boolean;
+        };
+        Held: {
+            max: number;
+            bookings: components["schemas"]["HeldBooking"][];
         };
         OrganizationSettings: {
             name: string;
@@ -3974,15 +4003,11 @@ export interface components {
         };
         Slots: {
             slots: components["schemas"]["Slot"][];
-            active: {
-                released: boolean;
-            } | null;
+            held: components["schemas"]["Held"];
         };
         ResourceSchedule: {
             slots: components["schemas"]["Slot"][];
-            active: {
-                released: boolean;
-            } | null;
+            held: components["schemas"]["Held"];
             resourceId: string;
         };
         BookingWindow: {
@@ -4007,6 +4032,7 @@ export interface components {
             endsAt: string;
             available: boolean;
             started: boolean;
+            held: components["schemas"]["Held"];
         };
         CreateSubscriptionBody: {
             /** Format: date */

@@ -1,14 +1,14 @@
 import type {Api} from '../api/createApi';
 import {codeOf, errorMessage, type ClientErrorCode} from '../api/errors';
-import type {ActiveBooking, Booking, Resource, Slot} from '../api/types';
+import type {HeldBooking} from '../api/types';
 import type {Messages} from '../i18n/catalog';
-import {formatWhen, timeRange} from '../lib/dates';
+import {formatWhen, unbrokenRange} from '../lib/dates';
 import type {Dialog} from '../lib/dialog';
 import {exhaustive} from '../lib/exhaustive';
 
-type Times = Pick<Booking, 'date' | 'start' | 'end' | 'resourceName'>;
-type Bookable = Times & Pick<Booking, 'resourceId'>;
-type Identified = Times & Pick<Booking, 'id'>;
+import type {Bookable, BookingAction, Identified} from './offer';
+
+type Times = Omit<Identified, 'id'>;
 
 function shouldReload(code: ClientErrorCode) {
   switch (code) {
@@ -23,8 +23,9 @@ function shouldReload(code: ClientErrorCode) {
   }
 }
 
+// The range stays on one line, so a dialog never breaks it at the dash.
 function whenOf({date, start, end, resourceName}: Times, t: Messages) {
-  return `${resourceName}, ${formatWhen(date, timeRange(start, end), t)}`;
+  return `${resourceName}, ${formatWhen(date, unbrokenRange(start, end), t)}`;
 }
 
 type BookingActionsOptions = Api & {
@@ -35,8 +36,8 @@ type BookingActionsOptions = Api & {
   onChange?: () => void;
 };
 
-// Asks before booking, queueing, cancelling or releasing a time, sends it
-// and tells why when it fails. Each client binds it in useBookingActions.
+// Asks before doing what a time offers, sends it and tells why when it
+// fails. Each client binds it in useBookingActions.
 export function bookingActions({
   api,
   unwrap,
@@ -57,7 +58,7 @@ export function bookingActions({
     }
   }
 
-  async function book(target: Bookable, replaceExisting = false) {
+  async function book(target: Bookable, replacing?: HeldBooking) {
     await mutate(t.booking.bookFailed, () =>
       unwrap(
         api.POST('/bookings', {
@@ -65,7 +66,7 @@ export function bookingActions({
             date: target.date,
             start: target.start,
             resourceId: target.resourceId,
-            ...(replaceExisting ? {replaceExisting: true} : {}),
+            ...(replacing ? {replaceBookingId: replacing.id} : {}),
           },
         }),
       ),
@@ -104,14 +105,45 @@ export function bookingActions({
     );
   }
 
-  function confirmSwap(target: Bookable) {
-    dialog.confirm(
-      t.booking.alreadyBookedTitle,
-      t.booking.swapQuestion(whenOf(target, t)),
-      {
-        label: t.booking.swap,
+  // One booking to give up is a yes or no, several a choice of which.
+  function confirmSwap(target: Bookable, choices: HeldBooking[], held: number) {
+    const to = whenOf(target, t);
+    const [only] = choices;
+
+    if (choices.length === 1 && only) {
+      dialog.confirm(
+        t.booking.alreadyHolding(held),
+        t.booking.swapQuestion(whenOf(only, t), to),
+        {
+          label: t.booking.swap,
+          onPress: () => {
+            void book(target, only);
+          },
+        },
+      );
+      return;
+    }
+
+    dialog.choose(
+      t.booking.chooseSwapTitle,
+      t.booking.chooseSwapQuestion(to),
+      choices.map((choice) => ({
+        label: whenOf(choice, t),
         onPress: () => {
-          void book(target, true);
+          void book(target, choice);
+        },
+      })),
+    );
+  }
+
+  function confirmBook(target: Bookable) {
+    dialog.confirm(
+      t.booking.bookTitle,
+      t.booking.bookQuestion(whenOf(target, t)),
+      {
+        label: t.times.book,
+        onPress: () => {
+          void book(target);
         },
       },
     );
@@ -171,77 +203,36 @@ export function bookingActions({
     );
   }
 
-  function confirmBookable(target: Bookable, active: ActiveBooking | null) {
-    if (active?.released) {
-      dialog.alert(t.booking.alreadyBookedTitle, t.booking.releasedBlocks);
-      return;
-    }
-
-    if (active) {
-      confirmSwap(target);
-      return;
-    }
-
-    dialog.confirm(
-      t.booking.bookTitle,
-      t.booking.bookQuestion(whenOf(target, t)),
-      {
-        label: t.times.book,
-        onPress: () => {
-          void book(target);
-        },
-      },
-    );
-  }
-
-  function confirmBook(
-    slot: Slot,
-    resource: Resource,
-    active: ActiveBooking | null,
-  ) {
-    const times = {
-      date: slot.date,
-      start: slot.start,
-      end: slot.end,
-      resourceName: resource.name,
-    };
-
-    switch (slot.status) {
-      case 'available':
-        confirmBookable({...times, resourceId: resource.id}, active);
+  function confirm(action: BookingAction) {
+    switch (action.kind) {
+      case 'book':
+        confirmBook(action.target);
         return;
-      case 'walkin':
+      case 'swap':
+        confirmSwap(action.target, action.choices, action.held);
         return;
-      case 'booked':
-        if (slot.started) {
-          return;
-        }
-
-        if (slot.subscriptionId) {
-          confirmUnsubscribe({...times, id: slot.subscriptionId});
-          return;
-        }
-
-        confirmSubscribe({...times, resourceId: resource.id});
+      case 'full':
+        dialog.alert(
+          t.booking.alreadyHolding(action.max),
+          t.booking.fullUntilOver(action.max),
+        );
         return;
-      case 'mine':
-        if (slot.started) {
-          confirmRelease({...times, id: slot.bookingId});
-          return;
-        }
-
-        confirmCancel({...times, id: slot.bookingId});
+      case 'queue':
+        confirmSubscribe(action.target);
+        return;
+      case 'leaveQueue':
+        confirmUnsubscribe(action.subscription);
+        return;
+      case 'cancel':
+        confirmCancel(action.booking);
+        return;
+      case 'release':
+        confirmRelease(action.booking);
         return;
       default:
-        exhaustive(slot);
+        exhaustive(action);
     }
   }
 
-  return {
-    confirmBook,
-    confirmBookable,
-    confirmCancel,
-    confirmRelease,
-    confirmUnsubscribe,
-  };
+  return {confirm};
 }

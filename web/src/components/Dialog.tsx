@@ -1,4 +1,8 @@
-import type {Dialog, DialogAction} from '@booking/core/lib/dialog';
+import type {
+  Dialog,
+  DialogAction,
+  DialogChoice,
+} from '@booking/core/lib/dialog';
 import {
   createContext,
   useContext,
@@ -16,6 +20,7 @@ type DialogRequest = {
   title: string;
   message: string;
   action?: DialogAction;
+  choices?: DialogChoice[];
 };
 
 const DialogContext = createContext<Dialog | null>(null);
@@ -45,6 +50,8 @@ export function DialogProvider({children}: {children: ReactNode}) {
     () => ({
       alert: (title, message) => setRequest({title, message}),
       confirm: (title, message, action) => setRequest({title, message, action}),
+      choose: (title, message, choices) =>
+        setRequest({title, message, choices}),
     }),
     [],
   );
@@ -65,11 +72,9 @@ export function DialogProvider({children}: {children: ReactNode}) {
   };
 
   // The action has to run inside the click, or Safari drops the user gesture.
-  const press = () => {
-    const action = request?.action;
-
+  const press = (onPress?: () => void) => {
     close();
-    action?.onPress();
+    onPress?.();
   };
 
   return (
@@ -105,24 +110,46 @@ export function DialogProvider({children}: {children: ReactNode}) {
             >
               {request.message}
             </p>
-            <div className='mt-5 flex gap-2.5'>
-              {request.action ? (
+            {request.choices ? (
+              <div className='mt-5 flex flex-col gap-2'>
+                {request.choices.map((choice) => (
+                  <button
+                    key={choice.label}
+                    type='button'
+                    onClick={() => press(choice.onPress)}
+                    className='min-h-11 rounded-xl border border-theme-line bg-theme-surface px-4 py-2.5 text-left text-sm font-medium text-theme-ink transition-colors hover:border-theme-accent active:opacity-70'
+                  >
+                    {choice.label}
+                  </button>
+                ))}
                 <button
                   type='button'
                   onClick={close}
-                  className={`${BUTTON} border border-theme-edge bg-theme-surface text-theme-ink transition-colors hover:bg-theme-sunk`}
+                  className={`${BUTTON} mt-1 w-full flex-none border border-theme-edge bg-theme-surface text-theme-ink transition-colors hover:bg-theme-sunk`}
                 >
-                  {request.action.cancelLabel ?? t.common.cancel}
+                  {t.common.cancel}
                 </button>
-              ) : null}
-              <button
-                type='button'
-                onClick={press}
-                className={`${BUTTON} bg-theme-ink text-theme-surface transition-opacity hover:opacity-90`}
-              >
-                {request.action?.label ?? t.common.ok}
-              </button>
-            </div>
+              </div>
+            ) : (
+              <div className='mt-5 flex gap-2.5'>
+                {request.action ? (
+                  <button
+                    type='button'
+                    onClick={close}
+                    className={`${BUTTON} border border-theme-edge bg-theme-surface text-theme-ink transition-colors hover:bg-theme-sunk`}
+                  >
+                    {request.action.cancelLabel ?? t.common.cancel}
+                  </button>
+                ) : null}
+                <button
+                  type='button'
+                  onClick={() => press(request.action?.onPress)}
+                  className={`${BUTTON} bg-theme-ink text-theme-surface transition-opacity hover:opacity-90`}
+                >
+                  {request.action?.label ?? t.common.ok}
+                </button>
+              </div>
+            )}
           </div>
         ) : null}
       </dialog>

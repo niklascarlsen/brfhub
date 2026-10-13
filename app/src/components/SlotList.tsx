@@ -1,4 +1,5 @@
-import type {Slot} from '@booking/core/api/types';
+import type {Resource, Slots} from '@booking/core/api/types';
+import {slotOffer, type BookingAction} from '@booking/core/booking/offer';
 import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
 import {View} from 'react-native';
 
@@ -9,17 +10,26 @@ import {useMessages} from '@/i18n/LocaleProvider';
 const FALLBACK_SKELETON_ROWS = 4;
 
 type SlotListProps = {
-  slots: Slot[] | null;
+  // Null until it has loaded.
+  day: Slots | null;
+  resource: Resource;
   error: string | null;
   onRetry: () => void;
-  onSelect: (slot: Slot) => void;
+  onSelect: (action: BookingAction) => void;
 };
 
-export function SlotList({slots, error, onRetry, onSelect}: SlotListProps) {
+export function SlotList({
+  day,
+  resource,
+  error,
+  onRetry,
+  onSelect,
+}: SlotListProps) {
+  const slots = day?.slots ?? null;
   const showSkeleton = useSlowLoad(slots === null && error === null);
   const t = useMessages();
 
-  if (slots && slots.length > 0) {
+  if (day && slots && slots.length > 0) {
     return (
       <>
         {error ? (
@@ -30,13 +40,22 @@ export function SlotList({slots, error, onRetry, onSelect}: SlotListProps) {
           />
         ) : null}
         <View className='gap-[9px]'>
-          {slots.map((slot) => (
-            <TimeSlotRow
-              key={slot.start}
-              slot={slot}
-              onPress={() => onSelect(slot)}
-            />
-          ))}
+          {slots.map((slot) => {
+            const offer = slotOffer(slot, resource, day.held, t);
+
+            return (
+              <TimeSlotRow
+                key={slot.start}
+                slot={slot}
+                offer={offer}
+                onPress={() => {
+                  if (offer.action) {
+                    onSelect(offer.action);
+                  }
+                }}
+              />
+            );
+          })}
         </View>
       </>
     );

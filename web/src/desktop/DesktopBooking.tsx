@@ -122,7 +122,7 @@ export function DesktopBooking({
     `${bookingWindow.from}:${bookingWindow.to}`,
   );
 
-  const {confirmBook} = useBookingActions(reload);
+  const {confirm} = useBookingActions(reload);
 
   const summaries = overview ? summarize(overview.schedule) : null;
 
@@ -135,7 +135,7 @@ export function DesktopBooking({
         return {
           resource,
           slots: entry?.slots.filter((slot) => slot.date === date) ?? [],
-          active: entry?.active ?? null,
+          held: entry?.held ?? {max: 1, bookings: []},
         };
       })
     : null;
@@ -191,9 +191,7 @@ export function DesktopBooking({
           error={error}
           onRetry={reload}
           onSelectDate={onSelectDate}
-          onSelect={(slot, entry) =>
-            confirmBook(slot, entry.resource, entry.active)
-          }
+          onSelect={confirm}
         />
       </div>
     </>

@@ -2,21 +2,23 @@ import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
 import {createApi} from '../api/createApi';
 import {errorMessage, type ClientErrorCode} from '../api/errors';
-import type {ActiveBooking, Resource, Slot} from '../api/types';
+import type {Held, HeldBooking, Resource, Slot} from '../api/types';
 import {sv} from '../i18n/sv';
-import {formatWhen, timeRange} from '../lib/dates';
-import type {Dialog, DialogAction} from '../lib/dialog';
+import {formatWhen, unbrokenRange} from '../lib/dates';
+import type {Dialog, DialogAction, DialogChoice} from '../lib/dialog';
 import {bookingActions} from './bookingActions';
+import {slotOffer} from './offer';
 
 const t = sv;
 const DATE = '2030-01-15';
 const SAUNA: Resource = {id: 'sauna', name: 'Bastu', kind: 'sauna', tags: []};
-const WHEN = `Bastu, ${formatWhen(DATE, timeRange('17:00', '19:00'), t)}`;
+const WHEN = `Bastu, ${formatWhen(DATE, unbrokenRange('17:00', '19:00'), t)}`;
 const TIMES = {date: DATE, start: '17:00', end: '19:00'};
 
 type Shown =
   | {kind: 'alert'; title: string; message: string}
-  | {kind: 'confirm'; title: string; message: string; action: DialogAction};
+  | {kind: 'confirm'; title: string; message: string; action: DialogAction}
+  | {kind: 'choose'; title: string; message: string; choices: DialogChoice[]};
 
 type Sent = {method: string; path: string; body: unknown};
 
@@ -52,6 +54,8 @@ function setup() {
     alert: (title, message) => shown.push({kind: 'alert', title, message}),
     confirm: (title, message, action) =>
       shown.push({kind: 'confirm', title, message, action}),
+    choose: (title, message, choices) =>
+      shown.push({kind: 'choose', title, message, choices}),
   };
   const onChange = vi.fn();
   const {api, unwrap} = createApi({
@@ -62,21 +66,52 @@ function setup() {
   });
   const actions = bookingActions({api, unwrap, dialog, t, onChange});
 
+  // Presses a time in the day view, the way the clients do.
+  function pick(slot: Slot, held: Held = NOTHING_HELD) {
+    const {action} = slotOffer(slot, SAUNA, held, t);
+    if (action) {
+      actions.confirm(action);
+    }
+  }
+
   // Presses the action of the one confirmation shown so far and waits
   // until the request it sends has been answered and handled.
-  async function press() {
+  async function press(choice = 0) {
     const [first] = shown;
-    if (first?.kind !== 'confirm') {
+    if (first?.kind !== 'confirm' && first?.kind !== 'choose') {
       throw new Error('No confirmation shown');
     }
 
-    first.action.onPress();
+    const pressed =
+      first?.kind === 'choose' ? first.choices[choice] : first?.action;
+    pressed?.onPress();
     await vi.waitFor(() => {
       expect(onChange.mock.calls.length + shown.length).toBeGreaterThan(1);
     });
   }
 
-  return {actions, shown, onChange, press};
+  return {pick, shown, onChange, press};
+}
+
+const NOTHING_HELD: Held = {max: 1, bookings: []};
+
+function heldBooking(id: string, start: string, end: string): HeldBooking {
+  return {
+    id,
+    date: DATE,
+    start,
+    end,
+    resourceName: 'Bastu',
+    started: false,
+    released: false,
+  };
+}
+
+const MORNING = heldBooking('held-1', '07:00', '09:00');
+const NOON = heldBooking('held-2', '12:00', '14:00');
+
+function whenOf({start, end}: HeldBooking) {
+  return `Bastu, ${formatWhen(DATE, unbrokenRange(start, end), t)}`;
 }
 
 const available: Slot = {...TIMES, status: 'available', subscriptionId: null};
@@ -90,11 +125,11 @@ const queued: Slot = {...booked, subscriptionId: 'sub-1'};
 const mine: Slot = {...TIMES, status: 'mine', bookingId: 'b-1', started: false};
 const running: Slot = {...mine, started: true};
 
-describe('confirmBook asks first', () => {
+describe('pressing a time asks first', () => {
   test('booking a free time', async () => {
-    const {actions, shown, onChange, press} = setup();
+    const {pick, shown, onChange, press} = setup();
 
-    actions.confirmBook(available, SAUNA, null);
+    pick(available);
 
     expect(shown).toEqual([
       {
@@ -117,17 +152,16 @@ describe('confirmBook asks first', () => {
     expect(shown).toHaveLength(1);
   });
 
-  test('swapping for the booking held', async () => {
-    const {actions, shown, onChange, press} = setup();
-    const active: ActiveBooking = {released: false};
+  test('at the cap of one, swapping for the booking held', async () => {
+    const {pick, shown, onChange, press} = setup();
 
-    actions.confirmBook(available, SAUNA, active);
+    pick(available, {max: 1, bookings: [MORNING]});
 
     expect(shown).toEqual([
       {
         kind: 'confirm',
-        title: t.booking.alreadyBookedTitle,
-        message: t.booking.swapQuestion(WHEN),
+        title: t.booking.alreadyHolding(1),
+        message: t.booking.swapQuestion(whenOf(MORNING), WHEN),
         action: {label: t.booking.swap, onPress: expect.any(Function)},
       },
     ]);
@@ -137,21 +171,80 @@ describe('confirmBook asks first', () => {
       date: DATE,
       start: '17:00',
       resourceId: 'sauna',
-      replaceExisting: true,
+      replaceBookingId: 'held-1',
     });
     expect(onChange).toHaveBeenCalledOnce();
   });
 
-  test('a released booking blocks a new one', () => {
-    const {actions, shown, onChange} = setup();
+  test('at the cap of two, choosing which booking to swap', async () => {
+    const {pick, shown, onChange, press} = setup();
 
-    actions.confirmBook(available, SAUNA, {released: true});
+    pick(available, {max: 2, bookings: [MORNING, NOON]});
+
+    expect(shown).toEqual([
+      {
+        kind: 'choose',
+        title: t.booking.chooseSwapTitle,
+        message: t.booking.chooseSwapQuestion(WHEN),
+        choices: [
+          {label: whenOf(MORNING), onPress: expect.any(Function)},
+          {label: whenOf(NOON), onPress: expect.any(Function)},
+        ],
+      },
+    ]);
+
+    await press(1);
+    expect(sent[0]?.body).toEqual({
+      date: DATE,
+      start: '17:00',
+      resourceId: 'sauna',
+      replaceBookingId: 'held-2',
+    });
+    expect(onChange).toHaveBeenCalledOnce();
+  });
+
+  test('under the cap, booking without a swap', () => {
+    const {pick, shown} = setup();
+
+    pick(available, {max: 2, bookings: [MORNING]});
+
+    expect(shown[0]).toMatchObject({
+      kind: 'confirm',
+      title: t.booking.bookTitle,
+    });
+  });
+
+  test('only a booking that has neither started nor been released is offered', () => {
+    const {pick, shown} = setup();
+
+    pick(available, {
+      max: 2,
+      bookings: [{...MORNING, started: true}, NOON],
+    });
+
+    expect(shown[0]).toMatchObject({
+      kind: 'confirm',
+      title: t.booking.alreadyHolding(2),
+      message: t.booking.swapQuestion(whenOf(NOON), WHEN),
+    });
+  });
+
+  test('nothing to give up blocks a new booking', () => {
+    const {pick, shown, onChange} = setup();
+
+    pick(available, {
+      max: 2,
+      bookings: [
+        {...MORNING, released: true},
+        {...NOON, started: true},
+      ],
+    });
 
     expect(shown).toEqual([
       {
         kind: 'alert',
-        title: t.booking.alreadyBookedTitle,
-        message: t.booking.releasedBlocks,
+        title: t.booking.alreadyHolding(2),
+        message: t.booking.fullUntilOver(2),
       },
     ]);
     expect(sent).toEqual([]);
@@ -159,9 +252,9 @@ describe('confirmBook asks first', () => {
   });
 
   test('queueing for a taken time', async () => {
-    const {actions, shown, onChange, press} = setup();
+    const {pick, shown, onChange, press} = setup();
 
-    actions.confirmBook(booked, SAUNA, null);
+    pick(booked);
 
     expect(shown).toEqual([
       {
@@ -184,9 +277,9 @@ describe('confirmBook asks first', () => {
   });
 
   test('leaving the queue', async () => {
-    const {actions, shown, onChange, press} = setup();
+    const {pick, shown, onChange, press} = setup();
 
-    actions.confirmBook(queued, SAUNA, null);
+    pick(queued);
 
     expect(shown).toEqual([
       {
@@ -209,9 +302,9 @@ describe('confirmBook asks first', () => {
   });
 
   test('cancelling a booking', async () => {
-    const {actions, shown, onChange, press} = setup();
+    const {pick, shown, onChange, press} = setup();
 
-    actions.confirmBook(mine, SAUNA, null);
+    pick(mine);
 
     expect(shown).toEqual([
       {
@@ -234,9 +327,9 @@ describe('confirmBook asks first', () => {
   });
 
   test('releasing a booking that has started', async () => {
-    const {actions, shown, onChange, press} = setup();
+    const {pick, shown, onChange, press} = setup();
 
-    actions.confirmBook(running, SAUNA, null);
+    pick(running);
 
     expect(shown).toEqual([
       {
@@ -255,10 +348,10 @@ describe('confirmBook asks first', () => {
   });
 
   test('times that cannot be acted on show nothing', () => {
-    const {actions, shown} = setup();
+    const {pick, shown} = setup();
 
-    actions.confirmBook({...TIMES, status: 'walkin'}, SAUNA, null);
-    actions.confirmBook({...booked, started: true}, SAUNA, null);
+    pick({...TIMES, status: 'walkin'});
+    pick({...booked, started: true});
 
     expect(shown).toEqual([]);
   });
@@ -274,10 +367,10 @@ describe('a failure is told', () => {
   ];
 
   test.each(failures)('%s', async (_, slot, title) => {
-    const {actions, shown, onChange, press} = setup();
+    const {pick, shown, onChange, press} = setup();
     answer = {status: 500, code: 'SERVER_ERROR'};
 
-    actions.confirmBook(slot, SAUNA, null);
+    pick(slot);
     await press();
 
     expect(shown[1]).toEqual({
@@ -298,10 +391,10 @@ describe('a failure is told', () => {
   ];
 
   test.each(reloading)('%s reloads the times', async (code, status) => {
-    const {actions, shown, onChange, press} = setup();
+    const {pick, shown, onChange, press} = setup();
     answer = {status, code};
 
-    actions.confirmBook(available, SAUNA, null);
+    pick(available);
     await press();
 
     expect(onChange).toHaveBeenCalledOnce();
@@ -319,10 +412,10 @@ describe('a failure is told', () => {
   ];
 
   test.each(other)('%s leaves the times', async (code, status) => {
-    const {actions, shown, onChange, press} = setup();
+    const {pick, shown, onChange, press} = setup();
     answer = {status, code};
 
-    actions.confirmBook(available, SAUNA, null);
+    pick(available);
     await press();
 
     expect(onChange).not.toHaveBeenCalled();

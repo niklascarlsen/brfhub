@@ -8,7 +8,7 @@ import {
   resources,
   subscriptions,
 } from '../db/schema.js';
-import {stillActive} from '../booking/booking.query.js';
+import {heldBookingsByKind, heldOf} from '../booking/held.js';
 import {appError} from '../lib/errors.js';
 import {
   asDateText,
@@ -21,7 +21,6 @@ import {resourceOpenOn, slotInEffect} from '../resource/schedule.query.js';
 import {
   getResource,
   listBookableResources,
-  type BookableResource,
 } from '../resource/resource.service.js';
 import type {BookingWindow, ResourceSchedule, Slot, Slots} from './slot.dto.js';
 
@@ -166,29 +165,6 @@ function toSlot(row: SlotRow, memberId: string): Slot {
   };
 }
 
-// Only a kind that allows one booking at a time reports it, since that is
-// when booking another slot of the kind has to swap.
-type ActiveByKind = Map<string, {released: boolean}>;
-
-async function selectActiveByKind(memberId: string): Promise<ActiveByKind> {
-  const rows = await db
-    .select({
-      kind: resources.kindId,
-      released: sql<boolean>`${bookings.releasedAt} is not null`,
-    })
-    .from(bookings)
-    .innerJoin(resources, eq(bookings.resourceId, resources.id))
-    .where(stillActive(memberId));
-
-  return new Map(rows.map((row) => [row.kind, {released: row.released}]));
-}
-
-function activeFor(resource: BookableResource, activeByKind: ActiveByKind) {
-  return resource.maxActive === 1
-    ? (activeByKind.get(resource.kind) ?? null)
-    : null;
-}
-
 async function assertWithinBookingWindow(
   organizationId: string,
   from: string,
@@ -228,14 +204,14 @@ export async function listSlots({
   const last = to ?? date;
   await assertWithinBookingWindow(member.organizationId, date, last);
 
-  const [rows, activeByKind] = await Promise.all([
+  const [rows, heldByKind] = await Promise.all([
     selectSlotRows(member, date, last, resourceId),
-    selectActiveByKind(member.id),
+    heldBookingsByKind(member),
   ]);
 
   return {
     slots: rows.map((row) => toSlot(row, member.id)),
-    active: activeFor(resource, activeByKind),
+    held: heldOf(resource.kind, resource.maxActive, heldByKind),
   };
 }
 
@@ -250,10 +226,10 @@ export async function listSchedule({
 }): Promise<ResourceSchedule[]> {
   await assertWithinBookingWindow(member.organizationId, from, to);
 
-  const [bookable, rows, activeByKind] = await Promise.all([
+  const [bookable, rows, heldByKind] = await Promise.all([
     listBookableResources(member),
     selectSlotRows(member, from, to),
-    selectActiveByKind(member.id),
+    heldBookingsByKind(member),
   ]);
 
   return bookable.map((resource) => ({
@@ -261,6 +237,6 @@ export async function listSchedule({
     slots: rows
       .filter((row) => row.resourceId === resource.id)
       .map((row) => toSlot(row, member.id)),
-    active: activeFor(resource, activeByKind),
+    held: heldOf(resource.kind, resource.maxActive, heldByKind),
   }));
 }

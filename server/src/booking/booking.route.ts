@@ -40,14 +40,14 @@ export const bookingRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request, reply) => {
-      const {date, start, resourceId, replaceExisting = false} = request.body;
+      const {date, start, resourceId, replaceBookingId} = request.body;
 
       const booking = await createBooking({
         member: await getMember(request),
         date,
         start,
         resourceId,
-        replaceExisting,
+        replaceBookingId,
         notifier: app.notifier.forRequest(request.log),
       });
 

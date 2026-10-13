@@ -49,7 +49,7 @@ export function BookingScreen() {
     reload,
   } = useFocusLoad(() => fetchDay(date, resource.id), `${date}:${resource.id}`);
 
-  const {confirmBook} = useBookingActions(reload);
+  const {confirm} = useBookingActions(reload);
 
   return (
     <SafeAreaView className='flex-1 bg-theme-bg' edges={['top']}>
@@ -85,12 +85,11 @@ export function BookingScreen() {
         ) : null}
         <View className='mt-5 grow'>
           <SlotList
-            slots={day?.slots ?? null}
+            day={day}
+            resource={resource}
             error={error}
             onRetry={reload}
-            onSelect={(slot) =>
-              confirmBook(slot, resource, day?.active ?? null)
-            }
+            onSelect={confirm}
           />
         </View>
       </ScrollView>

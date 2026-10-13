@@ -1,5 +1,7 @@
 import {z} from 'zod';
 
+import {heldSchema} from '../booking/booking.dto.js';
+
 export const listSlotsQuerySchema = z.object({
   date: z.iso.date(),
   to: z.iso.date().optional(),
@@ -43,7 +45,7 @@ const slotSchema = z.discriminatedUnion('status', [
 
 export const slotsSchema = z.object({
   slots: slotSchema.array(),
-  active: z.object({released: z.boolean()}).nullable(),
+  held: heldSchema,
 });
 
 export const resourceScheduleSchema = slotsSchema.extend({

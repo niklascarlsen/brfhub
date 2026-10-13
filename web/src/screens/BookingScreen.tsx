@@ -40,7 +40,7 @@ export function BookingScreen({
     reload,
   } = useFocusLoad(() => fetchDay(date, resource.id), `${date}:${resource.id}`);
 
-  const {confirmBook} = useBookingActions(reload);
+  const {confirm} = useBookingActions(reload);
 
   return (
     <div className='flex min-h-0 flex-1 flex-col'>
@@ -69,13 +69,11 @@ export function BookingScreen({
           ) : null}
           <div className='mt-4 pb-4 flex grow flex-col'>
             <SlotList
-              slots={day?.slots ?? null}
-              resourceId={resource.id}
+              day={day}
+              resource={resource}
               error={error}
               onRetry={reload}
-              onSelect={(slot) =>
-                confirmBook(slot, resource, day?.active ?? null)
-              }
+              onSelect={confirm}
             />
           </div>
         </div>
