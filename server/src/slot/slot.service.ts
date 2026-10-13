@@ -1,4 +1,4 @@
-import {and, asc, eq, isNull, sql} from 'drizzle-orm';
+import {and, asc, eq, isNull, not, sql} from 'drizzle-orm';
 
 import {db} from '../db/index.js';
 import {
@@ -13,7 +13,7 @@ import {appError} from '../lib/errors.js';
 import {
   asDateText,
   bookingWindowSql,
-  slotEndsAt,
+  slotHasEnded,
   slotHasStarted,
 } from '../lib/time.js';
 import type {Member} from '../lib/user.js';
@@ -109,7 +109,14 @@ function selectSlotRows(
         resourceId ? eq(resourceSlots.resourceId, resourceId) : undefined,
         slotInEffect(days.day),
         resourceOpenOn(days.day),
-        sql`${slotEndsAt(member.timeZone, days.day, resourceSlots.end, resourceSlots.endOffsetDays)} > now()`,
+        not(
+          slotHasEnded(
+            member.timeZone,
+            days.day,
+            resourceSlots.end,
+            resourceSlots.endOffsetDays,
+          ),
+        ),
       ),
     )
     .orderBy(asc(resources.sortOrder), asc(days.day), asc(resourceSlots.start));

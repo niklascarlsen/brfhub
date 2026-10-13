@@ -19,7 +19,7 @@ import {
 } from '../db/schema.js';
 import {appError} from '../lib/errors.js';
 import {generatePassword} from '../lib/password.js';
-import {slotHasStarted} from '../lib/time.js';
+import {notExpired, slotHasStarted} from '../lib/time.js';
 import type {Organization} from '../lib/user.js';
 import type {Notifier} from '../notification/notification.service.js';
 import type {
@@ -52,7 +52,7 @@ function selectApartments(organizationId: string, only?: SQL) {
       and(
         eq(bookings.organizationId, organizationId),
         isNull(bookings.releasedAt),
-        sql`${bookings.endsAt} > now()`,
+        notExpired(bookings.endsAt),
       ),
     )
     .groupBy(bookings.memberId)
