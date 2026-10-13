@@ -5,6 +5,7 @@ import {signOut} from '@/auth/signOut';
 import {Account} from '@/components/Account';
 import {AnnouncementList} from '@/components/Announcements';
 import {BookingRules} from '@/components/BookingRules';
+import {PushToggle} from '@/components/PushToggle';
 import {ChevronBackIcon} from '@/components/icons';
 import {SHELL} from '@/desktop/layout';
 import {PageHeader} from '@/desktop/PageHeader';
@@ -50,6 +51,7 @@ export function DesktopApartment({
                 : null
             }
           />
+          <PushToggle />
           <AnnouncementList />
         </div>
         <BookingRules listClassName='grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3' />

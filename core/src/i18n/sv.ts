@@ -247,12 +247,22 @@ export const sv = {
   push: {
     // What Android lists in the app's notification settings.
     channel: 'Lediga tider',
+    announcementsChannel: 'Anslag',
     promptTitle: 'Notiser',
-    promptMessage: 'Vill du få en notis när en tid du köar för blir ledig?',
+    promptMessage:
+      'Vill du få en notis när en tid du köar för blir ledig, och när styrelsen sätter upp ett anslag?',
     turnOn: 'Slå på',
     failedTitle: 'Kunde inte slå på notiser',
     failedMessage:
       'Tillåt notiser för den här appen i webbläsarens inställningar.',
+    // The switch under the account.
+    toggle: 'Notiser',
+    toggleHint:
+      'När en tid du köar för blir ledig, och när styrelsen sätter upp ett anslag.',
+    blockedTitle: 'Notiser är avstängda',
+    blockedMessage:
+      'Du har sagt nej till notiser från appen. Slå på dem i telefonens inställningar.',
+    openSettings: 'Öppna inställningar',
   },
   admin: {
     add: 'Lägg till',

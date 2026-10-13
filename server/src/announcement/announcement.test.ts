@@ -5,7 +5,7 @@ import {eq} from 'drizzle-orm';
 
 import {buildApp} from '../app.js';
 import {db, pool} from '../db/index.js';
-import {announcements} from '../db/schema.js';
+import {announcements, members, pushTokens} from '../db/schema.js';
 import {addDays} from '../lib/time.js';
 import type {BookingRules} from '../resource/resource.dto.js';
 import type {BookingWindow} from '../slot/slot.dto.js';
@@ -21,6 +21,7 @@ import {
 import type {AdminAnnouncements, Announcement} from './announcement.dto.js';
 
 let server: Awaited<ReturnType<typeof buildApp>>;
+const push = memoryPush();
 let admin: {cookie: string};
 let southAdmin: {cookie: string};
 let member: {cookie: string};
@@ -80,7 +81,7 @@ before(async () => {
 
   server = await buildApp({
     logger: false,
-    push: memoryPush().send,
+    push: push.send,
     mail: memoryMail().send,
   });
   await resetDatabase();
@@ -333,4 +334,96 @@ test('the house rules reach only their own apartments', async () => {
     (await call('GET', '/booking-rules', member)).json<BookingRules>().text,
     '',
   );
+});
+
+test('a new announcement is pushed to every apartment in its own language', async () => {
+  const north = await db
+    .select({id: members.id})
+    .from(members)
+    .where(eq(members.organizationId, 'north'));
+  const south = await db
+    .select({id: members.id})
+    .from(members)
+    .where(eq(members.organizationId, 'south'));
+  await db.insert(pushTokens).values([
+    {
+      token: 'ExponentPushToken[north-sv]',
+      memberId: north[0]?.id ?? '',
+      locale: 'sv',
+    },
+    {
+      token: 'ExponentPushToken[north-en]',
+      memberId: north[0]?.id ?? '',
+      locale: 'en',
+    },
+    {
+      token: 'ExponentPushToken[south]',
+      memberId: south[0]?.id ?? '',
+      locale: 'sv',
+    },
+  ]);
+  push.clear();
+
+  const id = await post('Vattnet stängs av', null);
+  await server.notifier.idle();
+
+  assert.deepEqual(
+    push.sent.map(({to, title, body, channel, data}) => ({
+      to,
+      title,
+      body,
+      channel,
+      data,
+    })),
+    [
+      {
+        to: 'ExponentPushToken[north-sv]',
+        title: 'Vattnet stängs av',
+        body: 'Vattnet stängs av i detalj',
+        channel: 'announcements',
+        data: {announcementId: id},
+      },
+      // Written in Swedish alone, which an English device gets too.
+      {
+        to: 'ExponentPushToken[north-en]',
+        title: 'Vattnet stängs av',
+        body: 'Vattnet stängs av i detalj',
+        channel: 'announcements',
+        data: {announcementId: id},
+      },
+    ],
+  );
+
+  // An edit tells them again.
+  push.clear();
+  const edited = await call('PUT', `/admin/announcements/${id}`, admin, {
+    title: {sv: 'Vattnet stängs av på tisdag'},
+    body: {sv: 'Mellan 9 och 12.'},
+    endsOn: null,
+  });
+  assert.equal(edited.statusCode, 204);
+  await server.notifier.idle();
+  assert.deepEqual(
+    push.sent.map(({to, title}) => ({to, title})),
+    [
+      {to: 'ExponentPushToken[north-sv]', title: 'Vattnet stängs av på tisdag'},
+      {to: 'ExponentPushToken[north-en]', title: 'Vattnet stängs av på tisdag'},
+    ],
+  );
+
+  // Correcting an ended announcement wakes nobody.
+  push.clear();
+  const ended = await insert(
+    'Gammalt',
+    addDays(today, -10),
+    addDays(today, -5),
+  );
+  const corrected = await call('PUT', `/admin/announcements/${ended}`, admin, {
+    title: {sv: 'Gammalt, rättat'},
+    body: {sv: 'Rättat.'},
+    endsOn: addDays(today, -5),
+  });
+  assert.equal(corrected.statusCode, 204);
+  await server.notifier.idle();
+  assert.deepEqual(push.sent, []);
 });

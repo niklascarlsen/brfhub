@@ -1,7 +1,7 @@
 import type {FastifyBaseLogger} from 'fastify';
 
 import type {Locale} from '../lib/locale.js';
-import type {SendPush} from '../lib/push.js';
+import type {PushChannel, SendPush} from '../lib/push.js';
 import {
   listPushTokens,
   removePushTokens,
@@ -10,6 +10,7 @@ import {
 export type Notification = {
   title: string;
   body: string;
+  channel: PushChannel;
   data?: Record<string, string>;
 };
 

@@ -234,13 +234,21 @@ export const en: Messages = {
   },
   push: {
     channel: 'Available times',
+    announcementsChannel: 'Announcements',
     promptTitle: 'Notifications',
     promptMessage:
-      'Do you want a notification when a time you are queuing for becomes free?',
+      'Do you want a notification when a time you are queuing for becomes free, and when the board posts an announcement?',
     turnOn: 'Turn on',
     failedTitle: 'Could not turn on notifications',
     failedMessage:
       "Allow notifications for this app in the browser's settings.",
+    toggle: 'Notifications',
+    toggleHint:
+      'When a time you are queuing for becomes free, and when the board posts an announcement.',
+    blockedTitle: 'Notifications are off',
+    blockedMessage:
+      "You have declined notifications from the app. Turn them on in the phone's settings.",
+    openSettings: 'Open settings',
   },
   admin: {
     add: 'Add',

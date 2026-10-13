@@ -14,6 +14,8 @@ self.addEventListener('push', (event) => {
 });
 
 // The payload data matches what the app reads from a tapped notification.
+// An announcement carries no slot, and opens the booking page where the
+// announcements are shown.
 function slotUrl(data) {
   if (!data || !data.date || !data.resourceId) {
     return '/book';

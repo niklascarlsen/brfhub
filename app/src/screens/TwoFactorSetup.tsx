@@ -7,15 +7,11 @@ import {
   type SetupStep,
 } from '@booking/core/auth/twoFactor';
 import {useState} from 'react';
+import {Pressable, Share, Text, View} from 'react-native';
 import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  Share,
-  Text,
-  View,
-} from 'react-native';
+  KeyboardAwareScrollView,
+  KeyboardToolbar,
+} from 'react-native-keyboard-controller';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
 import {
@@ -259,21 +255,18 @@ export function TwoFactorSetup({account, onDone}: TwoFactorSetupProps) {
 
   return (
     <SafeAreaView className='flex-1 bg-theme-bg' edges={['top']}>
-      <KeyboardAvoidingView
+      <KeyboardAwareScrollView
+        bottomOffset={24}
         className='flex-1'
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        contentContainerClassName='grow px-5 pb-8 pt-2'
+        keyboardShouldPersistTaps='handled'
       >
-        <ScrollView
-          className='flex-1'
-          contentContainerClassName='grow px-5 pb-8 pt-2'
-          keyboardShouldPersistTaps='handled'
-        >
-          <Text className='mb-6 mt-1 font-sans text-[13px] text-theme-muted'>
-            {account.organizationName}
-          </Text>
-          {body}
-        </ScrollView>
-      </KeyboardAvoidingView>
+        <Text className='mb-6 mt-1 font-sans text-[13px] text-theme-muted'>
+          {account.organizationName}
+        </Text>
+        {body}
+      </KeyboardAwareScrollView>
+      <KeyboardToolbar doneText={t.common.ok} />
     </SafeAreaView>
   );
 }

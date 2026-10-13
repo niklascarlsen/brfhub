@@ -14,6 +14,7 @@ function expoTokens(count: number) {
     to: `ExponentPushToken[${index}]`,
     title: 'En tid blev ledig',
     body: 'Tvättstuga 1',
+    channel: 'slots' as const,
   }));
 }
 

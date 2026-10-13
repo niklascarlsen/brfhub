@@ -16,13 +16,11 @@ import {
 import {limits} from '@booking/core/generated/limits';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {useState} from 'react';
+import {Pressable, Text, View} from 'react-native';
 import {
   KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  Text,
-  View,
-} from 'react-native';
+  KeyboardToolbar,
+} from 'react-native-keyboard-controller';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
 import {api, unwrap} from '@/api/client';
@@ -497,13 +495,14 @@ export function LoginScreen() {
     <SafeAreaView className='flex-1 bg-theme-bg'>
       <KeyboardAvoidingView
         className='flex-1 justify-center px-5 pb-16'
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior='padding'
       >
         {/* One view for the keyboard to move. As separate children each
             field got its own layout animation, and the focused field could
             jump ahead of the rest onto the title. */}
         <View key={step.kind}>{body}</View>
       </KeyboardAvoidingView>
+      <KeyboardToolbar doneText={t.common.ok} />
     </SafeAreaView>
   );
 }

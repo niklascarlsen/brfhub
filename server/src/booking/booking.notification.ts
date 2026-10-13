@@ -51,6 +51,7 @@ export function releasedNotification(
       localize(slot.resourceName, locale) ?? '',
       formatWhen(locale, slot.date, slot.start, slot.end),
     ),
+    channel: 'slots',
     data: {
       date: slot.date,
       start: slot.start,

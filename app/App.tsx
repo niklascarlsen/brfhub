@@ -16,6 +16,7 @@ import type {Mode} from '@booking/core/auth/account';
 import {SwitchModeContext} from '@booking/core/auth/mode';
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {View} from 'react-native';
+import {KeyboardProvider} from 'react-native-keyboard-controller';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 
 import {AdminShell} from '@/admin/AdminShell';
@@ -36,12 +37,14 @@ const navigationRef = createNavigationContainerRef<AppTabParamList>();
 // to the apartment on the server.
 function PushRegistration() {
   const {locale} = useLocale();
-  const channelName = useMessages().push.channel;
+  const t = useMessages();
+  const slots = t.push.channel;
+  const announcements = t.push.announcementsChannel;
 
   useEffect(() => {
-    void registerPushToken(locale, channelName);
+    void registerPushToken(locale, {slots, announcements});
     return onPushTokenChange(locale);
-  }, [locale, channelName]);
+  }, [locale, slots, announcements]);
 
   return null;
 }
@@ -114,12 +117,14 @@ export default function App() {
   return (
     <LocaleProvider>
       <SafeAreaProvider>
-        <DialogProvider>
-          <SessionGate>
-            <Gate onReady={onReady} />
-            <StatusBar style='dark' />
-          </SessionGate>
-        </DialogProvider>
+        <KeyboardProvider>
+          <DialogProvider>
+            <SessionGate>
+              <Gate onReady={onReady} />
+              <StatusBar style='dark' />
+            </SessionGate>
+          </DialogProvider>
+        </KeyboardProvider>
       </SafeAreaProvider>
     </LocaleProvider>
   );

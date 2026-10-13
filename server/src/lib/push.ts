@@ -8,7 +8,6 @@ import webpush, {WebPushError, type PushSubscription} from 'web-push';
 import {withTimeout} from './timeout.js';
 
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
-const CHANNEL_ID = 'slots';
 // The most messages Expo takes in one request.
 const EXPO_BATCH_SIZE = 100;
 // A released slot is old news after an hour, so the push service drops
@@ -18,10 +17,15 @@ const WEB_PUSH_TTL_SECONDS = 60 * 60;
 // otherwise hold the send, and the slots queued behind it, forever.
 export const PUSH_TIMEOUT_MS = 10_000;
 
+// The Android channels the app registers, so each kind of push can be
+// turned off on its own in the phone's settings.
+export type PushChannel = 'slots' | 'announcements';
+
 export type PushMessage = {
   to: string;
   title: string;
   body: string;
+  channel: PushChannel;
   data?: Record<string, string>;
 };
 
@@ -45,10 +49,10 @@ async function sendExpoBatch(messages: PushMessage[]): Promise<PushFailure[]> {
     headers: {'Content-Type': 'application/json'},
     signal: AbortSignal.timeout(PUSH_TIMEOUT_MS),
     body: JSON.stringify(
-      messages.map((message) => ({
+      messages.map(({channel, ...message}) => ({
         ...message,
         priority: 'high',
-        channelId: CHANNEL_ID,
+        channelId: channel,
       })),
     ),
   });

@@ -2,14 +2,12 @@ import {useAdminAccount} from '@booking/core/admin/account';
 import {untranslatedMessage} from '@booking/core/admin/localized';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {useEffect, useRef, type ReactNode} from 'react';
+import {Pressable, Text, View} from 'react-native';
 import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native';
+  KeyboardAwareScrollView,
+  KeyboardToolbar,
+  type KeyboardAwareScrollViewRef,
+} from 'react-native-keyboard-controller';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
 import {useConfirmLeave} from '@/admin/unsaved';
@@ -28,7 +26,9 @@ type AdminPageProps = {
 // One admin page: a back link when it is a step down, the title, a bar
 // while some of the organization's text lacks a language, an optional
 // action under it, and the content. Going back from a form with unsaved
-// changes asks first.
+// changes asks first. The keyboard scrolls the focused field into view,
+// with a bar above it to step between the fields, since the window does
+// not shrink on Android.
 export function AdminPage({
   title,
   subtitle,
@@ -39,7 +39,7 @@ export function AdminPage({
   const t = useMessages();
   const {untranslated} = useAdminAccount();
   const confirmLeave = useConfirmLeave();
-  const scroll = useRef<ScrollView>(null);
+  const scroll = useRef<KeyboardAwareScrollViewRef>(null);
   const missing = untranslatedMessage(untranslated, t);
 
   // A step to another page starts at its top.
@@ -49,43 +49,40 @@ export function AdminPage({
 
   return (
     <SafeAreaView className='flex-1 bg-theme-bg' edges={['top']}>
-      <KeyboardAvoidingView
+      <KeyboardAwareScrollView
+        ref={scroll}
+        bottomOffset={24}
         className='flex-1'
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        contentContainerClassName='grow px-5 pb-8 pt-2'
+        keyboardShouldPersistTaps='handled'
       >
-        <ScrollView
-          ref={scroll}
-          className='flex-1'
-          contentContainerClassName='grow px-5 pb-8 pt-2'
-          keyboardShouldPersistTaps='handled'
-        >
-          {back ? (
-            <Pressable
-              onPress={() => confirmLeave(back.onPress)}
-              hitSlop={8}
-              className='-ml-1 mb-2 mt-1 flex-row items-center gap-1 self-start py-1 pr-2 active:opacity-60'
-            >
-              <Ionicons name='chevron-back' size={16} color={theme.muted} />
-              <Text className='text-sm font-semibold text-theme-muted'>
-                {back.label}
-              </Text>
-            </Pressable>
-          ) : null}
-          <Text className='text-[27px] font-semibold tracking-tight text-theme-ink'>
-            {title}
-          </Text>
-          <Text className='mb-6 mt-1 font-sans text-[13px] text-theme-muted'>
-            {subtitle}
-          </Text>
-          {missing ? (
-            <View className='-mt-2 mb-2'>
-              <NoticeBar message={missing} />
-            </View>
-          ) : null}
-          {action ? <View className='mb-6'>{action}</View> : null}
-          {children}
-        </ScrollView>
-      </KeyboardAvoidingView>
+        {back ? (
+          <Pressable
+            onPress={() => confirmLeave(back.onPress)}
+            hitSlop={8}
+            className='-ml-1 mb-2 mt-1 flex-row items-center gap-1 self-start py-1 pr-2 active:opacity-60'
+          >
+            <Ionicons name='chevron-back' size={16} color={theme.muted} />
+            <Text className='text-sm font-semibold text-theme-muted'>
+              {back.label}
+            </Text>
+          </Pressable>
+        ) : null}
+        <Text className='text-[27px] font-semibold tracking-tight text-theme-ink'>
+          {title}
+        </Text>
+        <Text className='mb-6 mt-1 font-sans text-[13px] text-theme-muted'>
+          {subtitle}
+        </Text>
+        {missing ? (
+          <View className='-mt-2 mb-2'>
+            <NoticeBar message={missing} />
+          </View>
+        ) : null}
+        {action ? <View className='mb-6'>{action}</View> : null}
+        {children}
+      </KeyboardAwareScrollView>
+      <KeyboardToolbar doneText={t.common.ok} />
     </SafeAreaView>
   );
 }

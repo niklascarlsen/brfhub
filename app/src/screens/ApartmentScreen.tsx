@@ -7,6 +7,7 @@ import {signOut} from '@/auth/signOut';
 import {Account} from '@/components/Account';
 import {AnnouncementList} from '@/components/Announcements';
 import {BookingRules} from '@/components/BookingRules';
+import {PushToggle} from '@/components/PushToggle';
 import {useMessages} from '@/i18n/LocaleProvider';
 
 export function ApartmentScreen() {
@@ -35,6 +36,7 @@ export function ApartmentScreen() {
               : null
           }
         />
+        <PushToggle />
         <AnnouncementList />
         <BookingRules />
       </ScrollView>

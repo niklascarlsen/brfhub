@@ -9,12 +9,13 @@
 import type {Locale} from '@booking/core/i18n/catalog';
 
 import {api, unwrap} from '@/api/client';
+import {readPushEnabled} from '@/lib/pushPreference';
 import {openedSlot, type OpenedSlot} from '@/lib/route';
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
 const PROMPT_KEY = 'push-prompt-shown';
 
-function isSupported(): boolean {
+export function isSupported(): boolean {
   return (
     'serviceWorker' in navigator &&
     'PushManager' in window &&
@@ -99,9 +100,10 @@ export async function dropPushSubscription(): Promise<void> {
 
 // Runs on every load and when the language changes. Re-sends the
 // subscription when notifications are allowed and reports whether the
-// in-app prompt should be shown.
+// in-app prompt should be shown. A browser whose apartment turned push
+// off is left alone.
 export async function syncPushSubscription(locale: Locale): Promise<boolean> {
-  if (!isSupported() || !VAPID_PUBLIC_KEY) {
+  if (!isSupported() || !VAPID_PUBLIC_KEY || !(await readPushEnabled())) {
     return false;
   }
 
@@ -120,6 +122,23 @@ export async function syncPushSubscription(locale: Locale): Promise<boolean> {
 
 export function markPushPromptShown(): void {
   window.localStorage.setItem(PROMPT_KEY, new Date().toISOString());
+}
+
+// Whether the browser lets the app send push: granted, askable, or
+// blocked until changed in the browser's own settings.
+export function pushPermission(): 'granted' | 'askable' | 'blocked' {
+  if (!isSupported() || !VAPID_PUBLIC_KEY) {
+    return 'blocked';
+  }
+
+  switch (Notification.permission) {
+    case 'granted':
+      return 'granted';
+    case 'default':
+      return 'askable';
+    default:
+      return 'blocked';
+  }
 }
 
 // Must be called from a click. Safari only shows the permission prompt

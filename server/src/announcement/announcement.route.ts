@@ -52,7 +52,11 @@ export const announcementRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request, reply) => {
       const admin = await getAdmin(request);
-      const id = await createAnnouncement(admin, request.body);
+      const id = await createAnnouncement(
+        admin,
+        request.body,
+        app.notifier.forRequest(request.log),
+      );
       await logEvent(
         request,
         admin,
@@ -74,7 +78,12 @@ export const announcementRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request, reply) => {
       const admin = await getAdmin(request);
-      await updateAnnouncement(admin, request.params.id, request.body);
+      await updateAnnouncement(
+        admin,
+        request.params.id,
+        request.body,
+        app.notifier.forRequest(request.log),
+      );
       await logEvent(
         request,
         admin,

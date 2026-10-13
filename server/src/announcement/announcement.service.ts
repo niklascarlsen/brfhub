@@ -11,6 +11,8 @@ import {
 } from '../lib/locale.js';
 import {asDateText, todaySql} from '../lib/time.js';
 import type {Organization} from '../lib/user.js';
+import type {Notifier} from '../notification/notification.service.js';
+import {announceToApartments} from './announcement.notification.js';
 import type {
   AdminAnnouncement,
   AdminAnnouncements,
@@ -117,10 +119,13 @@ export async function listAdminAnnouncements({
   return {today: current, announcements: rows};
 }
 
+// Published today, so every apartment is told at once.
 export async function createAnnouncement(
-  {organizationId, timeZone, locales}: Organization,
+  organization: Organization,
   body: AnnouncementBody,
+  notifier: Notifier,
 ): Promise<string> {
+  const {organizationId, timeZone, locales} = organization;
   const text = translated(body, locales);
   const publishedOn = await today(timeZone);
   assertEndsOn(body.endsOn, publishedOn);
@@ -134,6 +139,8 @@ export async function createAnnouncement(
     throw new Error('Insert returned no announcement');
   }
 
+  await announceToApartments(notifier, organization, {id: created.id, ...text});
+
   return created.id;
 }
 
@@ -145,12 +152,15 @@ function ownAnnouncement(organizationId: string, id: string) {
 }
 
 // A new end may not lie in the past, but an ended announcement can still
-// have its text corrected.
+// have its text corrected. An edit shows the announcement again to
+// apartments that hid it, and tells them again, unless it has ended.
 export async function updateAnnouncement(
-  {organizationId, timeZone, locales}: Organization,
+  organization: Organization,
   id: string,
   body: AnnouncementBody,
+  notifier: Notifier,
 ): Promise<void> {
+  const {organizationId, timeZone, locales} = organization;
   const text = translated(body, locales);
   const [existing] = await db
     .select({
@@ -166,8 +176,9 @@ export async function updateAnnouncement(
     throw appError('NOT_FOUND', 'Unknown announcement');
   }
 
+  const current = await today(timeZone);
+
   if (body.endsOn !== existing.endsOn) {
-    const current = await today(timeZone);
     assertEndsOn(
       body.endsOn,
       existing.publishedOn > current ? existing.publishedOn : current,
@@ -182,6 +193,14 @@ export async function updateAnnouncement(
 
   if (updated.length === 0) {
     throw appError('NOT_FOUND', 'Unknown announcement');
+  }
+
+  const shown =
+    existing.publishedOn <= current &&
+    (body.endsOn === null || body.endsOn >= current);
+
+  if (shown) {
+    await announceToApartments(notifier, organization, {id, ...text});
   }
 }
 

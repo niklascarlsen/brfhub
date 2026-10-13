@@ -2,161 +2,161 @@
 // server/openapi.json and the server's password rule. Do not edit.
 
 export const limits = {
-  "AddAdminBody": {
-    "name": {
-      "minLength": 1,
-      "maxLength": 100
-    }
-  },
-  "AnnouncementBody": {
-    "title": {
-      "minLength": 1,
-      "maxLength": 100
+  AddAdminBody: {
+    name: {
+      minLength: 1,
+      maxLength: 100,
     },
-    "body": {
-      "minLength": 1,
-      "maxLength": 2000
-    }
   },
-  "CreateApartmentBody": {
-    "label": {
-      "minLength": 1,
-      "maxLength": 20
+  AnnouncementBody: {
+    title: {
+      minLength: 1,
+      maxLength: 100,
     },
-    "residentName": {
-      "minLength": 1,
-      "maxLength": 100
-    }
-  },
-  "CreateBookingBody": {
-    "start": {
-      "minLength": 1
+    body: {
+      minLength: 1,
+      maxLength: 2000,
     },
-    "resourceId": {
-      "minLength": 1
-    }
   },
-  "CreateKindBody": {
-    "name": {
-      "minLength": 1,
-      "maxLength": 40
+  CreateApartmentBody: {
+    label: {
+      minLength: 1,
+      maxLength: 20,
     },
-    "maxActive": {
-      "minimum": 1,
-      "maximum": 10
-    }
-  },
-  "CreateResourceBody": {
-    "name": {
-      "minLength": 1,
-      "maxLength": 40
+    residentName: {
+      minLength: 1,
+      maxLength: 100,
     },
-    "kindId": {
-      "minLength": 1
+  },
+  CreateBookingBody: {
+    start: {
+      minLength: 1,
     },
-    "tags": {
-      "maxItems": 5,
-      "items": {
-        "minLength": 1,
-        "maxLength": 30
-      }
+    resourceId: {
+      minLength: 1,
     },
-    "slots": {
-      "minItems": 1,
-      "maxItems": 24
-    }
   },
-  "CreateSubscriptionBody": {
-    "start": {
-      "minLength": 1
+  CreateKindBody: {
+    name: {
+      minLength: 1,
+      maxLength: 40,
     },
-    "resourceId": {
-      "minLength": 1
-    }
-  },
-  "DropPushTokenBody": {
-    "token": {
-      "minLength": 1
-    }
-  },
-  "NewResidentBody": {
-    "residentName": {
-      "minLength": 1,
-      "maxLength": 100
-    }
-  },
-  "PushTokenBody": {
-    "token": {
-      "minLength": 1
-    }
-  },
-  "PutScheduleBody": {
-    "slots": {
-      "minItems": 1,
-      "maxItems": 24
-    }
-  },
-  "ResourceOrderBody": {
-    "ids": {
-      "minItems": 1,
-      "items": {
-        "minLength": 1
-      }
-    }
-  },
-  "UpdateApartmentBody": {
-    "label": {
-      "minLength": 1,
-      "maxLength": 20
+    maxActive: {
+      minimum: 1,
+      maximum: 10,
     },
-    "residentName": {
-      "minLength": 1,
-      "maxLength": 100
-    }
   },
-  "UpdateKindBody": {
-    "name": {
-      "minLength": 1,
-      "maxLength": 40
+  CreateResourceBody: {
+    name: {
+      minLength: 1,
+      maxLength: 40,
     },
-    "maxActive": {
-      "minimum": 1,
-      "maximum": 10
-    }
+    kindId: {
+      minLength: 1,
+    },
+    tags: {
+      maxItems: 5,
+      items: {
+        minLength: 1,
+        maxLength: 30,
+      },
+    },
+    slots: {
+      minItems: 1,
+      maxItems: 24,
+    },
   },
-  "UpdateOrganizationBody": {
-    "name": {
-      "minLength": 1,
-      "maxLength": 80
+  CreateSubscriptionBody: {
+    start: {
+      minLength: 1,
     },
-    "bookingWindowDays": {
-      "minimum": 1,
-      "maximum": 365
+    resourceId: {
+      minLength: 1,
     },
-    "rulesText": {
-      "maxLength": 4000
-    }
   },
-  "UpdateResourceBody": {
-    "name": {
-      "minLength": 1,
-      "maxLength": 40
+  DropPushTokenBody: {
+    token: {
+      minLength: 1,
     },
-    "kindId": {
-      "minLength": 1
-    },
-    "tags": {
-      "maxItems": 5,
-      "items": {
-        "minLength": 1,
-        "maxLength": 30
-      }
-    }
   },
-  "ChangePasswordBody": {
-    "newPassword": {
-      "minLength": 8,
-      "maxLength": 128
-    }
-  }
+  NewResidentBody: {
+    residentName: {
+      minLength: 1,
+      maxLength: 100,
+    },
+  },
+  PushTokenBody: {
+    token: {
+      minLength: 1,
+    },
+  },
+  PutScheduleBody: {
+    slots: {
+      minItems: 1,
+      maxItems: 24,
+    },
+  },
+  ResourceOrderBody: {
+    ids: {
+      minItems: 1,
+      items: {
+        minLength: 1,
+      },
+    },
+  },
+  UpdateApartmentBody: {
+    label: {
+      minLength: 1,
+      maxLength: 20,
+    },
+    residentName: {
+      minLength: 1,
+      maxLength: 100,
+    },
+  },
+  UpdateKindBody: {
+    name: {
+      minLength: 1,
+      maxLength: 40,
+    },
+    maxActive: {
+      minimum: 1,
+      maximum: 10,
+    },
+  },
+  UpdateOrganizationBody: {
+    name: {
+      minLength: 1,
+      maxLength: 80,
+    },
+    bookingWindowDays: {
+      minimum: 1,
+      maximum: 365,
+    },
+    rulesText: {
+      maxLength: 4000,
+    },
+  },
+  UpdateResourceBody: {
+    name: {
+      minLength: 1,
+      maxLength: 40,
+    },
+    kindId: {
+      minLength: 1,
+    },
+    tags: {
+      maxItems: 5,
+      items: {
+        minLength: 1,
+        maxLength: 30,
+      },
+    },
+  },
+  ChangePasswordBody: {
+    newPassword: {
+      minLength: 8,
+      maxLength: 128,
+    },
+  },
 } as const;
