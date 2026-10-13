@@ -1,3 +1,4 @@
+import {useAdminAccount, useRefreshAccount} from '@booking/core/admin/account';
 import {
   isWrittenOrEmpty,
   trimmedText,
@@ -14,7 +15,6 @@ import {
 import {useState, type ReactNode} from 'react';
 import {Pressable, Text, TextInput, View} from 'react-native';
 
-import {useAdminAccount, useRefreshAccount} from '@/admin/account';
 import {AdminPage} from '@/admin/AdminPage';
 import {FormActions} from '@/admin/FormActions';
 import {SECTION_LABEL} from '@/admin/styles';

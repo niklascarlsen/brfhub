@@ -1,3 +1,4 @@
+import {useConfig} from '@booking/core/config/config';
 import type {components} from '@booking/core/generated/api';
 import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
 import {joinNames, type Messages} from '@booking/core/i18n/catalog';
@@ -10,7 +11,6 @@ import {
 import {api, unwrap} from '@/api/client';
 import {Notice} from '@/components/Notice';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
-import {useConfig} from '@/config';
 import {useMessages} from '@/i18n/LocaleProvider';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 

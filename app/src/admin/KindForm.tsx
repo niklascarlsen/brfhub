@@ -1,3 +1,4 @@
+import {useAdminAccount} from '@booking/core/admin/account';
 import {
   fieldLabel,
   isWritten,
@@ -9,7 +10,6 @@ import type {LocalizedText} from '@booking/core/api/types';
 import {useState} from 'react';
 import {Pressable, Text, View} from 'react-native';
 
-import {useAdminAccount} from '@/admin/account';
 import {FormActions} from '@/admin/FormActions';
 import {SECONDARY_BUTTON, SECONDARY_LABEL} from '@/admin/styles';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';

@@ -1,3 +1,4 @@
+import {useConfig} from '@booking/core/config/config';
 import {ScrollView, Text} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
@@ -5,7 +6,6 @@ import {signOut} from '@/auth/signOut';
 import {Account} from '@/components/Account';
 import {AnnouncementList} from '@/components/Announcements';
 import {BookingRules} from '@/components/BookingRules';
-import {useConfig} from '@/config';
 import {useMessages} from '@/i18n/LocaleProvider';
 
 export function ApartmentScreen() {

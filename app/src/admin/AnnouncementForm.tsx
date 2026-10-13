@@ -1,3 +1,4 @@
+import {useAdminAccount} from '@booking/core/admin/account';
 import {
   DURATIONS,
   durationOf,
@@ -16,7 +17,6 @@ import {formatLongDate} from '@booking/core/lib/dates';
 import {useState} from 'react';
 import {Pressable, Text, TextInput, View} from 'react-native';
 
-import {useAdminAccount} from '@/admin/account';
 import {FormActions} from '@/admin/FormActions';
 import {SECONDARY_BUTTON, SECONDARY_LABEL} from '@/admin/styles';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';

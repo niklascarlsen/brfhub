@@ -1,3 +1,4 @@
+import {useAdminAccount, useRefreshAccount} from '@booking/core/admin/account';
 import {missingLanguages} from '@booking/core/admin/localized';
 import {limitText, slotsText} from '@booking/core/admin/schedule';
 import {codeOf, errorMessage} from '@booking/core/api/errors';
@@ -10,7 +11,6 @@ import {useIsFocused} from '@react-navigation/native';
 import {useEffect, useState} from 'react';
 import {Alert, BackHandler, Pressable, Text, View} from 'react-native';
 
-import {useAdminAccount, useRefreshAccount} from '@/admin/account';
 import {AdminPage} from '@/admin/AdminPage';
 import {KindForm} from '@/admin/KindForm';
 import {ResourceDetail} from '@/admin/ResourceDetail';

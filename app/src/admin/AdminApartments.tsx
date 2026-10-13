@@ -1,3 +1,4 @@
+import {useAdminAccount} from '@booking/core/admin/account';
 import type {Apartment} from '@booking/core/api/types';
 import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -5,7 +6,6 @@ import {useIsFocused} from '@react-navigation/native';
 import {useEffect, useState} from 'react';
 import {BackHandler, Pressable, Text, View} from 'react-native';
 
-import {useAdminAccount} from '@/admin/account';
 import {AdminPage} from '@/admin/AdminPage';
 import {ApartmentDetail} from '@/admin/ApartmentDetail';
 import {ApartmentForm} from '@/admin/ApartmentForm';

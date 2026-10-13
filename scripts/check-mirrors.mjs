@@ -6,7 +6,6 @@ import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 const MIRRORS = [
-  'admin/account.ts',
   'auth/account.tsx',
   'auth/session.tsx',
   'config.tsx',

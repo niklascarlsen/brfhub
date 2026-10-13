@@ -1,5 +1,6 @@
+import {useConfig} from '@booking/core/config/config';
+
 import {CalendarOutlineIcon} from '@/components/icons';
-import {useConfig} from '@/config';
 import {DesktopApartment} from '@/desktop/DesktopApartment';
 import {DesktopBooking, type BookingProps} from '@/desktop/DesktopBooking';
 import {SHELL} from '@/desktop/layout';

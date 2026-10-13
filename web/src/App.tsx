@@ -1,3 +1,4 @@
+import {useConfig} from '@booking/core/config/config';
 import {isWithinBookingWindow} from '@booking/core/lib/dates';
 import {useEffect, useState} from 'react';
 
@@ -7,7 +8,7 @@ import {SessionGate} from '@/auth/session';
 import {DialogProvider} from '@/components/Dialog';
 import {TabBar} from '@/components/TabBar';
 import {MEMBER_TABS} from '@/components/tabs';
-import {ConfigProvider, useConfig} from '@/config';
+import {ConfigProvider} from '@/config';
 import {DesktopShell} from '@/desktop/DesktopShell';
 import {LocaleProvider} from '@/i18n/LocaleProvider';
 import {usePushPrompt} from '@/hooks/usePushPrompt';

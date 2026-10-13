@@ -1,3 +1,4 @@
+import {useAdminAccount, useRefreshAccount} from '@booking/core/admin/account';
 import {
   isWrittenOrEmpty,
   trimmedText,
@@ -13,7 +14,6 @@ import {
 } from '@booking/core/i18n/catalog';
 import {useId, useState, type ReactNode, type SubmitEvent} from 'react';
 
-import {useAdminAccount, useRefreshAccount} from '@/admin/account';
 import {AdminPage} from '@/admin/AdminPage';
 import {FormActions} from '@/admin/FormActions';
 import {SECTION_LABEL} from '@/admin/styles';

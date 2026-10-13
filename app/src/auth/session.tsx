@@ -1,4 +1,5 @@
 import {errorMessage} from '@booking/core/api/errors';
+import {sessionView} from '@booking/core/auth/session';
 import type {ReactNode} from 'react';
 
 import {authClient} from '@/auth/client';
@@ -13,25 +14,22 @@ export function SessionGate({children}: {children: ReactNode}) {
   const {data: session, isPending, error, refetch} = authClient.useSession();
   const t = useMessages();
 
-  if (session) {
-    return children;
+  switch (sessionView({session, isPending, error})) {
+    case 'signed-in':
+      return children;
+    case 'waiting':
+      return <Blank />;
+    case 'failed':
+      return (
+        <Blank>
+          <Notice
+            message={errorMessage('NETWORK', t)}
+            actionLabel={t.common.retry}
+            onAction={() => void refetch()}
+          />
+        </Blank>
+      );
+    case 'signed-out':
+      return <LoginScreen />;
   }
-
-  if (isPending) {
-    return <Blank />;
-  }
-
-  if (error) {
-    return (
-      <Blank>
-        <Notice
-          message={errorMessage('NETWORK', t)}
-          actionLabel={t.common.retry}
-          onAction={() => void refetch()}
-        />
-      </Blank>
-    );
-  }
-
-  return <LoginScreen />;
 }
