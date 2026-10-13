@@ -1,22 +1,27 @@
 import type {Slot} from '@booking/core/api/types';
+import type {SlotOffer} from '@booking/core/booking/offer';
 import {timeRange} from '@booking/core/lib/dates';
 
 import {ChevronForwardIcon, LockClosedIcon} from '@/components/icons';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
 import type {RovingItemProps} from '@/hooks/useRovingList';
-import {useMessages} from '@/i18n/LocaleProvider';
-import {isLocked, slotAppearance} from '@/lib/slots';
+import {slotAppearance} from '@/lib/slots';
 
 type TimeSlotRowProps = {
   slot: Slot;
+  offer: SlotOffer;
   onPress: () => void;
   itemProps: RovingItemProps;
 };
 
-export function TimeSlotRow({slot, onPress, itemProps}: TimeSlotRowProps) {
-  const locked = isLocked(slot);
-  const t = useMessages();
-  const {surface, time, label, tone, mark, chevron} = slotAppearance(slot, t);
+export function TimeSlotRow({
+  slot,
+  offer,
+  onPress,
+  itemProps,
+}: TimeSlotRowProps) {
+  const {locked, label, mark} = offer;
+  const {surface, time, tone, chevron} = slotAppearance(offer);
 
   return (
     <button
