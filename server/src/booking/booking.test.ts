@@ -1258,6 +1258,39 @@ test('a queue place taken while a cancel waits hears of the slot', async () => {
   ]);
 });
 
+test('a cancel that waits on a queue place being taken tells it', async () => {
+  const theirs = await book(NEIGHBOUR, {date: bookableDate, start: '07:00'});
+  const {id} = theirs.json<CreatedBooking>();
+  await addDevice(TENANT);
+  let cancelled: ReturnType<typeof cancel> | undefined;
+
+  // Holds the booking and adds a queue place behind it as queueing does,
+  // and commits only once the cancel waits on that booking.
+  await db.transaction(async (tx) => {
+    await tx
+      .select({id: bookings.id})
+      .from(bookings)
+      .where(eq(bookings.id, id))
+      .for('share');
+    await tx.insert(subscriptions).values({
+      organizationId: ORGANIZATION_ID,
+      memberId: memberId(TENANT),
+      date: bookableDate,
+      start: '07:00',
+      end: '10:00',
+      resourceId: LAUNDRY_1,
+      endsAt: slotEndsAt(ORGANIZATION.timeZone, bookableDate, '10:00'),
+    });
+    cancelled = cancel(NEIGHBOUR, id);
+    await waitUntilBlocked('transactionid');
+  });
+
+  assert.equal((await cancelled)?.statusCode, 204);
+  assert.deepEqual(await pushed(), [
+    {to: '12-device', title: 'En tid blev ledig', start: '07:00'},
+  ]);
+});
+
 test('queueing behind a cancel on its way answers that the slot is free', async () => {
   const theirs = await book(NEIGHBOUR, {date: bookableDate, start: '07:00'});
   let queued: ReturnType<typeof subscribe> | undefined;
