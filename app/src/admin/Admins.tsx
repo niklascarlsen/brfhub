@@ -255,18 +255,21 @@ export function AdminDetail({admin, onChanged, onRemoved}: AdminDetailProps) {
           />
         </View>
       </View>
-      <View>
-        <Text className={SECTION_LABEL}>{t.admin.actions}</Text>
-        <View className='overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
-          <ActionRow
-            label={t.admin.admins.resetTwoFactor}
-            description={t.admin.admins.resetHint}
-            disabled={busy}
-            onPress={() => actions.admins.confirmResetTwoFactor(admin)}
-            last
-          />
+      {/* Nothing to reset before an authenticator is set up. */}
+      {admin.twoFactorEnabled ? (
+        <View>
+          <Text className={SECTION_LABEL}>{t.admin.actions}</Text>
+          <View className='overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
+            <ActionRow
+              label={t.admin.admins.resetTwoFactor}
+              description={t.admin.admins.resetHint}
+              disabled={busy}
+              onPress={() => actions.admins.confirmResetTwoFactor(admin)}
+              last
+            />
+          </View>
         </View>
-      </View>
+      ) : null}
       <Pressable
         onPress={() => actions.admins.confirmRemove(admin, onRemoved)}
         disabled={busy}

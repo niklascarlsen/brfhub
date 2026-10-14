@@ -16,6 +16,7 @@ import {
   memoryPush,
   resetDatabase,
   seedOrganization,
+  sessionFor,
   signIn,
 } from '../test/fixtures.js';
 import type {AdminAnnouncements, Announcement} from './announcement.dto.js';
@@ -349,16 +350,19 @@ test('a new announcement is pushed to every apartment in its own language', asyn
     {
       token: 'ExponentPushToken[north-sv]',
       memberId: north[0]?.id ?? '',
+      sessionId: await sessionFor(north[0]?.id ?? ''),
       locale: 'sv',
     },
     {
       token: 'ExponentPushToken[north-en]',
       memberId: north[0]?.id ?? '',
+      sessionId: await sessionFor(north[0]?.id ?? ''),
       locale: 'en',
     },
     {
       token: 'ExponentPushToken[south]',
       memberId: south[0]?.id ?? '',
+      sessionId: await sessionFor(south[0]?.id ?? ''),
       locale: 'sv',
     },
   ]);

@@ -19,6 +19,7 @@ import {
   PASSWORD,
   resetDatabase,
   seedOrganization,
+  sessionFor,
   signIn,
   TOTP_SECRET,
 } from '../test/fixtures.js';
@@ -445,9 +446,12 @@ test("refuses an account tied to another organization's apartment", async () => 
 
 test('the admin unbinds an apartment token left on its device', async () => {
   const token = 'ExponentPushToken[shared-phone]';
-  await db
-    .insert(pushTokens)
-    .values({token, memberId: ids.get('north-1') ?? '', locale: 'sv'});
+  await db.insert(pushTokens).values({
+    token,
+    memberId: ids.get('north-1') ?? '',
+    sessionId: await sessionFor(ids.get('north-1') ?? ''),
+    locale: 'sv',
+  });
 
   const response = await server.inject({
     method: 'DELETE',

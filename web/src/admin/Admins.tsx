@@ -241,17 +241,20 @@ export function AdminDetail({admin, onChanged, onRemoved}: AdminDetailProps) {
           />
         </div>
       </section>
-      <section>
-        <h2 className={SECTION_LABEL}>{t.admin.actions}</h2>
-        <div className='flex flex-col overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
-          <ActionRow
-            label={t.admin.admins.resetTwoFactor}
-            description={t.admin.admins.resetHint}
-            disabled={busy}
-            onPress={() => actions.admins.confirmResetTwoFactor(admin)}
-          />
-        </div>
-      </section>
+      {/* Nothing to reset before an authenticator is set up. */}
+      {admin.twoFactorEnabled ? (
+        <section>
+          <h2 className={SECTION_LABEL}>{t.admin.actions}</h2>
+          <div className='flex flex-col overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
+            <ActionRow
+              label={t.admin.admins.resetTwoFactor}
+              description={t.admin.admins.resetHint}
+              disabled={busy}
+              onPress={() => actions.admins.confirmResetTwoFactor(admin)}
+            />
+          </div>
+        </section>
+      ) : null}
       <button
         type='button'
         onClick={() => actions.admins.confirmRemove(admin, onRemoved)}
