@@ -3992,7 +3992,7 @@ export interface components {
     };
     SignInMethodInput: {
       /** @enum {string} */
-      method: 'code' | 'password';
+      method: 'code' | 'password' | 'set-password';
     };
     ResourceInput: {
       id: string;
@@ -4436,7 +4436,7 @@ export interface components {
     };
     SignInMethod: {
       /** @enum {string} */
-      method: 'code' | 'password';
+      method: 'code' | 'password' | 'set-password';
     };
     Resource: {
       id: string;

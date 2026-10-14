@@ -13,6 +13,7 @@ import {authClient} from '@/auth/client';
 import {signOut} from '@/auth/signOut';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {useMessages} from '@/i18n/LocaleProvider';
+import {DEV_PASSWORD, devCode} from '@/lib/devCodes';
 
 // The QR code the authenticator app scans.
 function QrCode({text}: {text: string}) {
@@ -56,8 +57,9 @@ type TwoFactorSetupProps = {
 // codes are shown once.
 export function TwoFactorSetup({account, onDone}: TwoFactorSetupProps) {
   const t = useMessages();
+  const {data: session} = authClient.useSession();
   const [step, setStep] = useState<SetupStep>({kind: 'password'});
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState(DEV_PASSWORD);
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -84,6 +86,7 @@ export function TwoFactorSetup({account, onDone}: TwoFactorSetupProps) {
       }
 
       setPassword('');
+      setCode(await devCode(session?.user.email ?? '', 'totp'));
       setStep({
         kind: 'scan',
         totpUri: result.data.totpURI,
@@ -258,7 +261,7 @@ export function TwoFactorSetup({account, onDone}: TwoFactorSetupProps) {
 
   return (
     <div className='flex min-h-svh flex-col bg-theme-bg pt-[env(safe-area-inset-top)]'>
-      <main className='flex grow flex-col px-5 pt-2 pb-8 lg:items-center'>
+      <main className='flex grow flex-col justify-center px-5 pt-2 pb-16 lg:items-center'>
         <form
           key={step.kind}
           onSubmit={onSubmit}

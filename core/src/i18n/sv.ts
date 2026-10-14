@@ -93,7 +93,7 @@ export const sv = {
     wrongCredentials: 'Fel e-post eller lösenord',
     tooManyAttempts: 'För många försök, vänta en stund',
     originRefused: 'Servern tillåter inte den här adressen',
-    setPassword: 'Sätt eller återställ lösenord',
+    setPassword: 'Glömt lösenordet?',
     // The admin's second step after the password.
     totpTitle: 'Ange kod från din authenticator',
     totpIntro: 'Öppna din authenticator-app och skriv in koden den visar.',
@@ -107,11 +107,11 @@ export const sv = {
     trustDevice: 'Lita på den här enheten i 30 dagar',
     startOver: 'Börja om',
     // Setting a password with a code from the mail.
-    resetTitle: 'Sätt nytt lösenord',
+    resetTitle: 'Välj ett lösenord',
     resetIntro: (email: string) =>
       `Vi har skickat en kod till ${email}. Skriv in den och välj ett lösenord.`,
-    newPassword: 'Nytt lösenord',
-    repeatPassword: 'Nytt lösenord igen',
+    newPassword: 'Lösenord',
+    repeatPassword: 'Lösenord igen',
     resetSubmit: 'Spara och logga in',
   },
   // The admin's authenticator app.

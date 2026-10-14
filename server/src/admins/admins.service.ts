@@ -5,6 +5,7 @@ import {
   removeCredentials,
   resetTwoFactor,
 } from '../auth/auth.service.js';
+import {endSessions} from '../auth/sessions.js';
 import {violatedConstraint} from '../db/errors.js';
 import {db, type Transaction} from '../db/index.js';
 import {members, organizations, user} from '../db/schema.js';
@@ -78,10 +79,14 @@ export async function addAdmin(
           throw appError('EMAIL_TAKEN');
         }
 
+        // The apartment's sessions end: from now on the address signs in
+        // with a password it chooses with a mailed code, so whoever else
+        // shares the apartment's phones cannot pick it first.
         await tx
           .update(user)
           .set({admin: true})
           .where(eq(user.id, existing.id));
+        await endSessions(existing.id, tx);
 
         return existing.id;
       }

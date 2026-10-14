@@ -609,7 +609,8 @@
             "type": "string",
             "enum": [
               "code",
-              "password"
+              "password",
+              "set-password"
             ]
           }
         },
@@ -2357,7 +2358,8 @@
             "type": "string",
             "enum": [
               "code",
-              "password"
+              "password",
+              "set-password"
             ]
           }
         },

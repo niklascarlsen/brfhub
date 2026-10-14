@@ -6,11 +6,12 @@ import {
   symmetricDecrypt,
   symmetricEncrypt,
 } from 'better-auth/crypto';
-import {and, eq, like} from 'drizzle-orm';
+import {and, eq} from 'drizzle-orm';
 
 import {db, type Executor} from '../db/index.js';
-import {account, session, twoFactor, user, verification} from '../db/schema.js';
+import {account, twoFactor, user} from '../db/schema.js';
 import {auth} from './auth.js';
+import {endSessions, forgetTrustedDevices} from './sessions.js';
 
 // An apartment's account signs in with a code from its mail and has no
 // password. An admin's has one once it is set: by the seed and the tests
@@ -94,14 +95,6 @@ export async function setPassword(
   }
 }
 
-// Every device signed in as this user has to sign in again.
-export async function endSessions(
-  userId: string,
-  executor: Executor = db,
-): Promise<void> {
-  await executor.delete(session).where(eq(session.userId, userId));
-}
-
 // The admin's password and authenticator go, with every session: the
 // account is an apartment's alone from now on, or about to be removed.
 export async function removeCredentials(
@@ -120,14 +113,7 @@ export async function resetTwoFactor(
   executor: Executor = db,
 ): Promise<void> {
   await executor.delete(twoFactor).where(eq(twoFactor.userId, userId));
-  await executor
-    .delete(verification)
-    .where(
-      and(
-        like(verification.identifier, 'trust-device-%'),
-        eq(verification.value, userId),
-      ),
-    );
+  await forgetTrustedDevices(userId, executor);
   await executor
     .update(user)
     .set({twoFactorEnabled: false})

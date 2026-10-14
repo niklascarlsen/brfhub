@@ -7,8 +7,9 @@ import {eq} from 'drizzle-orm';
 
 import {db} from '../db/index.js';
 import * as schema from '../db/schema.js';
-import {production, WEB_ORIGIN} from '../lib/env.js';
+import {devSignIn, WEB_ORIGIN} from '../lib/env.js';
 import {sendSignInCode} from '../mail/mail.service.js';
+import {forgetTrustedDevices} from './sessions.js';
 
 export const AUTH_PATH = '/auth';
 
@@ -27,8 +28,7 @@ export const ADMIN_SESSION_DAYS = 7;
 // Long enough to find the mail on a slow phone.
 export const CODE_EXPIRES_IN_SECONDS = 10 * 60;
 
-// Dev signs in without reading any mail: every code is this one, and the
-// login screens fill it in.
+// Every mailed code while devSignIn, and the login screens fill it in.
 export const DEV_CODE = '123456';
 
 // Mirrors the CORS rule in app.ts: WEB_ORIGIN pins production, unset
@@ -63,6 +63,13 @@ export const auth = betterAuth({
     disableSignUp: true,
     minPasswordLength: PASSWORD_LENGTH.min,
     maxPasswordLength: PASSWORD_LENGTH.max,
+    // A password is reset because someone else may have the old one: every
+    // session ends and every trusted device gives the authenticator's code
+    // again. The admin signs in with the new password right after.
+    revokeSessionsOnPasswordReset: true,
+    onPasswordReset: async ({user: reset}) => {
+      await forgetTrustedDevices(reset.id);
+    },
   },
   session: {expiresIn: MEMBER_SESSION_DAYS * DAY, updateAge: DAY},
   // Remembered on the user, so the admin still sees it after every session
@@ -119,7 +126,7 @@ export const auth = betterAuth({
       disableSignUp: true,
       expiresIn: CODE_EXPIRES_IN_SECONDS,
       storeOTP: 'hashed',
-      ...(production ? {} : {generateOTP: () => DEV_CODE}),
+      ...(devSignIn ? {generateOTP: () => DEV_CODE} : {}),
       async sendVerificationOTP({email, otp, type}, ctx) {
         if (type !== 'sign-in' && type !== 'forget-password') {
           throw new Error(`No mail for a ${type} code`);

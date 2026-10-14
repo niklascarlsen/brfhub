@@ -5,7 +5,7 @@ export const signInMethodBodySchema = z.object({
 });
 
 export const signInMethodSchema = z.object({
-  method: z.enum(['code', 'password']),
+  method: z.enum(['code', 'password', 'set-password']),
 });
 
 export type SignInMethod = z.infer<typeof signInMethodSchema>;

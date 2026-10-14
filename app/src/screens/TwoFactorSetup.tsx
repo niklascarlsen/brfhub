@@ -25,6 +25,7 @@ import {authClient} from '@/auth/client';
 import {signOut} from '@/auth/signOut';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {useMessages} from '@/i18n/LocaleProvider';
+import {DEV_PASSWORD, devCode} from '@/lib/devCodes';
 import theme from '@/theme.json';
 
 // The focused field stays this far above the keyboard: clear of the
@@ -71,8 +72,9 @@ type TwoFactorSetupProps = {
 // codes are shown once.
 export function TwoFactorSetup({account, onDone}: TwoFactorSetupProps) {
   const t = useMessages();
+  const {data: session} = authClient.useSession();
   const [step, setStep] = useState<SetupStep>({kind: 'password'});
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState(DEV_PASSWORD);
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -98,6 +100,7 @@ export function TwoFactorSetup({account, onDone}: TwoFactorSetupProps) {
       }
 
       setPassword('');
+      setCode(await devCode(session?.user.email ?? '', 'totp'));
       setStep({
         kind: 'scan',
         totpUri: result.data.totpURI,
@@ -262,7 +265,7 @@ export function TwoFactorSetup({account, onDone}: TwoFactorSetupProps) {
       <KeyboardAwareScrollView
         bottomOffset={KEYBOARD_GAP}
         className='flex-1'
-        contentContainerClassName='grow px-5 pb-8 pt-2'
+        contentContainerClassName='grow justify-center px-5 pb-16 pt-2'
         keyboardShouldPersistTaps='handled'
       >
         <Text className='mb-6 mt-1 font-sans text-[13px] text-theme-muted'>

@@ -87,7 +87,7 @@ export const en: Messages = {
     wrongCredentials: 'Wrong email or password',
     tooManyAttempts: 'Too many attempts, wait a moment',
     originRefused: 'The server does not allow this address',
-    setPassword: 'Set or reset password',
+    setPassword: 'Forgot your password?',
     totpTitle: 'Enter the code from your authenticator',
     totpIntro: 'Open your authenticator app and type in the code it shows.',
     totpCode: 'Code from the app',
@@ -99,11 +99,11 @@ export const en: Messages = {
     useTotp: 'Use the authenticator app instead',
     trustDevice: 'Trust this device for 30 days',
     startOver: 'Start over',
-    resetTitle: 'Set a new password',
+    resetTitle: 'Choose a password',
     resetIntro: (email: string) =>
       `We have sent a code to ${email}. Type it in and choose a password.`,
-    newPassword: 'New password',
-    repeatPassword: 'New password again',
+    newPassword: 'Password',
+    repeatPassword: 'Password again',
     resetSubmit: 'Save and sign in',
   },
   twoFactor: {

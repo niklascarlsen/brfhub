@@ -203,6 +203,127 @@ test('adds an apartment, welcomes the resident and signs it in by code', async (
   );
 });
 
+test('an admin is given an apartment on their own account', async () => {
+  const response = await call('POST', '/admin/apartments', admin, {
+    label: '43',
+    residentName: 'Ordföranden',
+    email: 'admin@north.example.com',
+  });
+  assert.equal(response.statusCode, 201, response.body);
+
+  await server.notifier.idle();
+  const linked = mail.lastTo('admin@north.example.com');
+  assert.match(linked?.subject ?? '', /Lägenhet 43 .* kopplad/);
+
+  // The same session, now with the apartment beside the admin role.
+  const account = await call('GET', '/account', admin);
+  const {member, admin: role} = account.json<{
+    member: {apartment: string} | null;
+    admin: object | null;
+  }>();
+  assert.equal(member?.apartment, '43');
+  assert.notEqual(role, null);
+
+  // One apartment per account, and only in the admin's own organization.
+  const second = await call('POST', '/admin/apartments', admin, {
+    label: '44',
+    residentName: 'Ordföranden',
+    email: 'admin@north.example.com',
+  });
+  assert.equal(second.statusCode, 409);
+  assert.equal(codeOf(second), 'EMAIL_TAKEN');
+  const other = await call('POST', '/admin/apartments', admin, {
+    label: '44',
+    residentName: 'Fel förening',
+    email: 'admin@south.example.com',
+  });
+  assert.equal(other.statusCode, 409);
+  assert.equal(codeOf(other), 'EMAIL_TAKEN');
+});
+
+test("a new email may be an admin's, who then books for the apartment", async () => {
+  const id = ids.get('14') ?? '';
+  const old = await cookieOf(northEmail('14'));
+  const added = await call('POST', '/admin/admins', admin, {
+    name: 'Kassören',
+    email: 'kassor@north.example.com',
+  });
+  assert.equal(added.statusCode, 201, added.body);
+
+  const response = await call('PATCH', `/admin/apartments/${id}`, admin, {
+    email: 'kassor@north.example.com',
+  });
+  assert.equal(response.statusCode, 200, response.body);
+  assert.equal(response.json<Apartment>().email, 'kassor@north.example.com');
+
+  // The old account is gone and signed out; the admin's holds the apartment.
+  assert.equal((await call('GET', '/account', old)).statusCode, 401);
+  assert.deepEqual(
+    await db
+      .select({id: user.id})
+      .from(user)
+      .where(eq(user.email, northEmail('14'))),
+    [],
+  );
+  const [holder] = await db
+    .select({email: user.email, admin: user.admin})
+    .from(user)
+    .where(eq(user.memberId, id));
+  assert.deepEqual(holder, {email: 'kassor@north.example.com', admin: true});
+});
+
+test('a new resident may be an admin too, and the refusals hold on a change of email', async () => {
+  const added = await call('POST', '/admin/admins', admin, {
+    name: 'Sekreteraren',
+    email: 'sekr@north.example.com',
+  });
+  assert.equal(added.statusCode, 201, added.body);
+  const first = await call('POST', '/admin/apartments', admin, {
+    label: '45',
+    residentName: 'Första',
+    email: 'first-45@example.com',
+  });
+  const second = await call('POST', '/admin/apartments', admin, {
+    label: '46',
+    residentName: 'Andra',
+    email: 'second-46@example.com',
+  });
+  const id = first.json<Apartment>().id;
+  const other = second.json<Apartment>().id;
+
+  const response = await call(
+    'POST',
+    `/admin/apartments/${id}/new-resident`,
+    admin,
+    {residentName: 'Sekreteraren', email: 'sekr@north.example.com'},
+  );
+  assert.equal(response.statusCode, 200, response.body);
+  await server.notifier.idle();
+  assert.match(
+    mail.lastTo('sekr@north.example.com')?.subject ?? '',
+    /Lägenhet 45 .* kopplad/,
+  );
+  const [holder] = await db
+    .select({email: user.email, admin: user.admin})
+    .from(user)
+    .where(eq(user.memberId, id));
+  assert.deepEqual(holder, {email: 'sekr@north.example.com', admin: true});
+
+  // An admin with an apartment already, and an admin of another
+  // organization, are taken addresses like any other.
+  const taken = await call('PATCH', `/admin/apartments/${other}`, admin, {
+    email: 'sekr@north.example.com',
+  });
+  assert.equal(taken.statusCode, 409);
+  assert.equal(codeOf(taken), 'EMAIL_TAKEN');
+  const elsewhere = await call('PATCH', `/admin/apartments/${other}`, admin, {
+    email: 'admin@south.example.com',
+  });
+  assert.equal(elsewhere.statusCode, 409);
+  assert.equal(codeOf(elsewhere), 'EMAIL_TAKEN');
+  assert.equal((await cookieOf('second-46@example.com')).status, 200);
+});
+
 test('an apartment has no password to sign in with', async () => {
   assert.equal((await cookieOf(northEmail('12'), PASSWORD)).status, 401);
 });

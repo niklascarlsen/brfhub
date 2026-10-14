@@ -1,6 +1,7 @@
 import {and, asc, eq, isNull, sql, type SQL} from 'drizzle-orm';
 
-import {createUser, endSessions} from '../auth/auth.service.js';
+import {createUser} from '../auth/auth.service.js';
+import {endSessions} from '../auth/sessions.js';
 import {announceReleased} from '../booking/booking.notification.js';
 import {lockApartmentBookings, releaseAll} from '../booking/lifecycle.js';
 import {violatedConstraint} from '../db/errors.js';
@@ -16,7 +17,7 @@ import {
 import {appError} from '../lib/errors.js';
 import {notExpired} from '../lib/time.js';
 import type {Organization} from '../lib/user.js';
-import {sendWelcome} from '../mail/mail.service.js';
+import {sendApartmentLinked, sendWelcome} from '../mail/mail.service.js';
 import type {Notifier} from '../notification/notification.service.js';
 import type {
   Apartment,
@@ -114,7 +115,7 @@ async function lockApartment(
   tx: Transaction,
   organizationId: string,
   id: string,
-): Promise<{userId: string; email: string; label: string}> {
+): Promise<{userId: string; email: string; admin: boolean; label: string}> {
   await lockApartmentBookings(tx, id);
 
   const [apartment] = await tx
@@ -134,7 +135,7 @@ async function lockApartment(
   }
 
   const [account] = await tx
-    .select({userId: user.id, email: user.email})
+    .select({userId: user.id, email: user.email, admin: user.admin})
     .from(user)
     .where(eq(user.memberId, id));
 
@@ -143,6 +144,81 @@ async function lockApartment(
   }
 
   return {...account, label: apartment.label};
+}
+
+// An admin of the organization who has no apartment is given one on their
+// own account, so one address stays one person. Null for any other
+// address: a new one gets an account, a taken one is refused. The row is
+// held, so two apartments given to the same admin at once do not both
+// see it free: the second finds it taken and is refused.
+async function adminWithoutApartment(
+  tx: Transaction,
+  organizationId: string,
+  email: string,
+): Promise<{id: string} | null> {
+  const [found] = await tx
+    .select({
+      id: user.id,
+      organizationId: user.organizationId,
+      admin: user.admin,
+      memberId: user.memberId,
+    })
+    .from(user)
+    .where(eq(user.email, email))
+    .for('update');
+
+  return found &&
+    found.organizationId === organizationId &&
+    found.admin &&
+    found.memberId === null
+    ? {id: found.id}
+    : null;
+}
+
+// Who signs in for the apartment from now on. Answers whether that is an
+// admin, who is mailed differently.
+async function assignResident(
+  tx: Transaction,
+  organizationId: string,
+  memberId: string,
+  resident: {email: string; name: string},
+): Promise<{admin: boolean}> {
+  const admin = await adminWithoutApartment(tx, organizationId, resident.email);
+
+  if (admin !== null) {
+    await tx
+      .update(user)
+      .set({memberId, name: resident.name})
+      .where(eq(user.id, admin.id));
+    return {admin: true};
+  }
+
+  await createUser(
+    {
+      email: resident.email,
+      name: resident.name,
+      organizationId,
+      memberId,
+    },
+    tx,
+  );
+  return {admin: false};
+}
+
+// The account leaves the apartment: an admin's stays, as admin alone, any
+// other goes.
+async function detachAccount(
+  tx: Transaction,
+  account: {userId: string; admin: boolean},
+) {
+  if (account.admin) {
+    await tx
+      .update(user)
+      .set({memberId: null})
+      .where(eq(user.id, account.userId));
+  } else {
+    await tx.delete(user).where(eq(user.id, account.userId));
+  }
 }
 
 // A device that got the apartment's push keeps getting it until its token
@@ -157,9 +233,18 @@ async function signOutEverywhere(
 }
 
 // The resident is told by mail that they can sign in, once the apartment
-// is there to sign in to.
-function welcome(notifier: Notifier, organizationId: string, email: string) {
-  notifier.later(() => sendWelcome(organizationId, email));
+// is there to sign in to. An admin already can, and is told where the
+// apartment is instead.
+function welcome(
+  notifier: Notifier,
+  organizationId: string,
+  resident: {email: string; admin: boolean; label: string},
+) {
+  notifier.later(() =>
+    resident.admin
+      ? sendApartmentLinked(organizationId, resident.email, resident.label)
+      : sendWelcome(organizationId, resident.email),
+  );
 }
 
 export async function createApartment(
@@ -167,7 +252,7 @@ export async function createApartment(
   body: CreateApartmentBody,
   notifier: Notifier,
 ): Promise<Apartment> {
-  const memberId = await db
+  const {memberId, admin} = await db
     .transaction(async (tx) => {
       const [member] = await tx
         .insert(members)
@@ -178,21 +263,20 @@ export async function createApartment(
         throw new Error('Insert returned no member');
       }
 
-      await createUser(
-        {
-          email: body.email,
-          name: body.residentName,
-          organizationId,
-          memberId: member.id,
-        },
-        tx,
-      );
+      const resident = await assignResident(tx, organizationId, member.id, {
+        email: body.email,
+        name: body.residentName,
+      });
 
-      return member.id;
+      return {memberId: member.id, admin: resident.admin};
     })
     .catch(rethrowTaken);
 
-  welcome(notifier, organizationId, body.email);
+  welcome(notifier, organizationId, {
+    email: body.email,
+    admin,
+    label: body.label,
+  });
 
   return getApartment(organizationId, memberId);
 }
@@ -203,9 +287,10 @@ export async function updateApartment(
   body: UpdateApartmentBody,
   notifier: Notifier,
 ): Promise<Apartment> {
-  const changedEmail = await db
+  const changed = await db
     .transaction(async (tx) => {
       const account = await lockApartment(tx, organizationId, id);
+      const label = body.label ?? account.label;
 
       if (body.label !== undefined) {
         await tx
@@ -214,31 +299,38 @@ export async function updateApartment(
           .where(eq(members.id, id));
       }
 
-      if (body.residentName !== undefined || body.email !== undefined) {
-        await tx
-          .update(user)
-          .set({
-            ...(body.residentName === undefined
-              ? {}
-              : {name: body.residentName}),
-            ...(body.email === undefined ? {} : {email: body.email}),
-          })
-          .where(eq(user.id, account.userId));
+      const name =
+        body.residentName === undefined ? {} : {name: body.residentName};
+
+      if (body.email === undefined || body.email === account.email) {
+        await tx.update(user).set(name).where(eq(user.id, account.userId));
+        return null;
       }
 
       // A new address is a new person signing in: whoever used the old
-      // one is signed out.
-      if (body.email !== undefined && body.email !== account.email) {
-        await signOutEverywhere(tx, account, id);
-        return body.email;
+      // one is signed out. The bookings stay with the apartment.
+      await signOutEverywhere(tx, account, id);
+      const admin = await adminWithoutApartment(tx, organizationId, body.email);
+
+      if (admin !== null) {
+        await detachAccount(tx, account);
+        await tx
+          .update(user)
+          .set({memberId: id, ...name})
+          .where(eq(user.id, admin.id));
+      } else {
+        await tx
+          .update(user)
+          .set({email: body.email, ...name})
+          .where(eq(user.id, account.userId));
       }
 
-      return null;
+      return {email: body.email, admin: admin !== null, label};
     })
     .catch(rethrowTaken);
 
-  if (changedEmail !== null) {
-    welcome(notifier, organizationId, changedEmail);
+  if (changed !== null) {
+    welcome(notifier, organizationId, changed);
   }
 
   return getApartment(organizationId, id);
@@ -262,15 +354,13 @@ export async function signOutApartment(
 // apartment.
 async function clearResident(tx: Transaction, memberId: string) {
   const [account] = await tx
-    .select({id: user.id, admin: user.admin})
+    .select({userId: user.id, admin: user.admin})
     .from(user)
     .where(eq(user.memberId, memberId));
 
-  if (account?.admin) {
-    await tx.update(user).set({memberId: null}).where(eq(user.id, account.id));
-    await endSessions(account.id, tx);
-  } else if (account) {
-    await tx.delete(user).where(eq(user.id, account.id));
+  if (account) {
+    await endSessions(account.userId, tx);
+    await detachAccount(tx, account);
   }
 
   await tx.delete(subscriptions).where(eq(subscriptions.memberId, memberId));
@@ -283,27 +373,22 @@ export async function replaceResident(
   body: NewResidentBody,
   notifier: Notifier,
 ): Promise<Apartment> {
-  const freed = await db
+  const {freed, admin, label} = await db
     .transaction(async (tx) => {
-      await lockApartment(tx, organizationId, id);
+      const account = await lockApartment(tx, organizationId, id);
       const released = await releaseAll(tx, {id, timeZone, locales});
       await clearResident(tx, id);
-      await createUser(
-        {
-          email: body.email,
-          name: body.residentName,
-          organizationId,
-          memberId: id,
-        },
-        tx,
-      );
+      const resident = await assignResident(tx, organizationId, id, {
+        email: body.email,
+        name: body.residentName,
+      });
 
-      return released;
+      return {freed: released, admin: resident.admin, label: account.label};
     })
     .catch(rethrowTaken);
 
   announceReleased(notifier, freed);
-  welcome(notifier, organizationId, body.email);
+  welcome(notifier, organizationId, {email: body.email, admin, label});
 
   return getApartment(organizationId, id);
 }

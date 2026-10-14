@@ -1,5 +1,10 @@
 export const production = process.env.NODE_ENV === 'production';
 
+// Dev signs in without a mailbox or an authenticator: every mailed code is
+// the same one and /dev/codes tells the authenticator's. DEV_SIGN_IN=off
+// tests the real flow against Mailpit; production never has it.
+export const devSignIn = !production && process.env.DEV_SIGN_IN !== 'off';
+
 // Better Auth only rate limits and refuses a default secret in production,
 // so the mode has to be set on purpose and the secret has to be there.
 if (production && !process.env.BETTER_AUTH_SECRET) {

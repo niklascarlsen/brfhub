@@ -144,7 +144,15 @@ test('adds an admin, who is invited by mail and sets a password with a code', as
   await server.notifier.idle();
   const invitation = mail.lastTo('kassor@north.example.com');
   assert.match(invitation?.subject ?? '', /admin för Brf Norr/);
-  assert.match(invitation?.text ?? '', /Sätt lösenord/);
+  assert.match(invitation?.text ?? '', /skriv in din e-post/);
+
+  // Without a password yet, the address leads straight to choosing one.
+  const method = await server.inject({
+    method: 'POST',
+    url: '/sign-in/method',
+    payload: {email: 'kassor@north.example.com'},
+  });
+  assert.deepEqual(method.json(), {method: 'set-password'});
 
   // The password is set with a code from the mail.
   const before = mail.sent.length;
@@ -171,6 +179,12 @@ test('adds an admin, who is invited by mail and sets a password with a code', as
     },
   });
   assert.equal(reset.statusCode, 200);
+  const afterwards = await server.inject({
+    method: 'POST',
+    url: '/sign-in/method',
+    payload: {email: 'kassor@north.example.com'},
+  });
+  assert.deepEqual(afterwards.json(), {method: 'password'});
 
   // Signed in, but allowed nothing until an authenticator is set up.
   const signedIn = await signIn(
@@ -219,7 +233,10 @@ test('an apartment is mailed no password code, and cannot set one', async () => 
   );
 });
 
-test('a resident made admin keeps the apartment and signs in with a password', async () => {
+test('a resident made admin keeps the apartment and signs in with a password once chosen', async () => {
+  const signedIn = await signIn(server, emailOf('2'));
+  assert.equal(signedIn.response.statusCode, 200);
+
   const response = await call('POST', '/admin/admins', admin, {
     name: 'Boende i 2',
     email: emailOf('2'),
@@ -227,12 +244,19 @@ test('a resident made admin keeps the apartment and signs in with a password', a
   assert.equal(response.statusCode, 201);
   assert.equal(response.json<AdminUser>().apartment, '2');
 
+  // Every phone signed in as the apartment is out: the address signs in
+  // again, as an admin, after choosing a password with a mailed code.
+  assert.equal(
+    (await call('GET', '/account', {cookie: signedIn.cookie})).statusCode,
+    401,
+  );
+
   const method = await server.inject({
     method: 'POST',
     url: '/sign-in/method',
     payload: {email: emailOf('2')},
   });
-  assert.deepEqual(method.json(), {method: 'password'});
+  assert.deepEqual(method.json(), {method: 'set-password'});
 
   // The code no longer signs the apartment in, nor is one mailed.
   const before = mail.sent.length;
@@ -423,6 +447,71 @@ test('a reset also forgets the devices trusted to skip the code', async () => {
     headers: {origin: ORIGIN, cookie: trusted},
     payload: {email: 'ordf@north.example.com', password: PASSWORD},
   });
+  assert.equal(
+    again.json<{twoFactorRedirect?: boolean}>().twoFactorRedirect,
+    true,
+  );
+});
+
+test('a new password ends every session and forgets every trusted device', async () => {
+  const response = await call('POST', '/admin/admins', admin, {
+    name: 'Revisorn',
+    email: 'revisor@north.example.com',
+  });
+  assert.equal(response.statusCode, 201, response.body);
+  const id = response.json<AdminUser>().id;
+  await setPassword(id, PASSWORD);
+  await enrollTwoFactor(id, TOTP_SECRET);
+
+  const signedIn = await server.inject({
+    method: 'POST',
+    url: '/auth/sign-in/email',
+    headers: {origin: ORIGIN},
+    payload: {email: 'revisor@north.example.com', password: PASSWORD},
+  });
+  const verified = await server.inject({
+    method: 'POST',
+    url: '/auth/two-factor/verify-totp',
+    headers: {origin: ORIGIN, cookie: cookieFrom(signedIn)},
+    payload: {code: await totpCode(TOTP_SECRET), trustDevice: true},
+  });
+  const cookie = cookieFrom(verified);
+  const trusted = cookie
+    .split('; ')
+    .filter((entry) => entry.includes('trust'))
+    .join('; ');
+  assert.ok(trusted);
+  assert.equal((await call('GET', '/account', {cookie})).statusCode, 200);
+
+  // The password is reset from another device, with the mailed code.
+  const before = mail.sent.length;
+  await server.inject({
+    method: 'POST',
+    url: '/auth/email-otp/request-password-reset',
+    headers: {origin: ORIGIN},
+    payload: {email: 'revisor@north.example.com'},
+  });
+  const reset = await server.inject({
+    method: 'POST',
+    url: '/auth/email-otp/reset-password',
+    headers: {origin: ORIGIN},
+    payload: {
+      email: 'revisor@north.example.com',
+      otp: codeSentTo('revisor@north.example.com', before),
+      password: 'revisorns-losen',
+    },
+  });
+  assert.equal(reset.statusCode, 200);
+
+  // The old session is gone, and the trusted device is asked for the code.
+  assert.equal((await call('GET', '/account', {cookie})).statusCode, 401);
+  const again = await server.inject({
+    method: 'POST',
+    url: '/auth/sign-in/email',
+    headers: {origin: ORIGIN, cookie: trusted},
+    payload: {email: 'revisor@north.example.com', password: 'revisorns-losen'},
+  });
+  assert.equal(again.statusCode, 200);
   assert.equal(
     again.json<{twoFactorRedirect?: boolean}>().twoFactorRedirect,
     true,

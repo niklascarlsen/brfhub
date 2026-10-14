@@ -15,7 +15,8 @@ export type LoginStep =
   | {kind: 'reset'; email: string};
 
 // The address is trimmed here, as the server trims it, so the next step
-// sends Better Auth the same one.
+// sends Better Auth the same one. An admin without a password goes
+// straight to choosing one, with the code the screen then asks for.
 export async function nextStep(
   {api, unwrap}: Api,
   email: string,
@@ -25,7 +26,7 @@ export async function nextStep(
     api.POST('/sign-in/method', {body: {email: address}}),
   );
 
-  return {kind: method, email: address};
+  return {kind: method === 'set-password' ? 'reset' : method, email: address};
 }
 
 // What Better Auth answers with when a sign-in is refused. The rate limiter

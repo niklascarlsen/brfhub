@@ -16,35 +16,11 @@ import {
 import {limits} from '@booking/core/generated/limits';
 import {useId, useState, type SubmitEvent} from 'react';
 
-import {apiBaseUrl} from '@/api/baseUrl';
 import {api, unwrap} from '@/api/client';
 import {authClient} from '@/auth/client';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {useMessages} from '@/i18n/LocaleProvider';
-
-// The seeded apartment and admin password, so a development build signs
-// in with a couple of clicks. The apartment's code is read in Mailpit.
-const DEV_EMAIL = import.meta.env.DEV ? '12@example.com' : '';
-const DEV_PASSWORD = import.meta.env.DEV ? 'password' : '';
-// Every mailed code is this one in dev, and the server tells the
-// authenticator's code, so dev signs in with clicks alone.
-const DEV_CODE = import.meta.env.DEV ? '123456' : '';
-
-async function devTotp(email: string): Promise<string> {
-  if (!import.meta.env.DEV) {
-    return '';
-  }
-
-  try {
-    const response = await fetch(
-      `${apiBaseUrl()}/dev/totp?email=${encodeURIComponent(email)}`,
-    );
-    const {code} = (await response.json()) as {code: string | null};
-    return code ?? '';
-  } catch {
-    return '';
-  }
-}
+import {DEV_EMAIL, DEV_PASSWORD, devCode} from '@/lib/devCodes';
 
 const BUTTON =
   'h-14 rounded-xs bg-theme-ink text-base font-semibold tracking-tight text-theme-surface transition-opacity hover:opacity-90 active:opacity-70 disabled:opacity-50';
@@ -106,7 +82,12 @@ export function LoginScreen() {
         return;
       }
 
-      setCode(next.kind === 'code' ? DEV_CODE : '');
+      if (next.kind === 'reset') {
+        await beginReset(next.email);
+        return;
+      }
+
+      setCode(next.kind === 'code' ? await devCode(next.email, 'mailed') : '');
       setStep(next);
     });
 
@@ -134,7 +115,7 @@ export function LoginScreen() {
       }
 
       if ('twoFactorRedirect' in result.data) {
-        setCode(await devTotp(address));
+        setCode(await devCode(address, 'totp'));
         setStep({kind: 'totp', email: address, backup: false});
       }
     });
@@ -160,22 +141,24 @@ export function LoginScreen() {
     });
 
   // An admin sets or resets the password with a code mailed to them, and
-  // is signed in with it at once.
-  const startReset = (address: string) =>
-    run(async () => {
-      const result = await authClient.emailOtp
-        .requestPasswordReset({email: address})
-        .catch(() => null);
+  // is signed in with it at once. A new admin is sent here from the
+  // address, one who forgot the password from the password step.
+  async function beginReset(address: string): Promise<void> {
+    const result = await authClient.emailOtp
+      .requestPasswordReset({email: address})
+      .catch(() => null);
 
-      if (result === null || result.error) {
-        setError(codeFailure(result?.error ?? null, t));
-        return;
-      }
+    if (result === null || result.error) {
+      setError(codeFailure(result?.error ?? null, t));
+      return;
+    }
 
-      setReset({...EMPTY_RESET, code: DEV_CODE});
-      resetProblems.reset();
-      setStep({kind: 'reset', email: address});
-    });
+    setReset({...EMPTY_RESET, code: await devCode(address, 'mailed')});
+    resetProblems.reset();
+    setStep({kind: 'reset', email: address});
+  }
+
+  const startReset = (address: string) => run(() => beginReset(address));
 
   const finishReset = (address: string) =>
     run(async () => {

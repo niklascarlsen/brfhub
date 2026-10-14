@@ -1,12 +1,12 @@
 import type {FastifyPluginAsyncZod} from '@fastify/type-provider-zod';
 import {fromNodeHeaders} from 'better-auth/node';
-import {eq} from 'drizzle-orm';
+import {and, eq} from 'drizzle-orm';
 
 import {db} from '../db/index.js';
-import {user} from '../db/schema.js';
+import {account, user} from '../db/schema.js';
 import {errorResponses} from '../lib/errors.js';
-import {production} from '../lib/env.js';
-import {AUTH_PATH, auth} from './auth.js';
+import {devSignIn} from '../lib/env.js';
+import {AUTH_PATH, auth, DEV_CODE} from './auth.js';
 import {totpCode, twoFactorSecret} from './auth.service.js';
 import {
   signInMethodBodySchema,
@@ -48,10 +48,10 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
     },
   });
 
-  // How an address signs in: an admin with a password, everyone else with
-  // a code from their mail. An unknown address is told "code" like an
-  // apartment, and Better Auth then sends nothing, so nobody can tell the
-  // two apart.
+  // How an address signs in: an admin with a password, one who has none
+  // yet by choosing it with a mailed code, everyone else with a code from
+  // their mail. An unknown address is told "code" like an apartment, and
+  // Better Auth then sends nothing, so nobody can tell the two apart.
   app.post(
     '/sign-in/method',
     {
@@ -61,22 +61,34 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request): Promise<SignInMethod> => {
-      const [account] = await db
-        .select({admin: user.admin})
+      const [found] = await db
+        .select({admin: user.admin, credential: account.id})
         .from(user)
+        .leftJoin(
+          account,
+          and(
+            eq(account.userId, user.id),
+            eq(account.providerId, 'credential'),
+          ),
+        )
         .where(eq(user.email, request.body.email));
 
-      return {method: account?.admin ? 'password' : 'code'};
+      if (!found?.admin) {
+        return {method: 'code'};
+      }
+
+      return {method: found.credential === null ? 'set-password' : 'password'};
     },
   );
 
-  // What the admin's authenticator would show, so dev signs in without
-  // one. Never in production, and hidden from the API document.
-  if (!production) {
+  // The codes the login screens fill in: the one every mail carries, and
+  // what the admin's authenticator would show. Only while devSignIn, and
+  // hidden from the API document.
+  if (devSignIn) {
     app.get(
-      '/dev/totp',
+      '/dev/codes',
       {schema: {hide: true}},
-      async (request): Promise<{code: string | null}> => {
+      async (request): Promise<{mailed: string; totp: string | null}> => {
         const email = (request.query as {email?: string}).email ?? '';
         const [account] = await db
           .select({id: user.id})
@@ -84,7 +96,10 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
           .where(eq(user.email, email.toLowerCase()));
         const secret = account ? await twoFactorSecret(account.id) : null;
 
-        return {code: secret === null ? null : await totpCode(secret)};
+        return {
+          mailed: DEV_CODE,
+          totp: secret === null ? null : await totpCode(secret),
+        };
       },
     );
   }

@@ -71,6 +71,28 @@ const WELCOME: Record<Locale, (organization: string, where: string) => Mail> = {
   }),
 };
 
+const APARTMENT_LINKED: Record<
+  Locale,
+  (organization: string, label: string, where: string) => Mail
+> = {
+  sv: (organization, label, where) => ({
+    to: '',
+    subject: `Lägenhet ${label} i ${organization} är kopplad till ditt konto`,
+    text: [
+      `Du kan nu boka för lägenhet ${label} i ${organization} med samma konto som du administrerar med.`,
+      `Öppna ${where} och logga in som vanligt. Bokningen finns under "Till bokningen" på sidan Föreningen, och administrationen under "Administrera föreningen" på sidan Lägenhet.`,
+    ].join('\n\n'),
+  }),
+  en: (organization, label, where) => ({
+    to: '',
+    subject: `Apartment ${label} in ${organization} is linked to your account`,
+    text: [
+      `You can now book for apartment ${label} in ${organization} with the same account you administer with.`,
+      `Open ${where} and sign in as usual. Booking is under "Back to booking" on the Association page, and administration under "Manage the association" on the Apartment page.`,
+    ].join('\n\n'),
+  }),
+};
+
 const PASSWORD_CODE: Record<Locale, (code: string, minutes: number) => Mail> = {
   sv: (code, minutes) => ({
     to: '',
@@ -101,7 +123,7 @@ const ADMIN_INVITATION: Record<
     subject: `Du är admin för ${organization} i ${APP_NAME}`,
     text: [
       `Du har lagts till som admin för ${organization} med den här e-postadressen.`,
-      `Öppna ${where}, skriv in din e-post och välj "Sätt lösenord". Du får en kod hit och väljer sedan ett lösenord.`,
+      `Öppna ${where} och skriv in din e-post. Du får en kod hit och väljer sedan ett lösenord.`,
       'Första gången du loggar in sätter du också upp en authenticator-app, som ger en kod vid varje inloggning.',
     ].join('\n\n'),
   }),
@@ -110,7 +132,7 @@ const ADMIN_INVITATION: Record<
     subject: `You are an admin of ${organization} in ${APP_NAME}`,
     text: [
       `You have been added as an admin of ${organization} with this email address.`,
-      `Open ${where}, enter your email and choose "Set password". A code is sent here, and then you choose a password.`,
+      `Open ${where} and enter your email. A code is sent here, and then you choose a password.`,
       'The first time you sign in you also set up an authenticator app, which gives a code at every sign-in.',
     ].join('\n\n'),
   }),
@@ -164,6 +186,24 @@ export async function sendAdminInvitation(
   const locale = organization.locales[0] ?? 'sv';
   const mail = ADMIN_INVITATION[locale](
     organization.name,
+    whereToSignIn(locale),
+  );
+
+  await sendMail({...mail, to: email});
+}
+
+// An admin given an apartment is told where to find it: they sign in as
+// they already do.
+export async function sendApartmentLinked(
+  organizationId: string,
+  email: string,
+  label: string,
+): Promise<void> {
+  const organization = await organizationOf(organizationId);
+  const locale = organization.locales[0] ?? 'sv';
+  const mail = APARTMENT_LINKED[locale](
+    organization.name,
+    label,
     whereToSignIn(locale),
   );
 
