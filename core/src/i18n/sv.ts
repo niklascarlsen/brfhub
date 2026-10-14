@@ -71,6 +71,7 @@ export const sv = {
     NETWORK: 'Ingen kontakt med servern',
     TIMEOUT: 'Servern svarade inte i tid, försök igen',
     SERVER_ERROR: 'Något gick fel på servern, försök om en stund',
+    RATE_LIMITED: 'För många försök, vänta en minut',
     UNKNOWN: 'Något gick fel',
   },
   login: {

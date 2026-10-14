@@ -2,7 +2,8 @@ import {and, eq, isNull} from 'drizzle-orm';
 import {fromNodeHeaders} from 'better-auth/node';
 import type {FastifyRequest} from 'fastify';
 
-import {ADMIN_SESSION_DAYS, auth} from '../auth/auth.js';
+import {auth} from '../auth/auth.js';
+import {adminSessionExpired} from '../auth/sessions.js';
 import {db} from '../db/index.js';
 import {members, organizations, session as sessions} from '../db/schema.js';
 import {appError} from './errors.js';
@@ -42,8 +43,6 @@ export type SignedIn = {
   admin: Admin | null;
 };
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
 // The organization always comes from the account, never from the request,
 // so nobody can even address another organization's data.
 export async function getSignedIn(request: FastifyRequest): Promise<SignedIn> {
@@ -57,14 +56,9 @@ export async function getSignedIn(request: FastifyRequest): Promise<SignedIn> {
 
   const {user} = session;
 
-  // An admin's session ends a week after sign-in however much it is used:
-  // Better Auth keeps extending a used one. Only this session: the admin's
-  // other devices signed in on their own days.
-  if (
-    user.admin &&
-    session.session.createdAt.getTime() + ADMIN_SESSION_DAYS * DAY_MS <
-      Date.now()
-  ) {
+  // Better Auth's own routes refuse it from the hook in auth.ts; ours do
+  // it here, so neither depends on the other.
+  if (user.admin && adminSessionExpired(session.session.createdAt)) {
     await db.delete(sessions).where(eq(sessions.id, session.session.id));
     throw appError('UNAUTHORIZED', 'Session expired');
   }

@@ -22,6 +22,7 @@ export const errorCodeSchema = z.enum([
   'UNAUTHORIZED',
   'FORBIDDEN',
   'VALIDATION',
+  'RATE_LIMITED',
   'UNKNOWN',
 ]);
 
@@ -112,6 +113,10 @@ const ERRORS: Record<ErrorCode, {status: number; message: string}> = {
     status: 400,
     message: 'Bad Request',
   },
+  RATE_LIMITED: {
+    status: 429,
+    message: 'Too many requests, try again in a minute',
+  },
   UNKNOWN: {
     status: 500,
     message: 'Something went wrong',
@@ -132,6 +137,7 @@ export const errorResponses = {
   403: errorSchema,
   404: errorSchema,
   409: errorSchema,
+  429: errorSchema,
   500: errorSchema,
 };
 

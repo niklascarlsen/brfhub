@@ -513,6 +513,128 @@ test('signing out stops trusting the device', async () => {
   );
 });
 
+// Signs the admin in with the authenticator's code and trusts the device.
+// Answers with every cookie, and the trusted device's alone.
+async function signInTrusting(email: string, password = PASSWORD) {
+  const signedIn = await server.inject({
+    method: 'POST',
+    url: '/auth/sign-in/email',
+    headers: {origin: ORIGIN},
+    payload: {email, password},
+  });
+  const verified = await server.inject({
+    method: 'POST',
+    url: '/auth/two-factor/verify-totp',
+    headers: {origin: ORIGIN, cookie: cookieFrom(signedIn)},
+    payload: {code: await totpCode(TOTP_SECRET), trustDevice: true},
+  });
+  const cookies = cookieFrom(verified);
+  const trusted = cookies
+    .split('; ')
+    .filter((entry) => entry.includes('trust'))
+    .join('; ');
+  assert.ok(trusted);
+
+  return {cookies, trusted};
+}
+
+// Whether the trusted device still skips the authenticator's code. Better
+// Auth renews the cookie at each such sign-in, so the one to send next
+// time comes back with the answer.
+async function skipsCode(email: string, trusted: string, password = PASSWORD) {
+  const again = await server.inject({
+    method: 'POST',
+    url: '/auth/sign-in/email',
+    headers: {origin: ORIGIN, cookie: trusted},
+    payload: {email, password},
+  });
+  assert.equal(again.statusCode, 200, again.body);
+  const renewed = cookieFrom(again)
+    .split('; ')
+    .filter((entry) => entry.includes('trust'))
+    .join('; ');
+
+  return {
+    skipped:
+      again.json<{twoFactorRedirect?: boolean}>().twoFactorRedirect !== true,
+    trusted: renewed || trusted,
+  };
+}
+
+test('a password chosen inside the app forgets every trusted device', async () => {
+  const email = 'kassor@north.example.com';
+  const response = await call('POST', '/admin/admins', admin, {
+    name: 'Kassören',
+    email,
+  });
+  const id = response.json<AdminUser>().id;
+  await setPassword(id, PASSWORD);
+  await enrollTwoFactor(id, TOTP_SECRET);
+
+  const laptop = await signInTrusting(email);
+  const phone = await signInTrusting(email);
+
+  // A wrong current password changes nothing, trusted devices included.
+  const refused = await server.inject({
+    method: 'POST',
+    url: '/auth/change-password',
+    headers: {origin: ORIGIN, cookie: laptop.cookies},
+    payload: {currentPassword: 'fel-losen', newPassword: 'kassorens-losen'},
+  });
+  assert.equal(refused.statusCode, 400);
+  const phoneStill = await skipsCode(email, phone.trusted);
+  assert.equal(phoneStill.skipped, true);
+
+  const changed = await server.inject({
+    method: 'POST',
+    url: '/auth/change-password',
+    headers: {origin: ORIGIN, cookie: laptop.cookies},
+    payload: {
+      currentPassword: PASSWORD,
+      newPassword: 'kassorens-losen',
+      revokeOtherSessions: true,
+    },
+  });
+  assert.equal(changed.statusCode, 200, changed.body);
+  assert.ok(
+    (changed.headers['set-cookie'] as string[]).some(
+      (entry) => entry.includes('trust_device=') && /Max-Age=0/i.test(entry),
+    ),
+  );
+
+  // Both devices give the code again, the one that changed it too.
+  const phoneAfter = await skipsCode(
+    email,
+    phoneStill.trusted,
+    'kassorens-losen',
+  );
+  assert.equal(phoneAfter.skipped, false);
+  const laptopAfter = await skipsCode(email, laptop.trusted, 'kassorens-losen');
+  assert.equal(laptopAfter.skipped, false);
+});
+
+test('an admin cannot turn off, read out or recode their own authenticator', async () => {
+  for (const path of [
+    '/auth/two-factor/disable',
+    '/auth/two-factor/get-totp-uri',
+    '/auth/two-factor/generate-backup-codes',
+  ]) {
+    const response = await server.inject({
+      method: 'POST',
+      url: path,
+      headers: {origin: ORIGIN, cookie: admin.cookie},
+      payload: {password: PASSWORD},
+    });
+    assert.equal(response.statusCode, 403, path);
+  }
+
+  const account = await call('GET', '/account', admin);
+  assert.equal(
+    account.json<{admin: {twoFactorEnabled: boolean}}>().admin.twoFactorEnabled,
+    true,
+  );
+});
+
 test('a new password ends every session and forgets every trusted device', async () => {
   const response = await call('POST', '/admin/admins', admin, {
     name: 'Revisorn',

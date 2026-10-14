@@ -1,4 +1,6 @@
 import cors from '@fastify/cors';
+import helmet from '@fastify/helmet';
+import rateLimit from '@fastify/rate-limit';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import {
@@ -12,8 +14,8 @@ import {
 } from '@fastify/type-provider-zod';
 import Fastify, {type FastifyServerOptions} from 'fastify';
 
-import {isAppError, sendError} from './lib/errors.js';
-import {WEB_ORIGIN} from './lib/env.js';
+import {appError, isAppError, sendError} from './lib/errors.js';
+import {production, WEB_ORIGIN} from './lib/env.js';
 import type {SendMail} from './lib/mail.js';
 import type {SendPush} from './lib/push.js';
 import {setMailTransport} from './mail/mail.service.js';
@@ -98,20 +100,28 @@ export async function buildApp({
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'],
   });
 
-  await server.register(swagger, {
-    openapi: {
-      openapi: '3.1.0',
-      info: {
-        title: 'Booking API',
-        version: '1.0.0',
-      },
-      servers: [{url: 'http://localhost:3000'}],
-    },
-    transform: jsonSchemaTransform,
-    transformObject: jsonSchemaTransformObject,
-  });
+  // The API answers JSON, so a content security policy has nothing to
+  // protect and would only break Swagger UI in dev.
+  await server.register(helmet, {contentSecurityPolicy: false});
 
-  await server.register(swaggerUi, {routePrefix: '/docs'});
+  // Per client address, which trustProxy resolves. Generous for the API
+  // as a whole and tight where a request costs nothing to send and tells
+  // something: a route sets its own with config.rateLimit. Production
+  // only, like Better Auth's, so dev and the tests are not held up.
+  if (production) {
+    await server.register(rateLimit, {
+      max: 300,
+      timeWindow: '1 minute',
+      // Answered through the error handler, like every other refusal.
+      errorResponseBuilder: () => appError('RATE_LIMITED'),
+    });
+  }
+
+  // The API document is read by the type generation and by whoever
+  // develops against the server, never by the clients.
+  if (!production) {
+    await registerDocs(server);
+  }
 
   await server.register(authRoutes);
   await server.register(accountRoutes);
@@ -128,4 +138,21 @@ export async function buildApp({
   await server.register(pushTokenRoutes);
 
   return server;
+}
+
+async function registerDocs(server: Awaited<ReturnType<typeof Fastify>>) {
+  await server.register(swagger, {
+    openapi: {
+      openapi: '3.1.0',
+      info: {
+        title: 'Booking API',
+        version: '1.0.0',
+      },
+      servers: [{url: 'http://localhost:3000'}],
+    },
+    transform: jsonSchemaTransform,
+    transformObject: jsonSchemaTransformObject,
+  });
+
+  await server.register(swaggerUi, {routePrefix: '/docs'});
 }

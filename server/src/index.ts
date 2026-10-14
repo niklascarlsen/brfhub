@@ -4,7 +4,7 @@ import closeWithGrace from 'close-with-grace';
 
 import {buildApp} from './app.js';
 import {pool} from './db/index.js';
-import {MAIL} from './lib/env.js';
+import {MAIL, TRUSTED_PROXIES} from './lib/env.js';
 import {smtpMail} from './lib/mail.js';
 import {PUSH_TIMEOUT_MS, sendPush} from './lib/push.js';
 
@@ -14,6 +14,8 @@ const host = process.env.HOST ?? '0.0.0.0';
 const server = await buildApp({
   push: sendPush,
   mail: smtpMail(MAIL.smtpUrl, MAIL.from),
+  // request.ip is the client behind these proxies, else the socket's peer.
+  trustProxy: TRUSTED_PROXIES.length > 0 ? TRUSTED_PROXIES.join(',') : false,
   logger: process.stdout.isTTY
     ? {
         transport: {

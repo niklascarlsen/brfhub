@@ -4,6 +4,7 @@ import {after, before, test} from 'node:test';
 import {eq, sql} from 'drizzle-orm';
 
 import {buildApp} from '../app.js';
+import {MEMBER_SESSION_DAYS} from './sessions.js';
 import {db, pool} from '../db/index.js';
 import {session, user} from '../db/schema.js';
 import {
@@ -13,6 +14,7 @@ import {
   memoryMail,
   memoryPush,
   ORIGIN,
+  PASSWORD,
   resetDatabase,
   seedOrganization,
   signIn,
@@ -199,6 +201,107 @@ test("an admin's session ends a week after sign-in however much it is used, alon
     headers: {cookie: phone.cookie},
   });
   assert.equal(stillIn.statusCode, 200);
+});
+
+test("Better Auth's own routes end a stale admin session too", async () => {
+  const {cookie} = await signIn(server, 'admin@north.example.com');
+  const [admin] = await db
+    .select({id: user.id})
+    .from(user)
+    .where(eq(user.email, 'admin@north.example.com'));
+  const sessionsOf = () =>
+    db
+      .select({id: session.id})
+      .from(session)
+      .where(eq(session.userId, admin?.id ?? ''));
+
+  // The password can be changed while the session is fresh.
+  const fresh = await server.inject({
+    method: 'POST',
+    url: '/auth/change-password',
+    headers: {origin: ORIGIN, cookie},
+    payload: {currentPassword: PASSWORD, newPassword: PASSWORD},
+  });
+  assert.equal(fresh.statusCode, 200, fresh.body);
+
+  await db
+    .update(session)
+    .set({createdAt: sql`now() - interval '8 days'`})
+    .where(eq(session.userId, admin?.id ?? ''));
+  const before = (await sessionsOf()).length;
+
+  const stale = await server.inject({
+    method: 'POST',
+    url: '/auth/change-password',
+    headers: {origin: ORIGIN, cookie},
+    payload: {currentPassword: PASSWORD, newPassword: PASSWORD},
+  });
+  assert.equal(stale.statusCode, 401);
+  assert.equal((await sessionsOf()).length, before - 1);
+
+  // Asking who is signed in finds nobody, so the client shows the login.
+  const nobody = await server.inject({
+    method: 'GET',
+    url: '/auth/get-session',
+    headers: {origin: ORIGIN, cookie},
+  });
+  assert.equal(nobody.statusCode, 200);
+  assert.equal(nobody.body, 'null');
+});
+
+test('asking who is signed in on a stale admin session finds nobody', async () => {
+  const {cookie} = await signIn(server, 'admin@north.example.com');
+  const [admin] = await db
+    .select({id: user.id})
+    .from(user)
+    .where(eq(user.email, 'admin@north.example.com'));
+  await db
+    .update(session)
+    .set({createdAt: sql`now() - interval '8 days'`})
+    .where(eq(session.userId, admin?.id ?? ''));
+
+  const nobody = await server.inject({
+    method: 'GET',
+    url: '/auth/get-session',
+    headers: {origin: ORIGIN, cookie},
+  });
+  assert.equal(nobody.statusCode, 200);
+  assert.equal(nobody.body, 'null');
+  assert.equal(
+    (await server.inject({method: 'GET', url: '/account', headers: {cookie}}))
+      .statusCode,
+    401,
+  );
+});
+
+test("a used session is extended, and the device's cookie with it", async () => {
+  const {cookie} = await signIn(server, emailOf('2'));
+  const [resident] = await db
+    .select({id: user.id})
+    .from(user)
+    .where(eq(user.email, emailOf('2')));
+
+  // Last extended two days ago, past Better Auth's updateAge of a day:
+  // the end lies two days short of a full term from now.
+  await db
+    .update(session)
+    .set({
+      expiresAt: sql`now() + make_interval(days => ${MEMBER_SESSION_DAYS - 2})`,
+    })
+    .where(eq(session.userId, resident?.id ?? ''));
+
+  const response = await server.inject({
+    method: 'GET',
+    url: '/auth/get-session',
+    headers: {origin: ORIGIN, cookie},
+  });
+  assert.equal(response.statusCode, 200);
+  assert.ok(
+    (response.headers['set-cookie'] as string[] | undefined)?.some((entry) =>
+      entry.includes('session_token='),
+    ),
+    'the renewed cookie',
+  );
 });
 
 test("an apartment's session is not cut short", async () => {
