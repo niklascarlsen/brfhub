@@ -1,7 +1,9 @@
 import {execFileSync} from 'node:child_process';
-import {mkdirSync, writeFileSync} from 'node:fs';
+import {mkdirSync, readFileSync, writeFileSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
+
+import {format, resolveConfig} from 'prettier';
 
 import {buildApp} from '../src/app.js';
 import {PASSWORD_LENGTH} from '../src/auth/auth.js';
@@ -9,6 +11,14 @@ import {pool} from '../src/db/index.js';
 import {limitsModule, limitsOf} from './limits.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+
+// Written the way core's Prettier would, so a formatter run over the
+// generated files changes nothing and types:check stays clean.
+async function formatted(path: string, source: string): Promise<string> {
+  const options = await resolveConfig(path, {editorconfig: true});
+
+  return format(source, {...options, filepath: path});
+}
 // Only reads the routes, so it never sends push or mail.
 const app = await buildApp({push: async () => [], mail: async () => {}});
 
@@ -24,23 +34,31 @@ try {
 
   // Better Auth changes the password outside openapi.json, so its rule is
   // added as the body it would have.
+  const limitsPath = resolve(dirname(outPath), 'limits.ts');
   writeFileSync(
-    resolve(dirname(outPath), 'limits.ts'),
-    limitsModule({
-      ...limitsOf(document),
-      ChangePasswordBody: {
-        newPassword: {
-          minLength: PASSWORD_LENGTH.min,
-          maxLength: PASSWORD_LENGTH.max,
+    limitsPath,
+    await formatted(
+      limitsPath,
+      limitsModule({
+        ...limitsOf(document),
+        ChangePasswordBody: {
+          newPassword: {
+            minLength: PASSWORD_LENGTH.min,
+            maxLength: PASSWORD_LENGTH.max,
+          },
         },
-      },
-    }),
+      }),
+    ),
   );
 
   execFileSync('npx', ['openapi-typescript', openapiPath, '-o', outPath], {
     cwd: root,
     stdio: 'inherit',
   });
+  writeFileSync(
+    outPath,
+    await formatted(outPath, readFileSync(outPath, 'utf8')),
+  );
 } finally {
   await app.close();
   await pool.end();
