@@ -407,7 +407,8 @@ export const adminEvents = pgTable(
       .references(() => organizations.id),
     actor: text('actor').notNull(),
     action: text('action').notNull(),
-    // What it was done to, in the actor's language: a number, a name.
+    // What it was done to, as the actor saw it: a number, a name. A change
+    // to the settings names the parts it touched by key instead.
     subject: text('subject').notNull(),
     at: timestamp('at', {withTimezone: true}).notNull().defaultNow(),
   },

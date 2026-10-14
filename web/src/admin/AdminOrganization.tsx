@@ -12,16 +12,34 @@ import type {Draft} from '@booking/core/admin/localized';
 import {useProblems} from '@booking/core/admin/useProblems';
 import {errorMessage} from '@booking/core/api/errors';
 import {useSwitchMode} from '@booking/core/auth/mode';
-import type {LocalizedText} from '@booking/core/api/types';
+import {describeEvent, formatEventTime} from '@booking/core/admin/events';
+import type {OrganizationSection} from '@booking/core/admin/location';
+import type {
+  AdminEvent,
+  AdminUser,
+  LocalizedText,
+  OrganizationSettings,
+} from '@booking/core/api/types';
 import {limits} from '@booking/core/generated/limits';
-import {CATALOGS, LOCALES, type Locale} from '@booking/core/i18n/catalog';
+import {
+  CATALOGS,
+  joinNames,
+  LOCALES,
+  localize,
+  type Locale,
+  type Messages,
+} from '@booking/core/i18n/catalog';
 import {useId, useState, type ReactNode, type SubmitEvent} from 'react';
 
 import {AdminPage} from '@/admin/AdminPage';
-import {Admins} from '@/admin/Admins';
-import {Events} from '@/admin/Events';
+import {AdminDetail, Admins} from '@/admin/Admins';
 import {FormActions} from '@/admin/FormActions';
+import {Gone} from '@/admin/Gone';
+import {History} from '@/admin/History';
+import {useAdminLocation} from '@/admin/location';
+import {ActionRow, Badge} from '@/admin/Rows';
 import {SECTION_LABEL} from '@/admin/styles';
+import {useConfirmLeave} from '@/admin/unsaved';
 import {authClient} from '@/auth/client';
 import {Account} from '@/components/Account';
 import {FieldProblem} from '@/components/FieldProblem';
@@ -29,7 +47,8 @@ import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {Notice} from '@/components/Notice';
 import {adminLoad, useAdminActions} from '@/hooks/useAdminActions';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
-import {useMessages} from '@/i18n/LocaleProvider';
+import {useLocale, useMessages} from '@/i18n/LocaleProvider';
+import {useIsDesktop} from '@/lib/media';
 
 type Part = 'details' | 'languages' | 'rules';
 
@@ -63,19 +82,6 @@ function useSave(onSaved: () => void) {
   };
 
   return {error, submitting, save};
-}
-
-function Section({title, children}: {title: string; children: ReactNode}) {
-  const id = useId();
-
-  return (
-    <section aria-labelledby={id} className='mb-9'>
-      <h2 id={id} className={SECTION_LABEL}>
-        {title}
-      </h2>
-      {children}
-    </section>
-  );
 }
 
 function Note({children}: {children: string}) {
@@ -307,73 +313,8 @@ function RulesForm({
   );
 }
 
-function Settings() {
-  const t = useMessages();
-  const refresh = useRefreshAccount();
-  const {data, error, reload} = useFocusLoad(adminLoad.organization);
-  const [saved, setSaved] = useState<Part | null>(null);
-
-  // The languages decide which fields the rules have, and what the other
-  // admin pages ask for.
-  const savedFrom = (part: Part) => ({
-    saved: saved === part,
-    onSaved: () => {
-      setSaved(part);
-      reload();
-      refresh();
-    },
-  });
-
-  if (error && !data) {
-    return (
-      <Notice message={error} actionLabel={t.common.retry} onAction={reload} />
-    );
-  }
-
-  if (!data) {
-    return null;
-  }
-
-  // Saved elsewhere since it was opened: a form starts over from what the
-  // server has, so a save cannot put the old values back. Each form starts
-  // over only when its own part changed.
-  return (
-    <>
-      <Section title={t.admin.organization.settings}>
-        <DetailsForm
-          key={`${data.name}\n${data.bookingWindowDays}`}
-          initial={data}
-          {...savedFrom('details')}
-        />
-      </Section>
-      <Section title={t.admin.organization.languages}>
-        <LanguagesForm
-          key={data.locales.join()}
-          initial={data.locales}
-          {...savedFrom('languages')}
-        />
-      </Section>
-      <Section title={t.admin.organization.rules}>
-        <RulesForm
-          // Not the languages: a language saved meanwhile adds or removes a
-          // field, and keeps what is being written in the others.
-          key={JSON.stringify(data.rulesText)}
-          initial={data.rulesText}
-          locales={data.locales}
-          {...savedFrom('rules')}
-        />
-      </Section>
-    </>
-  );
-}
-
-async function signOutAdmin() {
-  await authClient.signOut();
-}
-
-// The admin account is shared by the board, so a new password is how it is
-// handed over: every other device signed in to it is signed out. Better
-// Auth changes it, outside the admin's API.
+// A new password signs out every other device signed in to the account.
+// Better Auth changes it, outside the admin's API.
 function ChangePassword() {
   const t = useMessages();
   const [fields, setFields] = useState({current: '', next: '', repeat: ''});
@@ -420,88 +361,442 @@ function ChangePassword() {
   }
 
   return (
-    <Section title={t.admin.organization.changePassword}>
-      <form
-        noValidate
-        onSubmit={(event) => void submit(event)}
-        className='flex flex-col gap-4'
-      >
+    <form
+      noValidate
+      onSubmit={(event) => void submit(event)}
+      className='flex flex-col gap-4'
+    >
+      <FloatingLabelInput
+        label={t.admin.organization.currentPassword}
+        type='password'
+        autoComplete='current-password'
+        required
+        value={fields.current}
+        onChange={(event) => set('current')(event.target.value)}
+        onBlur={() => leave('current')}
+        problem={problem('current')}
+      />
+      <FloatingLabelInput
+        label={t.admin.organization.newPassword}
+        type='password'
+        autoComplete='new-password'
+        required
+        value={fields.next}
+        onChange={(event) => set('next')(event.target.value)}
+        onBlur={() => leave('next')}
+        problem={problem('next')}
+      />
+      <div className='flex flex-col gap-2'>
         <FloatingLabelInput
-          label={t.admin.organization.currentPassword}
-          type='password'
-          autoComplete='current-password'
-          required
-          value={fields.current}
-          onChange={(event) => set('current')(event.target.value)}
-          onBlur={() => leave('current')}
-          problem={problem('current')}
-        />
-        <FloatingLabelInput
-          label={t.admin.organization.newPassword}
+          label={t.admin.organization.repeatPassword}
           type='password'
           autoComplete='new-password'
           required
-          value={fields.next}
-          onChange={(event) => set('next')(event.target.value)}
-          onBlur={() => leave('next')}
-          problem={problem('next')}
+          value={fields.repeat}
+          onChange={(event) => set('repeat')(event.target.value)}
+          onBlur={() => leave('repeat')}
+          problem={problem('repeat')}
         />
-        <div className='flex flex-col gap-2'>
-          <FloatingLabelInput
-            label={t.admin.organization.repeatPassword}
-            type='password'
-            autoComplete='new-password'
-            required
-            value={fields.repeat}
-            onChange={(event) => set('repeat')(event.target.value)}
-            onBlur={() => leave('repeat')}
-            problem={problem('repeat')}
-          />
-          <Note>{t.admin.organization.passwordNote}</Note>
+        <Note>{t.admin.organization.passwordNote}</Note>
+      </div>
+      <Status message={message} />
+      <FormActions
+        submitLabel={t.admin.organization.changePassword}
+        dirty={checked.changed}
+        submitting={submitting}
+      />
+    </form>
+  );
+}
+
+async function signOutAdmin() {
+  await authClient.signOut();
+}
+
+type Page = OrganizationSection;
+
+const ORGANIZATION_PAGES = [
+  'details',
+  'languages',
+  'rules',
+  'admins',
+  'history',
+] as const satisfies readonly Page[];
+const ACCOUNT_PAGES = [
+  'account',
+  'password',
+] as const satisfies readonly Page[];
+
+function titleOf(page: Page, t: Messages): string {
+  switch (page) {
+    case 'details':
+      return t.admin.details;
+    case 'languages':
+      return t.admin.organization.languages;
+    case 'rules':
+      return t.admin.organization.rules;
+    case 'admins':
+      return t.admin.admins.title;
+    case 'history':
+      return t.admin.events.title;
+    case 'password':
+      return t.admin.organization.changePassword;
+    case 'account':
+      return t.account.heading;
+  }
+}
+
+// What is loaded and how the page answers while it is not: nothing yet, or
+// the failure with a way to try again.
+function Loaded<T>({
+  state,
+  children,
+}: {
+  state: {data: T | null; error: string | null; reload: () => void};
+  children: (data: T) => ReactNode;
+}) {
+  const t = useMessages();
+
+  if (state.error && !state.data) {
+    return (
+      <Notice
+        message={state.error}
+        actionLabel={t.common.retry}
+        onAction={state.reload}
+      />
+    );
+  }
+
+  return state.data ? children(state.data) : null;
+}
+
+// The desktop's menu of the organization's pages, beside the one shown.
+function PageMenu({
+  shown,
+  attention,
+  onOpen,
+}: {
+  shown: Page;
+  attention: number;
+  onOpen: (page: Page) => void;
+}) {
+  const t = useMessages();
+
+  const link = (page: Page) => (
+    <button
+      key={page}
+      type='button'
+      aria-current={page === shown ? 'page' : undefined}
+      onClick={() => onOpen(page)}
+      className={`flex h-10 items-center justify-between gap-2 rounded-xl px-3 text-left text-sm transition-colors ${
+        page === shown
+          ? 'bg-theme-surface font-semibold text-theme-ink shadow-[0_0_0_1px_var(--color-theme-line)]'
+          : 'font-medium text-theme-muted hover:text-theme-ink'
+      }`}
+    >
+      {titleOf(page, t)}
+      {page === 'admins' && attention > 0 ? (
+        <Badge>{String(attention)}</Badge>
+      ) : null}
+    </button>
+  );
+
+  return (
+    <nav aria-label={t.admin.organization.pages} className='flex flex-col'>
+      <p className={`${SECTION_LABEL} ml-3`}>{t.tabs.organization}</p>
+      {ORGANIZATION_PAGES.map(link)}
+      <p className={`${SECTION_LABEL} mt-6 ml-3`}>{t.account.heading}</p>
+      {ACCOUNT_PAGES.map(link)}
+    </nav>
+  );
+}
+
+// The phone's way in: each page as a row that says what is on it now.
+function Overview({
+  organization,
+  admins,
+  events,
+  onOpen,
+  account,
+}: {
+  organization: OrganizationSettings | null;
+  admins: AdminUser[] | null;
+  events: AdminEvent[] | null;
+  onOpen: (page: Page) => void;
+  account: ReactNode;
+}) {
+  const t = useMessages();
+  const {locale} = useLocale();
+  const attention =
+    admins?.filter((admin) => !admin.twoFactorEnabled).length ?? 0;
+  const latest = events?.[0];
+  const rules = organization
+    ? localize(organization.rulesText, locale)?.trim().split('\n')[0]
+    : undefined;
+
+  const summaries: Record<(typeof ORGANIZATION_PAGES)[number], string> = {
+    details: organization
+      ? t.admin.organization.windowSummary(
+          organization.name,
+          organization.bookingWindowDays,
+        )
+      : '',
+    languages: organization
+      ? joinNames(
+          organization.locales.map(
+            (language) => CATALOGS[language].language.name,
+          ),
+          t,
+        )
+      : '',
+    rules: organization ? rules || t.admin.organization.noRules : '',
+    admins: admins ? t.admin.admins.count(admins.length) : '',
+    history: !events
+      ? ''
+      : latest
+        ? `${describeEvent(latest, t)} · ${formatEventTime(latest.at, t)}`
+        : t.admin.events.none,
+  };
+
+  return (
+    <>
+      <section className='mb-6.5'>
+        <h2 className={SECTION_LABEL}>{t.tabs.organization}</h2>
+        <div className='flex flex-col divide-y divide-theme-line overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
+          {ORGANIZATION_PAGES.map((page) => (
+            <ActionRow
+              key={page}
+              label={titleOf(page, t)}
+              description={summaries[page]}
+              badge={
+                page === 'admins' && attention > 0 ? (
+                  <Badge>{t.admin.admins.withoutTwoFactor(attention)}</Badge>
+                ) : undefined
+              }
+              onPress={() => onOpen(page)}
+            />
+          ))}
         </div>
-        <Status message={message} />
-        <FormActions
-          submitLabel={t.admin.organization.changePassword}
-          dirty={checked.changed}
-          submitting={submitting}
-        />
-      </form>
-    </Section>
+      </section>
+      {account}
+    </>
   );
 }
 
 export function AdminOrganization() {
   const account = useAdminAccount();
+  const refresh = useRefreshAccount();
   const switchMode = useSwitchMode();
+  const confirmLeave = useConfirmLeave();
+  const isDesktop = useIsDesktop();
   const t = useMessages();
+  const organization = useFocusLoad(adminLoad.organization);
+  const admins = useFocusLoad(adminLoad.admins);
+  const events = useFocusLoad(adminLoad.events);
+  const {location, open: go, up: goUp} = useAdminLocation('organization');
+  const [saved, setSaved] = useState<Part | null>(null);
+
+  // Every change is in the history the next time it is opened.
+  const reloadEvents = events.reload;
+  const reloadAdmins = admins.reload;
+  const adminsChanged = () => {
+    reloadAdmins();
+    reloadEvents();
+  };
+
+  // The languages decide which fields the rules have, and what the other
+  // admin pages ask for.
+  const savedFrom = (part: Part) => ({
+    saved: saved === part,
+    onSaved: () => {
+      setSaved(part);
+      organization.reload();
+      reloadEvents();
+      refresh();
+    },
+  });
+
+  // "Sparat." is said on the page it was saved from, until another opens.
+  const open = (page: Page | null) => {
+    setSaved(null);
+    go({tab: 'organization', step: page ?? 'overview'});
+  };
+  const up = () => {
+    setSaved(null);
+    goUp();
+  };
+
+  // The desktop always shows a page beside its menu; the phone starts at
+  // the overview, which holds the account.
+  const page: Page | null =
+    location.step === 'admin'
+      ? 'admins'
+      : location.step === 'overview'
+        ? isDesktop
+          ? 'details'
+          : null
+        : location.step;
+  const adminId = location.step === 'admin' ? location.id : null;
+  const openedAdmin =
+    adminId === null
+      ? undefined
+      : admins.data?.find((admin) => admin.id === adminId);
+  const attention =
+    admins.data?.filter((admin) => !admin.twoFactorEnabled).length ?? 0;
+
+  const accountCard = (
+    <Account
+      signOutFrom={account.organizationName}
+      onSignOut={signOutAdmin}
+      switchTo={
+        account.apartment === null
+          ? null
+          : {
+              label: t.account.openBooking,
+              route: 'book',
+              onPress: () => switchMode('member'),
+            }
+      }
+    >
+      {isDesktop ? null : (
+        <div className='mt-2.5 overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
+          <ActionRow
+            label={t.admin.organization.changePassword}
+            onPress={() => open('password')}
+          />
+        </div>
+      )}
+    </Account>
+  );
+
+  let content: ReactNode;
+  switch (page) {
+    case null:
+      content = (
+        <Overview
+          organization={organization.data}
+          admins={admins.data}
+          events={events.data}
+          onOpen={open}
+          account={accountCard}
+        />
+      );
+      break;
+    case 'account':
+      content = accountCard;
+      break;
+    case 'details':
+      // Saved elsewhere since it was opened: a form starts over from what
+      // the server has, so a save cannot put the old values back. Each
+      // form starts over only when its own part changed.
+      content = (
+        <Loaded state={organization}>
+          {(data) => (
+            <DetailsForm
+              key={`${data.name}\n${data.bookingWindowDays}`}
+              initial={data}
+              {...savedFrom('details')}
+            />
+          )}
+        </Loaded>
+      );
+      break;
+    case 'languages':
+      content = (
+        <Loaded state={organization}>
+          {(data) => (
+            <LanguagesForm
+              key={data.locales.join()}
+              initial={data.locales}
+              {...savedFrom('languages')}
+            />
+          )}
+        </Loaded>
+      );
+      break;
+    case 'rules':
+      content = (
+        <Loaded state={organization}>
+          {(data) => (
+            <RulesForm
+              // Not the languages: a language saved meanwhile adds or
+              // removes a field, and keeps what is being written in the
+              // others.
+              key={JSON.stringify(data.rulesText)}
+              initial={data.rulesText}
+              locales={data.locales}
+              {...savedFrom('rules')}
+            />
+          )}
+        </Loaded>
+      );
+      break;
+    case 'admins':
+      content = openedAdmin ? (
+        <AdminDetail
+          key={openedAdmin.id}
+          admin={openedAdmin}
+          onChanged={adminsChanged}
+          onRemoved={up}
+        />
+      ) : adminId !== null ? (
+        <Loaded state={admins}>
+          {() => (admins.loading ? null : <Gone />)}
+        </Loaded>
+      ) : (
+        <Loaded state={admins}>
+          {(data) => (
+            <Admins
+              admins={data}
+              onChanged={adminsChanged}
+              onOpen={(admin) =>
+                go({tab: 'organization', step: 'admin', id: admin.id})
+              }
+            />
+          )}
+        </Loaded>
+      );
+      break;
+    case 'history':
+      content = (
+        <Loaded state={events}>{(data) => <History events={data} />}</Loaded>
+      );
+      break;
+    case 'password':
+      content = <ChangePassword />;
+      break;
+  }
+
+  const back =
+    adminId !== null
+      ? {label: t.admin.admins.title, onPress: up}
+      : page !== null && !isDesktop
+        ? {label: t.tabs.organization, onPress: up}
+        : undefined;
 
   return (
-    <AdminPage title={t.tabs.organization} subtitle={account.organizationName}>
-      {/* The account keeps the room it has on the apartment's page; the
-          sections here are further apart. */}
-      <div className='mb-2.5'>
-        <Account
-          signOutFrom={account.organizationName}
-          onSignOut={signOutAdmin}
-          switchTo={
-            account.apartment === null
-              ? null
-              : {
-                  label: t.account.openBooking,
-                  route: 'book',
-                  onPress: () => switchMode('member'),
-                }
-          }
-        />
-      </div>
-      <Settings />
-      <ChangePassword />
-      <Section title={t.admin.admins.title}>
-        <Admins />
-      </Section>
-      <Section title={t.admin.events.title}>
-        <Events />
-      </Section>
+    <AdminPage
+      title={
+        adminId !== null
+          ? (openedAdmin?.name ??
+            (admins.data && !admins.loading ? t.admin.goneTitle : ''))
+          : page === null
+            ? t.tabs.organization
+            : titleOf(page, t)
+      }
+      subtitle={account.organizationName}
+      back={back}
+      aside={
+        isDesktop && page !== null ? (
+          <PageMenu
+            shown={page}
+            attention={attention}
+            onOpen={(next) => confirmLeave(() => open(next))}
+          />
+        ) : undefined
+      }
+    >
+      {content}
     </AdminPage>
   );
 }

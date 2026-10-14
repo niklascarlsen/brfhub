@@ -31,6 +31,8 @@ export function useFocusLoad<T>(load: () => Promise<T>, identity?: string) {
   return {
     data: loaded.data,
     error: error === null ? null : errorMessage(error, t),
+    // A load is out, so what data says may be about to change.
+    loading: loaded.loading,
     reload,
   };
 }

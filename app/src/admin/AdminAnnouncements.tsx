@@ -1,3 +1,4 @@
+import {ENDED_SHOWN} from '@booking/core/admin/announcement';
 import {useAdminAccount, useRefreshAccount} from '@booking/core/admin/account';
 import {missingLanguages} from '@booking/core/admin/localized';
 import type {AdminAnnouncement} from '@booking/core/api/types';
@@ -5,22 +6,20 @@ import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
 import {localize, type Messages} from '@booking/core/i18n/catalog';
 import {formatDayMonth} from '@booking/core/lib/dates';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import {useIsFocused} from '@react-navigation/native';
-import {useEffect, useState} from 'react';
-import {BackHandler, Pressable, Text, View} from 'react-native';
+import {useState} from 'react';
+import {Pressable, Text, View} from 'react-native';
 
 import {AdminPage} from '@/admin/AdminPage';
 import {AnnouncementForm} from '@/admin/AnnouncementForm';
+import {Gone} from '@/admin/Gone';
+import {useAdminLocation} from '@/admin/location';
 import {PRIMARY_BUTTON, PRIMARY_LABEL, SECTION_LABEL} from '@/admin/styles';
-import {useConfirmLeave} from '@/admin/unsaved';
 import {Notice} from '@/components/Notice';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
 import {adminLoad, useAdminActions} from '@/hooks/useAdminActions';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
 import theme from '@/theme.json';
-
-type Screen = {kind: 'list'} | {kind: 'add'} | {kind: 'edit'; id: string};
 
 const GROUPS = [
   {status: 'active', label: (t: Messages) => t.admin.announcements.active},
@@ -43,18 +42,12 @@ export function AdminAnnouncements() {
   const {organizationName, locales} = useAdminAccount();
   const t = useMessages();
   const {locale} = useLocale();
-  const {data, error, reload} = useFocusLoad(adminLoad.announcements);
+  const {data, error, loading, reload} = useFocusLoad(adminLoad.announcements);
   const showSkeleton = useSlowLoad(data === null && error === null);
-  const [screen, setScreen] = useState<Screen>({kind: 'list'});
+  const {location, open, up} = useAdminLocation('announcements');
+  const [allEnded, setAllEnded] = useState(false);
 
   const refreshAccount = useRefreshAccount();
-  const confirmLeave = useConfirmLeave();
-  // Every tab keeps its screen, so only the one shown answers the back
-  // button.
-  const focused = useIsFocused();
-
-  const toList = () => setScreen({kind: 'list'});
-  const back = {label: t.tabs.announcements, onPress: toList};
 
   // What lacks a language is counted on the account, so it follows every
   // change here.
@@ -62,77 +55,76 @@ export function AdminAnnouncements() {
     reload();
     refreshAccount();
   });
+  const back = {label: t.tabs.announcements, onPress: up};
+  // A step opened by its address has no list to fall back on.
+  const failed =
+    error && !data ? (
+      <Notice message={error} actionLabel={t.common.retry} onAction={reload} />
+    ) : null;
 
-  // The steps below the list are not screens of their own, so Android's
-  // back button would otherwise leave the tab instead of going back.
-  useEffect(() => {
-    if (screen.kind === 'list' || !focused) {
-      return;
-    }
-
-    const subscription = BackHandler.addEventListener(
-      'hardwareBackPress',
-      () => {
-        confirmLeave(() => setScreen({kind: 'list'}));
-        return true;
-      },
-    );
-
-    return () => subscription.remove();
-  }, [screen.kind, focused, confirmLeave]);
-
-  if (data && screen.kind === 'add') {
+  if (location.step === 'new') {
     return (
       <AdminPage
         title={t.admin.announcements.new}
         subtitle={organizationName}
         back={back}
       >
-        <AnnouncementForm
-          initial={{
-            title: {},
-            body: {},
-            publishedOn: data.today,
-            endsOn: null,
-          }}
-          today={data.today}
-          submitLabel={t.admin.announcements.publish}
-          onCancel={toList}
-          onSubmit={async (fields) => {
-            await actions.announcements.create(fields);
-            toList();
-          }}
-        />
+        {data ? (
+          <AnnouncementForm
+            initial={{
+              title: {},
+              body: {},
+              publishedOn: data.today,
+              endsOn: null,
+            }}
+            today={data.today}
+            submitLabel={t.admin.announcements.publish}
+            onCancel={up}
+            onSubmit={async (fields) => {
+              await actions.announcements.create(fields);
+              up();
+            }}
+          />
+        ) : (
+          failed
+        )}
       </AdminPage>
     );
   }
 
-  const edited =
-    screen.kind === 'edit'
-      ? data?.announcements.find(
-          (announcement) => announcement.id === screen.id,
-        )
-      : undefined;
-
-  if (data && edited) {
-    const title = localize(edited.title, locale) ?? '';
+  if (location.step === 'announcement') {
+    const edited = data?.announcements.find(
+      (announcement) => announcement.id === location.id,
+    );
+    const title = edited ? (localize(edited.title, locale) ?? '') : '';
+    const gone = !edited && data !== null && !loading;
 
     return (
-      <AdminPage title={title} subtitle={organizationName} back={back}>
-        <AnnouncementForm
-          key={edited.id}
-          initial={edited}
-          today={data.today}
-          submitLabel={t.admin.save}
-          onCancel={toList}
-          onSubmit={async (fields) => {
-            await actions.announcements.update(edited.id, fields);
-            toList();
-          }}
-          onDelete={() =>
-            actions.announcements.confirmRemove(edited.id, title, toList)
-          }
-        />
+      <AdminPage
+        title={gone ? t.admin.goneTitle : title}
+        subtitle={organizationName}
+        back={back}
+      >
+        {data && edited ? (
+          <AnnouncementForm
+            key={edited.id}
+            initial={edited}
+            today={data.today}
+            submitLabel={t.admin.save}
+            onCancel={up}
+            onSubmit={async (fields) => {
+              await actions.announcements.update(edited.id, fields);
+              up();
+            }}
+            onDelete={() =>
+              actions.announcements.confirmRemove(edited.id, title, up)
+            }
+          />
+        ) : gone ? (
+          <Gone />
+        ) : (
+          failed
+        )}
       </AdminPage>
     );
   }
@@ -155,11 +147,15 @@ export function AdminAnnouncements() {
               return null;
             }
 
+            const listed =
+              status === 'ended' && !allEnded ? own.slice(0, ENDED_SHOWN) : own;
+            const more = listed.length < own.length;
+
             return (
               <View key={status}>
                 <Text className={SECTION_LABEL}>{label(t)}</Text>
                 <View className='overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
-                  {own.map((announcement, index) => {
+                  {listed.map((announcement, index) => {
                     const missing =
                       missingLanguages(announcement.title, locales, t) ??
                       missingLanguages(announcement.body, locales, t);
@@ -168,10 +164,14 @@ export function AdminAnnouncements() {
                       <Pressable
                         key={announcement.id}
                         onPress={() =>
-                          setScreen({kind: 'edit', id: announcement.id})
+                          open({
+                            tab: 'announcements',
+                            step: 'announcement',
+                            id: announcement.id,
+                          })
                         }
                         className={`flex-row items-center gap-3 px-[18px] py-3.5 active:bg-theme-sunk ${
-                          index === own.length - 1
+                          index === listed.length - 1 && !more
                             ? ''
                             : 'border-b border-theme-line'
                         }`}
@@ -203,6 +203,16 @@ export function AdminAnnouncements() {
                       </Pressable>
                     );
                   })}
+                  {more ? (
+                    <Pressable
+                      onPress={() => setAllEnded(true)}
+                      className='h-12 items-center justify-center active:bg-theme-sunk'
+                    >
+                      <Text className='text-[0.875rem] font-semibold tracking-tight text-theme-muted'>
+                        {t.admin.announcements.showAllEnded(own.length)}
+                      </Text>
+                    </Pressable>
+                  ) : null}
                 </View>
               </View>
             );
@@ -231,7 +241,7 @@ export function AdminAnnouncements() {
       subtitle={organizationName}
       action={
         <Pressable
-          onPress={() => setScreen({kind: 'add'})}
+          onPress={() => open({tab: 'announcements', step: 'new'})}
           className={PRIMARY_BUTTON}
         >
           <Ionicons name='add' size={18} color={theme.surface} />

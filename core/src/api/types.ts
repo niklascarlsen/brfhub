@@ -24,3 +24,5 @@ export type HeldBooking = components['schemas']['HeldBooking'];
 export type Account = components['schemas']['Account'];
 export type AdminUser = components['schemas']['AdminUser'];
 export type AdminEvent = components['schemas']['AdminEvent'];
+export type OrganizationSettings =
+  components['schemas']['OrganizationSettings'];

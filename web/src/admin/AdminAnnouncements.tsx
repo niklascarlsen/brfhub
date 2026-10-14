@@ -1,3 +1,4 @@
+import {ENDED_SHOWN} from '@booking/core/admin/announcement';
 import {useAdminAccount, useRefreshAccount} from '@booking/core/admin/account';
 import {missingLanguages} from '@booking/core/admin/localized';
 import type {AdminAnnouncement} from '@booking/core/api/types';
@@ -8,6 +9,8 @@ import {useState} from 'react';
 
 import {AdminPage} from '@/admin/AdminPage';
 import {AnnouncementForm} from '@/admin/AnnouncementForm';
+import {Gone} from '@/admin/Gone';
+import {useAdminLocation} from '@/admin/location';
 import {PRIMARY_BUTTON, SECTION_LABEL} from '@/admin/styles';
 import {AddIcon, ChevronForwardIcon} from '@/components/icons';
 import {Notice} from '@/components/Notice';
@@ -15,8 +18,6 @@ import {Skeleton, SkeletonBar} from '@/components/Skeleton';
 import {adminLoad, useAdminActions} from '@/hooks/useAdminActions';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
-
-type Screen = {kind: 'list'} | {kind: 'add'} | {kind: 'edit'; id: string};
 
 const GROUPS = [
   {status: 'active', label: (t: Messages) => t.admin.announcements.active},
@@ -39,12 +40,12 @@ export function AdminAnnouncements() {
   const {organizationName, locales} = useAdminAccount();
   const t = useMessages();
   const {locale} = useLocale();
-  const {data, error, reload} = useFocusLoad(adminLoad.announcements);
+  const {data, error, loading, reload} = useFocusLoad(adminLoad.announcements);
   const showSkeleton = useSlowLoad(data === null && error === null);
-  const [screen, setScreen] = useState<Screen>({kind: 'list'});
+  const {location, open, up} = useAdminLocation('announcements');
+  const [allEnded, setAllEnded] = useState(false);
 
   const refreshAccount = useRefreshAccount();
-  const toList = () => setScreen({kind: 'list'});
 
   // What lacks a language is counted on the account, so it follows every
   // change here.
@@ -52,60 +53,76 @@ export function AdminAnnouncements() {
     reload();
     refreshAccount();
   });
-  const back = {label: t.tabs.announcements, onPress: toList};
+  const back = {label: t.tabs.announcements, onPress: up};
+  // A step opened by its address has no list to fall back on.
+  const failed =
+    error && !data ? (
+      <Notice message={error} actionLabel={t.common.retry} onAction={reload} />
+    ) : null;
 
-  if (data && screen.kind === 'add') {
+  if (location.step === 'new') {
     return (
       <AdminPage
         title={t.admin.announcements.new}
         subtitle={organizationName}
         back={back}
       >
-        <AnnouncementForm
-          initial={{
-            title: {},
-            body: {},
-            publishedOn: data.today,
-            endsOn: null,
-          }}
-          today={data.today}
-          submitLabel={t.admin.announcements.publish}
-          onCancel={toList}
-          onSubmit={async (fields) => {
-            await actions.announcements.create(fields);
-            toList();
-          }}
-        />
+        {data ? (
+          <AnnouncementForm
+            initial={{
+              title: {},
+              body: {},
+              publishedOn: data.today,
+              endsOn: null,
+            }}
+            today={data.today}
+            submitLabel={t.admin.announcements.publish}
+            onCancel={up}
+            onSubmit={async (fields) => {
+              await actions.announcements.create(fields);
+              up();
+            }}
+          />
+        ) : (
+          failed
+        )}
       </AdminPage>
     );
   }
 
-  const edited =
-    screen.kind === 'edit'
-      ? data?.announcements.find(
-          (announcement) => announcement.id === screen.id,
-        )
-      : undefined;
-
-  if (data && edited) {
-    const title = localize(edited.title, locale) ?? '';
+  if (location.step === 'announcement') {
+    const edited = data?.announcements.find(
+      (announcement) => announcement.id === location.id,
+    );
+    const title = edited ? (localize(edited.title, locale) ?? '') : '';
+    const gone = !edited && data !== null && !loading;
 
     return (
-      <AdminPage title={title} subtitle={organizationName} back={back}>
-        <AnnouncementForm
-          key={edited.id}
-          initial={edited}
-          today={data.today}
-          submitLabel={t.admin.save}
-          onCancel={toList}
-          onSubmit={async (fields) => {
-            await actions.announcements.update(edited.id, fields);
-            toList();
-          }}
-          onDelete={() =>
-            actions.announcements.confirmRemove(edited.id, title, toList)
-          }
-        />
+      <AdminPage
+        title={gone ? t.admin.goneTitle : title}
+        subtitle={organizationName}
+        back={back}
+      >
+        {data && edited ? (
+          <AnnouncementForm
+            key={edited.id}
+            initial={edited}
+            today={data.today}
+            submitLabel={t.admin.save}
+            onCancel={up}
+            onSubmit={async (fields) => {
+              await actions.announcements.update(edited.id, fields);
+              up();
+            }}
+            onDelete={() =>
+              actions.announcements.confirmRemove(edited.id, title, up)
+            }
+          />
+        ) : gone ? (
+          <Gone />
+        ) : (
+          failed
+        )}
       </AdminPage>
     );
   }
@@ -128,11 +145,14 @@ export function AdminAnnouncements() {
               return null;
             }
 
+            const listed =
+              status === 'ended' && !allEnded ? own.slice(0, ENDED_SHOWN) : own;
+
             return (
               <section key={status}>
                 <h2 className={SECTION_LABEL}>{label(t)}</h2>
                 <div className='flex flex-col divide-y divide-theme-line overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
-                  {own.map((announcement) => {
+                  {listed.map((announcement) => {
                     const missing =
                       missingLanguages(announcement.title, locales, t) ??
                       missingLanguages(announcement.body, locales, t);
@@ -142,7 +162,11 @@ export function AdminAnnouncements() {
                         key={announcement.id}
                         type='button'
                         onClick={() =>
-                          setScreen({kind: 'edit', id: announcement.id})
+                          open({
+                            tab: 'announcements',
+                            step: 'announcement',
+                            id: announcement.id,
+                          })
                         }
                         className='flex w-full items-center gap-3 px-4.5 py-3.5 text-left transition-colors hover:bg-theme-sunk'
                       >
@@ -166,6 +190,15 @@ export function AdminAnnouncements() {
                       </button>
                     );
                   })}
+                  {listed.length < own.length ? (
+                    <button
+                      type='button'
+                      onClick={() => setAllEnded(true)}
+                      className='h-12 w-full text-sm font-semibold tracking-tight text-theme-muted transition-colors hover:bg-theme-sunk hover:text-theme-ink'
+                    >
+                      {t.admin.announcements.showAllEnded(own.length)}
+                    </button>
+                  ) : null}
                 </div>
               </section>
             );
@@ -195,7 +228,7 @@ export function AdminAnnouncements() {
       action={
         <button
           type='button'
-          onClick={() => setScreen({kind: 'add'})}
+          onClick={() => open({tab: 'announcements', step: 'new'})}
           className={PRIMARY_BUTTON}
         >
           <AddIcon size={18} />

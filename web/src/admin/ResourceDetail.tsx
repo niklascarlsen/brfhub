@@ -4,10 +4,8 @@ import {localize} from '@booking/core/i18n/catalog';
 import {formatDayMonth} from '@booking/core/lib/dates';
 import {useState} from 'react';
 
-import {ResourceForm} from '@/admin/ResourceForm';
-import {ScheduleForm} from '@/admin/ScheduleForm';
+import {ActionRow} from '@/admin/Rows';
 import {CARD, SECONDARY_BUTTON, SECTION_LABEL} from '@/admin/styles';
-import {ChevronForwardIcon} from '@/components/icons';
 import {useAdminActions} from '@/hooks/useAdminActions';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
 
@@ -17,51 +15,23 @@ type ResourceDetailProps = {
   // After every change, and after a failure that means the resource shown
   // is out of date.
   onChanged: () => void;
+  onEdit: () => void;
+  onSchedule: () => void;
 };
-
-type Mode = 'view' | 'edit' | 'schedule';
-
-function Action({
-  label,
-  description,
-  onPress,
-}: {
-  label: string;
-  description: string;
-  onPress: () => void;
-}) {
-  return (
-    <button
-      type='button'
-      onClick={onPress}
-      className='flex w-full items-center gap-3 px-4.5 py-3.5 text-left transition-colors hover:bg-theme-sunk'
-    >
-      <span className='flex min-w-0 flex-1 flex-col gap-0.5'>
-        <span className='text-[15px] font-semibold tracking-tight text-theme-ink'>
-          {label}
-        </span>
-        <span className='text-[13px] leading-5 text-theme-muted'>
-          {description}
-        </span>
-      </span>
-      <ChevronForwardIcon size={16} className='shrink-0 text-theme-faint' />
-    </button>
-  );
-}
 
 export function ResourceDetail({
   resource,
   data,
   onChanged,
+  onEdit,
+  onSchedule,
 }: ResourceDetailProps) {
   const t = useMessages();
   const {locale} = useLocale();
-  const [mode, setMode] = useState<Mode>('view');
   const tags = localize(resource.tags, locale) ?? [];
   const {kinds, earliestChange, today} = data;
   const kind = kinds.find((item) => item.id === resource.kindId);
   const [current, ...later] = resource.schedules;
-  const latest = resource.schedules.at(-1);
   const closed = resource.closesFrom !== null && resource.closesFrom <= today;
 
   const [busy, setBusy] = useState(false);
@@ -73,40 +43,6 @@ export function ResourceDetail({
     (item) => item.kindId === resource.kindId,
   );
   const position = siblings.findIndex((item) => item.id === resource.id);
-
-  if (mode === 'edit') {
-    return (
-      <ResourceForm
-        kinds={kinds}
-        initial={{...resource, slots: []}}
-        withSlots={false}
-        submitLabel={t.admin.save}
-        onCancel={() => setMode('view')}
-        onSubmit={async (fields) => {
-          await actions.resources.update(resource.id, fields);
-          setMode('view');
-        }}
-      />
-    );
-  }
-
-  if (mode === 'schedule') {
-    return (
-      <ScheduleForm
-        initial={latest?.slots ?? []}
-        validFrom={earliestChange}
-        onCancel={() => setMode('view')}
-        onSubmit={async (slots) => {
-          await actions.resources.saveSchedule(
-            resource.id,
-            earliestChange,
-            slots,
-          );
-          setMode('view');
-        }}
-      />
-    );
-  }
 
   return (
     <div className='flex flex-col gap-6.5'>
@@ -193,17 +129,17 @@ export function ResourceDetail({
       <section>
         <h2 className={SECTION_LABEL}>{t.admin.actions}</h2>
         <div className='flex flex-col divide-y divide-theme-line overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
-          <Action
+          <ActionRow
             label={t.admin.resource.editTimes}
             description={t.admin.resource.editTimesHint(
               formatDayMonth(earliestChange, t),
             )}
-            onPress={() => setMode('schedule')}
+            onPress={onSchedule}
           />
-          <Action
+          <ActionRow
             label={t.admin.editDetails}
             description={t.admin.resource.editDetailsHint}
-            onPress={() => setMode('edit')}
+            onPress={onEdit}
           />
         </div>
       </section>

@@ -183,20 +183,23 @@ export function adminActions({
     add: (fields: AdminFields) =>
       save(() => unwrap(api.POST('/admin/admins', {body: fields}))),
 
-    confirmRemove: (admin: AdminUser) =>
+    confirmRemove: (admin: AdminUser, onRemoved?: () => void) =>
       dialog.confirm(
-        t.admin.admins.remove,
+        t.admin.admins.removeAdmin,
         t.admin.admins.removeQuestion(admin.email),
         {
           label: t.admin.remove,
           destructive: true,
           onPress: () => {
-            void mutate(t.admin.admins.removeFailed, () =>
-              unwrap(
-                api.DELETE('/admin/admins/{id}', {
-                  params: {path: {id: admin.id}},
-                }),
-              ),
+            void mutate(
+              t.admin.admins.removeFailed,
+              () =>
+                unwrap(
+                  api.DELETE('/admin/admins/{id}', {
+                    params: {path: {id: admin.id}},
+                  }),
+                ),
+              onRemoved,
             );
           },
         },
