@@ -1,7 +1,7 @@
 import {useAdminAccount} from '@booking/core/admin/account';
 import type {Apartment} from '@booking/core/api/types';
 import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import {Icon} from '@/components/Icon';
 import {useState} from 'react';
 import {Pressable, Text, View} from 'react-native';
 
@@ -62,7 +62,7 @@ function ApartmentRow({
           {apartment.email}
         </Text>
       </View>
-      <Ionicons name='chevron-forward' size={16} color={theme.faint} />
+      <Icon name='chevron-forward' size={16} color={theme.faint} />
     </Pressable>
   );
 }
@@ -261,7 +261,7 @@ export function AdminApartments() {
           onPress={() => open({tab: 'apartments', step: 'new'})}
           className={PRIMARY_BUTTON}
         >
-          <Ionicons name='add' size={18} color={theme.surface} />
+          <Icon name='add' size={18} color={theme.surface} />
           <Text className={PRIMARY_LABEL}>
             {t.admin.apartments.addApartment}
           </Text>

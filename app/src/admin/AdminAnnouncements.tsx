@@ -5,7 +5,7 @@ import type {AdminAnnouncement} from '@booking/core/api/types';
 import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
 import {localize, type Messages} from '@booking/core/i18n/catalog';
 import {formatDayMonth} from '@booking/core/lib/dates';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import {Icon} from '@/components/Icon';
 import {useState} from 'react';
 import {Pressable, Text, View} from 'react-native';
 
@@ -195,7 +195,7 @@ export function AdminAnnouncements() {
                             </Text>
                           ) : null}
                         </View>
-                        <Ionicons
+                        <Icon
                           name='chevron-forward'
                           size={16}
                           color={theme.faint}
@@ -244,7 +244,7 @@ export function AdminAnnouncements() {
           onPress={() => open({tab: 'announcements', step: 'new'})}
           className={PRIMARY_BUTTON}
         >
-          <Ionicons name='add' size={18} color={theme.surface} />
+          <Icon name='add' size={18} color={theme.surface} />
           <Text className={PRIMARY_LABEL}>{t.admin.announcements.new}</Text>
         </Pressable>
       }

@@ -1,7 +1,7 @@
 import type {Slot} from '@booking/core/api/types';
 import type {SlotLook, SlotOffer, SlotTone} from '@booking/core/booking/offer';
 import {timeRange} from '@booking/core/lib/dates';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import {Icon} from '@/components/Icon';
 import {Pressable, Text, View} from 'react-native';
 
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
@@ -67,11 +67,11 @@ export function TimeSlotRow({slot, offer, onPress}: TimeSlotRowProps) {
           <View className='h-1.5 w-1.5 rounded-full bg-theme-accent' />
         ) : null}
         {mark === 'lock' ? (
-          <Ionicons name='lock-closed' size={13} color={theme.faint} />
+          <Icon name='lock-closed' size={13} color={theme.faint} />
         ) : null}
         <Text className={`text-[13px] ${tone}`}>{label}</Text>
         {chevron ? (
-          <Ionicons name='chevron-forward' size={15} color={theme.edge} />
+          <Icon name='chevron-forward' size={15} color={theme.edge} />
         ) : null}
       </View>
     </Pressable>

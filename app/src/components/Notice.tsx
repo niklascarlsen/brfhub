@@ -1,4 +1,4 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
+import {Icon} from '@/components/Icon';
 import {Pressable, Text, View} from 'react-native';
 
 import theme from '@/theme.json';
@@ -41,7 +41,7 @@ type NoticeBarProps = {
 export function NoticeBar({message, actionLabel, onAction}: NoticeBarProps) {
   return (
     <View className='mb-4 flex-row items-center gap-2.5 rounded-xl border border-theme-edge bg-theme-sunk py-2.5 pl-3.5 pr-2.5'>
-      <Ionicons name='alert-circle' size={18} color={theme.ink} />
+      <Icon name='alert-circle' size={18} color={theme.ink} />
       <Text className='min-w-0 flex-1 text-[13px] font-medium leading-[18px] text-theme-ink'>
         {message}
       </Text>

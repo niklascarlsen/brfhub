@@ -1,6 +1,6 @@
 import {useAdminAccount} from '@booking/core/admin/account';
 import {untranslatedMessage} from '@booking/core/admin/localized';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import {Icon} from '@/components/Icon';
 import {useEffect, useRef, type ReactNode} from 'react';
 import {Pressable, Text, View} from 'react-native';
 import {
@@ -66,7 +66,7 @@ export function AdminPage({
             hitSlop={8}
             className='-ml-1 mb-2 mt-1 flex-row items-center gap-1 self-start py-1 pr-2 active:opacity-60'
           >
-            <Ionicons name='chevron-back' size={16} color={theme.muted} />
+            <Icon name='chevron-back' size={16} color={theme.muted} />
             <Text className='text-sm font-semibold text-theme-muted'>
               {back.label}
             </Text>

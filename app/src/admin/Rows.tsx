@@ -1,4 +1,4 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
+import {Icon} from '@/components/Icon';
 import type {ReactNode} from 'react';
 import {Pressable, Text, View} from 'react-native';
 
@@ -76,7 +76,7 @@ export function ActionRow({
         ) : null}
       </View>
       {badge}
-      <Ionicons name='chevron-forward' size={16} color={theme.faint} />
+      <Icon name='chevron-forward' size={16} color={theme.faint} />
     </Pressable>
   );
 }

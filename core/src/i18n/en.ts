@@ -117,6 +117,7 @@ export const en: Messages = {
     scanIntro:
       'Scan the QR code in your authenticator app, or type the key in by hand. Then enter the code the app shows.',
     manualKey: 'Key to type in',
+    qrCode: 'QR code for the authenticator app',
     firstCode: 'Code from the app',
     verify: 'Confirm',
     backupTitle: 'Save your backup codes',

@@ -14,7 +14,7 @@ import {
   type LoginStep,
 } from '@booking/core/auth/login';
 import {limits} from '@booking/core/generated/limits';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import {Icon} from '@/components/Icon';
 import {useState} from 'react';
 import {Pressable, Text, View} from 'react-native';
 import {
@@ -385,7 +385,7 @@ export function LoginScreen() {
           accessibilityState={{checked: trustDevice}}
           className='mb-5 flex-row items-center gap-2.5 self-start py-1'
         >
-          <Ionicons
+          <Icon
             name={trustDevice ? 'checkbox' : 'square-outline'}
             size={22}
             color={trustDevice ? theme.ink : theme.muted}

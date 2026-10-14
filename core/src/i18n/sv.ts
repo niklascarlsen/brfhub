@@ -126,6 +126,8 @@ export const sv = {
     scanIntro:
       'Skanna QR-koden i din authenticator-app, eller skriv in nyckeln för hand. Skriv sedan in koden appen visar.',
     manualKey: 'Nyckel att skriva in',
+    // What a screen reader says for the QR code, never the secret in it.
+    qrCode: 'QR-kod för authenticator-appen',
     firstCode: 'Kod från appen',
     verify: 'Bekräfta',
     backupTitle: 'Spara dina backup-koder',

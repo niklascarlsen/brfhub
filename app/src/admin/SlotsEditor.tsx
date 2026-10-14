@@ -1,7 +1,7 @@
 import {canAddSlot} from '@booking/core/admin/drafts';
 import {nextSlot} from '@booking/core/admin/schedule';
 import type {SlotInput} from '@booking/core/api/types';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import {Icon} from '@/components/Icon';
 import {useState} from 'react';
 import {Pressable, Switch, Text, View} from 'react-native';
 
@@ -117,7 +117,7 @@ export function SlotsEditor({slots, onChange}: SlotsEditorProps) {
         disabled={!canAddSlot(slots)}
         className={`${SECONDARY_BUTTON} self-start`}
       >
-        <Ionicons name='add' size={18} color={theme.ink} />
+        <Icon name='add' size={18} color={theme.ink} />
         <Text className={SECONDARY_LABEL}>{t.admin.slots.add}</Text>
       </Pressable>
     </View>

@@ -1,5 +1,5 @@
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import {Icon} from '@/components/Icon';
 
 import {useMessages} from '@/i18n/LocaleProvider';
 import {ApartmentScreen} from '@/screens/ApartmentScreen';
@@ -26,11 +26,7 @@ export default function AppTabNavigator() {
         options={{
           title: t.tabs.book,
           tabBarIcon: ({color}) => (
-            <Ionicons
-              name='calendar-outline'
-              size={TAB_ICON_GLYPH}
-              color={color}
-            />
+            <Icon name='calendar-outline' size={TAB_ICON_GLYPH} color={color} />
           ),
         }}
       />
@@ -40,7 +36,7 @@ export default function AppTabNavigator() {
         options={{
           title: t.tabs.myTimes,
           tabBarIcon: ({color}) => (
-            <Ionicons name='time-outline' size={TAB_ICON_GLYPH} color={color} />
+            <Icon name='time-outline' size={TAB_ICON_GLYPH} color={color} />
           ),
         }}
       />
@@ -50,7 +46,7 @@ export default function AppTabNavigator() {
         options={{
           title: t.tabs.apartment,
           tabBarIcon: ({color}) => (
-            <Ionicons name='home-outline' size={TAB_ICON_GLYPH} color={color} />
+            <Icon name='home-outline' size={TAB_ICON_GLYPH} color={color} />
           ),
         }}
       />

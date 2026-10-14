@@ -1,4 +1,4 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
+import {Icon} from '@/components/Icon';
 import {useEffect, useRef, useState} from 'react';
 import {
   Animated,
@@ -154,7 +154,7 @@ export function FloatingLabelInput({
             className='absolute bottom-0 right-0 top-0 items-center justify-center active:opacity-60'
             style={{width: REVEAL_WIDTH}}
           >
-            <Ionicons
+            <Icon
               name={revealed ? 'eye-off-outline' : 'eye-outline'}
               size={20}
               color={theme.muted}

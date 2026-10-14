@@ -33,13 +33,15 @@ import theme from '@/theme.json';
 const KEYBOARD_GAP = 42 + 24;
 
 // The QR code the authenticator app scans, drawn as a grid of cells.
-function QrCode({text}: {text: string}) {
+function QrCode({text, label}: {text: string; label: string}) {
   const {size, cells} = qrCodeOf(text);
   const cell = Math.floor(220 / size);
 
   return (
     <View
-      accessibilityLabel={text}
+      accessible
+      accessibilityRole='image'
+      accessibilityLabel={label}
       className='self-center rounded-xl bg-white p-3'
     >
       {cells.map((row, y) => (
@@ -189,7 +191,7 @@ export function TwoFactorSetup({account, onDone}: TwoFactorSetupProps) {
           {t.twoFactor.scanIntro}
         </Text>
         <View className='gap-4'>
-          <QrCode text={step.totpUri} />
+          <QrCode text={step.totpUri} label={t.twoFactor.qrCode} />
           <View className={`${CARD} gap-1`}>
             <Text className='text-sm font-semibold text-theme-muted'>
               {t.twoFactor.manualKey}

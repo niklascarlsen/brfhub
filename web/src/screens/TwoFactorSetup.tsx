@@ -16,14 +16,14 @@ import {useMessages} from '@/i18n/LocaleProvider';
 import {DEV_PASSWORD, devCode} from '@/lib/devCodes';
 
 // The QR code the authenticator app scans.
-function QrCode({text}: {text: string}) {
+function QrCode({text, label}: {text: string; label: string}) {
   const {size, cells} = qrCodeOf(text);
 
   return (
     <svg
       viewBox={`0 0 ${size} ${size}`}
       role='img'
-      aria-label={text}
+      aria-label={label}
       shapeRendering='crispEdges'
       className='h-55 w-55 self-center rounded-xl bg-white p-3'
     >
@@ -187,7 +187,7 @@ export function TwoFactorSetup({account, onDone}: TwoFactorSetupProps) {
           {t.twoFactor.scanIntro}
         </p>
         <div className='flex flex-col gap-4'>
-          <QrCode text={step.totpUri} />
+          <QrCode text={step.totpUri} label={t.twoFactor.qrCode} />
           <div className={`${CARD} flex flex-col gap-1`}>
             <span className='text-sm font-semibold text-theme-muted'>
               {t.twoFactor.manualKey}

@@ -41,6 +41,7 @@ import {ActionRow, Badge} from '@/admin/Rows';
 import {SECTION_LABEL} from '@/admin/styles';
 import {useConfirmLeave} from '@/admin/unsaved';
 import {authClient} from '@/auth/client';
+import {signOut} from '@/auth/signOut';
 import {Account} from '@/components/Account';
 import {FieldProblem} from '@/components/FieldProblem';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
@@ -409,10 +410,6 @@ function ChangePassword() {
   );
 }
 
-async function signOutAdmin() {
-  await authClient.signOut();
-}
-
 type Page = OrganizationSection;
 
 const ORGANIZATION_PAGES = [
@@ -647,7 +644,7 @@ export function AdminOrganization() {
   const accountCard = (
     <Account
       signOutFrom={account.organizationName}
-      onSignOut={signOutAdmin}
+      onSignOut={signOut}
       switchTo={
         account.apartment === null
           ? null

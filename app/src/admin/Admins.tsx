@@ -2,7 +2,7 @@ import {checkAdmin, failureMessage} from '@booking/core/admin/drafts';
 import {useProblems} from '@booking/core/admin/useProblems';
 import type {AdminUser} from '@booking/core/api/types';
 import {formatLongDate} from '@booking/core/lib/dates';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import {Icon} from '@/components/Icon';
 import {useState} from 'react';
 import {Pressable, Text, View} from 'react-native';
 
@@ -160,7 +160,7 @@ function AdminRow({
   return (
     <Pressable onPress={onOpen} className={`${row} active:bg-theme-sunk`}>
       {content}
-      <Ionicons name='chevron-forward' size={16} color={theme.faint} />
+      <Icon name='chevron-forward' size={16} color={theme.faint} />
     </Pressable>
   );
 }
@@ -203,7 +203,7 @@ export function Admins({admins, onOpen, onChanged}: AdminsProps) {
           onPress={() => setAdding(true)}
           className={`${PRIMARY_BUTTON} self-start`}
         >
-          <Ionicons name='add' size={18} color={theme.surface} />
+          <Icon name='add' size={18} color={theme.surface} />
           <Text className={PRIMARY_LABEL}>{t.admin.admins.add}</Text>
         </Pressable>
       )}

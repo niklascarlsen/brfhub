@@ -5,7 +5,7 @@ import type {AdminResource} from '@booking/core/api/types';
 import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
 import {localize, type Messages} from '@booking/core/i18n/catalog';
 import {formatDayMonth} from '@booking/core/lib/dates';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import {Icon} from '@/components/Icon';
 import {Pressable, Text, View} from 'react-native';
 
 import {AdminPage} from '@/admin/AdminPage';
@@ -91,7 +91,7 @@ function ResourceRow({
           </Text>
         ) : null}
       </View>
-      <Ionicons name='chevron-forward' size={16} color={theme.faint} />
+      <Icon name='chevron-forward' size={16} color={theme.faint} />
     </Pressable>
   );
 }
@@ -382,7 +382,7 @@ export function AdminResources() {
                 onPress={() => open({tab: 'resources', step: 'new'})}
                 className={PRIMARY_BUTTON}
               >
-                <Ionicons name='add' size={18} color={theme.surface} />
+                <Icon name='add' size={18} color={theme.surface} />
                 <Text className={PRIMARY_LABEL}>
                   {t.admin.resources.newResource}
                 </Text>
@@ -392,7 +392,7 @@ export function AdminResources() {
               onPress={() => open({tab: 'resources', step: 'new-kind'})}
               className={hasKinds ? SECONDARY_BUTTON : PRIMARY_BUTTON}
             >
-              <Ionicons
+              <Icon
                 name='add'
                 size={18}
                 color={hasKinds ? theme.ink : theme.surface}

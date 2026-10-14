@@ -1,5 +1,5 @@
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import {Icon} from '@/components/Icon';
 
 import {AdminAnnouncements} from '@/admin/AdminAnnouncements';
 import {AdminApartments} from '@/admin/AdminApartments';
@@ -28,11 +28,7 @@ export default function AdminTabNavigator() {
         options={{
           title: t.tabs.apartments,
           tabBarIcon: ({color}) => (
-            <Ionicons
-              name='people-outline'
-              size={TAB_ICON_GLYPH}
-              color={color}
-            />
+            <Icon name='people-outline' size={TAB_ICON_GLYPH} color={color} />
           ),
         }}
       />
@@ -42,7 +38,7 @@ export default function AdminTabNavigator() {
         options={{
           title: t.tabs.resources,
           tabBarIcon: ({color}) => (
-            <Ionicons name='grid-outline' size={TAB_ICON_GLYPH} color={color} />
+            <Icon name='grid-outline' size={TAB_ICON_GLYPH} color={color} />
           ),
         }}
       />
@@ -52,7 +48,7 @@ export default function AdminTabNavigator() {
         options={{
           title: t.tabs.announcements,
           tabBarIcon: ({color}) => (
-            <Ionicons
+            <Icon
               name='megaphone-outline'
               size={TAB_ICON_GLYPH}
               color={color}
@@ -66,11 +62,7 @@ export default function AdminTabNavigator() {
         options={{
           title: t.tabs.organization,
           tabBarIcon: ({color}) => (
-            <Ionicons
-              name='settings-outline'
-              size={TAB_ICON_GLYPH}
-              color={color}
-            />
+            <Icon name='settings-outline' size={TAB_ICON_GLYPH} color={color} />
           ),
         }}
       />
