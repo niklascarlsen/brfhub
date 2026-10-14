@@ -24,7 +24,12 @@ export const pushTokenRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request, reply) => {
       const member = await getMember(request);
-      await savePushToken(member.id, request.body.token, request.body.locale);
+      await savePushToken(
+        member.id,
+        member.sessionId,
+        request.body.token,
+        request.body.locale,
+      );
       return reply.code(204).send();
     },
   );

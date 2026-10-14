@@ -248,6 +248,12 @@ export const pushTokens = pgTable('push_tokens', {
   memberId: uuid('member_id')
     .notNull()
     .references(() => members.id),
+  // The sign-in that registered it. Signing out, on the device or
+  // everywhere, ends the session and takes the token with it, also when the
+  // device could not drop it itself.
+  sessionId: text('session_id')
+    .notNull()
+    .references(() => session.id, {onDelete: 'cascade'}),
   // The language the device shows, which its push is written in.
   locale: locale('locale').notNull(),
   createdAt: timestamp('created_at', {withTimezone: true})

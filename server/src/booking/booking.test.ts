@@ -9,8 +9,11 @@ import {
   bookings,
   organizations,
   pushTokens,
+  session,
   subscriptions,
+  user,
 } from '../db/schema.js';
+import {listPushTokens} from '../pushToken/pushToken.service.js';
 import type {Locale} from '../lib/locale.js';
 import {addDays, isoDateIn, slotEndsAt} from '../lib/time.js';
 import {withTimeout} from '../lib/timeout.js';
@@ -27,6 +30,7 @@ import {
   PASSWORD,
   resetDatabase,
   seedOrganization,
+  sessionFor,
   signIn as signInTo,
   waitUntilBlocked,
 } from '../test/fixtures.js';
@@ -1174,8 +1178,18 @@ test('an apartment drops only its own push token', async () => {
   const mine = 'ExponentPushToken[mine]';
   const theirs = 'ExponentPushToken[theirs]';
   await db.insert(pushTokens).values([
-    {token: mine, memberId: memberId(TENANT), locale: 'sv'},
-    {token: theirs, memberId: memberId(NEIGHBOUR), locale: 'sv'},
+    {
+      token: mine,
+      memberId: memberId(TENANT),
+      sessionId: await sessionFor(memberId(TENANT)),
+      locale: 'sv',
+    },
+    {
+      token: theirs,
+      memberId: memberId(NEIGHBOUR),
+      sessionId: await sessionFor(memberId(NEIGHBOUR)),
+      locale: 'sv',
+    },
   ]);
 
   for (const token of [mine, theirs]) {
@@ -1193,6 +1207,91 @@ test('an apartment drops only its own push token', async () => {
     left.map((row) => row.token),
     [theirs],
   );
+});
+
+test('signing out takes the push token of the device with it', async () => {
+  const token = 'ExponentPushToken[signed-out]';
+  const {cookie} = await signIn(emailOf(TENANT));
+  const registered = await server.inject({
+    method: 'POST',
+    url: '/push-tokens',
+    headers: {cookie},
+    payload: {token, locale: 'sv'},
+  });
+  assert.equal(registered.statusCode, 204);
+
+  // The device could not drop it itself, such as with notifications
+  // turned off in the phone's settings.
+  const signedOut = await server.inject({
+    method: 'POST',
+    url: '/auth/sign-out',
+    headers: {origin: ORIGIN, cookie},
+  });
+  assert.equal(signedOut.statusCode, 200);
+
+  assert.deepEqual(
+    await db.select().from(pushTokens).where(eq(pushTokens.token, token)),
+    [],
+  );
+});
+
+test('a device whose session ran out gets no push', async () => {
+  const sessionId = await sessionFor(memberId(TENANT));
+  await db.insert(pushTokens).values({
+    token: 'ExponentPushToken[ran-out]',
+    memberId: memberId(TENANT),
+    sessionId,
+    locale: 'sv',
+  });
+  await db
+    .update(session)
+    .set({expiresAt: sql`now() - interval '1 minute'`})
+    .where(eq(session.id, sessionId));
+
+  const tokens = await listPushTokens([memberId(TENANT)]);
+
+  assert.equal(
+    tokens.some((row) => row.token === 'ExponentPushToken[ran-out]'),
+    false,
+  );
+});
+
+test('a device an admin who lives here signed in on a week ago gets no push', async () => {
+  const token = 'ExponentPushToken[admin-week]';
+  const sessionId = await sessionFor(memberId(TENANT));
+  await db.insert(pushTokens).values({
+    token,
+    memberId: memberId(TENANT),
+    sessionId,
+    locale: 'sv',
+  });
+  // Used since, so Better Auth has kept it from running out.
+  await db
+    .update(session)
+    .set({createdAt: sql`now() - interval '8 days'`})
+    .where(eq(session.id, sessionId));
+  const listed = async () =>
+    (await listPushTokens([memberId(TENANT)])).some(
+      (row) => row.token === token,
+    );
+
+  // A resident stays signed in for as long as the app is used.
+  assert.equal(await listed(), true);
+
+  const [account] = await db
+    .update(user)
+    .set({admin: true})
+    .where(eq(user.memberId, memberId(TENANT)))
+    .returning({id: user.id});
+  try {
+    assert.equal(await listed(), false);
+  } finally {
+    await db
+      .update(user)
+      .set({admin: false})
+      .where(eq(user.id, account?.id ?? ''));
+    await db.delete(pushTokens).where(eq(pushTokens.token, token));
+  }
 });
 
 test('a device registers its token in its language and can switch', async () => {
@@ -1246,10 +1345,13 @@ test('the released slot is announced in each device language', () => {
   });
 });
 
-function addDevice(label: string, locale: Locale = 'sv') {
-  return db
-    .insert(pushTokens)
-    .values({token: `${label}-device`, memberId: memberId(label), locale});
+async function addDevice(label: string, locale: Locale = 'sv') {
+  await db.insert(pushTokens).values({
+    token: `${label}-device`,
+    memberId: memberId(label),
+    sessionId: await sessionFor(memberId(label)),
+    locale,
+  });
 }
 
 // What the push service was handed once every send has run, by device.

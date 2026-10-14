@@ -9,6 +9,7 @@ import {
   resourceKinds,
   resourceSlots,
   resources,
+  session,
   user,
 } from '../db/schema.js';
 import type {Locale} from '../lib/locale.js';
@@ -261,6 +262,29 @@ export async function signIn(server: Server, email: string, password?: string) {
   });
 
   return {response, cookie: cookieFrom(response)};
+}
+
+// A device signed in for the apartment, for a push token to be bound to.
+export async function sessionFor(memberId: string): Promise<string> {
+  const [account] = await db
+    .select({id: user.id})
+    .from(user)
+    .where(eq(user.memberId, memberId));
+
+  if (!account) {
+    throw new Error(`No account for member ${memberId}`);
+  }
+
+  const id = crypto.randomUUID();
+  await db.insert(session).values({
+    id,
+    userId: account.id,
+    token: id,
+    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    updatedAt: new Date(),
+  });
+
+  return id;
 }
 
 export function codeOf(response: {json: <T>() => T}) {

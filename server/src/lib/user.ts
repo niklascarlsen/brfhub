@@ -24,6 +24,8 @@ export type Member = Organization & {
   label: string;
   // The account signed in for the apartment.
   userId: string;
+  // The sign-in, which the device's push token goes with.
+  sessionId: string;
 };
 
 export type Admin = Organization & {
@@ -99,7 +101,9 @@ export async function getSignedIn(request: FastifyRequest): Promise<SignedIn> {
         )
     : [];
 
-  const member = apartment ? {...common, ...apartment, userId: user.id} : null;
+  const member = apartment
+    ? {...common, ...apartment, userId: user.id, sessionId: session.session.id}
+    : null;
   const admin = user.admin
     ? {
         ...common,

@@ -23,6 +23,7 @@ import {
   PASSWORD,
   resetDatabase,
   seedOrganization,
+  sessionFor,
   signIn,
   waitUntilBlocked,
 } from '../test/fixtures.js';
@@ -469,9 +470,12 @@ let tokenCount = 0;
 async function insertToken(label: string) {
   tokenCount += 1;
   const token = `ExponentPushToken[${label}-${tokenCount}]`;
-  await db
-    .insert(pushTokens)
-    .values({token, memberId: ids.get(label) ?? '', locale: 'sv'});
+  await db.insert(pushTokens).values({
+    token,
+    memberId: ids.get(label) ?? '',
+    sessionId: await sessionFor(ids.get(label) ?? ''),
+    locale: 'sv',
+  });
   return token;
 }
 
@@ -609,6 +613,8 @@ test('an account replaced while it waited cannot book', async () => {
         locale: 'sv',
         label: '34',
         userId: old?.userId ?? '',
+        // A session the move-out ended.
+        sessionId: '',
       },
       date: inDays(2),
       start: SLOT.start,

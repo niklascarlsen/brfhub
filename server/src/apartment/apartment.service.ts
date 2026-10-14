@@ -10,7 +10,6 @@ import {
   bookings,
   members,
   organizations,
-  pushTokens,
   subscriptions,
   user,
 } from '../db/schema.js';
@@ -221,15 +220,9 @@ async function detachAccount(
   }
 }
 
-// A device that got the apartment's push keeps getting it until its token
-// goes, even signed out.
-async function signOutEverywhere(
-  tx: Transaction,
-  account: {userId: string},
-  memberId: string,
-) {
+// The sessions take the devices' push tokens with them.
+async function signOutEverywhere(tx: Transaction, account: {userId: string}) {
   await endSessions(account.userId, tx);
-  await tx.delete(pushTokens).where(eq(pushTokens.memberId, memberId));
 }
 
 // The resident is told by mail that they can sign in, once the apartment
@@ -309,7 +302,7 @@ export async function updateApartment(
 
       // A new address is a new person signing in: whoever used the old
       // one is signed out. The bookings stay with the apartment.
-      await signOutEverywhere(tx, account, id);
+      await signOutEverywhere(tx, account);
       const admin = await adminWithoutApartment(tx, organizationId, body.email);
 
       if (admin !== null) {
@@ -343,7 +336,7 @@ export async function signOutApartment(
 ): Promise<string> {
   return db.transaction(async (tx) => {
     const account = await lockApartment(tx, organizationId, id);
-    await signOutEverywhere(tx, account, id);
+    await signOutEverywhere(tx, account);
     return account.label;
   });
 }
@@ -364,7 +357,6 @@ async function clearResident(tx: Transaction, memberId: string) {
   }
 
   await tx.delete(subscriptions).where(eq(subscriptions.memberId, memberId));
-  await tx.delete(pushTokens).where(eq(pushTokens.memberId, memberId));
 }
 
 export async function replaceResident(

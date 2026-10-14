@@ -18,14 +18,17 @@ const API_URL = process.env.API_URL ?? 'http://localhost:3000';
 // npm run push:test -- [organization] [watching apartment]
 const ORGANIZATION_ID = process.argv[2] ?? 'demo';
 const WATCHER = process.argv[3] ?? '12';
-// The accounts seed.ts creates.
-const PASSWORD = 'password';
+
+// The password seed.ts gives every admin.
+const ADMIN_PASSWORD = 'password';
 
 const sessions = new Map<string, string>();
 
-async function emailOf(apartment: string): Promise<string> {
+async function accountOf(
+  apartment: string,
+): Promise<{email: string; admin: boolean}> {
   const [row] = await db
-    .select({email: user.email})
+    .select({email: user.email, admin: user.admin})
     .from(user)
     .innerJoin(members, eq(members.id, user.memberId))
     .where(
@@ -41,7 +44,14 @@ async function emailOf(apartment: string): Promise<string> {
     );
   }
 
-  return row.email;
+  return row;
+}
+
+function cookieOf(response: Response): string {
+  return response.headers
+    .getSetCookie()
+    .map((entry) => entry.split(';')[0])
+    .join('; ');
 }
 
 async function signIn(apartment: string): Promise<string> {
@@ -51,18 +61,65 @@ async function signIn(apartment: string): Promise<string> {
     return known;
   }
 
-  // Better Auth refuses a POST without an Origin, which fetch does not set.
-  const response = await fetch(`${API_URL}/auth/sign-in/email`, {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      origin: process.env.WEB_ORIGIN ?? API_URL,
-    },
-    body: JSON.stringify({
-      email: await emailOf(apartment),
-      password: PASSWORD,
-    }),
-  });
+  // A resident signs in with a mailed code, an admin who lives here with
+  // the password and then the authenticator. /dev/codes tells both while
+  // the dev server fills codes in. Better Auth refuses a POST without an
+  // Origin, which fetch does not set.
+  const {email, admin} = await accountOf(apartment);
+  const post = (path: string, body: object, cookie?: string) =>
+    fetch(`${API_URL}${path}`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        origin: process.env.WEB_ORIGIN ?? API_URL,
+        ...(cookie ? {cookie} : {}),
+      },
+      body: JSON.stringify(body),
+    });
+  const devCodes = async () => {
+    const codes = await fetch(
+      `${API_URL}/dev/codes?email=${encodeURIComponent(email)}`,
+    );
+
+    if (!codes.ok) {
+      throw new Error(
+        `no sign-in code for ${apartment}: the dev server must run with DEV_SIGN_IN on`,
+      );
+    }
+
+    return (await codes.json()) as {mailed: string; totp: string | null};
+  };
+
+  let response: Response;
+  if (admin) {
+    const signedIn = await post('/auth/sign-in/email', {
+      email,
+      password: ADMIN_PASSWORD,
+    });
+    const asked =
+      signedIn.ok &&
+      ((await signedIn.clone().json()) as {twoFactorRedirect?: boolean})
+        .twoFactorRedirect === true;
+
+    // An admin without an authenticator is signed in by the password alone.
+    if (asked) {
+      const {totp} = await devCodes();
+      response = await post(
+        '/auth/two-factor/verify-totp',
+        {code: totp},
+        cookieOf(signedIn),
+      );
+    } else {
+      response = signedIn;
+    }
+  } else {
+    await post('/auth/email-otp/send-verification-otp', {
+      email,
+      type: 'sign-in',
+    });
+    const {mailed} = await devCodes();
+    response = await post('/auth/sign-in/email-otp', {email, otp: mailed});
+  }
 
   if (!response.ok) {
     throw new Error(
@@ -70,10 +127,7 @@ async function signIn(apartment: string): Promise<string> {
     );
   }
 
-  const cookie = response.headers
-    .getSetCookie()
-    .map((entry) => entry.split(';')[0])
-    .join('; ');
+  const cookie = cookieOf(response);
   sessions.set(apartment, cookie);
 
   return cookie;
@@ -173,7 +227,9 @@ try {
 
   if (tokens === 0) {
     console.log(`No push token for apartment ${WATCHER}.`);
-    console.log('Restart the app so it registers one, then run this again.');
+    console.log(
+      'Sign in to the app as it with notifications allowed, then run this again.',
+    );
   } else {
     console.log(
       `Released for ${tokens} device token(s). The server sends push after answering, so watch the emulator, and the server log if nothing comes.`,
