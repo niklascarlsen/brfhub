@@ -4,7 +4,6 @@ import {db} from '../db/index.js';
 import {capsByKind, heldBookingsByKind, heldOf} from '../booking/held.js';
 import {queue} from '../booking/lifecycle.js';
 import {bookings, resources, subscriptions} from '../db/schema.js';
-import {appError} from '../lib/errors.js';
 import {asIsoText, notExpired, slotHasStarted} from '../lib/time.js';
 import type {Member} from '../lib/user.js';
 import {resourceRefFields} from '../resource/resource.service.js';
@@ -73,24 +72,13 @@ export function createSubscription(
   return queue(subscription);
 }
 
+// Already gone is done, as for a cancelled booking, and so is another
+// apartment's place: an id tells nothing about anyone else's.
 export async function deleteSubscription(
   id: string,
   memberId: string,
 ): Promise<void> {
-  const existing = await db
-    .select({memberId: subscriptions.memberId})
-    .from(subscriptions)
-    .where(eq(subscriptions.id, id))
-    .then((rows) => rows[0]);
-
-  // Already gone is done, as for a cancelled booking.
-  if (!existing) {
-    return;
-  }
-
-  if (existing.memberId !== memberId) {
-    throw appError('FORBIDDEN', 'Not your subscription');
-  }
-
-  await db.delete(subscriptions).where(eq(subscriptions.id, id));
+  await db
+    .delete(subscriptions)
+    .where(and(eq(subscriptions.id, id), eq(subscriptions.memberId, memberId)));
 }

@@ -1,6 +1,8 @@
 import {z} from 'zod';
 
-const nameSchema = z.string().trim().min(1).max(100);
+import {textSchema} from '../lib/text.js';
+
+const nameSchema = textSchema(100);
 // Trimmed and lower-cased before it is checked, as people type it.
 const emailSchema = z.string().trim().toLowerCase().pipe(z.email());
 

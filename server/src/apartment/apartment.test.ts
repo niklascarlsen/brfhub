@@ -329,6 +329,31 @@ test('an apartment has no password to sign in with', async () => {
   assert.equal((await cookieOf(northEmail('12'), PASSWORD)).status, 401);
 });
 
+test('refuses control characters in a number or a name', async () => {
+  const admin = await cookieOf('admin@north.example.com');
+
+  for (const body of [
+    {label: '9\n9', residentName: 'Nia', email: northEmail('control')},
+    {label: '99', residentName: 'Nia\u202eaiN', email: northEmail('control')},
+  ]) {
+    const response = await call('POST', '/admin/apartments', admin, body);
+    assert.equal(response.statusCode, 400, JSON.stringify(body));
+    assert.equal(codeOf(response), 'VALIDATION');
+  }
+
+  // A tab pasted from a spreadsheet is a space.
+  const pasted = await call('POST', '/admin/apartments', admin, {
+    label: '99',
+    residentName: 'Nia\tNilsson',
+    email: northEmail('pasted'),
+  });
+  assert.equal(pasted.statusCode, 201, pasted.body);
+  assert.equal(
+    pasted.json<{residentName: string}>().residentName,
+    'Nia Nilsson',
+  );
+});
+
 test('refuses a taken number or email and adds nothing', async () => {
   const before = (await apartmentsOf(admin)).length;
 

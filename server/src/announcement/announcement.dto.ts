@@ -29,7 +29,7 @@ export const adminAnnouncementsSchema = z.object({
 // server sets it.
 export const announcementBodySchema = z.object({
   title: localizedInputSchema(100),
-  body: localizedInputSchema(2000),
+  body: localizedInputSchema(2000, {multiline: true}),
   endsOn: z.iso.date().nullable(),
 });
 

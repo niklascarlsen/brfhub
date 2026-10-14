@@ -3,6 +3,7 @@ import type {PgColumn} from 'drizzle-orm/pg-core';
 import {z} from 'zod';
 
 import {appError} from './errors.js';
+import {optionalTextSchema, textSchema, type TextOptions} from './text.js';
 
 // The languages the clients are written in. A device picks one and the
 // server writes what it sends that device, such as push, in it.
@@ -76,13 +77,16 @@ export type LocalizedTags = z.infer<typeof localizedTagsSchema>;
 
 // What the admin sends: text that must be there in every language the
 // organization uses, and nothing in any other.
-export function localizedInputSchema(maxLength: number) {
-  return perLocale(z.string().trim().min(1).max(maxLength));
+export function localizedInputSchema(maxLength: number, options?: TextOptions) {
+  return perLocale(textSchema(maxLength, options));
 }
 
 // The same for text that may be left out, in every language at once.
-export function optionalLocalizedInputSchema(maxLength: number) {
-  return perLocale(z.string().trim().max(maxLength));
+export function optionalLocalizedInputSchema(
+  maxLength: number,
+  options?: TextOptions,
+) {
+  return perLocale(optionalTextSchema(maxLength, options));
 }
 
 function hasValue(value: string | string[] | undefined): boolean {

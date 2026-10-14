@@ -66,7 +66,7 @@ export const sv = {
     OWN_ACCOUNT: 'Det går inte att göra med ditt eget konto',
     NOT_FOUND: 'Hittades inte',
     UNAUTHORIZED: 'Du är inte inloggad',
-    FORBIDDEN: 'Det där är inte din bokning',
+    FORBIDDEN: 'Det där får ditt konto inte göra',
     VALIDATION: 'Ogiltig förfrågan',
     NETWORK: 'Ingen kontakt med servern',
     TIMEOUT: 'Servern svarade inte i tid, försök igen',

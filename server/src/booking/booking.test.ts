@@ -4,6 +4,7 @@ import {after, before, beforeEach, test} from 'node:test';
 import {eq, sql} from 'drizzle-orm';
 
 import {buildApp} from '../app.js';
+import {PUSH_TOKENS_PER_APARTMENT} from '../pushToken/pushToken.service.js';
 import {db, pool} from '../db/index.js';
 import {
   bookings,
@@ -538,19 +539,34 @@ test('opening an already released booking is a no-op', async () => {
   assert.equal(kept?.released, true);
 });
 
-test('rejects cancelling another apartment booking', async () => {
+test("cancelling another apartment's booking does nothing, and says nothing", async () => {
   const created = await book(NEIGHBOUR, {
     date: bookableDate,
     start: '07:00',
   });
 
+  // Answered like an unknown id, so an id tells nothing about anyone else.
   const response = await cancel(TENANT, created.json<CreatedBooking>().id);
-
-  assert.equal(response.statusCode, 403);
-  assert.equal(codeOf(response), 'FORBIDDEN');
+  assert.equal(response.statusCode, 204);
 
   const theirs = await myBookings(NEIGHBOUR);
   assert.equal(theirs.json<Booking[]>().length, 1);
+});
+
+test("leaving another apartment's queue place does nothing, and says nothing", async () => {
+  await book(TENANT, {date: bookableDate, start: '07:00'});
+  const queued = await subscribe(NEIGHBOUR, {
+    date: bookableDate,
+    start: '07:00',
+  });
+  assert.equal(queued.statusCode, 201);
+  const {id} = queued.json<Subscription>();
+
+  const response = await unsubscribe(TENANT, id);
+  assert.equal(response.statusCode, 204);
+
+  const theirs = await mySubscriptions(NEIGHBOUR);
+  assert.equal(theirs.json<Subscription[]>().length, 1);
 });
 
 test('cancelling a booking already gone is done', async () => {
@@ -1207,6 +1223,56 @@ test('an apartment drops only its own push token', async () => {
     left.map((row) => row.token),
     [theirs],
   );
+});
+
+test('a push token has the form of one, and an apartment keeps the newest', async () => {
+  const {cookie} = await signIn(emailOf(TENANT));
+  const register = (token: string) =>
+    server.inject({
+      method: 'POST',
+      url: '/push-tokens',
+      headers: {cookie},
+      payload: {token, locale: 'sv'},
+    });
+
+  for (const token of [
+    'anything',
+    '{"endpoint":"http://push.example.com/x","keys":{"p256dh":"a","auth":"b"}}',
+    '{"endpoint":"https://push.example.com/x"}',
+    `ExponentPushToken[${'x'.repeat(1000)}]`,
+  ]) {
+    assert.equal((await register(token)).statusCode, 400, token.slice(0, 40));
+  }
+
+  const web =
+    '{"endpoint":"https://push.example.com/x","keys":{"p256dh":"a","auth":"b"}}';
+  assert.equal((await register(web)).statusCode, 204);
+
+  for (let i = 0; i < PUSH_TOKENS_PER_APARTMENT; i++) {
+    assert.equal(
+      (await register(`ExponentPushToken[device-${i}]`)).statusCode,
+      204,
+    );
+  }
+
+  // The web subscription was the oldest, and is the one to go.
+  const kept = await db
+    .select({token: pushTokens.token})
+    .from(pushTokens)
+    .where(eq(pushTokens.memberId, memberId(TENANT)));
+  assert.equal(kept.length, PUSH_TOKENS_PER_APARTMENT);
+  assert.ok(!kept.some((row) => row.token === web));
+  assert.ok(kept.some((row) => row.token === 'ExponentPushToken[device-0]'));
+
+  // Sent again, a token counts as the newest.
+  assert.equal((await register('ExponentPushToken[device-0]')).statusCode, 204);
+  assert.equal((await register(web)).statusCode, 204);
+  const after = await db
+    .select({token: pushTokens.token})
+    .from(pushTokens)
+    .where(eq(pushTokens.memberId, memberId(TENANT)));
+  assert.ok(after.some((row) => row.token === 'ExponentPushToken[device-0]'));
+  assert.ok(!after.some((row) => row.token === 'ExponentPushToken[device-1]'));
 });
 
 test('signing out takes the push token of the device with it', async () => {

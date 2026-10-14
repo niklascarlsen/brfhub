@@ -76,7 +76,7 @@ export const limits = {
   },
   DropPushTokenBody: {
     token: {
-      minLength: 1,
+      maxLength: 1000,
     },
   },
   NewResidentBody: {
@@ -87,7 +87,7 @@ export const limits = {
   },
   PushTokenBody: {
     token: {
-      minLength: 1,
+      maxLength: 1000,
     },
   },
   PutScheduleBody: {

@@ -1056,7 +1056,7 @@
         "properties": {
           "token": {
             "type": "string",
-            "minLength": 1
+            "maxLength": 1000
           },
           "locale": {
             "$ref": "#/components/schemas/LocaleInput"
@@ -1072,7 +1072,7 @@
         "properties": {
           "token": {
             "type": "string",
-            "minLength": 1
+            "maxLength": 1000
           }
         },
         "required": [
@@ -2823,7 +2823,7 @@
         "properties": {
           "token": {
             "type": "string",
-            "minLength": 1
+            "maxLength": 1000
           },
           "locale": {
             "$ref": "#/components/schemas/Locale"
@@ -2840,7 +2840,7 @@
         "properties": {
           "token": {
             "type": "string",
-            "minLength": 1
+            "maxLength": 1000
           }
         },
         "required": [

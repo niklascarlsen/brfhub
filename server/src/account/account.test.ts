@@ -275,13 +275,16 @@ test('an admin cannot use what only apartments use', async () => {
 
 // Only the fields marked input: false keep an apartment from making
 // itself admin, or moving into another organization, through Better Auth.
-test('nobody can change their own role, organization or apartment', async () => {
+test('nobody can change their own role, organization, apartment or name', async () => {
   const headers = await cookieOf(northEmail('1'));
 
+  // The name is the admin's to set, with its text checked; the rest Better
+  // Auth would refuse on its own, as fields no request may set.
   for (const field of [
     {admin: true},
     {organizationId: SOUTH.id},
     {memberId: ids.get('south-1') ?? ''},
+    {name: 'Nia\u202eaiN'},
   ]) {
     const response = await server.inject({
       method: 'POST',
@@ -289,7 +292,7 @@ test('nobody can change their own role, organization or apartment', async () => 
       headers: {...headers, origin: ORIGIN},
       payload: field,
     });
-    assert.equal(response.statusCode, 400, JSON.stringify(field));
+    assert.equal(response.statusCode, 403, JSON.stringify(field));
   }
 
   const account = await get('/account', headers);
