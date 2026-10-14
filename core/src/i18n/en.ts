@@ -65,6 +65,7 @@ export const en: Messages = {
     NETWORK: 'Cannot reach the server',
     TIMEOUT: 'The server did not answer in time, try again',
     SERVER_ERROR: 'Something went wrong on the server, try again shortly',
+    RATE_LIMITED: 'Too many attempts, wait a minute',
     UNKNOWN: 'Something went wrong',
   },
   login: {

@@ -23,12 +23,18 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
     url: `${AUTH_PATH}/*`,
     schema: {hide: true},
     async handler(request, reply) {
+      const headers = fromNodeHeaders(request.headers);
+      // Better Auth rate limits and records sessions by the client address
+      // it reads from this header. Fastify has already decided which hops
+      // to believe (trustProxy), so its answer replaces whatever was sent.
+      headers.set('x-forwarded-for', request.ip);
+
       const response = await auth.handler(
         new Request(
           new URL(request.url, `${request.protocol}://${request.host}`),
           {
             method: request.method,
-            headers: fromNodeHeaders(request.headers),
+            headers,
             body:
               request.body === undefined ? null : JSON.stringify(request.body),
           },
@@ -55,6 +61,9 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
   app.post(
     '/sign-in/method',
     {
+      // Costs nothing to ask and says which addresses are admins, so it is
+      // the one route counted as tightly as a sign-in.
+      config: {rateLimit: {max: 10, timeWindow: '1 minute'}},
       schema: {
         body: signInMethodBodySchema,
         response: {200: signInMethodSchema, ...errorResponses},

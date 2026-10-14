@@ -81,6 +81,15 @@ export interface paths {
           };
         };
         /** @description Default Response */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
         500: {
           headers: {
             [name: string]: unknown;
@@ -160,6 +169,15 @@ export interface paths {
         };
         /** @description Default Response */
         409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
+        429: {
           headers: {
             [name: string]: unknown;
           };
@@ -257,6 +275,15 @@ export interface paths {
           };
         };
         /** @description Default Response */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
         500: {
           headers: {
             [name: string]: unknown;
@@ -328,6 +355,15 @@ export interface paths {
         };
         /** @description Default Response */
         409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
+        429: {
           headers: {
             [name: string]: unknown;
           };
@@ -426,6 +462,15 @@ export interface paths {
           };
         };
         /** @description Default Response */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
         500: {
           headers: {
             [name: string]: unknown;
@@ -500,6 +545,15 @@ export interface paths {
         };
         /** @description Default Response */
         409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
+        429: {
           headers: {
             [name: string]: unknown;
           };
@@ -585,6 +639,15 @@ export interface paths {
         };
         /** @description Default Response */
         409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
+        429: {
           headers: {
             [name: string]: unknown;
           };
@@ -688,6 +751,15 @@ export interface paths {
           };
         };
         /** @description Default Response */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
         500: {
           headers: {
             [name: string]: unknown;
@@ -775,6 +847,15 @@ export interface paths {
           };
         };
         /** @description Default Response */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
         500: {
           headers: {
             [name: string]: unknown;
@@ -846,6 +927,15 @@ export interface paths {
         };
         /** @description Default Response */
         409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
+        429: {
           headers: {
             [name: string]: unknown;
           };
@@ -944,6 +1034,15 @@ export interface paths {
           };
         };
         /** @description Default Response */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
         500: {
           headers: {
             [name: string]: unknown;
@@ -1032,6 +1131,15 @@ export interface paths {
           };
         };
         /** @description Default Response */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
         500: {
           headers: {
             [name: string]: unknown;
@@ -1111,6 +1219,15 @@ export interface paths {
         };
         /** @description Default Response */
         409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
+        429: {
           headers: {
             [name: string]: unknown;
           };
@@ -1208,6 +1325,15 @@ export interface paths {
           };
         };
         /** @description Default Response */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
         500: {
           headers: {
             [name: string]: unknown;
@@ -1281,6 +1407,15 @@ export interface paths {
         };
         /** @description Default Response */
         409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
+        429: {
           headers: {
             [name: string]: unknown;
           };
@@ -1384,6 +1519,15 @@ export interface paths {
           };
         };
         /** @description Default Response */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
         500: {
           headers: {
             [name: string]: unknown;
@@ -1474,6 +1618,15 @@ export interface paths {
           };
         };
         /** @description Default Response */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
         500: {
           headers: {
             [name: string]: unknown;
@@ -1546,6 +1699,15 @@ export interface paths {
         };
         /** @description Default Response */
         409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
+        429: {
           headers: {
             [name: string]: unknown;
           };
@@ -1632,6 +1794,15 @@ export interface paths {
         };
         /** @description Default Response */
         409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
+        429: {
           headers: {
             [name: string]: unknown;
           };
@@ -1738,6 +1909,15 @@ export interface paths {
           };
         };
         /** @description Default Response */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
         500: {
           headers: {
             [name: string]: unknown;
@@ -1818,6 +1998,15 @@ export interface paths {
         };
         /** @description Default Response */
         409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
+        429: {
           headers: {
             [name: string]: unknown;
           };
@@ -1918,6 +2107,15 @@ export interface paths {
           };
         };
         /** @description Default Response */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
         500: {
           headers: {
             [name: string]: unknown;
@@ -2009,6 +2207,15 @@ export interface paths {
           };
         };
         /** @description Default Response */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
         500: {
           headers: {
             [name: string]: unknown;
@@ -2076,6 +2283,15 @@ export interface paths {
         };
         /** @description Default Response */
         409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
+        429: {
           headers: {
             [name: string]: unknown;
           };
@@ -2170,6 +2386,15 @@ export interface paths {
           };
         };
         /** @description Default Response */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
         500: {
           headers: {
             [name: string]: unknown;
@@ -2253,6 +2478,15 @@ export interface paths {
           };
         };
         /** @description Default Response */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
         500: {
           headers: {
             [name: string]: unknown;
@@ -2328,6 +2562,15 @@ export interface paths {
         };
         /** @description Default Response */
         409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
+        429: {
           headers: {
             [name: string]: unknown;
           };
@@ -2425,6 +2668,15 @@ export interface paths {
           };
         };
         /** @description Default Response */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
         500: {
           headers: {
             [name: string]: unknown;
@@ -2499,6 +2751,15 @@ export interface paths {
         };
         /** @description Default Response */
         409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
+        429: {
           headers: {
             [name: string]: unknown;
           };
@@ -2599,6 +2860,15 @@ export interface paths {
           };
         };
         /** @description Default Response */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
         500: {
           headers: {
             [name: string]: unknown;
@@ -2666,6 +2936,15 @@ export interface paths {
         };
         /** @description Default Response */
         409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
+        429: {
           headers: {
             [name: string]: unknown;
           };
@@ -2760,6 +3039,15 @@ export interface paths {
           };
         };
         /** @description Default Response */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
         500: {
           headers: {
             [name: string]: unknown;
@@ -2841,6 +3129,15 @@ export interface paths {
         };
         /** @description Default Response */
         409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
+        429: {
           headers: {
             [name: string]: unknown;
           };
@@ -2942,6 +3239,15 @@ export interface paths {
           };
         };
         /** @description Default Response */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
         500: {
           headers: {
             [name: string]: unknown;
@@ -3026,6 +3332,15 @@ export interface paths {
         };
         /** @description Default Response */
         409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
+        429: {
           headers: {
             [name: string]: unknown;
           };
@@ -3123,6 +3438,15 @@ export interface paths {
           };
         };
         /** @description Default Response */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
         500: {
           headers: {
             [name: string]: unknown;
@@ -3212,6 +3536,15 @@ export interface paths {
           };
         };
         /** @description Default Response */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
         500: {
           headers: {
             [name: string]: unknown;
@@ -3283,6 +3616,15 @@ export interface paths {
         };
         /** @description Default Response */
         409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
+        429: {
           headers: {
             [name: string]: unknown;
           };
@@ -3381,6 +3723,15 @@ export interface paths {
           };
         };
         /** @description Default Response */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
         500: {
           headers: {
             [name: string]: unknown;
@@ -3467,6 +3818,15 @@ export interface paths {
           };
         };
         /** @description Default Response */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
         500: {
           headers: {
             [name: string]: unknown;
@@ -3538,6 +3898,15 @@ export interface paths {
         };
         /** @description Default Response */
         409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
+        429: {
           headers: {
             [name: string]: unknown;
           };
@@ -3636,6 +4005,15 @@ export interface paths {
           };
         };
         /** @description Default Response */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
         500: {
           headers: {
             [name: string]: unknown;
@@ -3726,6 +4104,15 @@ export interface paths {
           };
         };
         /** @description Default Response */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
         500: {
           headers: {
             [name: string]: unknown;
@@ -3802,6 +4189,15 @@ export interface paths {
           };
         };
         /** @description Default Response */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
         500: {
           headers: {
             [name: string]: unknown;
@@ -3846,6 +4242,7 @@ export interface components {
         | 'UNAUTHORIZED'
         | 'FORBIDDEN'
         | 'VALIDATION'
+        | 'RATE_LIMITED'
         | 'UNKNOWN';
     };
     /** @enum {string} */
@@ -4286,6 +4683,7 @@ export interface components {
         | 'UNAUTHORIZED'
         | 'FORBIDDEN'
         | 'VALIDATION'
+        | 'RATE_LIMITED'
         | 'UNKNOWN';
     };
     /** @enum {string} */

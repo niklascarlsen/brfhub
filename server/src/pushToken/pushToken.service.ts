@@ -1,7 +1,7 @@
 import {and, eq, gt, inArray, not, or, sql} from 'drizzle-orm';
 
 import {db} from '../db/index.js';
-import {ADMIN_SESSION_DAYS} from '../auth/auth.js';
+import {ADMIN_SESSION_DAYS} from '../auth/sessions.js';
 import {pushTokens, session, user} from '../db/schema.js';
 import type {Locale} from '../lib/locale.js';
 
