@@ -6,6 +6,7 @@ import {
   localizedTextSchema,
   perLocale,
 } from '../lib/locale.js';
+import {textSchema} from '../lib/text.js';
 
 const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 
@@ -52,7 +53,7 @@ const kindNameSchema = localizedInputSchema(40);
 const maxActiveSchema = z.number().int().min(1).max(10);
 const resourceNameSchema = localizedInputSchema(40);
 // Up to five per language, in every language or in none.
-const tagsSchema = perLocale(z.string().trim().min(1).max(30).array().max(5));
+const tagsSchema = perLocale(textSchema(30).array().max(5));
 
 export const createKindBodySchema = z.object({
   name: kindNameSchema,

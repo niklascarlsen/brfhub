@@ -228,6 +228,26 @@ test('an ended announcement can still have its text corrected', async () => {
   await db.delete(announcements).where(eq(announcements.id, id));
 });
 
+test('a body keeps its line breaks, a title has none', async () => {
+  const lines = await call('POST', '/admin/announcements', admin, {
+    title: {sv: 'Städdag'},
+    body: {sv: 'Lördag.\n\nTa med handskar.'},
+    endsOn: null,
+  });
+  assert.equal(lines.statusCode, 201, lines.body);
+
+  for (const body of [
+    {title: {sv: 'Städ\ndag'}, body: {sv: 'Lördag'}},
+    {title: {sv: 'Städdag'}, body: {sv: 'Lör\u0007dag'}},
+  ]) {
+    const response = await call('POST', '/admin/announcements', admin, {
+      ...body,
+      endsOn: null,
+    });
+    assert.equal(response.statusCode, 400, JSON.stringify(body));
+  }
+});
+
 test('refuses empty, blank and too long texts', async () => {
   const cases = [
     {title: {sv: '   '}, body: {sv: 'Text'}},

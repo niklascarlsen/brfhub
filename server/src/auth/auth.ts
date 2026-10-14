@@ -84,15 +84,18 @@ async function forgetThisDevice(ctx: HookContext): Promise<void> {
   expireCookie(ctx, cookie);
 }
 
-// Better Auth's routes that would hand an admin what the authenticator
-// knows: turning it off, its secret for another app, fresh backup codes.
-// A stolen trusted device with the password could then pass the second
-// step from anywhere. Only a colleague's reset takes the authenticator
-// away, and the clients call none of these.
-const AUTHENTICATOR_ROUTES = new Set([
+// Better Auth's routes the account may not use. The authenticator's:
+// turning it off, its secret for another app, fresh backup codes, with
+// which a stolen trusted device plus the password could pass the second
+// step from anywhere; only a colleague's reset takes it away. And
+// update-user: the name is the admin's to set, through the apartment and
+// admin forms whose text is checked, not the account's own. The clients
+// call none of these.
+const REFUSED_ROUTES = new Set([
   '/two-factor/disable',
   '/two-factor/get-totp-uri',
   '/two-factor/generate-backup-codes',
+  '/update-user',
 ]);
 
 // The routes a sign-in goes through, on which a stale session cookie left
@@ -187,11 +190,10 @@ export const auth = betterAuth({
   // away, so a stolen trusted device cannot turn it off.
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
-      if (AUTHENTICATOR_ROUTES.has(ctx.path)) {
+      if (REFUSED_ROUTES.has(ctx.path)) {
         throw new APIError('FORBIDDEN', {
-          message:
-            'Two-factor authentication can only be reset by another admin',
-          code: 'TWO_FACTOR_RESET_ONLY',
+          message: 'Only an admin can change this, from the admin pages',
+          code: 'ADMIN_ONLY',
         });
       }
 

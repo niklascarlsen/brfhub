@@ -60,7 +60,7 @@ export const en: Messages = {
     OWN_ACCOUNT: 'That cannot be done to your own account',
     NOT_FOUND: 'Not found',
     UNAUTHORIZED: 'You are not signed in',
-    FORBIDDEN: 'That is not your booking',
+    FORBIDDEN: 'Your account is not allowed to do that',
     VALIDATION: 'Invalid request',
     NETWORK: 'Cannot reach the server',
     TIMEOUT: 'The server did not answer in time, try again',

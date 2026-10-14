@@ -448,17 +448,14 @@ export async function release(
     await assertHolder(tx, member);
 
     const [booking] = await selectHeld(tx, member.timeZone).where(
-      eq(bookings.id, id),
+      and(eq(bookings.id, id), eq(bookings.memberId, member.id)),
     );
 
     // Already gone is done: the cancel a client retries because its answer
-    // never arrived has done what was asked.
+    // never arrived has done what was asked. Another apartment's booking
+    // is answered the same, so an id tells nothing about anyone else's.
     if (!booking) {
       return [];
-    }
-
-    if (booking.memberId !== member.id) {
-      throw appError('FORBIDDEN', 'Not your booking');
     }
 
     return toldOf([await letGo(tx, booking, member)]);
