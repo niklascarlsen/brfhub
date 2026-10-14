@@ -2,6 +2,7 @@ import {expo} from '@better-auth/expo';
 import {betterAuth} from 'better-auth';
 import {APIError, createAuthMiddleware} from 'better-auth/api';
 import {drizzleAdapter} from 'better-auth/adapters/drizzle';
+import {expireCookie} from 'better-auth/cookies';
 import {emailOTP, twoFactor} from 'better-auth/plugins';
 import {eq} from 'drizzle-orm';
 
@@ -13,6 +14,10 @@ import {forgetTrustedDevices} from './sessions.js';
 
 export const AUTH_PATH = '/auth';
 
+// Better Auth's name for the cookie that lets a device skip the
+// authenticator's code.
+const TRUST_DEVICE_COOKIE = 'trust_device';
+
 const DAY = 60 * 60 * 24;
 
 // Better Auth's own bounds, written out so the type generation can hand
@@ -21,7 +26,11 @@ export const PASSWORD_LENGTH = {min: 8, max: 128};
 
 // An apartment signs in with a code from its mail and stays signed in for
 // as long as it keeps using the app. An admin's session is cut short in
-// getSignedIn, since it opens every apartment.
+// getSignedIn, since it opens every apartment. That is apart from the
+// trusted device: an admin who ticks it signs in again on that device with
+// the password alone for Better Auth's 30 days, counted from the last such
+// sign-in, until they sign out (the after hook below), set a new password
+// or a colleague resets their two-step.
 export const MEMBER_SESSION_DAYS = 180;
 export const ADMIN_SESSION_DAYS = 7;
 
@@ -116,6 +125,31 @@ export const auth = betterAuth({
           code: 'INVALID_OTP',
         });
       }
+    }),
+    // Signing out also stops trusting the device: whoever signs in on it
+    // next gives the authenticator's code, as on a shared computer. The
+    // cookie holds the record's identifier after the last '!'.
+    after: createAuthMiddleware(async (ctx) => {
+      if (ctx.path !== '/sign-out') {
+        return;
+      }
+
+      const cookie = ctx.context.createAuthCookie(TRUST_DEVICE_COOKIE);
+      const value = await ctx.getSignedCookie(cookie.name, ctx.context.secret);
+
+      // Null without the cookie, false when its signature does not hold.
+      if (typeof value !== 'string') {
+        return;
+      }
+
+      const identifier = value.split('!').at(-1);
+      if (identifier) {
+        await ctx.context.internalAdapter.deleteVerificationByIdentifier(
+          identifier,
+        );
+      }
+
+      expireCookie(ctx, cookie);
     }),
   },
   plugins: [

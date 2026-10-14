@@ -460,6 +460,59 @@ test('a reset also forgets the devices trusted to skip the code', async () => {
   );
 });
 
+test('signing out stops trusting the device', async () => {
+  const response = await call('POST', '/admin/admins', admin, {
+    name: 'Sekreteraren',
+    email: 'sekreterare@north.example.com',
+  });
+  const id = response.json<AdminUser>().id;
+  await setPassword(id, PASSWORD);
+  await enrollTwoFactor(id, TOTP_SECRET);
+
+  const signedIn = await server.inject({
+    method: 'POST',
+    url: '/auth/sign-in/email',
+    headers: {origin: ORIGIN},
+    payload: {email: 'sekreterare@north.example.com', password: PASSWORD},
+  });
+  const verified = await server.inject({
+    method: 'POST',
+    url: '/auth/two-factor/verify-totp',
+    headers: {origin: ORIGIN, cookie: cookieFrom(signedIn)},
+    payload: {code: await totpCode(TOTP_SECRET), trustDevice: true},
+  });
+  const cookies = cookieFrom(verified);
+  const trusted = cookies
+    .split('; ')
+    .filter((entry) => entry.includes('trust'))
+    .join('; ');
+  assert.ok(trusted);
+
+  const signedOut = await server.inject({
+    method: 'POST',
+    url: '/auth/sign-out',
+    headers: {origin: ORIGIN, cookie: cookies},
+  });
+  assert.equal(signedOut.statusCode, 200);
+  assert.ok(
+    (signedOut.headers['set-cookie'] as string[]).some(
+      (entry) => entry.includes('trust_device=') && /Max-Age=0/i.test(entry),
+    ),
+  );
+
+  // A device that kept the cookie anyway is asked for the code.
+  const again = await server.inject({
+    method: 'POST',
+    url: '/auth/sign-in/email',
+    headers: {origin: ORIGIN, cookie: trusted},
+    payload: {email: 'sekreterare@north.example.com', password: PASSWORD},
+  });
+  assert.equal(
+    again.json<{twoFactorRedirect?: boolean}>().twoFactorRedirect,
+    true,
+  );
+});
+
 test('a new password ends every session and forgets every trusted device', async () => {
   const response = await call('POST', '/admin/admins', admin, {
     name: 'Revisorn',

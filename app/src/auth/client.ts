@@ -6,12 +6,6 @@ import * as SecureStore from 'expo-secure-store';
 import {API_BASE_URL} from '@/api/baseUrl';
 import {getRequestLocale} from '@/lib/locale';
 
-// Where expoClient keeps the cookies, as JSON by name. Not a public API of
-// @better-auth/expo: check signOut still keeps the trusted device when
-// upgrading it.
-const STORAGE_PREFIX = 'booking';
-export const COOKIE_STORE_KEY = `${STORAGE_PREFIX}_cookie`;
-
 export const authClient = createAuthClient({
   baseURL: `${API_BASE_URL}/auth`,
   // The server mails the sign-in and password codes in this language,
@@ -28,7 +22,7 @@ export const authClient = createAuthClient({
     twoFactorClient({onTwoFactorRedirect: () => {}}),
     expoClient({
       scheme: 'bookslot',
-      storagePrefix: STORAGE_PREFIX,
+      storagePrefix: 'booking',
       storage: SecureStore,
     }),
   ],
