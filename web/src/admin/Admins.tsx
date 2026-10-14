@@ -5,12 +5,16 @@ import {formatLongDate} from '@booking/core/lib/dates';
 import {useState, type SubmitEvent} from 'react';
 
 import {FormActions} from '@/admin/FormActions';
-import {PRIMARY_BUTTON, SECONDARY_BUTTON} from '@/admin/styles';
+import {ActionRow, Badge, DetailRow} from '@/admin/Rows';
+import {
+  CARD,
+  PRIMARY_BUTTON,
+  SECONDARY_BUTTON,
+  SECTION_LABEL,
+} from '@/admin/styles';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
-import {AddIcon} from '@/components/icons';
-import {Notice} from '@/components/Notice';
-import {adminLoad, useAdminActions} from '@/hooks/useAdminActions';
-import {useFocusLoad} from '@/hooks/useFocusLoad';
+import {AddIcon, ChevronForwardIcon} from '@/components/icons';
+import {useAdminActions} from '@/hooks/useAdminActions';
 import {useMessages} from '@/i18n/LocaleProvider';
 
 const EMPTY = {name: '', email: ''};
@@ -96,29 +100,18 @@ function AdminForm({
   );
 }
 
-function AdminRow({
-  admin,
-  busy,
-  onRemove,
-  onReset,
-}: {
-  admin: AdminUser;
-  busy: boolean;
-  onRemove: () => void;
-  onReset: () => void;
-}) {
+function AdminRow({admin, onOpen}: {admin: AdminUser; onOpen: () => void}) {
   const t = useMessages();
   const details = [
     admin.apartment === null ? null : t.admin.admins.lives(admin.apartment),
-    admin.twoFactorEnabled ? null : t.admin.admins.noTwoFactor,
     admin.lastSignInOn
       ? t.admin.admins.lastSignIn(formatLongDate(admin.lastSignInOn, t))
       : t.admin.admins.never,
   ].filter((detail) => detail !== null);
 
-  return (
-    <li className='flex flex-col gap-3 px-4.5 py-3.5'>
-      <div className='flex flex-col gap-0.5'>
+  const content = (
+    <>
+      <span className='flex min-w-0 flex-1 flex-col gap-0.5'>
         <span className='text-[15px] font-semibold tracking-tight text-theme-ink'>
           {admin.name}
           {admin.self ? (
@@ -127,64 +120,58 @@ function AdminRow({
             </span>
           ) : null}
         </span>
-        <span className='text-[13px] text-theme-muted'>{admin.email}</span>
+        <span className='truncate text-[13px] text-theme-muted'>
+          {admin.email}
+        </span>
         <span className='text-[13px] text-theme-muted'>
           {details.join(' · ')}
         </span>
-      </div>
-      {admin.self ? null : (
-        <div className='flex flex-wrap gap-2.5'>
-          <button
-            type='button'
-            onClick={onReset}
-            disabled={busy}
-            className={`${SECONDARY_BUTTON} h-10`}
-          >
-            {t.admin.admins.resetTwoFactor}
-          </button>
-          <button
-            type='button'
-            onClick={onRemove}
-            disabled={busy}
-            className={`${SECONDARY_BUTTON} h-10`}
-          >
-            {t.admin.admins.remove}
-          </button>
-        </div>
-      )}
+        {admin.twoFactorEnabled ? null : (
+          <span className='mt-1 flex'>
+            <Badge>{t.admin.admins.twoFactorMissing}</Badge>
+          </span>
+        )}
+      </span>
+    </>
+  );
+
+  // There is nothing an admin can do to their own account here.
+  if (admin.self) {
+    return <li className='flex items-center gap-3 px-4.5 py-3.5'>{content}</li>;
+  }
+
+  return (
+    <li>
+      <button
+        type='button'
+        onClick={onOpen}
+        className='flex w-full items-center gap-3 px-4.5 py-3.5 text-left transition-colors hover:bg-theme-sunk'
+      >
+        {content}
+        <ChevronForwardIcon size={16} className='shrink-0 text-theme-faint' />
+      </button>
     </li>
   );
 }
 
-// The organization's admins: who they are, and adding or removing one.
-export function Admins() {
+type AdminsProps = {
+  admins: AdminUser[];
+  onOpen: (admin: AdminUser) => void;
+  onChanged: () => void;
+};
+
+// The organization's admins, and adding one. Each of the others opens on
+// a page of its own.
+export function Admins({admins, onOpen, onChanged}: AdminsProps) {
   const t = useMessages();
-  const {data: admins, error, reload} = useFocusLoad(adminLoad.admins);
   const [adding, setAdding] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const actions = useAdminActions(reload, setBusy);
-
-  if (error && !admins) {
-    return (
-      <Notice message={error} actionLabel={t.common.retry} onAction={reload} />
-    );
-  }
-
-  if (!admins) {
-    return null;
-  }
+  const actions = useAdminActions(onChanged);
 
   return (
     <div className='flex flex-col gap-4'>
       <ul className='flex flex-col divide-y divide-theme-line overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
         {admins.map((admin) => (
-          <AdminRow
-            key={admin.id}
-            admin={admin}
-            busy={busy}
-            onRemove={() => actions.admins.confirmRemove(admin)}
-            onReset={() => actions.admins.confirmResetTwoFactor(admin)}
-          />
+          <AdminRow key={admin.id} admin={admin} onOpen={() => onOpen(admin)} />
         ))}
       </ul>
       {adding ? (
@@ -205,6 +192,74 @@ export function Admins() {
           {t.admin.admins.add}
         </button>
       )}
+    </div>
+  );
+}
+
+type AdminDetailProps = {
+  admin: AdminUser;
+  onChanged: () => void;
+  onRemoved: () => void;
+};
+
+// Another admin: who they are, and what can be done for them.
+export function AdminDetail({admin, onChanged, onRemoved}: AdminDetailProps) {
+  const t = useMessages();
+  // A second tap while a request runs would reset twice or remove twice.
+  const [busy, setBusy] = useState(false);
+  const actions = useAdminActions(onChanged, setBusy);
+
+  return (
+    <div className='flex flex-col gap-6.5'>
+      <section>
+        <h2 className={SECTION_LABEL}>{t.admin.details}</h2>
+        <div
+          className={`${CARD} flex flex-col divide-y divide-theme-line py-1.5`}
+        >
+          <DetailRow label={t.common.email} value={admin.email} />
+          {admin.apartment === null ? null : (
+            <DetailRow
+              label={t.admin.admins.apartment}
+              value={admin.apartment}
+            />
+          )}
+          <DetailRow
+            label={t.admin.admins.twoFactor}
+            value={
+              admin.twoFactorEnabled
+                ? t.admin.admins.twoFactorOn
+                : t.admin.admins.twoFactorOff
+            }
+          />
+          <DetailRow
+            label={t.admin.apartment.lastSignIn}
+            value={
+              admin.lastSignInOn
+                ? formatLongDate(admin.lastSignInOn, t)
+                : t.admin.apartment.never
+            }
+          />
+        </div>
+      </section>
+      <section>
+        <h2 className={SECTION_LABEL}>{t.admin.actions}</h2>
+        <div className='flex flex-col overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
+          <ActionRow
+            label={t.admin.admins.resetTwoFactor}
+            description={t.admin.admins.resetHint}
+            disabled={busy}
+            onPress={() => actions.admins.confirmResetTwoFactor(admin)}
+          />
+        </div>
+      </section>
+      <button
+        type='button'
+        onClick={() => actions.admins.confirmRemove(admin, onRemoved)}
+        disabled={busy}
+        className={`${SECONDARY_BUTTON} self-start`}
+      >
+        {t.admin.admins.removeAdmin}
+      </button>
     </div>
   );
 }

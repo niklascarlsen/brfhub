@@ -6,6 +6,8 @@ import {useState} from 'react';
 import {AdminPage} from '@/admin/AdminPage';
 import {ApartmentDetail} from '@/admin/ApartmentDetail';
 import {ApartmentForm} from '@/admin/ApartmentForm';
+import {Gone} from '@/admin/Gone';
+import {useAdminLocation} from '@/admin/location';
 import {PRIMARY_BUTTON} from '@/admin/styles';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {AddIcon, ChevronForwardIcon} from '@/components/icons';
@@ -14,8 +16,6 @@ import {Skeleton, SkeletonBar} from '@/components/Skeleton';
 import {adminLoad, useAdminActions} from '@/hooks/useAdminActions';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useMessages} from '@/i18n/LocaleProvider';
-
-type Screen = {kind: 'list'} | {kind: 'add'} | {kind: 'apartment'; id: string};
 
 function matches(apartment: Apartment, query: string): boolean {
   const needle = query.trim().toLowerCase();
@@ -57,55 +57,123 @@ function ApartmentRow({
 export function AdminApartments() {
   const {organizationName} = useAdminAccount();
   const t = useMessages();
-  const {data: apartments, error, reload} = useFocusLoad(adminLoad.apartments);
+  const {
+    data: apartments,
+    error,
+    loading,
+    reload,
+  } = useFocusLoad(adminLoad.apartments);
   const showSkeleton = useSlowLoad(apartments === null && error === null);
-  const [view, setView] = useState<Screen>({kind: 'list'});
+  const {location, open, up} = useAdminLocation('apartments');
   const [query, setQuery] = useState('');
-
-  const toList = () => setView({kind: 'list'});
   const actions = useAdminActions(reload);
+  const toList = {label: t.tabs.apartments, onPress: up};
+  // A step opened by its address has no list to fall back on.
+  const failed =
+    error && !apartments ? (
+      <Notice message={error} actionLabel={t.common.retry} onAction={reload} />
+    ) : null;
 
-  if (view.kind === 'add') {
+  if (location.step === 'new') {
     return (
       <AdminPage
         title={t.admin.apartments.newTitle}
         subtitle={organizationName}
-        back={{label: t.tabs.apartments, onPress: toList}}
+        back={toList}
       >
         <ApartmentForm
           initial={{label: '', residentName: '', email: ''}}
           withLabel
           note={t.admin.apartments.newNote}
           submitLabel={t.admin.add}
-          onCancel={toList}
+          onCancel={up}
           onSubmit={async (fields) => {
             const created = await actions.apartments.create(fields);
-            setView({kind: 'apartment', id: created.id});
+            open(
+              {tab: 'apartments', step: 'apartment', id: created.id},
+              {replace: true},
+            );
           }}
         />
       </AdminPage>
     );
   }
 
-  if (view.kind === 'apartment') {
-    const apartment = apartments?.find((item) => item.id === view.id);
+  if ('id' in location) {
+    const {id} = location;
+    const apartment = apartments?.find((item) => item.id === id);
+    const title = apartment ? t.apartment.title(apartment.label) : '';
+    // Named after the apartment once it is loaded.
+    const toApartment = {label: title || t.tabs.apartments, onPress: up};
+    let content = null;
 
-    if (apartment) {
-      return (
-        <AdminPage
-          title={t.apartment.title(apartment.label)}
-          subtitle={organizationName}
-          back={{label: t.tabs.apartments, onPress: toList}}
-        >
-          <ApartmentDetail
-            key={apartment.id}
-            apartment={apartment}
-            onChanged={reload}
-            onRemoved={toList}
-          />
-        </AdminPage>
+    if (apartment && location.step === 'edit') {
+      content = (
+        <ApartmentForm
+          initial={{
+            label: apartment.label,
+            residentName: apartment.residentName,
+            email: apartment.email,
+          }}
+          withLabel
+          note={t.admin.apartment.editNote}
+          submitLabel={t.admin.save}
+          onCancel={up}
+          onSubmit={async (fields) => {
+            await actions.apartments.update(apartment.id, fields);
+            up();
+          }}
+        />
+      );
+    } else if (apartment && location.step === 'new-resident') {
+      content = (
+        <ApartmentForm
+          initial={{label: apartment.label, residentName: '', email: ''}}
+          withLabel={false}
+          note={t.admin.apartment.newResidentNote(
+            t.admin.apartment.cancelNote(apartment.upcomingBookings),
+          )}
+          submitLabel={t.admin.apartment.replaceResident}
+          onCancel={up}
+          onSubmit={async (fields) => {
+            await actions.apartments.newResident(apartment.id, fields);
+            up();
+          }}
+        />
+      );
+    } else if (apartment) {
+      content = (
+        <ApartmentDetail
+          key={apartment.id}
+          apartment={apartment}
+          onChanged={reload}
+          onRemoved={up}
+          onEdit={() => open({tab: 'apartments', step: 'edit', id})}
+          onNewResident={() =>
+            open({tab: 'apartments', step: 'new-resident', id})
+          }
+        />
       );
     }
+    const gone = !apartment && apartments !== null && !loading;
+
+    return (
+      <AdminPage
+        title={
+          gone
+            ? t.admin.goneTitle
+            : location.step === 'edit'
+              ? t.admin.editDetails
+              : location.step === 'new-resident'
+                ? t.admin.apartment.newResident
+                : title
+        }
+        subtitle={organizationName}
+        back={location.step === 'apartment' ? toList : toApartment}
+      >
+        {gone ? <Gone /> : (content ?? failed)}
+      </AdminPage>
+    );
   }
 
   const shown = apartments?.filter((apartment) => matches(apartment, query));
@@ -133,7 +201,13 @@ export function AdminApartments() {
                 <ApartmentRow
                   key={apartment.id}
                   apartment={apartment}
-                  onPress={() => setView({kind: 'apartment', id: apartment.id})}
+                  onPress={() =>
+                    open({
+                      tab: 'apartments',
+                      step: 'apartment',
+                      id: apartment.id,
+                    })
+                  }
                 />
               ))}
             </div>
@@ -167,7 +241,7 @@ export function AdminApartments() {
       action={
         <button
           type='button'
-          onClick={() => setView({kind: 'add'})}
+          onClick={() => open({tab: 'apartments', step: 'new'})}
           className={PRIMARY_BUTTON}
         >
           <AddIcon size={18} />

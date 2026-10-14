@@ -1,6 +1,10 @@
 import type {Messages} from '../i18n/catalog';
 import {fromIsoDate, toIsoDate} from '../lib/dates';
 
+// The ended announcements listed before the admin asks for all of them,
+// which grow by a few every year.
+export const ENDED_SHOWN = 5;
+
 // How long an announcement shows, as the admin thinks of it.
 export const DURATIONS = [
   {label: (t: Messages) => t.admin.announcements.untilFurther, days: null},

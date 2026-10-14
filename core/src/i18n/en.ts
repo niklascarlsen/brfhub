@@ -21,6 +21,7 @@ export const en: Messages = {
     ],
     today: 'Today',
     tomorrow: 'Tomorrow',
+    yesterday: 'Yesterday',
   },
   common: {
     retry: 'Try again',
@@ -256,6 +257,8 @@ export const en: Messages = {
     remove: 'Remove',
     details: 'Details',
     actions: 'Actions',
+    goneTitle: 'No longer here',
+    gone: 'It may have been removed, or the link is old.',
     editDetails: 'Edit details',
     unsaved: {
       hint: 'Unsaved changes',
@@ -419,10 +422,18 @@ export const en: Messages = {
       name: 'Name',
       you: 'you',
       lives: (label: string) => `Lives in apartment ${label}`,
-      noTwoFactor: 'Has not set up two-step verification yet',
+      count: (count: number) =>
+        count === 1 ? '1 administrator' : `${count} administrators`,
+      withoutTwoFactor: (count: number) => `${count} without two-step`,
+      twoFactorMissing: 'No two-step yet',
+      apartment: 'Apartment',
+      twoFactor: 'Two-step verification',
+      twoFactorOn: 'Set up',
+      twoFactorOff: 'Not set up yet',
+      resetHint: 'When a phone has gone missing',
+      removeAdmin: 'Remove as administrator',
       lastSignIn: (when: string) => `Last signed in ${when}`,
       never: 'Has never signed in',
-      remove: 'Remove',
       removeQuestion: (email: string) =>
         `${email} is signed out and can no longer manage the association. A resident keeps their apartment.`,
       removeFailed: 'Could not remove the administrator',
@@ -434,9 +445,19 @@ export const en: Messages = {
       checkEmail: 'Check the email address',
     },
     events: {
-      title: 'Events',
-      note: 'What the administrators have done, newest first.',
-      none: 'Nothing has happened yet.',
+      title: 'History',
+      note: 'What the administrators have done, newest first. The history is kept for 12 months.',
+      none: 'Nothing has happened in the last year.',
+      noneIn: 'Nothing here in the last year.',
+      filter: 'Show',
+      all: 'All',
+      areas: {
+        apartments: 'Apartments',
+        resources: 'Resources',
+        announcements: 'Notices',
+        admins: 'Administrators',
+        organization: 'Settings',
+      },
       actions: {
         'apartment.create': (subject: string) => `Added apartment ${subject}`,
         'apartment.update': (subject: string) => `Changed apartment ${subject}`,
@@ -472,9 +493,14 @@ export const en: Messages = {
         'organization.update': (subject: string) =>
           `Changed the settings: ${subject}`,
       },
+      settingsParts: {
+        name: 'the name',
+        bookingWindowDays: 'the booking window',
+        locales: 'the languages',
+        rulesText: 'the rules',
+      },
     },
     organization: {
-      settings: 'Settings',
       languages: 'Association languages',
       languagesNote:
         "Apartments can pick among the languages turned on. With more than one, you write the association's texts in each. Anything not yet translated shows in the language it was written in.",
@@ -490,11 +516,14 @@ export const en: Messages = {
       rulesNote: 'Shown to the apartments above the times and limits.',
       saved: 'Saved.',
       changePassword: 'Change password',
+      windowSummary: (name: string, days: number) =>
+        `${name} · ${days} days ahead`,
+      noRules: 'No rules yet',
+      pages: 'Association pages',
       currentPassword: 'Current password',
       newPassword: 'New password',
       repeatPassword: 'New password again',
-      passwordNote:
-        'Change the password when the board changes. Every other device is signed out.',
+      passwordNote: 'Every other device is signed out when you change it.',
       wrongPassword: 'The current password is wrong',
       passwordTooShort: (min: number) =>
         `The new password must be at least ${min} characters`,
@@ -520,6 +549,7 @@ export const en: Messages = {
       active: 'Shown now',
       scheduled: 'Upcoming',
       ended: 'Ended',
+      showAllEnded: (count: number) => `Show all ${count} ended`,
       period: (from: string, to: string) => `${from} to ${to}`,
       openPeriod: (from: string) => `From ${from}, until further notice`,
       remove: 'Remove notice',

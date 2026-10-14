@@ -6,15 +6,15 @@ import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
 import {localize, type Messages} from '@booking/core/i18n/catalog';
 import {formatDayMonth} from '@booking/core/lib/dates';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import {useIsFocused} from '@react-navigation/native';
-import {useEffect, useState} from 'react';
-import {BackHandler, Pressable, Text, View} from 'react-native';
+import {Pressable, Text, View} from 'react-native';
 
 import {AdminPage} from '@/admin/AdminPage';
+import {Gone} from '@/admin/Gone';
 import {KindForm} from '@/admin/KindForm';
+import {useAdminLocation} from '@/admin/location';
 import {ResourceDetail} from '@/admin/ResourceDetail';
 import {ResourceForm} from '@/admin/ResourceForm';
-import {useConfirmLeave} from '@/admin/unsaved';
+import {ScheduleForm} from '@/admin/ScheduleForm';
 import {
   PRIMARY_BUTTON,
   PRIMARY_LABEL,
@@ -27,13 +27,6 @@ import {adminLoad, useAdminActions} from '@/hooks/useAdminActions';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
 import theme from '@/theme.json';
-
-type Screen =
-  | {kind: 'list'}
-  | {kind: 'add-resource'}
-  | {kind: 'add-kind'}
-  | {kind: 'edit-kind'; id: string}
-  | {kind: 'resource'; id: string; name: string};
 
 // What a row says besides the current times: a change or closing ahead.
 function statusOf(
@@ -107,14 +100,11 @@ export function AdminResources() {
   const {organizationName, locales} = useAdminAccount();
   const t = useMessages();
   const {locale} = useLocale();
-  const {data, error, reload} = useFocusLoad(adminLoad.resources);
+  const {data, error, loading, reload} = useFocusLoad(adminLoad.resources);
   const showSkeleton = useSlowLoad(data === null && error === null);
-  const [screen, setScreen] = useState<Screen>({kind: 'list'});
+  const {location, open, up} = useAdminLocation('resources');
+
   const refreshAccount = useRefreshAccount();
-  const confirmLeave = useConfirmLeave();
-  // Every tab keeps its screen, so only the one shown answers the back
-  // button.
-  const focused = useIsFocused();
 
   // What lacks a language is counted on the account, so it follows every
   // change here.
@@ -123,141 +113,175 @@ export function AdminResources() {
     refreshAccount();
   };
   const actions = useAdminActions(changed);
+  const toList = {label: t.tabs.resources, onPress: up};
+  // A step opened by its address has no list to fall back on.
+  const failed =
+    error && !data ? (
+      <Notice message={error} actionLabel={t.common.retry} onAction={reload} />
+    ) : null;
 
-  const toList = () => setScreen({kind: 'list'});
-  const back = {label: t.tabs.resources, onPress: toList};
-
-  // The steps below the list are not screens of their own, so Android's
-  // back button would otherwise leave the tab instead of going back.
-  useEffect(() => {
-    if (screen.kind === 'list' || !focused) {
-      return;
-    }
-
-    const subscription = BackHandler.addEventListener(
-      'hardwareBackPress',
-      () => {
-        confirmLeave(() => setScreen({kind: 'list'}));
-        return true;
-      },
-    );
-
-    return () => subscription.remove();
-  }, [screen.kind, focused, confirmLeave]);
-
-  if (data && screen.kind === 'add-kind') {
+  if (location.step === 'new-kind') {
     return (
       <AdminPage
         title={t.admin.resources.newKind}
         subtitle={organizationName}
-        back={back}
+        back={toList}
       >
         <KindForm
           initial={{name: {}, maxActive: 1}}
           submitLabel={t.admin.add}
-          onCancel={toList}
+          onCancel={up}
           onSubmit={async (fields) => {
             await actions.kinds.create(fields);
-            toList();
+            up();
           }}
         />
       </AdminPage>
     );
   }
 
-  const editedKind =
-    screen.kind === 'edit-kind'
-      ? data?.kinds.find((kind) => kind.id === screen.id)
-      : undefined;
-
-  if (data && editedKind) {
-    const inUse = data.resources.some(
-      (resource) => resource.kindId === editedKind.id,
+  if (location.step === 'kind') {
+    const editedKind = data?.kinds.find((kind) => kind.id === location.id);
+    const inUse = data?.resources.some(
+      (resource) => resource.kindId === location.id,
     );
 
     return (
       <AdminPage
-        title={localize(editedKind.name, locale) ?? ''}
+        title={
+          editedKind
+            ? (localize(editedKind.name, locale) ?? '')
+            : data && !loading
+              ? t.admin.goneTitle
+              : ''
+        }
         subtitle={organizationName}
-        back={back}
+        back={toList}
       >
-        <KindForm
-          initial={editedKind}
-          submitLabel={t.admin.save}
-          onCancel={toList}
-          onSubmit={async (fields) => {
-            await actions.kinds.update(editedKind.id, fields);
-            toList();
-          }}
-          onDelete={
-            inUse
-              ? undefined
-              : () => void actions.kinds.remove(editedKind.id, toList)
-          }
-        />
+        {editedKind ? (
+          <KindForm
+            initial={editedKind}
+            submitLabel={t.admin.save}
+            onCancel={up}
+            onSubmit={async (fields) => {
+              await actions.kinds.update(editedKind.id, fields);
+              up();
+            }}
+            onDelete={
+              inUse
+                ? undefined
+                : () => void actions.kinds.remove(editedKind.id, up)
+            }
+          />
+        ) : data && !loading ? (
+          <Gone />
+        ) : (
+          failed
+        )}
       </AdminPage>
     );
   }
 
-  if (data && screen.kind === 'add-resource') {
+  if (location.step === 'new') {
     return (
       <AdminPage
         title={t.admin.resources.newResource}
         subtitle={organizationName}
-        back={back}
+        back={toList}
       >
-        <ResourceForm
-          kinds={data.kinds}
-          initial={{
-            name: {},
-            kindId: data.kinds[0]?.id ?? '',
-            tags: {},
-            slots: [{start: '08:00', end: '11:00', endOffsetDays: 0}],
-          }}
-          withSlots
-          submitLabel={t.admin.add}
-          onCancel={toList}
-          onSubmit={async (fields) => {
-            const {id} = await actions.resources.create(fields);
-            setScreen({
-              kind: 'resource',
-              id,
-              name: localize(fields.name, locale) ?? '',
-            });
-          }}
-        />
+        {data ? (
+          <ResourceForm
+            kinds={data.kinds}
+            initial={{
+              name: {},
+              kindId: data.kinds[0]?.id ?? '',
+              tags: {},
+              slots: [{start: '08:00', end: '11:00', endOffsetDays: 0}],
+            }}
+            withSlots
+            submitLabel={t.admin.add}
+            onCancel={up}
+            onSubmit={async (fields) => {
+              const {id} = await actions.resources.create(fields);
+              open({tab: 'resources', step: 'resource', id}, {replace: true});
+            }}
+          />
+        ) : (
+          failed
+        )}
       </AdminPage>
     );
   }
 
-  const opened =
-    screen.kind === 'resource'
-      ? data?.resources.find((resource) => resource.id === screen.id)
-      : undefined;
+  if ('id' in location) {
+    const {id} = location;
+    const opened = data?.resources.find((resource) => resource.id === id);
+    const name = opened ? (localize(opened.name, locale) ?? '') : '';
+    let content = null;
 
-  if (data && opened) {
-    return (
-      <AdminPage
-        title={localize(opened.name, locale) ?? ''}
-        subtitle={organizationName}
-        back={back}
-      >
+    if (data && opened && location.step === 'edit') {
+      content = (
+        <ResourceForm
+          kinds={data.kinds}
+          initial={{...opened, slots: []}}
+          withSlots={false}
+          submitLabel={t.admin.save}
+          onCancel={up}
+          onSubmit={async (fields) => {
+            await actions.resources.update(opened.id, fields);
+            up();
+          }}
+        />
+      );
+    } else if (data && opened && location.step === 'schedule') {
+      content = (
+        <ScheduleForm
+          initial={opened.schedules.at(-1)?.slots ?? []}
+          validFrom={data.earliestChange}
+          onCancel={up}
+          onSubmit={async (slots) => {
+            await actions.resources.saveSchedule(
+              opened.id,
+              data.earliestChange,
+              slots,
+            );
+            up();
+          }}
+        />
+      );
+    } else if (data && opened) {
+      content = (
         <ResourceDetail
           key={opened.id}
           resource={opened}
           data={data}
           onChanged={changed}
+          onEdit={() => open({tab: 'resources', step: 'edit', id})}
+          onSchedule={() => open({tab: 'resources', step: 'schedule', id})}
         />
-      </AdminPage>
-    );
-  }
+      );
+    }
+    const gone = !opened && data !== null && !loading;
 
-  // A resource just added shows under its name until the list that has it
-  // arrives, instead of the list flashing by.
-  if (screen.kind === 'resource') {
     return (
-      <AdminPage title={screen.name} subtitle={organizationName} back={back}>
-        {null}
+      <AdminPage
+        title={
+          gone
+            ? t.admin.goneTitle
+            : location.step === 'edit'
+              ? t.admin.editDetails
+              : location.step === 'schedule'
+                ? t.admin.resource.editTimes
+                : name
+        }
+        subtitle={organizationName}
+        back={
+          location.step === 'resource'
+            ? toList
+            : {label: name || t.tabs.resources, onPress: up}
+        }
+      >
+        {gone ? <Gone /> : (content ?? failed)}
       </AdminPage>
     );
   }
@@ -284,7 +308,9 @@ export function AdminResources() {
                   {localize(kind.name, locale)}
                 </Text>
                 <Pressable
-                  onPress={() => setScreen({kind: 'edit-kind', id: kind.id})}
+                  onPress={() =>
+                    open({tab: 'resources', step: 'kind', id: kind.id})
+                  }
                   hitSlop={8}
                   className='active:opacity-60'
                 >
@@ -311,10 +337,10 @@ export function AdminResources() {
                       status={statusOf(resource, data.today, t)}
                       last={index === own.length - 1}
                       onPress={() =>
-                        setScreen({
-                          kind: 'resource',
+                        open({
+                          tab: 'resources',
+                          step: 'resource',
                           id: resource.id,
-                          name: localize(resource.name, locale) ?? '',
                         })
                       }
                     />
@@ -353,7 +379,7 @@ export function AdminResources() {
           <View className='flex-row flex-wrap gap-2.5'>
             {hasKinds ? (
               <Pressable
-                onPress={() => setScreen({kind: 'add-resource'})}
+                onPress={() => open({tab: 'resources', step: 'new'})}
                 className={PRIMARY_BUTTON}
               >
                 <Ionicons name='add' size={18} color={theme.surface} />
@@ -363,7 +389,7 @@ export function AdminResources() {
               </Pressable>
             ) : null}
             <Pressable
-              onPress={() => setScreen({kind: 'add-kind'})}
+              onPress={() => open({tab: 'resources', step: 'new-kind'})}
               className={hasKinds ? SECONDARY_BUTTON : PRIMARY_BUTTON}
             >
               <Ionicons

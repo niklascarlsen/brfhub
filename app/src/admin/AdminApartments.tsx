@@ -2,14 +2,14 @@ import {useAdminAccount} from '@booking/core/admin/account';
 import type {Apartment} from '@booking/core/api/types';
 import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import {useIsFocused} from '@react-navigation/native';
-import {useEffect, useState} from 'react';
-import {BackHandler, Pressable, Text, View} from 'react-native';
+import {useState} from 'react';
+import {Pressable, Text, View} from 'react-native';
 
 import {AdminPage} from '@/admin/AdminPage';
 import {ApartmentDetail} from '@/admin/ApartmentDetail';
 import {ApartmentForm} from '@/admin/ApartmentForm';
-import {useConfirmLeave} from '@/admin/unsaved';
+import {Gone} from '@/admin/Gone';
+import {useAdminLocation} from '@/admin/location';
 import {PRIMARY_BUTTON, PRIMARY_LABEL} from '@/admin/styles';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {Notice} from '@/components/Notice';
@@ -18,8 +18,6 @@ import {adminLoad, useAdminActions} from '@/hooks/useAdminActions';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useMessages} from '@/i18n/LocaleProvider';
 import theme from '@/theme.json';
-
-type Screen = {kind: 'list'} | {kind: 'add'} | {kind: 'apartment'; id: string};
 
 function matches(apartment: Apartment, query: string): boolean {
   const needle = query.trim().toLowerCase();
@@ -72,78 +70,123 @@ function ApartmentRow({
 export function AdminApartments() {
   const {organizationName} = useAdminAccount();
   const t = useMessages();
-  const {data: apartments, error, reload} = useFocusLoad(adminLoad.apartments);
+  const {
+    data: apartments,
+    error,
+    loading,
+    reload,
+  } = useFocusLoad(adminLoad.apartments);
   const showSkeleton = useSlowLoad(apartments === null && error === null);
-  const [view, setView] = useState<Screen>({kind: 'list'});
+  const {location, open, up} = useAdminLocation('apartments');
   const [query, setQuery] = useState('');
-
-  const confirmLeave = useConfirmLeave();
-  // Every tab keeps its screen, so only the one shown answers the back
-  // button.
-  const focused = useIsFocused();
-
-  const toList = () => setView({kind: 'list'});
-
-  // The steps below the list are not screens of their own, so Android's
-  // back button would otherwise leave the app instead of going back.
-  useEffect(() => {
-    if (view.kind === 'list' || !focused) {
-      return;
-    }
-
-    const subscription = BackHandler.addEventListener(
-      'hardwareBackPress',
-      () => {
-        confirmLeave(() => setView({kind: 'list'}));
-        return true;
-      },
-    );
-
-    return () => subscription.remove();
-  }, [view.kind, focused, confirmLeave]);
   const actions = useAdminActions(reload);
+  const toList = {label: t.tabs.apartments, onPress: up};
+  // A step opened by its address has no list to fall back on.
+  const failed =
+    error && !apartments ? (
+      <Notice message={error} actionLabel={t.common.retry} onAction={reload} />
+    ) : null;
 
-  if (view.kind === 'add') {
+  if (location.step === 'new') {
     return (
       <AdminPage
         title={t.admin.apartments.newTitle}
         subtitle={organizationName}
-        back={{label: t.tabs.apartments, onPress: toList}}
+        back={toList}
       >
         <ApartmentForm
           initial={{label: '', residentName: '', email: ''}}
           withLabel
           note={t.admin.apartments.newNote}
           submitLabel={t.admin.add}
-          onCancel={toList}
+          onCancel={up}
           onSubmit={async (fields) => {
             const created = await actions.apartments.create(fields);
-            setView({kind: 'apartment', id: created.id});
+            open(
+              {tab: 'apartments', step: 'apartment', id: created.id},
+              {replace: true},
+            );
           }}
         />
       </AdminPage>
     );
   }
 
-  if (view.kind === 'apartment') {
-    const apartment = apartments?.find((item) => item.id === view.id);
+  if ('id' in location) {
+    const {id} = location;
+    const apartment = apartments?.find((item) => item.id === id);
+    const title = apartment ? t.apartment.title(apartment.label) : '';
+    // Named after the apartment once it is loaded.
+    const toApartment = {label: title || t.tabs.apartments, onPress: up};
+    let content = null;
 
-    if (apartment) {
-      return (
-        <AdminPage
-          title={t.apartment.title(apartment.label)}
-          subtitle={organizationName}
-          back={{label: t.tabs.apartments, onPress: toList}}
-        >
-          <ApartmentDetail
-            key={apartment.id}
-            apartment={apartment}
-            onChanged={reload}
-            onRemoved={toList}
-          />
-        </AdminPage>
+    if (apartment && location.step === 'edit') {
+      content = (
+        <ApartmentForm
+          initial={{
+            label: apartment.label,
+            residentName: apartment.residentName,
+            email: apartment.email,
+          }}
+          withLabel
+          note={t.admin.apartment.editNote}
+          submitLabel={t.admin.save}
+          onCancel={up}
+          onSubmit={async (fields) => {
+            await actions.apartments.update(apartment.id, fields);
+            up();
+          }}
+        />
+      );
+    } else if (apartment && location.step === 'new-resident') {
+      content = (
+        <ApartmentForm
+          initial={{label: apartment.label, residentName: '', email: ''}}
+          withLabel={false}
+          note={t.admin.apartment.newResidentNote(
+            t.admin.apartment.cancelNote(apartment.upcomingBookings),
+          )}
+          submitLabel={t.admin.apartment.replaceResident}
+          onCancel={up}
+          onSubmit={async (fields) => {
+            await actions.apartments.newResident(apartment.id, fields);
+            up();
+          }}
+        />
+      );
+    } else if (apartment) {
+      content = (
+        <ApartmentDetail
+          key={apartment.id}
+          apartment={apartment}
+          onChanged={reload}
+          onRemoved={up}
+          onEdit={() => open({tab: 'apartments', step: 'edit', id})}
+          onNewResident={() =>
+            open({tab: 'apartments', step: 'new-resident', id})
+          }
+        />
       );
     }
+    const gone = !apartment && apartments !== null && !loading;
+
+    return (
+      <AdminPage
+        title={
+          gone
+            ? t.admin.goneTitle
+            : location.step === 'edit'
+              ? t.admin.editDetails
+              : location.step === 'new-resident'
+                ? t.admin.apartment.newResident
+                : title
+        }
+        subtitle={organizationName}
+        back={location.step === 'apartment' ? toList : toApartment}
+      >
+        {gone ? <Gone /> : (content ?? failed)}
+      </AdminPage>
+    );
   }
 
   const shown = apartments?.filter((apartment) => matches(apartment, query));
@@ -176,7 +219,13 @@ export function AdminApartments() {
                   key={apartment.id}
                   apartment={apartment}
                   last={index === shown.length - 1}
-                  onPress={() => setView({kind: 'apartment', id: apartment.id})}
+                  onPress={() =>
+                    open({
+                      tab: 'apartments',
+                      step: 'apartment',
+                      id: apartment.id,
+                    })
+                  }
                 />
               ))}
             </View>
@@ -209,7 +258,7 @@ export function AdminApartments() {
       subtitle={subtitle}
       action={
         <Pressable
-          onPress={() => setView({kind: 'add'})}
+          onPress={() => open({tab: 'apartments', step: 'new'})}
           className={PRIMARY_BUTTON}
         >
           <Ionicons name='add' size={18} color={theme.surface} />

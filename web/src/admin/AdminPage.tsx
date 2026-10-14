@@ -15,18 +15,23 @@ type AdminPageProps = {
   subtitle: string;
   back?: {label: string; onPress: () => void};
   action?: ReactNode;
+  // The page's own menu, beside the content on the desktop. The phone
+  // steps down to each page instead.
+  aside?: ReactNode;
   children: ReactNode;
 };
 
 // One admin page: a back link when it is a step down, the title, an
 // optional action beside it, a bar while some of the organization's text
-// lacks a language, and the content in a readable column. Going back from
+// lacks a language, and the content in a readable column, with the page's
+// own menu beside it on the desktop. Going back from
 // a form with unsaved changes asks first.
 export function AdminPage({
   title,
   subtitle,
   back,
   action,
+  aside,
   children,
 }: AdminPageProps) {
   const t = useMessages();
@@ -64,7 +69,10 @@ export function AdminPage({
         <PageHeader eyebrow={subtitle} title={title}>
           {action}
         </PageHeader>
-        <div className={`${SHELL} pt-7 pb-12`}>
+        <div
+          className={`${SHELL} pt-7 pb-12 ${aside ? 'grid grid-cols-[13rem_minmax(0,42rem)] items-start gap-12' : ''}`}
+        >
+          {aside}
           <div className='flex max-w-2xl flex-col'>
             {missing ? <NoticeBar message={missing} /> : null}
             {children}

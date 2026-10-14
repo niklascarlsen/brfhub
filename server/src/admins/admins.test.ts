@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {after, before, test} from 'node:test';
 
-import {eq} from 'drizzle-orm';
+import {and, eq, sql} from 'drizzle-orm';
 
 import {buildApp} from '../app.js';
 import {
@@ -11,7 +11,14 @@ import {
   twoFactorSecret,
 } from '../auth/auth.service.js';
 import {db, pool} from '../db/index.js';
-import {account, members, session, twoFactor, user} from '../db/schema.js';
+import {
+  account,
+  adminEvents,
+  members,
+  session,
+  twoFactor,
+  user,
+} from '../db/schema.js';
 import type {AdminEvent} from '../event/event.dto.js';
 import {
   assertTestDatabase,
@@ -51,7 +58,7 @@ function emailOf(apartment: string) {
 }
 
 function call(
-  method: 'GET' | 'POST' | 'DELETE',
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
   url: string,
   headers: {cookie: string},
   payload?: Record<string, unknown>,
@@ -615,6 +622,11 @@ test('every admin action is in the event log', async () => {
   assert.ok(newest);
   assert.match(newest.at, /^\d{4}-\d{2}-\d{2}T/);
   assert.equal(newest.actor, 'admin@north.example.com');
+  const [self] = await db
+    .select({name: user.name})
+    .from(user)
+    .where(eq(user.email, 'admin@north.example.com'));
+  assert.equal(newest.actorName, self?.name);
   assert.ok(events.length >= 4);
   assert.deepEqual(
     [...events].sort((a, b) => (a.at < b.at ? 1 : -1)).map((e) => e.id),
@@ -632,4 +644,66 @@ test('every admin action is in the event log', async () => {
       .where(eq(members.organizationId, SOUTH.id)),
     [],
   );
+});
+
+test('events are kept for a year, and named by address once the admin is gone', async () => {
+  const at = (months: number) =>
+    sql`now() - make_interval(months => ${months})`;
+  await db.insert(adminEvents).values([
+    {
+      organizationId: NORTH.id,
+      actor: 'gone@north.example.com',
+      action: 'apartment.update',
+      subject: 'kept',
+      at: at(11),
+    },
+    {
+      organizationId: NORTH.id,
+      actor: 'gone@north.example.com',
+      action: 'apartment.update',
+      subject: 'expired',
+      at: at(13),
+    },
+  ]);
+
+  const events = await eventsOf(admin);
+  const kept = events.find((event) => event.subject === 'kept');
+  assert.equal(kept?.actorName, null);
+  assert.equal(kept?.actor, 'gone@north.example.com');
+  assert.equal(
+    events.some((event) => event.subject === 'expired'),
+    false,
+  );
+
+  // The next event written clears what is past keeping.
+  const added = await call('POST', '/admin/admins', admin, {
+    name: 'Valberedningen',
+    email: 'valberedning@north.example.com',
+  });
+  assert.equal(added.statusCode, 201);
+  const left = await db
+    .select({subject: adminEvents.subject})
+    .from(adminEvents)
+    .where(
+      and(
+        eq(adminEvents.organizationId, NORTH.id),
+        eq(adminEvents.actor, 'gone@north.example.com'),
+      ),
+    );
+  assert.deepEqual(
+    left.map((row) => row.subject),
+    ['kept'],
+  );
+});
+
+test('a change to the settings names the parts it touched by key', async () => {
+  const changed = await call('PATCH', '/admin/organization', admin, {
+    name: NORTH.name,
+    locales: ['sv', 'en'],
+  });
+  assert.equal(changed.statusCode, 200);
+
+  const [newest] = await eventsOf(admin);
+  assert.equal(newest?.action, 'organization.update');
+  assert.equal(newest?.subject, 'name,locales');
 });

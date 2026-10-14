@@ -1,3 +1,4 @@
+import {parseAdminPath} from '@booking/core/admin/location';
 import type {Messages} from '@booking/core/i18n/catalog';
 import {useCallback, useEffect, useSyncExternalStore} from 'react';
 
@@ -78,19 +79,41 @@ function takeStartupSlot(): OpenedSlot {
 
 export const startupSlot = takeStartupSlot();
 
+// The tab a path is in: one of the paths above, or a step down in an admin
+// tab. Null for a path that names nothing.
+function routeOf(path: string): Route | null {
+  const exact = PATHS[path];
+
+  if (exact) {
+    return exact;
+  }
+
+  const location = parseAdminPath(path);
+  return location ? `admin/${location.tab}` : null;
+}
+
+function readPath(): string {
+  return window.location.pathname;
+}
+
 function readRoute(): Route {
-  return PATHS[window.location.pathname] ?? 'book';
+  return routeOf(readPath()) ?? 'book';
 }
 
 const readers = new Set<() => void>();
 
-// The route on screen, which the browser's back and forward may be kept
+// The path on screen, which the browser's back and forward may be kept
 // from leaving.
-let shown = readRoute();
-let historyGuard: ((route: Route) => boolean) | null = null;
+let shown = readPath();
+let shownState: unknown = window.history.state;
+let historyGuard: ((proceed: () => void) => boolean) | null = null;
+// A step the page takes itself, such as up from a form it has saved, which
+// the guard has nothing to ask about.
+let unguarded = false;
 
 function notify() {
-  shown = readRoute();
+  shown = readPath();
+  shownState = window.history.state;
 
   for (const read of readers) {
     read();
@@ -98,13 +121,28 @@ function notify() {
 }
 
 window.addEventListener('popstate', () => {
-  const next = readRoute();
+  const next = readPath();
 
-  if (next !== shown && historyGuard !== null && !historyGuard(next)) {
-    // The address bar already says next. Put back the page still shown;
-    // the guard goes on to next itself if it is told to.
-    window.history.pushState(null, '', hrefOf(shown));
-    return;
+  if (unguarded) {
+    unguarded = false;
+  } else if (next !== shown && historyGuard !== null) {
+    let asked = false;
+    const allowed = historyGuard(() => {
+      // The page put back sits just past next, so one step back reaches
+      // it, whether the browser went back or forward.
+      if (asked) {
+        unguarded = true;
+        window.history.back();
+      }
+    });
+    asked = true;
+
+    if (!allowed) {
+      // The address bar already says next. Put back the page still shown
+      // until the guard says to go on.
+      window.history.pushState(shownState, '', shown);
+      return;
+    }
   }
 
   notify();
@@ -118,9 +156,9 @@ function subscribe(onChange: () => void) {
   };
 }
 
-// Asked before the browser's back or forward leaves the route shown: true
-// lets it go, false keeps the page.
-export function useHistoryGuard(guard: (route: Route) => boolean) {
+// Asked before the browser's back or forward leaves the path shown: true
+// lets it go, false keeps the page until the guard calls proceed.
+export function useHistoryGuard(guard: (proceed: () => void) => boolean) {
   useEffect(() => {
     historyGuard = guard;
 
@@ -130,6 +168,54 @@ export function useHistoryGuard(guard: (route: Route) => boolean) {
       }
     };
   }, [guard]);
+}
+
+// What a step down remembers of the page it came from, so going up again
+// is the browser's own back. A reload keeps the history's states but
+// starts a new page load, and back from there would load the app again,
+// so a step only goes back within the load that took it.
+type StepState = {from: string; load: string} | null;
+
+// Not crypto.randomUUID, which plain http on a LAN address lacks.
+const LOAD = `${Date.now()}-${Math.random()}`;
+
+export type GoOptions = {replace?: boolean};
+
+// Goes to a path. A step down remembers where it came from; one that
+// replaces the page keeps what that page came from.
+export function goTo(path: string, {replace = false}: GoOptions = {}) {
+  if (readPath() === path) {
+    return;
+  }
+
+  if (replace) {
+    window.history.replaceState(window.history.state, '', path);
+  } else {
+    const state: StepState = {from: readPath(), load: LOAD};
+    window.history.pushState(state, '', path);
+  }
+  window.scrollTo(0, 0);
+  notify();
+}
+
+// Goes up to a page above, by the browser's back when that is where the
+// page shown came from, so the history does not grow a loop.
+export function goUp(path: string) {
+  const state = window.history.state as StepState;
+
+  if (state?.from === path && state.load === LOAD) {
+    unguarded = true;
+    window.history.back();
+    return;
+  }
+
+  window.history.replaceState(null, '', path);
+  notify();
+}
+
+// The path on screen, for the admin's steps within a tab.
+export function usePath(): string {
+  return useSyncExternalStore(subscribe, readPath);
 }
 
 type Navigate = (route: Route, options?: {replace?: boolean}) => void;
@@ -143,23 +229,14 @@ export function useRoute(): [Route, Navigate] {
   useEffect(() => {
     document.title = TITLES[route](t);
 
-    if (window.location.pathname !== hrefOf(route)) {
+    if (routeOf(readPath()) !== route) {
       window.history.replaceState(null, '', hrefOf(route));
     }
   }, [route, t]);
 
+  // A tab opens at its top, also from a step down within it.
   const navigate = useCallback<Navigate>((next, options) => {
-    if (readRoute() === next) {
-      return;
-    }
-
-    if (options?.replace) {
-      window.history.replaceState(null, '', hrefOf(next));
-    } else {
-      window.history.pushState(null, '', hrefOf(next));
-    }
-    window.scrollTo(0, 0);
-    notify();
+    goTo(hrefOf(next), options);
   }, []);
 
   return [route, navigate];

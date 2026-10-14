@@ -3919,6 +3919,7 @@ export interface components {
       /** Format: uuid */
       id: string;
       actor: string;
+      actorName: string | null;
       action: components['schemas']['EventActionInput'];
       subject: string;
       /** Format: date-time */
@@ -4359,6 +4360,7 @@ export interface components {
       /** Format: uuid */
       id: string;
       actor: string;
+      actorName: string | null;
       action: components['schemas']['EventAction'];
       subject: string;
       /** Format: date-time */

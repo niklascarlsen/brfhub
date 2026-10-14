@@ -3,7 +3,6 @@ import type {FastifyPluginAsyncZod} from '@fastify/type-provider-zod';
 import {logEvent} from '../event/event.service.js';
 import {errorResponses} from '../lib/errors.js';
 import {getAdmin} from '../lib/user.js';
-import type {Locale} from '../lib/locale.js';
 import {
   organizationSettingsSchema,
   updateOrganizationBodySchema,
@@ -14,27 +13,18 @@ import {
   updateOrganizationSettings,
 } from './organization.service.js';
 
-// The parts of the settings a change touched, named for the event log.
-const PARTS: Record<Locale, Record<keyof UpdateOrganizationBody, string>> = {
-  sv: {
-    name: 'namnet',
-    bookingWindowDays: 'bokningsfönstret',
-    locales: 'språken',
-    rulesText: 'ordningsreglerna',
-  },
-  en: {
-    name: 'the name',
-    bookingWindowDays: 'the booking window',
-    locales: 'the languages',
-    rulesText: 'the rules',
-  },
-};
+// The parts of the settings a change touched, in the order the page shows
+// them. The event names them by key, and each admin reads them in their own
+// language.
+const PARTS = [
+  'name',
+  'bookingWindowDays',
+  'locales',
+  'rulesText',
+] as const satisfies readonly (keyof UpdateOrganizationBody)[];
 
-function settingsChanged(body: UpdateOrganizationBody, locale: Locale) {
-  return (Object.keys(PARTS[locale]) as (keyof UpdateOrganizationBody)[])
-    .filter((part) => body[part] !== undefined)
-    .map((part) => PARTS[locale][part])
-    .join(', ');
+function settingsChanged(body: UpdateOrganizationBody) {
+  return PARTS.filter((part) => body[part] !== undefined).join(',');
 }
 
 export const organizationRoutes: FastifyPluginAsyncZod = async (app) => {
@@ -66,7 +56,7 @@ export const organizationRoutes: FastifyPluginAsyncZod = async (app) => {
         request,
         admin,
         'organization.update',
-        settingsChanged(request.body, admin.locale),
+        settingsChanged(request.body),
       );
       return settings;
     },

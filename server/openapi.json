@@ -296,6 +296,12 @@
           "actor": {
             "type": "string"
           },
+          "actorName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "action": {
             "$ref": "#/components/schemas/EventActionInput"
           },
@@ -311,6 +317,7 @@
         "required": [
           "id",
           "actor",
+          "actorName",
           "action",
           "subject",
           "at"
@@ -2025,6 +2032,12 @@
           "actor": {
             "type": "string"
           },
+          "actorName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "action": {
             "$ref": "#/components/schemas/EventAction"
           },
@@ -2040,6 +2053,7 @@
         "required": [
           "id",
           "actor",
+          "actorName",
           "action",
           "subject",
           "at"

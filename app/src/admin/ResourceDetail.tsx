@@ -2,14 +2,10 @@ import {limitText, slotsText} from '@booking/core/admin/schedule';
 import type {AdminResource, AdminResources} from '@booking/core/api/types';
 import {localize} from '@booking/core/i18n/catalog';
 import {formatDayMonth} from '@booking/core/lib/dates';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import {useIsFocused} from '@react-navigation/native';
-import {useEffect, useState} from 'react';
-import {BackHandler, Pressable, Text, View} from 'react-native';
+import {useState} from 'react';
+import {Pressable, Text, View} from 'react-native';
 
-import {ResourceForm} from '@/admin/ResourceForm';
-import {ScheduleForm} from '@/admin/ScheduleForm';
-import {useConfirmLeave} from '@/admin/unsaved';
+import {ActionRow} from '@/admin/Rows';
 import {
   CARD,
   SECONDARY_BUTTON,
@@ -18,7 +14,6 @@ import {
 } from '@/admin/styles';
 import {useAdminActions} from '@/hooks/useAdminActions';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
-import theme from '@/theme.json';
 
 type ResourceDetailProps = {
   resource: AdminResource;
@@ -26,40 +21,9 @@ type ResourceDetailProps = {
   // After every change, and after a failure that means the resource shown
   // is out of date.
   onChanged: () => void;
+  onEdit: () => void;
+  onSchedule: () => void;
 };
-
-type Mode = 'view' | 'edit' | 'schedule';
-
-function Action({
-  label,
-  description,
-  onPress,
-  last,
-}: {
-  label: string;
-  description: string;
-  onPress: () => void;
-  last?: boolean;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className={`flex-row items-center gap-3 px-[18px] py-3.5 active:bg-theme-sunk ${
-        last ? '' : 'border-b border-theme-line'
-      }`}
-    >
-      <View className='min-w-0 flex-1 gap-0.5'>
-        <Text className='text-[15px] font-semibold tracking-tight text-theme-ink'>
-          {label}
-        </Text>
-        <Text className='font-sans text-[13px] leading-5 text-theme-muted'>
-          {description}
-        </Text>
-      </View>
-      <Ionicons name='chevron-forward' size={16} color={theme.faint} />
-    </Pressable>
-  );
-}
 
 function Button({
   label,
@@ -85,37 +49,15 @@ export function ResourceDetail({
   resource,
   data,
   onChanged,
+  onEdit,
+  onSchedule,
 }: ResourceDetailProps) {
   const t = useMessages();
   const {locale} = useLocale();
-  const [mode, setMode] = useState<Mode>('view');
-  const confirmLeave = useConfirmLeave();
-  // Every tab keeps its screen, so only the one shown answers the back
-  // button.
-  const focused = useIsFocused();
   const tags = localize(resource.tags, locale) ?? [];
-
-  // Back from a form returns to the resource, not to the list. Registered
-  // after the list's handler, so it is asked first.
-  useEffect(() => {
-    if (mode === 'view' || !focused) {
-      return;
-    }
-
-    const subscription = BackHandler.addEventListener(
-      'hardwareBackPress',
-      () => {
-        confirmLeave(() => setMode('view'));
-        return true;
-      },
-    );
-
-    return () => subscription.remove();
-  }, [mode, focused, confirmLeave]);
   const {kinds, earliestChange, today} = data;
   const kind = kinds.find((item) => item.id === resource.kindId);
   const [current, ...later] = resource.schedules;
-  const latest = resource.schedules.at(-1);
   const closed = resource.closesFrom !== null && resource.closesFrom <= today;
 
   const [busy, setBusy] = useState(false);
@@ -127,40 +69,6 @@ export function ResourceDetail({
     (item) => item.kindId === resource.kindId,
   );
   const position = siblings.findIndex((item) => item.id === resource.id);
-
-  if (mode === 'edit') {
-    return (
-      <ResourceForm
-        kinds={kinds}
-        initial={{...resource, slots: []}}
-        withSlots={false}
-        submitLabel={t.admin.save}
-        onCancel={() => setMode('view')}
-        onSubmit={async (fields) => {
-          await actions.resources.update(resource.id, fields);
-          setMode('view');
-        }}
-      />
-    );
-  }
-
-  if (mode === 'schedule') {
-    return (
-      <ScheduleForm
-        initial={latest?.slots ?? []}
-        validFrom={earliestChange}
-        onCancel={() => setMode('view')}
-        onSubmit={async (slots) => {
-          await actions.resources.saveSchedule(
-            resource.id,
-            earliestChange,
-            slots,
-          );
-          setMode('view');
-        }}
-      />
-    );
-  }
 
   return (
     <View className='gap-[26px]'>
@@ -245,17 +153,17 @@ export function ResourceDetail({
       <View>
         <Text className={SECTION_LABEL}>{t.admin.actions}</Text>
         <View className='overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
-          <Action
+          <ActionRow
             label={t.admin.resource.editTimes}
             description={t.admin.resource.editTimesHint(
               formatDayMonth(earliestChange, t),
             )}
-            onPress={() => setMode('schedule')}
+            onPress={onSchedule}
           />
-          <Action
+          <ActionRow
             label={t.admin.editDetails}
             description={t.admin.resource.editDetailsHint}
-            onPress={() => setMode('edit')}
+            onPress={onEdit}
             last
           />
         </View>

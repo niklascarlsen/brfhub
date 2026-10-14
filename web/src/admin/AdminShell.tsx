@@ -66,7 +66,7 @@ export function AdminShell({account, onRefresh}: AdminShellProps) {
   // Each tab mounts its page afresh, so a form left half done is lost.
   const leaveTo = (target: Route) =>
     unsaved.confirmLeave(() => navigate(target));
-  useHistoryGuard(leaveTo);
+  useHistoryGuard(unsaved.confirmLeave);
 
   // A browser an apartment used before may still hand its push to the
   // apartment; an admin without one should not get those notifications.

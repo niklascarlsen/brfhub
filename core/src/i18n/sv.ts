@@ -22,6 +22,7 @@ export const sv = {
     ],
     today: 'Idag',
     tomorrow: 'Imorgon',
+    yesterday: 'Igår',
   },
   common: {
     retry: 'Försök igen',
@@ -270,6 +271,8 @@ export const sv = {
     remove: 'Ta bort',
     details: 'Uppgifter',
     actions: 'Åtgärder',
+    goneTitle: 'Finns inte längre',
+    gone: 'Det kan ha tagits bort, eller så är länken gammal.',
     editDetails: 'Ändra uppgifter',
     // Said when an edited form is about to be left without saving.
     unsaved: {
@@ -439,10 +442,18 @@ export const sv = {
       name: 'Namn',
       you: 'du',
       lives: (label: string) => `Bor i lägenhet ${label}`,
-      noTwoFactor: 'Har inte satt upp tvåstegsverifiering än',
+      count: (count: number) =>
+        count === 1 ? '1 administratör' : `${count} administratörer`,
+      withoutTwoFactor: (count: number) => `${count} utan tvåsteg`,
+      twoFactorMissing: 'Inget tvåsteg än',
+      apartment: 'Lägenhet',
+      twoFactor: 'Tvåstegsverifiering',
+      twoFactorOn: 'Uppsatt',
+      twoFactorOff: 'Inte uppsatt än',
+      resetHint: 'När en telefon har försvunnit',
+      removeAdmin: 'Ta bort som administratör',
       lastSignIn: (when: string) => `Senast inloggad ${when}`,
       never: 'Har aldrig loggat in',
-      remove: 'Ta bort',
       removeQuestion: (email: string) =>
         `${email} loggas ut och kan inte längre administrera föreningen. Bor personen här behåller de sin lägenhet.`,
       removeFailed: 'Kunde inte ta bort administratören',
@@ -454,9 +465,19 @@ export const sv = {
       checkEmail: 'Kontrollera e-postadressen',
     },
     events: {
-      title: 'Händelser',
-      note: 'Vad administratörerna har gjort, senaste först.',
-      none: 'Inget har hänt än.',
+      title: 'Historik',
+      note: 'Vad administratörerna har gjort, senaste först. Historiken sparas i 12 månader.',
+      none: 'Inget har hänt det senaste året.',
+      noneIn: 'Inget här det senaste året.',
+      filter: 'Visa',
+      all: 'Allt',
+      areas: {
+        apartments: 'Lägenheter',
+        resources: 'Resurser',
+        announcements: 'Anslag',
+        admins: 'Administratörer',
+        organization: 'Inställningar',
+      },
       actions: {
         'apartment.create': (subject: string) =>
           `Lade till lägenhet ${subject}`,
@@ -492,9 +513,16 @@ export const sv = {
         'organization.update': (subject: string) =>
           `Ändrade inställningarna: ${subject}`,
       },
+      // What a change to the settings touched, as the subject of
+      // 'organization.update'.
+      settingsParts: {
+        name: 'namnet',
+        bookingWindowDays: 'bokningsfönstret',
+        locales: 'språken',
+        rulesText: 'ordningsreglerna',
+      },
     },
     organization: {
-      settings: 'Inställningar',
       languages: 'Föreningens språk',
       languagesNote:
         'Lägenheterna kan välja bland språken som är på. Med flera språk skriver du föreningens texter på vart och ett. Det som inte är översatt visas på det språk det är skrivet på.',
@@ -509,11 +537,14 @@ export const sv = {
       rulesNote: 'Visas för lägenheterna ovanför tiderna och gränserna.',
       saved: 'Sparat.',
       changePassword: 'Byt lösenord',
+      windowSummary: (name: string, days: number) =>
+        `${name} · ${days} dagar framåt`,
+      noRules: 'Inga ordningsregler än',
+      pages: 'Föreningens sidor',
       currentPassword: 'Nuvarande lösenord',
       newPassword: 'Nytt lösenord',
       repeatPassword: 'Nytt lösenord igen',
-      passwordNote:
-        'Byt lösenord när styrelsen byts. Alla andra enheter loggas ut.',
+      passwordNote: 'Alla andra enheter loggas ut när du byter.',
       wrongPassword: 'Det nuvarande lösenordet stämmer inte',
       passwordTooShort: (min: number) =>
         `Det nya lösenordet måste ha minst ${min} tecken`,
@@ -538,6 +569,7 @@ export const sv = {
       active: 'Visas nu',
       scheduled: 'Kommande',
       ended: 'Avslutade',
+      showAllEnded: (count: number) => `Visa alla ${count} avslutade`,
       period: (from: string, to: string) => `${from} till ${to}`,
       openPeriod: (from: string) => `Från ${from}, tills vidare`,
       remove: 'Ta bort anslaget',
