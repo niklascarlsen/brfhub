@@ -1,21 +1,5 @@
-import {
-  checkPasswordReset,
-  type PasswordResetFields,
-} from '@booking/core/admin/drafts';
-import {useProblems} from '@booking/core/admin/useProblems';
-import {codeOf, errorMessage} from '@booking/core/api/errors';
-import {
-  codeFailure,
-  isStaleChallenge,
-  nextStep,
-  passwordFailure,
-  resetFailure,
-  totpFailure,
-  type LoginStep,
-} from '@booking/core/auth/login';
-import {limits} from '@booking/core/generated/limits';
+import {useSignIn} from '@booking/core/auth/useSignIn';
 import {Icon} from '@/components/Icon';
-import {useState} from 'react';
 import {Pressable, Text, View} from 'react-native';
 import {
   KeyboardAvoidingView,
@@ -36,182 +20,22 @@ const BUTTON_LABEL =
   'text-base font-semibold tracking-tight text-theme-surface';
 const LINK = 'self-start py-2 active:opacity-60';
 const LINK_LABEL = 'text-sm font-semibold text-theme-accent';
-const EMPTY_RESET: PasswordResetFields = {code: '', next: '', repeat: ''};
 
 // Signing in is two steps: the address, then the code it is mailed or, for
 // an admin, the password. On success useSession updates and the gate
 // unmounts this screen.
 export function LoginScreen() {
   const t = useMessages();
-  const [step, setStep] = useState<LoginStep>({kind: 'email'});
-  const [email, setEmail] = useState(DEV_EMAIL);
-  const [code, setCode] = useState('');
-  const [password, setPassword] = useState(DEV_PASSWORD);
-  const [trustDevice, setTrustDevice] = useState(true);
-  const [reset, setReset] = useState(EMPTY_RESET);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const checkedReset = checkPasswordReset(reset, t);
-  const resetProblems = useProblems(checkedReset);
-
-  async function sendCode(address: string): Promise<boolean> {
-    // Better Auth throws rather than answers when the network fails.
-    const result = await authClient.emailOtp
-      .sendVerificationOtp({email: address, type: 'sign-in'})
-      .catch(() => null);
-
-    if (result === null || result.error) {
-      setError(codeFailure(result?.error ?? null, t));
-      return false;
-    }
-
-    return true;
-  }
-
-  async function run(action: () => Promise<void>) {
-    setSubmitting(true);
-    setError(null);
-    setNotice(null);
-    await action();
-    setSubmitting(false);
-  }
-
-  const continueWithEmail = () =>
-    run(async () => {
-      let next: LoginStep;
-      try {
-        next = await nextStep({api, unwrap}, email);
-      } catch (failure) {
-        setError(errorMessage(codeOf(failure), t));
-        return;
-      }
-
-      if (next.kind === 'code' && !(await sendCode(next.email))) {
-        return;
-      }
-
-      if (next.kind === 'reset') {
-        await beginReset(next.email);
-        return;
-      }
-
-      setCode(next.kind === 'code' ? await devCode(next.email, 'mailed') : '');
-      setStep(next);
-    });
-
-  const signInWithCode = (address: string) =>
-    run(async () => {
-      const result = await authClient.signIn
-        .emailOtp({email: address, otp: code.trim()})
-        .catch(() => null);
-
-      if (result === null || result.error) {
-        setError(codeFailure(result?.error ?? null, t));
-      }
-    });
-
-  // An admin with an authenticator is asked for its code next.
-  const signInWithPassword = (address: string, secret: string) =>
-    run(async () => {
-      const result = await authClient.signIn
-        .email({email: address, password: secret})
-        .catch(() => null);
-
-      if (result === null || result.error) {
-        setError(passwordFailure(result?.error ?? null, t));
-        return;
-      }
-
-      if ('twoFactorRedirect' in result.data) {
-        setCode(await devCode(address, 'totp'));
-        setStep({kind: 'totp', email: address, backup: false});
-      }
-    });
-
-  const signInWithTotp = (address: string, backup: boolean) =>
-    run(async () => {
-      const verify = backup
-        ? authClient.twoFactor.verifyBackupCode({
-            code: code.trim(),
-            trustDevice,
-          })
-        : authClient.twoFactor.verifyTotp({code: code.trim(), trustDevice});
-      const result = await verify.catch(() => null);
-
-      if (result === null || result.error) {
-        const failure = result?.error ?? null;
-        // Ten minutes passed since the password: back to it.
-        if (isStaleChallenge(failure)) {
-          setStep({kind: 'password', email: address});
-        }
-        setError(totpFailure(failure, t));
-      }
-    });
-
-  // An admin sets or resets the password with a code mailed to them, and
-  // is signed in with it at once. A new admin is sent here from the
-  // address, one who forgot the password from the password step.
-  async function beginReset(address: string): Promise<void> {
-    const result = await authClient.emailOtp
-      .requestPasswordReset({email: address})
-      .catch(() => null);
-
-    if (result === null || result.error) {
-      setError(codeFailure(result?.error ?? null, t));
-      return;
-    }
-
-    setReset({...EMPTY_RESET, code: await devCode(address, 'mailed')});
-    resetProblems.reset();
-    setStep({kind: 'reset', email: address});
-  }
-
-  const startReset = (address: string) => run(() => beginReset(address));
-
-  const finishReset = (address: string) =>
-    run(async () => {
-      if (!resetProblems.ready()) {
-        return;
-      }
-
-      const result = await authClient.emailOtp
-        .resetPassword({
-          email: address,
-          otp: checkedReset.value.code,
-          password: checkedReset.value.next,
-        })
-        .catch(() => null);
-
-      if (result === null || result.error) {
-        setError(
-          resetFailure(
-            result?.error ?? null,
-            t,
-            limits.ChangePasswordBody.newPassword,
-          ),
-        );
-        return;
-      }
-
-      setPassword(checkedReset.value.next);
-      setStep({kind: 'password', email: address});
-      await signInWithPassword(address, checkedReset.value.next);
-    });
-
-  const resendCode = (address: string) =>
-    run(async () => {
-      if (await sendCode(address)) {
-        setCode('');
-        setNotice(t.login.codeSent);
-      }
-    });
-
-  const backToEmail = () => {
-    setStep({kind: 'email'});
-    setError(null);
-    setNotice(null);
-  };
+  const signIn = useSignIn({
+    api,
+    unwrap,
+    auth: authClient,
+    t,
+    devCode,
+    prefill: {email: DEV_EMAIL, password: DEV_PASSWORD},
+  });
+  const {step, fields, error, notice, submitting, canSubmit} = signIn;
+  const submit = () => void signIn.submit();
 
   const problem = error ? (
     <Text
@@ -226,8 +50,6 @@ export function LoginScreen() {
 
   let body;
   if (step.kind === 'email') {
-    const canSubmit = email.trim().length > 0 && !submitting;
-
     body = (
       <>
         <Text className='mb-1 text-[27px] font-semibold tracking-tight text-theme-ink'>
@@ -239,29 +61,23 @@ export function LoginScreen() {
         <FloatingLabelInput
           className='mb-5'
           label={t.common.email}
-          value={email}
-          onChangeText={setEmail}
+          value={fields.email}
+          onChangeText={(email) => signIn.edit({email})}
           autoCapitalize='none'
           autoComplete='email'
           autoCorrect={false}
           keyboardType='email-address'
           textContentType='emailAddress'
           returnKeyType='go'
-          onSubmitEditing={() => canSubmit && void continueWithEmail()}
+          onSubmitEditing={submit}
         />
         {problem}
-        <Pressable
-          onPress={() => void continueWithEmail()}
-          disabled={!canSubmit}
-          className={BUTTON}
-        >
+        <Pressable onPress={submit} disabled={!canSubmit} className={BUTTON}>
           <Text className={BUTTON_LABEL}>{t.login.continue}</Text>
         </Pressable>
       </>
     );
   } else if (step.kind === 'code') {
-    const canSubmit = code.trim().length > 0 && !submitting;
-
     body = (
       <>
         <Text className='mb-1 text-[27px] font-semibold tracking-tight text-theme-ink'>
@@ -273,40 +89,34 @@ export function LoginScreen() {
         <FloatingLabelInput
           className='mb-5'
           label={t.login.code}
-          value={code}
-          onChangeText={setCode}
+          value={fields.code}
+          onChangeText={(code) => signIn.edit({code})}
           autoFocus
           autoComplete='one-time-code'
           keyboardType='number-pad'
           textContentType='oneTimeCode'
           returnKeyType='go'
-          onSubmitEditing={() => canSubmit && void signInWithCode(step.email)}
+          onSubmitEditing={submit}
         />
         {problem}
-        <Pressable
-          onPress={() => void signInWithCode(step.email)}
-          disabled={!canSubmit}
-          className={BUTTON}
-        >
+        <Pressable onPress={submit} disabled={!canSubmit} className={BUTTON}>
           <Text className={BUTTON_LABEL}>{t.login.submit}</Text>
         </Pressable>
         <View className='mt-3 flex-row gap-6'>
           <Pressable
-            onPress={() => void resendCode(step.email)}
+            onPress={() => void signIn.resendCode()}
             disabled={submitting}
             className={LINK}
           >
             <Text className={LINK_LABEL}>{t.login.sendNewCode}</Text>
           </Pressable>
-          <Pressable onPress={backToEmail} className={LINK}>
+          <Pressable onPress={signIn.backToEmail} className={LINK}>
             <Text className={LINK_LABEL}>{t.login.changeEmail}</Text>
           </Pressable>
         </View>
       </>
     );
   } else if (step.kind === 'password') {
-    const canSubmit = password.length > 0 && !submitting;
-
     body = (
       <>
         <Text className='mb-1 text-[27px] font-semibold tracking-tight text-theme-ink'>
@@ -318,41 +128,34 @@ export function LoginScreen() {
         <FloatingLabelInput
           className='mb-5'
           label={t.login.password}
-          value={password}
-          onChangeText={setPassword}
+          value={fields.password}
+          onChangeText={(password) => signIn.edit({password})}
           autoFocus
           secureTextEntry
           autoComplete='current-password'
           textContentType='password'
           returnKeyType='go'
-          onSubmitEditing={() =>
-            canSubmit && void signInWithPassword(step.email, password)
-          }
+          onSubmitEditing={submit}
         />
         {problem}
-        <Pressable
-          onPress={() => void signInWithPassword(step.email, password)}
-          disabled={!canSubmit}
-          className={BUTTON}
-        >
+        <Pressable onPress={submit} disabled={!canSubmit} className={BUTTON}>
           <Text className={BUTTON_LABEL}>{t.login.submit}</Text>
         </Pressable>
         <View className='mt-3 flex-row flex-wrap gap-x-6'>
           <Pressable
-            onPress={() => void startReset(step.email)}
+            onPress={() => void signIn.startReset()}
             disabled={submitting}
             className={LINK}
           >
             <Text className={LINK_LABEL}>{t.login.setPassword}</Text>
           </Pressable>
-          <Pressable onPress={backToEmail} className={LINK}>
+          <Pressable onPress={signIn.backToEmail} className={LINK}>
             <Text className={LINK_LABEL}>{t.login.changeEmail}</Text>
           </Pressable>
         </View>
       </>
     );
   } else if (step.kind === 'totp') {
-    const canSubmit = code.trim().length > 0 && !submitting;
     const {backup} = step;
 
     body = (
@@ -366,8 +169,8 @@ export function LoginScreen() {
         <FloatingLabelInput
           className='mb-4'
           label={backup ? t.login.backupCode : t.login.totpCode}
-          value={code}
-          onChangeText={setCode}
+          value={fields.code}
+          onChangeText={(code) => signIn.edit({code})}
           autoFocus
           autoCapitalize='none'
           autoComplete={backup ? 'off' : 'one-time-code'}
@@ -375,56 +178,40 @@ export function LoginScreen() {
           keyboardType={backup ? 'default' : 'number-pad'}
           textContentType={backup ? 'none' : 'oneTimeCode'}
           returnKeyType='go'
-          onSubmitEditing={() =>
-            canSubmit && void signInWithTotp(step.email, backup)
-          }
+          onSubmitEditing={submit}
         />
         <Pressable
-          onPress={() => setTrustDevice((value) => !value)}
+          onPress={() => signIn.edit({trustDevice: !fields.trustDevice})}
           accessibilityRole='checkbox'
-          accessibilityState={{checked: trustDevice}}
+          accessibilityState={{checked: fields.trustDevice}}
           className='mb-5 flex-row items-center gap-2.5 self-start py-1'
         >
           <Icon
-            name={trustDevice ? 'checkbox' : 'square-outline'}
+            name={fields.trustDevice ? 'checkbox' : 'square-outline'}
             size={22}
-            color={trustDevice ? theme.ink : theme.muted}
+            color={fields.trustDevice ? theme.ink : theme.muted}
           />
           <Text className='font-sans text-sm text-theme-ink'>
             {t.login.trustDevice}
           </Text>
         </Pressable>
         {problem}
-        <Pressable
-          onPress={() => void signInWithTotp(step.email, backup)}
-          disabled={!canSubmit}
-          className={BUTTON}
-        >
+        <Pressable onPress={submit} disabled={!canSubmit} className={BUTTON}>
           <Text className={BUTTON_LABEL}>{t.login.submit}</Text>
         </Pressable>
         <View className='mt-3 flex-row flex-wrap gap-x-6'>
-          <Pressable
-            onPress={() => {
-              setCode('');
-              setError(null);
-              setStep({...step, backup: !backup});
-            }}
-            className={LINK}
-          >
+          <Pressable onPress={signIn.toggleBackup} className={LINK}>
             <Text className={LINK_LABEL}>
               {backup ? t.login.useTotp : t.login.useBackupCode}
             </Text>
           </Pressable>
-          <Pressable onPress={backToEmail} className={LINK}>
+          <Pressable onPress={signIn.backToEmail} className={LINK}>
             <Text className={LINK_LABEL}>{t.login.startOver}</Text>
           </Pressable>
         </View>
       </>
     );
   } else {
-    const setField = (key: keyof PasswordResetFields) => (value: string) =>
-      setReset((previous) => ({...previous, [key]: value}));
-
     body = (
       <>
         <Text className='mb-1 text-[27px] font-semibold tracking-tight text-theme-ink'>
@@ -436,10 +223,10 @@ export function LoginScreen() {
         <View className='mb-5 gap-3'>
           <FloatingLabelInput
             label={t.login.code}
-            value={reset.code}
-            onChangeText={setField('code')}
-            onBlur={() => resetProblems.leave('code')}
-            problem={resetProblems.problem('code')}
+            value={fields.reset.code}
+            onChangeText={(value) => signIn.editReset('code', value)}
+            onBlur={() => signIn.leaveReset('code')}
+            problem={signIn.resetProblem('code')}
             autoFocus
             autoComplete='one-time-code'
             keyboardType='number-pad'
@@ -448,10 +235,10 @@ export function LoginScreen() {
           />
           <FloatingLabelInput
             label={t.login.newPassword}
-            value={reset.next}
-            onChangeText={setField('next')}
-            onBlur={() => resetProblems.leave('next')}
-            problem={resetProblems.problem('next')}
+            value={fields.reset.next}
+            onChangeText={(value) => signIn.editReset('next', value)}
+            onBlur={() => signIn.leaveReset('next')}
+            problem={signIn.resetProblem('next')}
             secureTextEntry
             autoComplete='new-password'
             textContentType='newPassword'
@@ -459,34 +246,30 @@ export function LoginScreen() {
           />
           <FloatingLabelInput
             label={t.login.repeatPassword}
-            value={reset.repeat}
-            onChangeText={setField('repeat')}
-            onBlur={() => resetProblems.leave('repeat')}
-            problem={resetProblems.problem('repeat')}
+            value={fields.reset.repeat}
+            onChangeText={(value) => signIn.editReset('repeat', value)}
+            onBlur={() => signIn.leaveReset('repeat')}
+            problem={signIn.resetProblem('repeat')}
             secureTextEntry
             autoComplete='new-password'
             textContentType='newPassword'
             returnKeyType='go'
-            onSubmitEditing={() => !submitting && void finishReset(step.email)}
+            onSubmitEditing={submit}
           />
         </View>
         {problem}
-        <Pressable
-          onPress={() => void finishReset(step.email)}
-          disabled={submitting}
-          className={BUTTON}
-        >
+        <Pressable onPress={submit} disabled={!canSubmit} className={BUTTON}>
           <Text className={BUTTON_LABEL}>{t.login.resetSubmit}</Text>
         </Pressable>
         <View className='mt-3 flex-row flex-wrap gap-x-6'>
           <Pressable
-            onPress={() => void startReset(step.email)}
+            onPress={() => void signIn.startReset()}
             disabled={submitting}
             className={LINK}
           >
             <Text className={LINK_LABEL}>{t.login.sendNewCode}</Text>
           </Pressable>
-          <Pressable onPress={backToEmail} className={LINK}>
+          <Pressable onPress={signIn.backToEmail} className={LINK}>
             <Text className={LINK_LABEL}>{t.login.changeEmail}</Text>
           </Pressable>
         </View>

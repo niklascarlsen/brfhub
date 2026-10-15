@@ -19,7 +19,6 @@ import {
   failureMessage,
   hasProblems,
   isSame,
-  passwordFailure,
   shownProblem,
   stepMaxActive,
   tagsText,
@@ -389,16 +388,6 @@ describe('a new password', () => {
     expect(checkPassword({current: 'a', next: '', repeat: ''}, t).changed).toBe(
       true,
     );
-  });
-
-  test("Better Auth's refusals are told in words", () => {
-    expect(passwordFailure('INVALID_PASSWORD', en)).toBe(
-      en.admin.organization.wrongPassword,
-    );
-    expect(passwordFailure('PASSWORD_TOO_SHORT', en)).toBe(
-      'The new password must be at least 8 characters',
-    );
-    expect(passwordFailure(undefined, en)).toBe(en.errors.UNKNOWN);
   });
 });
 

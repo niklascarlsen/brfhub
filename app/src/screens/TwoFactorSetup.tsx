@@ -1,12 +1,6 @@
 import type {AdminAccount} from '@booking/core/auth/account';
-import {
-  enableFailure,
-  qrCodeOf,
-  secretOf,
-  verifyFailure,
-  type SetupStep,
-} from '@booking/core/auth/twoFactor';
-import {useState} from 'react';
+import {qrCodeOf, secretOf} from '@booking/core/auth/twoFactor';
+import {useTwoFactorSetup} from '@booking/core/auth/useTwoFactorSetup';
 import {Pressable, Share, Text, View} from 'react-native';
 import {
   KeyboardAwareScrollView,
@@ -75,54 +69,16 @@ type TwoFactorSetupProps = {
 export function TwoFactorSetup({account, onDone}: TwoFactorSetupProps) {
   const t = useMessages();
   const {data: session} = authClient.useSession();
-  const [step, setStep] = useState<SetupStep>({kind: 'password'});
-  const [password, setPassword] = useState(DEV_PASSWORD);
-  const [code, setCode] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-
-  async function run(action: () => Promise<void>) {
-    setSubmitting(true);
-    setError(null);
-    await action();
-    setSubmitting(false);
-  }
-
-  const begin = () =>
-    run(async () => {
-      // Better Auth throws rather than answers when the network fails.
-      const result = await authClient.twoFactor
-        .enable({password})
-        .catch(() => null);
-
-      // The plugin can also mail codes, which this server never asks for.
-      if (result === null || result.error || result.data.method !== 'totp') {
-        setError(enableFailure(result?.error ?? null, t));
-        return;
-      }
-
-      setPassword('');
-      setCode(await devCode(session?.user.email ?? '', 'totp'));
-      setStep({
-        kind: 'scan',
-        totpUri: result.data.totpURI,
-        backupCodes: result.data.backupCodes,
-      });
-    });
-
-  const verify = (backupCodes: string[]) =>
-    run(async () => {
-      const result = await authClient.twoFactor
-        .verifyTotp({code: code.trim()})
-        .catch(() => null);
-
-      if (result === null || result.error) {
-        setError(verifyFailure(result?.error ?? null, t));
-        return;
-      }
-
-      setStep({kind: 'backup', backupCodes});
-    });
+  const setup = useTwoFactorSetup({
+    auth: authClient,
+    t,
+    devCode,
+    email: session?.user.email ?? '',
+    onDone,
+    prefill: {password: DEV_PASSWORD},
+  });
+  const {step, password, code, error, canSubmit} = setup;
+  const submit = () => void setup.submit();
 
   const share = (backupCodes: string[]) => {
     void Share.share({message: backupCodes.join('\n')});
@@ -139,8 +95,6 @@ export function TwoFactorSetup({account, onDone}: TwoFactorSetupProps) {
 
   let body;
   if (step.kind === 'password') {
-    const canSubmit = password.length > 0 && !submitting;
-
     body = (
       <>
         <Text className='mb-1 text-[27px] font-semibold tracking-tight text-theme-ink'>
@@ -153,17 +107,17 @@ export function TwoFactorSetup({account, onDone}: TwoFactorSetupProps) {
           <FloatingLabelInput
             label={t.twoFactor.password}
             value={password}
-            onChangeText={setPassword}
+            onChangeText={(value) => setup.edit({password: value})}
             secureTextEntry
             autoComplete='current-password'
             textContentType='password'
             returnKeyType='go'
-            onSubmitEditing={() => canSubmit && void begin()}
+            onSubmitEditing={submit}
           />
           {problem}
           <View className='flex-row flex-wrap gap-2.5'>
             <Pressable
-              onPress={() => void begin()}
+              onPress={submit}
               disabled={!canSubmit}
               className={PRIMARY_BUTTON}
             >
@@ -180,8 +134,6 @@ export function TwoFactorSetup({account, onDone}: TwoFactorSetupProps) {
       </>
     );
   } else if (step.kind === 'scan') {
-    const canSubmit = code.trim().length > 0 && !submitting;
-
     body = (
       <>
         <Text className='mb-1 text-[27px] font-semibold tracking-tight text-theme-ink'>
@@ -206,16 +158,16 @@ export function TwoFactorSetup({account, onDone}: TwoFactorSetupProps) {
           <FloatingLabelInput
             label={t.twoFactor.firstCode}
             value={code}
-            onChangeText={setCode}
+            onChangeText={(value) => setup.edit({code: value})}
             autoComplete='one-time-code'
             keyboardType='number-pad'
             textContentType='oneTimeCode'
             returnKeyType='go'
-            onSubmitEditing={() => canSubmit && void verify(step.backupCodes)}
+            onSubmitEditing={submit}
           />
           {problem}
           <Pressable
-            onPress={() => void verify(step.backupCodes)}
+            onPress={submit}
             disabled={!canSubmit}
             className={`${PRIMARY_BUTTON} self-start`}
           >
@@ -253,7 +205,7 @@ export function TwoFactorSetup({account, onDone}: TwoFactorSetupProps) {
             >
               <Text className={SECONDARY_LABEL}>{t.twoFactor.shareCodes}</Text>
             </Pressable>
-            <Pressable onPress={onDone} className={PRIMARY_BUTTON}>
+            <Pressable onPress={submit} className={PRIMARY_BUTTON}>
               <Text className={PRIMARY_LABEL}>{t.twoFactor.done}</Text>
             </Pressable>
           </View>

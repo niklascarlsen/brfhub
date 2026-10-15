@@ -1,11 +1,6 @@
 import type {AdminAccount} from '@booking/core/auth/account';
-import {
-  enableFailure,
-  qrCodeOf,
-  secretOf,
-  verifyFailure,
-  type SetupStep,
-} from '@booking/core/auth/twoFactor';
+import {qrCodeOf, secretOf} from '@booking/core/auth/twoFactor';
+import {useTwoFactorSetup} from '@booking/core/auth/useTwoFactorSetup';
 import {useState, type SubmitEvent} from 'react';
 
 import {CARD, PRIMARY_BUTTON, SECONDARY_BUTTON} from '@/admin/styles';
@@ -58,55 +53,16 @@ type TwoFactorSetupProps = {
 export function TwoFactorSetup({account, onDone}: TwoFactorSetupProps) {
   const t = useMessages();
   const {data: session} = authClient.useSession();
-  const [step, setStep] = useState<SetupStep>({kind: 'password'});
-  const [password, setPassword] = useState(DEV_PASSWORD);
-  const [code, setCode] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const setup = useTwoFactorSetup({
+    auth: authClient,
+    t,
+    devCode,
+    email: session?.user.email ?? '',
+    onDone,
+    prefill: {password: DEV_PASSWORD},
+  });
+  const {step, password, code, error, canSubmit} = setup;
   const [notice, setNotice] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-
-  async function run(action: () => Promise<void>) {
-    setSubmitting(true);
-    setError(null);
-    await action();
-    setSubmitting(false);
-  }
-
-  const begin = () =>
-    run(async () => {
-      // Better Auth throws rather than answers when the network fails.
-      const result = await authClient.twoFactor
-        .enable({password})
-        .catch(() => null);
-
-      // The plugin can also mail codes, which this server never asks for.
-      if (result === null || result.error || result.data.method !== 'totp') {
-        setError(enableFailure(result?.error ?? null, t));
-        return;
-      }
-
-      setPassword('');
-      setCode(await devCode(session?.user.email ?? '', 'totp'));
-      setStep({
-        kind: 'scan',
-        totpUri: result.data.totpURI,
-        backupCodes: result.data.backupCodes,
-      });
-    });
-
-  const verify = (backupCodes: string[]) =>
-    run(async () => {
-      const result = await authClient.twoFactor
-        .verifyTotp({code: code.trim()})
-        .catch(() => null);
-
-      if (result === null || result.error) {
-        setError(verifyFailure(result?.error ?? null, t));
-        return;
-      }
-
-      setStep({kind: 'backup', backupCodes});
-    });
 
   const copy = (backupCodes: string[]) => {
     navigator.clipboard
@@ -117,18 +73,7 @@ export function TwoFactorSetup({account, onDone}: TwoFactorSetupProps) {
 
   function onSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    if (submitting) {
-      return;
-    }
-
-    if (step.kind === 'password') {
-      void begin();
-    } else if (step.kind === 'scan') {
-      void verify(step.backupCodes);
-    } else {
-      onDone();
-    }
+    void setup.submit();
   }
 
   const problem = error ? (
@@ -155,13 +100,13 @@ export function TwoFactorSetup({account, onDone}: TwoFactorSetupProps) {
             autoComplete='current-password'
             required
             value={password}
-            onChange={(event) => setPassword(event.target.value)}
+            onChange={(event) => setup.edit({password: event.target.value})}
           />
           {problem}
           <div className='flex flex-wrap gap-2.5'>
             <button
               type='submit'
-              disabled={password.length === 0 || submitting}
+              disabled={!canSubmit}
               className={PRIMARY_BUTTON}
             >
               {t.twoFactor.begin}
@@ -204,12 +149,12 @@ export function TwoFactorSetup({account, onDone}: TwoFactorSetupProps) {
             inputMode='numeric'
             required
             value={code}
-            onChange={(event) => setCode(event.target.value)}
+            onChange={(event) => setup.edit({code: event.target.value})}
           />
           {problem}
           <button
             type='submit'
-            disabled={code.trim().length === 0 || submitting}
+            disabled={!canSubmit}
             className={`${PRIMARY_BUTTON} self-start`}
           >
             {t.twoFactor.verify}

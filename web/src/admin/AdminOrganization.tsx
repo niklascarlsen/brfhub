@@ -2,16 +2,14 @@ import {useAdminAccount, useRefreshAccount} from '@booking/core/admin/account';
 import type {SettingsUpdate} from '@booking/core/admin/actions';
 import {
   checkDetails,
-  checkPassword,
   checkRules,
   failureMessage,
   isSame,
-  passwordFailure,
 } from '@booking/core/admin/drafts';
 import type {Draft} from '@booking/core/admin/localized';
 import {useProblems} from '@booking/core/admin/useProblems';
-import {errorMessage} from '@booking/core/api/errors';
 import {useSwitchMode} from '@booking/core/auth/mode';
+import {useChangePassword} from '@booking/core/auth/useChangePassword';
 import {describeEvent, formatEventTime} from '@booking/core/admin/events';
 import type {OrganizationSection} from '@booking/core/admin/location';
 import type {
@@ -318,62 +316,23 @@ function RulesForm({
 // Better Auth changes it, outside the admin's API.
 function ChangePassword() {
   const t = useMessages();
-  const [fields, setFields] = useState({current: '', next: '', repeat: ''});
-  const [message, setMessage] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const checked = checkPassword(fields, t);
-  const {problem, leave, ready, reset} = useProblems(checked);
+  const change = useChangePassword({auth: authClient, t});
+  const {fields, problem, leave} = change;
 
-  const set = (key: keyof typeof fields) => (value: string) =>
-    setFields((previous) => ({...previous, [key]: value}));
-
-  async function submit(event: SubmitEvent<HTMLFormElement>) {
+  function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    setMessage(null);
-
-    if (!ready()) {
-      return;
-    }
-
-    setSubmitting(true);
-    // Better Auth throws rather than answers when the network fails.
-    const result = await authClient
-      .changePassword({
-        currentPassword: fields.current,
-        newPassword: fields.next,
-        revokeOtherSessions: true,
-      })
-      .catch(() => null);
-    setSubmitting(false);
-
-    if (result === null) {
-      setMessage(errorMessage('NETWORK', t));
-      return;
-    }
-
-    if (result.error) {
-      setMessage(passwordFailure(result.error.code, t));
-      return;
-    }
-
-    setFields({current: '', next: '', repeat: ''});
-    reset();
-    setMessage(t.admin.organization.passwordChanged);
+    void change.submit();
   }
 
   return (
-    <form
-      noValidate
-      onSubmit={(event) => void submit(event)}
-      className='flex flex-col gap-4'
-    >
+    <form noValidate onSubmit={submit} className='flex flex-col gap-4'>
       <FloatingLabelInput
         label={t.admin.organization.currentPassword}
         type='password'
         autoComplete='current-password'
         required
         value={fields.current}
-        onChange={(event) => set('current')(event.target.value)}
+        onChange={(event) => change.edit('current', event.target.value)}
         onBlur={() => leave('current')}
         problem={problem('current')}
       />
@@ -383,7 +342,7 @@ function ChangePassword() {
         autoComplete='new-password'
         required
         value={fields.next}
-        onChange={(event) => set('next')(event.target.value)}
+        onChange={(event) => change.edit('next', event.target.value)}
         onBlur={() => leave('next')}
         problem={problem('next')}
       />
@@ -394,17 +353,17 @@ function ChangePassword() {
           autoComplete='new-password'
           required
           value={fields.repeat}
-          onChange={(event) => set('repeat')(event.target.value)}
+          onChange={(event) => change.edit('repeat', event.target.value)}
           onBlur={() => leave('repeat')}
           problem={problem('repeat')}
         />
         <Note>{t.admin.organization.passwordNote}</Note>
       </div>
-      <Status message={message} />
+      <Status message={change.message} />
       <FormActions
         submitLabel={t.admin.organization.changePassword}
-        dirty={checked.changed}
-        submitting={submitting}
+        dirty={change.changed}
+        submitting={change.submitting}
       />
     </form>
   );
