@@ -4,6 +4,7 @@ import {formatDayHeading} from '@booking/core/lib/dates';
 import {api, unwrap} from '@/api/client';
 import {AnnouncementBanner} from '@/components/Announcements';
 import {BookingHeader} from '@/components/BookingHeader';
+import {ClosedNotice} from '@/components/ClosedNotice';
 import {SlotList} from '@/components/SlotList';
 import {Tag} from '@/components/Tag';
 import {useBookingActions} from '@/hooks/useBookingActions';
@@ -68,13 +69,17 @@ export function BookingScreen({
             </div>
           ) : null}
           <div className='mt-4 pb-4 flex grow flex-col'>
-            <SlotList
-              day={day}
-              resource={resource}
-              error={error}
-              onRetry={reload}
-              onSelect={confirm}
-            />
+            {resource.closed ? (
+              <ClosedNotice resource={resource} />
+            ) : (
+              <SlotList
+                day={day}
+                resource={resource}
+                error={error}
+                onRetry={reload}
+                onSelect={confirm}
+              />
+            )}
           </div>
         </div>
       </div>

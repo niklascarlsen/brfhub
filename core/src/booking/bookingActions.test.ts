@@ -11,7 +11,14 @@ import {slotOffer} from './offer';
 
 const t = sv;
 const DATE = '2030-01-15';
-const SAUNA: Resource = {id: 'sauna', name: 'Bastu', kind: 'sauna', tags: []};
+const SAUNA: Resource = {
+  id: 'sauna',
+  name: 'Bastu',
+  kind: 'sauna',
+  tags: [],
+  closed: false,
+  closingNote: '',
+};
 const WHEN = `Bastu, ${formatWhen(DATE, unbrokenRange('17:00', '19:00'), t)}`;
 const TIMES = {date: DATE, start: '17:00', end: '19:00'};
 

@@ -14,7 +14,14 @@ import {bookingCard, queueCard, slotOffer, takeAction} from './offer';
 const t = sv;
 const DATE = '2030-01-15';
 const TIMES = {date: DATE, start: '17:00', end: '19:00'};
-const SAUNA: Resource = {id: 'sauna', name: 'Bastu', kind: 'sauna', tags: []};
+const SAUNA: Resource = {
+  id: 'sauna',
+  name: 'Bastu',
+  kind: 'sauna',
+  tags: [],
+  closed: false,
+  closingNote: '',
+};
 const TARGET = {...TIMES, resourceName: 'Bastu', resourceId: 'sauna'};
 const NOTHING_HELD: Held = {max: 1, bookings: []};
 

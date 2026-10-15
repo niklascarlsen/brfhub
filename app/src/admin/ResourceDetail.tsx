@@ -1,3 +1,4 @@
+import {changeDays} from '@booking/core/admin/change';
 import {limitText, slotsText} from '@booking/core/admin/schedule';
 import type {AdminResource, AdminResources} from '@booking/core/api/types';
 import {localize} from '@booking/core/i18n/catalog';
@@ -23,6 +24,9 @@ type ResourceDetailProps = {
   onChanged: () => void;
   onEdit: () => void;
   onSchedule: () => void;
+  onClose: () => void;
+  // After the resource is removed, which leaves nothing to show.
+  onRemoved: () => void;
 };
 
 function Button({
@@ -51,11 +55,14 @@ export function ResourceDetail({
   onChanged,
   onEdit,
   onSchedule,
+  onClose,
+  onRemoved,
 }: ResourceDetailProps) {
   const t = useMessages();
   const {locale} = useLocale();
   const tags = localize(resource.tags, locale) ?? [];
-  const {kinds, earliestChange, today} = data;
+  const note = localize(resource.closingNote, locale);
+  const {kinds, today} = data;
   const kind = kinds.find((item) => item.id === resource.kindId);
   const [current, ...later] = resource.schedules;
   const closed = resource.closesFrom !== null && resource.closesFrom <= today;
@@ -96,10 +103,10 @@ export function ResourceDetail({
                   {slotsText(schedule.slots)}
                 </Text>
               </View>
-              {schedule.validFrom >= earliestChange ? (
+              {schedule.validFrom > today ? (
                 <Pressable
                   onPress={() =>
-                    actions.resources.confirmRemoveChange(
+                    void actions.resources.confirmRemoveChange(
                       resource.id,
                       schedule.validFrom,
                     )
@@ -115,7 +122,7 @@ export function ResourceDetail({
             </View>
           ))}
           {resource.closesFrom ? (
-            <View className='border-t border-theme-line py-2.5'>
+            <View className='gap-0.5 border-t border-theme-line py-2.5'>
               <Text className='font-sans text-[13px] text-theme-accent'>
                 {closed
                   ? t.admin.resource.closedSince(
@@ -123,6 +130,9 @@ export function ResourceDetail({
                     )
                   : t.rules.closes(formatDayMonth(resource.closesFrom, t))}
               </Text>
+              {note ? (
+                <Text className='font-sans text-sm text-theme-ink'>{note}</Text>
+              ) : null}
             </View>
           ) : null}
         </View>
@@ -156,7 +166,10 @@ export function ResourceDetail({
           <ActionRow
             label={t.admin.resource.editTimes}
             description={t.admin.resource.editTimesHint(
-              formatDayMonth(earliestChange, t),
+              formatDayMonth(
+                changeDays('schedule', today, resource.freeFrom).free,
+                t,
+              ),
             )}
             onPress={onSchedule}
           />
@@ -164,8 +177,16 @@ export function ResourceDetail({
             label={t.admin.editDetails}
             description={t.admin.resource.editDetailsHint}
             onPress={onEdit}
-            last
+            last={resource.closesFrom !== null}
           />
+          {resource.closesFrom ? null : (
+            <ActionRow
+              label={t.admin.resource.close}
+              description={t.admin.resource.closeHint}
+              onPress={onClose}
+              last
+            />
+          )}
         </View>
       </View>
       <View className='flex-row flex-wrap gap-2.5'>
@@ -195,20 +216,28 @@ export function ResourceDetail({
             disabled={busy}
             onPress={() => void actions.resources.reopen(resource.id, closed)}
           />
-        ) : (
+        ) : null}
+        {closed ? (
           <Button
-            label={t.admin.resource.close}
+            label={t.admin.resource.remove}
             disabled={busy}
             onPress={() =>
-              actions.resources.confirmClose(
+              actions.resources.confirmRemove(
                 resource.id,
                 localize(resource.name, locale) ?? '',
-                earliestChange,
+                onRemoved,
               )
             }
           />
-        )}
+        ) : null}
       </View>
+      {resource.closesFrom && !closed ? (
+        <Text className='-mt-4 font-sans text-[13px] leading-5 text-theme-muted'>
+          {t.admin.resource.removableFrom(
+            formatDayMonth(resource.closesFrom, t),
+          )}
+        </Text>
+      ) : null}
     </View>
   );
 }

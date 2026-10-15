@@ -48,10 +48,12 @@ export const en: Messages = {
     SLOT_AVAILABLE: 'That time is free, book it instead',
     APARTMENT_TAKEN: 'There is already an apartment with that number',
     EMAIL_TAKEN: 'Another account already uses that email address',
-    CHANGE_INSIDE_WINDOW:
-      'The change cannot start before the booking window has passed',
+    CHANGE_TOO_EARLY: 'That day can no longer be chosen. Choose a later day.',
+    CHANGE_CANCELS_BOOKINGS:
+      'Someone booked meanwhile. Try again to see which bookings are cancelled.',
     ENDS_IN_PAST: 'The end date has already passed',
     INVALID_SCHEDULE: 'The slots overlap or end before they start',
+    RESOURCE_OPEN: 'Close the resource before removing it',
     KIND_IN_USE: 'Resources still use that type',
     LANGUAGES_CHANGED:
       "The association's languages changed since the page was opened. Reload and try again.",
@@ -199,6 +201,8 @@ export const en: Messages = {
     previousDay: 'Previous day',
     nextDay: 'Next day',
     noSlotsLeft: 'No times left on this day',
+    closedTitle: 'Temporarily closed',
+    closedMessage: 'It cannot be booked right now.',
     slotsOfDay: 'Times this day',
     chooseResource: 'Choose a space',
     greeting: (apartment: string) => `Hello, apartment ${apartment}`,
@@ -230,6 +234,8 @@ export const en: Messages = {
     upToBookings: (count: number) => `Up to ${count} bookings at a time`,
     changesFrom: (day: string, times: string) => `From ${day} ${times}`,
     closes: (day: string) => `Closes ${day}`,
+    closed: 'Temporarily closed',
+    withNote: (closing: string, note: string) => `${closing}. ${note}`,
   },
   announcements: {
     heading: 'Notices',
@@ -335,8 +341,7 @@ export const en: Messages = {
       kind: 'Type',
       tags: 'Tags',
       editTimes: 'Change times',
-      editTimesHint: (day: string) =>
-        `Applies from ${day}, after the booking window`,
+      editTimesHint: (day: string) => `No bookings are affected from ${day}`,
       editDetailsHint: 'Name, type and tags',
       moveUp: 'Move up',
       moveDown: 'Move down',
@@ -346,13 +351,16 @@ export const en: Messages = {
         `The times from ${day} are removed, and the current ones stay.`,
       removeChangeFailed: 'Could not remove the change',
       close: 'Close resource',
-      closeAction: 'Close',
-      closeQuestion: (name: string, day: string) =>
-        `${name} can be booked up to the day before ${day}. Bookings until then stay.`,
-      closeFailed: 'Could not close the resource',
+      closeHint: 'From a day you choose, such as after a breakdown',
       reopen: 'Reopen',
       undoClose: 'Undo closing',
       reopenFailed: 'Could not open the resource',
+      remove: 'Remove resource',
+      removableFrom: (day: string) =>
+        `Can be removed from ${day}, once it has closed.`,
+      removeQuestion: (name: string) =>
+        `${name} is removed for good, with its times and past bookings. This cannot be undone.`,
+      removeFailed: 'Could not remove the resource',
       undoCloseFailed: 'Could not undo the closing',
     },
     resourceForm: {
@@ -371,9 +379,38 @@ export const en: Messages = {
       remove: 'Remove type',
     },
     scheduleForm: {
-      note: (day: string) =>
-        `The new times apply from ${day}. The time until then can already be booked, so those bookings stay.`,
+      from: 'Applies from',
       save: 'Save times',
+    },
+    closeForm: {
+      from: 'Closed from',
+      note: (name: string) =>
+        `${name} can be booked up to the day before. Reopen it whenever you like.`,
+      save: 'Close resource',
+    },
+    change: {
+      noCancels: 'No bookings are affected.',
+      mayCancel: (day: string) =>
+        `Bookings that are affected are cancelled, and you see which before anything is saved. From ${day} none are affected.`,
+      reason: 'Message to those cancelled',
+      reasonHint: 'Sent with the email and the notification. Optional.',
+      note: 'Message to the residents',
+      noteHint:
+        'Shown on the closed resource and sent to those cancelled. Optional.',
+      cancelTitle: (count: number) =>
+        count === 1
+          ? 'One booking is cancelled'
+          : `${count} bookings are cancelled`,
+      cancelLine: (apartment: string, when: string) =>
+        `Apt ${apartment}: ${when}`,
+      cancelMore: (count: number) => `and ${count} more`,
+      told: (apartments: number) =>
+        apartments === 1
+          ? 'The apartment gets an email and a notification about it.'
+          : 'The apartments get an email and a notification about it.',
+      cancelAndSave: 'Cancel and save',
+      cancelAndClose: 'Cancel and close',
+      cancelAndRemove: 'Cancel and remove',
     },
     slots: {
       starts: 'Starts',
@@ -408,6 +445,8 @@ export const en: Messages = {
       tagsInEvery: 'Write tags in every language, or leave them all empty.',
       rulesInEvery:
         'Write the rules in every language, or leave them all empty.',
+      reasonInEvery:
+        'Write the message in every language, or leave them all empty.',
       missing: (languages: string, what: string) =>
         `Not yet in ${languages}: ${what}.`,
       kinds: (count: number) => (count === 1 ? '1 type' : `${count} types`),
@@ -482,8 +521,11 @@ export const en: Messages = {
         'resource.order': () => 'Changed the order of the resources',
         'resource.close': (subject: string) => `Closed ${subject}`,
         'resource.reopen': (subject: string) => `Reopened ${subject}`,
+        'resource.remove': (subject: string) => `Removed ${subject}`,
         'schedule.put': (subject: string) =>
           `Changed the schedule of ${subject}`,
+        'booking.cancel': (subject: string) =>
+          `Cancelled apartments' bookings in ${subject}`,
         'schedule.remove': (subject: string) =>
           `Removed the schedule of ${subject}`,
         'announcement.create': (subject: string) =>

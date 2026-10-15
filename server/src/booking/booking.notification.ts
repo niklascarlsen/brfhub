@@ -6,7 +6,8 @@ import {
   type LocalizedText,
 } from '../lib/locale.js';
 import {formatWhen} from '../lib/time.js';
-import type {Member} from '../lib/user.js';
+import type {Member, Organization} from '../lib/user.js';
+import {sendBookingsCancelled} from '../mail/mail.service.js';
 import type {
   Notification,
   Notifier,
@@ -100,4 +101,76 @@ export function announceReleased(
   }
 
   notifier.later(() => notifier.notifyMembers(recipients));
+}
+
+const CANCELLED: Record<
+  Locale,
+  {title: string; body: (resource: string, when: string) => string}
+> = {
+  sv: {
+    title: 'En bokning har avbokats',
+    body: (resource, when) => `Föreningen har avbokat ${resource}, ${when}.`,
+  },
+  en: {
+    title: 'A booking was cancelled',
+    body: (resource, when) => `The association cancelled ${resource}, ${when}.`,
+  },
+};
+
+export type CancelledSlot = {
+  memberId: string;
+  date: string;
+  start: string;
+  end: string;
+};
+
+// Tells each apartment of the bookings a change by the admin cancelled,
+// after the caller has answered: a push per booking to its devices, and a
+// mail to its residents, both with the reason in the admin's own words. The
+// push carries no slot, which may be gone, so a tap opens the booking page.
+export function announceCancelled(
+  notifier: Notifier,
+  {organizationId, locales}: Pick<Organization, 'organizationId' | 'locales'>,
+  resourceName: LocalizedText,
+  cancelled: CancelledSlot[],
+  reason: LocalizedText,
+): void {
+  if (cancelled.length === 0) {
+    return;
+  }
+
+  const recipients = cancelled.map((booking) => ({
+    memberIds: [booking.memberId],
+    build: (deviceLocale: Locale): Notification => {
+      const locale = resolveLocale([deviceLocale], locales);
+      const words = CANCELLED[locale];
+      const body = words.body(
+        localize(resourceName, locale) ?? '',
+        formatWhen(locale, booking.date, booking.start, booking.end),
+      );
+      const why = localize(reason, locale);
+
+      return {
+        title: words.title,
+        body: why ? `${body} ${why}` : body,
+        channel: 'slots',
+      };
+    },
+  }));
+
+  notifier.later(() => notifier.notifyMembers(recipients));
+
+  for (const memberId of new Set(
+    cancelled.map((booking) => booking.memberId),
+  )) {
+    notifier.later(() =>
+      sendBookingsCancelled(
+        organizationId,
+        memberId,
+        resourceName,
+        cancelled.filter((booking) => booking.memberId === memberId),
+        reason,
+      ),
+    );
+  }
 }

@@ -1,3 +1,4 @@
+import {firstOpenResource} from '@booking/core/booking/closing';
 import {useConfig} from '@booking/core/config/config';
 import {isWithinBookingWindow} from '@booking/core/lib/dates';
 import type {Mode} from '@booking/core/auth/account';
@@ -29,8 +30,9 @@ function Shell() {
   usePushPrompt();
   const [route, navigate] = useRoute();
   const [chosen, setChosen] = useState(startupSlot.date ?? bookingWindow.today);
+  // A closed resource is never where the page opens.
   const [resourceId, setResourceId] = useState(
-    startupSlot.resourceId ?? resources[0].id,
+    startupSlot.resourceId ?? firstOpenResource(resources).id,
   );
 
   // A notification tapped while the app is open jumps to the slot.

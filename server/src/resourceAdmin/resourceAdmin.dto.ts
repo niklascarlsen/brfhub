@@ -4,6 +4,7 @@ import {
   localizedInputSchema,
   localizedTagsSchema,
   localizedTextSchema,
+  optionalLocalizedInputSchema,
   perLocale,
 } from '../lib/locale.js';
 import {textSchema} from '../lib/text.js';
@@ -36,6 +37,11 @@ export const adminResourceSchema = z.object({
   kindId: z.string(),
   tags: localizedTagsSchema,
   closesFrom: z.iso.date().nullable(),
+  // What the admin said about the closing, empty while open.
+  closingNote: localizedTextSchema,
+  // The first day a change cancels no booking from: the day after the
+  // last booking that has not started, today at the earliest.
+  freeFrom: z.iso.date(),
   // The version in effect today first, then every later one.
   schedules: scheduleSchema.array(),
 });
@@ -44,9 +50,6 @@ export const adminResourcesSchema = z.object({
   kinds: adminKindSchema.array(),
   resources: adminResourceSchema.array(),
   today: z.iso.date(),
-  // The first day a change that can touch bookings may start on: the day
-  // after the booking window.
-  earliestChange: z.iso.date(),
 });
 
 const kindNameSchema = localizedInputSchema(40);
@@ -75,13 +78,57 @@ export const updateResourceBodySchema = z.object({
   tags: tagsSchema.optional(),
 });
 
-export const putScheduleBodySchema = z.object({
+// What a change cancels is seen first, through the preview: the admin
+// names every booking they agreed to cancel, and the change goes through
+// only if it cancels none other. The reason goes to the apartments, in
+// every language the organization uses or in none; a closing keeps it to
+// show with the closed resource.
+const cancellingSchema = z.object({
+  cancels: z.uuid().array().max(2000).default([]),
+  reason: optionalLocalizedInputSchema(300).default({}),
+});
+
+export const scheduleChangeSchema = z.object({
   validFrom: z.iso.date(),
   slots: slotsSchema,
 });
 
-export const closingBodySchema = z.object({
+export const closingChangeSchema = z.object({
   closesFrom: z.iso.date(),
+});
+
+export const putScheduleBodySchema = scheduleChangeSchema.extend(
+  cancellingSchema.shape,
+);
+
+export const closingBodySchema = closingChangeSchema.extend(
+  cancellingSchema.shape,
+);
+
+// Removing a coming change says nothing: it only names what it cancels,
+// and a client may send no body when that is nothing.
+export const removeScheduleBodySchema = cancellingSchema
+  .pick({cancels: true})
+  .nullable();
+
+// The same changes, asked what they would cancel.
+export const changePreviewBodySchema = z.discriminatedUnion('change', [
+  scheduleChangeSchema.extend({change: z.literal('schedule')}),
+  closingChangeSchema.extend({change: z.literal('closing')}),
+  z.object({change: z.literal('removeSchedule'), validFrom: z.iso.date()}),
+]);
+
+export const cancelledBookingSchema = z.object({
+  id: z.uuid(),
+  apartment: z.string(),
+  date: z.iso.date(),
+  start: z.string(),
+  end: z.string(),
+});
+
+export const changePreviewSchema = z.object({
+  // In the order of their day and time.
+  cancels: cancelledBookingSchema.array(),
 });
 
 export const resourceOrderBodySchema = z.object({
@@ -98,6 +145,10 @@ export const scheduleParamsSchema = z.object({
 });
 
 export type SlotInput = z.infer<typeof slotInputSchema>;
+export type ResourceChange = z.infer<typeof changePreviewBodySchema>;
+export type Cancelling = z.infer<typeof cancellingSchema>;
+export type CancelledBooking = z.infer<typeof cancelledBookingSchema>;
+export type ChangePreview = z.infer<typeof changePreviewSchema>;
 export type AdminResources = z.infer<typeof adminResourcesSchema>;
 export type CreateKindBody = z.infer<typeof createKindBodySchema>;
 export type UpdateKindBody = z.infer<typeof updateKindBodySchema>;
@@ -115,4 +166,8 @@ z.globalRegistry.add(createResourceBodySchema, {id: 'CreateResourceBody'});
 z.globalRegistry.add(updateResourceBodySchema, {id: 'UpdateResourceBody'});
 z.globalRegistry.add(putScheduleBodySchema, {id: 'PutScheduleBody'});
 z.globalRegistry.add(closingBodySchema, {id: 'ClosingBody'});
+z.globalRegistry.add(removeScheduleBodySchema, {id: 'RemoveScheduleBody'});
+z.globalRegistry.add(changePreviewBodySchema, {id: 'ChangePreviewBody'});
+z.globalRegistry.add(cancelledBookingSchema, {id: 'CancelledBooking'});
+z.globalRegistry.add(changePreviewSchema, {id: 'ChangePreview'});
 z.globalRegistry.add(resourceOrderBodySchema, {id: 'ResourceOrderBody'});

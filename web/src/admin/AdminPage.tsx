@@ -23,8 +23,8 @@ type AdminPageProps = {
 
 // One admin page: a back link when it is a step down, the title, an
 // optional action beside it, a bar while some of the organization's text
-// lacks a language, and the content in a readable column, with the page's
-// own menu beside it on the desktop. Going back from
+// lacks a language, and the content across the page, with the page's own
+// menu beside it on the desktop. A form keeps a readable width there. Going back from
 // a form with unsaved changes asks first.
 export function AdminPage({
   title,
@@ -70,10 +70,10 @@ export function AdminPage({
           {action}
         </PageHeader>
         <div
-          className={`${SHELL} pt-7 pb-12 ${aside ? 'grid grid-cols-[13rem_minmax(0,42rem)] items-start gap-12' : ''}`}
+          className={`${SHELL} pt-7 pb-12 ${aside ? 'grid grid-cols-[13rem_minmax(0,1fr)] items-start gap-12' : ''}`}
         >
           {aside}
-          <div className='flex max-w-2xl flex-col'>
+          <div className='flex flex-col [&_form]:max-w-2xl'>
             {missing ? <NoticeBar message={missing} /> : null}
             {children}
           </div>

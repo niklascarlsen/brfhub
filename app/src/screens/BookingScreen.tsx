@@ -1,3 +1,4 @@
+import {firstOpenResource} from '@booking/core/booking/closing';
 import {useConfig} from '@booking/core/config/config';
 import {useResetWhenChanged} from '@booking/core/hooks/useResetWhenChanged';
 import {formatDayHeading, isWithinBookingWindow} from '@booking/core/lib/dates';
@@ -9,6 +10,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {api, unwrap} from '@/api/client';
 import {AnnouncementBanner} from '@/components/Announcements';
 import {BookingHeader} from '@/components/BookingHeader';
+import {ClosedNotice} from '@/components/ClosedNotice';
 import {SlotList} from '@/components/SlotList';
 import {useBookingActions} from '@/hooks/useBookingActions';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
@@ -29,14 +31,14 @@ export function BookingScreen() {
   const routeResourceId = route.params?.resourceId;
 
   const [chosen, setChosen] = useState(routeDate ?? window.today);
-  const [resourceId, setResourceId] = useState(
-    routeResourceId ?? resources[0].id,
-  );
+  // A closed resource is never where the page opens.
+  const opening = firstOpenResource(resources);
+  const [resourceId, setResourceId] = useState(routeResourceId ?? opening.id);
 
   // The params object is new on every navigate, the values are not.
   useResetWhenChanged(route.params, () => {
     setChosen(routeDate ?? window.today);
-    setResourceId(routeResourceId ?? resources[0].id);
+    setResourceId(routeResourceId ?? opening.id);
   });
 
   const date = isWithinBookingWindow(chosen, window) ? chosen : window.today;
@@ -84,13 +86,17 @@ export function BookingScreen() {
           </View>
         ) : null}
         <View className='mt-5 grow'>
-          <SlotList
-            day={day}
-            resource={resource}
-            error={error}
-            onRetry={reload}
-            onSelect={confirm}
-          />
+          {resource.closed ? (
+            <ClosedNotice resource={resource} />
+          ) : (
+            <SlotList
+              day={day}
+              resource={resource}
+              error={error}
+              onRetry={reload}
+              onSelect={confirm}
+            />
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>

@@ -45,7 +45,11 @@ export function DialogProvider({children}: {children: ReactNode}) {
       alert: (title, message) => Alert.alert(title, message),
       confirm: (title, message, action) =>
         Alert.alert(title, message, [
-          {text: dismissLabel(action, t), style: 'cancel'},
+          {
+            text: dismissLabel(action, t),
+            style: 'cancel',
+            onPress: action.onDismiss,
+          },
           action.destructive
             ? {
                 text: action.label,

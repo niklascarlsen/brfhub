@@ -54,10 +54,13 @@ export const sv = {
     SLOT_AVAILABLE: 'Tiden är ledig, boka den istället',
     APARTMENT_TAKEN: 'Det finns redan en lägenhet med det numret',
     EMAIL_TAKEN: 'E-postadressen används redan av ett annat konto',
-    CHANGE_INSIDE_WINDOW:
-      'Ändringen kan inte börja innan bokningsfönstret har passerat',
+    CHANGE_TOO_EARLY:
+      'Den dagen går inte att välja längre. Välj en senare dag.',
+    CHANGE_CANCELS_BOOKINGS:
+      'Någon hann boka under tiden. Försök igen så ser du vilka bokningar som avbokas.',
     ENDS_IN_PAST: 'Slutdagen har redan passerat',
     INVALID_SCHEDULE: 'Passen överlappar eller slutar innan de börjar',
+    RESOURCE_OPEN: 'Stäng resursen innan du tar bort den',
     KIND_IN_USE: 'Typen används fortfarande av resurser',
     LANGUAGES_CHANGED:
       'Föreningens språk har ändrats sedan sidan öppnades. Ladda om och försök igen.',
@@ -211,6 +214,8 @@ export const sv = {
     previousDay: 'Föregående dag',
     nextDay: 'Nästa dag',
     noSlotsLeft: 'Inga tider kvar den här dagen',
+    closedTitle: 'Tillfälligt stängd',
+    closedMessage: 'Den går inte att boka just nu.',
     slotsOfDay: 'Tider den här dagen',
     chooseResource: 'Välj utrymme',
     greeting: (apartment: string) => `Hej, lägenhet ${apartment}`,
@@ -243,6 +248,9 @@ export const sv = {
     upToBookings: (count: number) => `Upp till ${count} bokningar åt gången`,
     changesFrom: (day: string, times: string) => `Från ${day} ${times}`,
     closes: (day: string) => `Stängs ${day}`,
+    closed: 'Tillfälligt stängd',
+    // A closing and what the admin says about it.
+    withNote: (closing: string, note: string) => `${closing}. ${note}`,
   },
   announcements: {
     heading: 'Anslag',
@@ -352,8 +360,7 @@ export const sv = {
       kind: 'Typ',
       tags: 'Taggar',
       editTimes: 'Ändra tider',
-      editTimesHint: (day: string) =>
-        `Gäller från ${day}, efter bokningsfönstret`,
+      editTimesHint: (day: string) => `Inga bokningar påverkas från ${day}`,
       editDetailsHint: 'Namn, typ och taggar',
       moveUp: 'Flytta upp',
       moveDown: 'Flytta ner',
@@ -363,13 +370,16 @@ export const sv = {
         `Tiderna från ${day} tas bort, och de nuvarande gäller vidare.`,
       removeChangeFailed: 'Kunde inte ta bort ändringen',
       close: 'Stäng resursen',
-      closeAction: 'Stäng',
-      closeQuestion: (name: string, day: string) =>
-        `${name} går att boka till och med dagen före ${day}. Bokningar fram till dess står kvar.`,
-      closeFailed: 'Kunde inte stänga resursen',
+      closeHint: 'Från en dag du väljer, till exempel vid ett fel',
       reopen: 'Öppna igen',
       undoClose: 'Ångra stängningen',
       reopenFailed: 'Kunde inte öppna resursen',
+      remove: 'Ta bort resursen',
+      removableFrom: (day: string) =>
+        `Kan tas bort från ${day}, när den har stängt.`,
+      removeQuestion: (name: string) =>
+        `${name} tas bort för gott, med sina tider och gamla bokningar. Det går inte att ångra.`,
+      removeFailed: 'Kunde inte ta bort resursen',
       undoCloseFailed: 'Kunde inte ångra stängningen',
     },
     resourceForm: {
@@ -388,9 +398,38 @@ export const sv = {
       remove: 'Ta bort typen',
     },
     scheduleForm: {
-      note: (day: string) =>
-        `De nya tiderna gäller från ${day}. Tiden fram till dess går redan att boka, så de bokningarna står kvar.`,
+      from: 'Gäller från',
       save: 'Spara tiderna',
+    },
+    closeForm: {
+      from: 'Stängd från',
+      note: (name: string) =>
+        `${name} går att boka till och med dagen före. Öppna den igen när du vill.`,
+      save: 'Stäng resursen',
+    },
+    // What a change of times or a closing does to the bookings already
+    // made.
+    change: {
+      noCancels: 'Inga bokningar påverkas.',
+      mayCancel: (day: string) =>
+        `Bokningar som påverkas avbokas, och du ser vilka innan något sparas. Från ${day} påverkas inga.`,
+      reason: 'Meddelande till dem som avbokas',
+      reasonHint: 'Skickas med i mejlet och notisen. Valfritt.',
+      note: 'Meddelande till de boende',
+      noteHint:
+        'Visas på den stängda resursen och skickas till dem som avbokas. Valfritt.',
+      cancelTitle: (count: number) =>
+        count === 1 ? 'En bokning avbokas' : `${count} bokningar avbokas`,
+      cancelLine: (apartment: string, when: string) =>
+        `Lgh ${apartment}: ${when}`,
+      cancelMore: (count: number) => `och ${count} till`,
+      told: (apartments: number): string =>
+        apartments === 1
+          ? 'Lägenheten får ett mejl och en notis om det.'
+          : 'Lägenheterna får ett mejl och en notis om det.',
+      cancelAndSave: 'Avboka och spara',
+      cancelAndClose: 'Avboka och stäng',
+      cancelAndRemove: 'Avboka och ta bort',
     },
     slots: {
       starts: 'Börjar',
@@ -427,6 +466,7 @@ export const sv = {
       untranslated: (languages: string) => `Saknar ${languages}`,
       tagsInEvery: 'Skriv taggar på alla språk, eller lämna alla tomma.',
       rulesInEvery: 'Skriv reglerna på alla språk, eller lämna alla tomma.',
+      reasonInEvery: 'Skriv meddelandet på alla språk, eller lämna alla tomma.',
       // The bar every admin page shows while something lacks a language,
       // such as "2 resurser och ordningsreglerna".
       missing: (languages: string, what: string) =>
@@ -504,9 +544,12 @@ export const sv = {
         'resource.order': () => 'Ändrade ordningen på resurserna',
         'resource.close': (subject: string) => `Stängde ${subject}`,
         'resource.reopen': (subject: string) => `Öppnade ${subject} igen`,
+        'resource.remove': (subject: string) => `Tog bort ${subject}`,
         'schedule.put': (subject: string) => `Ändrade schemat för ${subject}`,
         'schedule.remove': (subject: string) =>
           `Tog bort schemat för ${subject}`,
+        'booking.cancel': (subject: string) =>
+          `Avbokade bokningar för lägenheter i ${subject}`,
         'announcement.create': (subject: string) =>
           `Publicerade anslaget ${subject}`,
         'announcement.update': (subject: string) =>

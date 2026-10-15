@@ -26,6 +26,7 @@ const LOCATIONS: [AdminLocation, string][] = [
     {tab: 'resources', step: 'schedule', id: 'r1'},
     '/admin/resources/r1/schedule',
   ],
+  [{tab: 'resources', step: 'close', id: 'r1'}, '/admin/resources/r1/close'],
   [{tab: 'announcements', step: 'list'}, '/admin/announcements'],
   [{tab: 'announcements', step: 'new'}, '/admin/announcements/new'],
   [
@@ -93,6 +94,11 @@ describe('parentOf', () => {
       id: 'a1',
     });
     expect(parentOf({tab: 'resources', step: 'schedule', id: 'r1'})).toEqual({
+      tab: 'resources',
+      step: 'resource',
+      id: 'r1',
+    });
+    expect(parentOf({tab: 'resources', step: 'close', id: 'r1'})).toEqual({
       tab: 'resources',
       step: 'resource',
       id: 'r1',

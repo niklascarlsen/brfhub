@@ -1,3 +1,4 @@
+import {closingRule} from '@booking/core/booking/closing';
 import {useConfig} from '@booking/core/config/config';
 import type {components} from '@booking/core/generated/api';
 import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
@@ -36,8 +37,8 @@ function limitOf(kind: Kind, t: Messages): string {
   return t.rules.upToBookings(kind.maxActive);
 }
 
-// Changes the admin has set up ahead: new times from a day, or a closing.
-// They lie past the booking window, so members can plan for them.
+// What the admin has changed: new times from a day ahead, and a closing,
+// ahead or under way, with what the admin says about it.
 function upcomingOf(kind: Kind, t: Messages): {key: string; text: string}[] {
   const named = kind.resources.length > 1;
 
@@ -56,14 +57,10 @@ function upcomingOf(kind: Kind, t: Messages): {key: string; text: string}[] {
       ),
     }));
 
-    return resource.closesFrom
-      ? [
-          ...changes,
-          {
-            key: `${resource.id}-closes`,
-            text: lead(t.rules.closes(formatDayMonth(resource.closesFrom, t))),
-          },
-        ]
+    const closing = closingRule(resource, t);
+
+    return closing
+      ? [...changes, {key: `${resource.id}-closes`, text: lead(closing)}]
       : changes;
   });
 }

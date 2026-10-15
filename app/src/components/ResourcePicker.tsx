@@ -2,6 +2,7 @@ import type {Resource} from '@booking/core/api/types';
 import {Pressable, ScrollView, Text} from 'react-native';
 
 import {useRevealSelected} from '@/hooks/useRevealSelected';
+import {useMessages} from '@/i18n/LocaleProvider';
 
 type ResourcePickerProps = {
   resources: Resource[];
@@ -14,6 +15,7 @@ export function ResourcePicker({
   selectedId,
   onSelect,
 }: ResourcePickerProps) {
+  const t = useMessages();
   const {scrollProps, itemLayout} = useRevealSelected(selectedId);
 
   return (
@@ -34,10 +36,17 @@ export function ResourcePicker({
             onLayout={itemLayout(resource.id)}
             accessibilityRole='button'
             accessibilityState={{selected}}
+            accessibilityLabel={
+              resource.closed
+                ? `${resource.name}, ${t.booking.closedTitle}`
+                : undefined
+            }
             className={`h-11 justify-center rounded-full border px-5 ${
               selected
                 ? 'border-theme-ink bg-theme-ink'
-                : 'border-theme-line bg-theme-surface active:opacity-50'
+                : resource.closed
+                  ? 'border-theme-line bg-theme-sunk active:opacity-50'
+                  : 'border-theme-line bg-theme-surface active:opacity-50'
             }`}
           >
             <Text
@@ -45,7 +54,9 @@ export function ResourcePicker({
               className={`text-sm ${
                 selected
                   ? 'font-semibold text-theme-surface'
-                  : 'font-medium text-theme-ink'
+                  : resource.closed
+                    ? 'font-medium text-theme-faint'
+                    : 'font-medium text-theme-ink'
               }`}
             >
               {resource.name}

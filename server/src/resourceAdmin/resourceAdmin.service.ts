@@ -1,25 +1,47 @@
 import {randomUUID} from 'node:crypto';
 
-import {and, asc, eq, gte, max, sql} from 'drizzle-orm';
+import {
+  and,
+  asc,
+  eq,
+  gt,
+  gte,
+  max,
+  sql,
+  TransactionRollbackError,
+} from 'drizzle-orm';
 
-import {db, type Executor} from '../db/index.js';
+import {announceCancelled} from '../booking/booking.notification.js';
+import {
+  cancelOrphaned,
+  orphanedBookings,
+  type Cancelled,
+} from '../booking/lifecycle.js';
+import {db, type Executor, type Transaction} from '../db/index.js';
 import {
   bookings,
-  organizations,
   resourceKinds,
   resourceSlots,
   resources,
   subscriptions,
 } from '../db/schema.js';
 import {appError} from '../lib/errors.js';
-import {assertTranslated, localized} from '../lib/locale.js';
-import {asDateText, todaySql} from '../lib/time.js';
+import {
+  assertTranslated,
+  localized,
+  type LocalizedText,
+} from '../lib/locale.js';
+import {addDays, asDateText, slotHasStarted, todaySql} from '../lib/time.js';
 import type {Organization} from '../lib/user.js';
+import type {Notifier} from '../notification/notification.service.js';
 import {slotInEffect} from '../resource/schedule.query.js';
 import type {
   AdminResources,
+  Cancelling,
+  ChangePreview,
   CreateKindBody,
   CreateResourceBody,
+  ResourceChange,
   SlotInput,
   UpdateKindBody,
   UpdateResourceBody,
@@ -63,53 +85,39 @@ export function assertValidSlots(slots: SlotInput[]): void {
   }
 }
 
-// Everything up to the end of the booking window is promised to members,
-// and so is any later day booked or watched before the window was made
-// shorter. A change that can touch bookings starts the day after all of
-// them at the earliest.
-async function changeDates(executor: Executor, organizationId: string) {
-  const today = todaySql(organizations.timeZone);
-  const promised = sql`greatest(
-    ${today} + make_interval(days => ${organizations.bookingWindowDays}),
-    (select max(${bookings.date}) from ${bookings}
-      where ${bookings.organizationId} = ${organizationId}),
-    (select max(${subscriptions.date}) from ${subscriptions}
-      where ${subscriptions.organizationId} = ${organizationId})
-  )`;
-
-  const [row] = await executor
-    .select({
-      today: asDateText(today),
-      earliestChange: asDateText(sql`${promised} + interval '1 day'`),
-    })
-    .from(organizations)
-    .where(eq(organizations.id, organizationId));
+// Today in the organization, as the database tells it.
+async function todayIn(executor: Executor, timeZone: string): Promise<string> {
+  const {rows} = await executor.execute<{today: string}>(
+    sql`select ${asDateText(todaySql(timeZone))} as today`,
+  );
+  const [row] = rows;
 
   if (!row) {
-    throw new Error(`Unknown organization ${organizationId}`);
+    throw new Error('No date from the database');
   }
 
-  return row;
+  return row.today;
 }
 
 function assertFrom(day: string, earliest: string) {
   if (day < earliest) {
     throw appError(
-      'CHANGE_INSIDE_WINDOW',
+      'CHANGE_TOO_EARLY',
       `The change can start on ${earliest} at the earliest`,
     );
   }
 }
 
 // Held for the rest of the transaction, so two changes to one resource's
-// schedule or closing never interleave.
+// schedule or closing never interleave, and no apartment books on it
+// meanwhile. Answers its name, which the apartments are told.
 async function lockResource(
   executor: Executor,
   organizationId: string,
   id: string,
-) {
+): Promise<{name: LocalizedText}> {
   const [resource] = await executor
-    .select({id: resources.id})
+    .select({name: resources.name})
     .from(resources)
     .where(
       and(eq(resources.organizationId, organizationId), eq(resources.id, id)),
@@ -119,6 +127,8 @@ async function lockResource(
   if (!resource) {
     throw appError('NOT_FOUND', 'Unknown resource');
   }
+
+  return resource;
 }
 
 // The names as the admin sees them, for the event log.
@@ -196,8 +206,8 @@ export async function listAdminResources({
   locale,
 }: Organization): Promise<AdminResources> {
   const today = todaySql(timeZone);
-  const [dates, kinds, rows, slots] = await Promise.all([
-    changeDates(db, organizationId),
+  const [now, kinds, rows, slots] = await Promise.all([
+    todayIn(db, timeZone),
     db
       .select({
         id: resourceKinds.id,
@@ -214,6 +224,12 @@ export async function listAdminResources({
         kindId: resources.kindId,
         tags: resources.tags,
         closesFrom: resources.closesFrom,
+        closingNote: resources.closingNote,
+        freeFrom: asDateText(sql`greatest(${today}, (
+          select max(${bookings.date}) + 1 from ${bookings}
+          where ${bookings.resourceId} = ${resources.id}
+            and not ${slotHasStarted(timeZone, bookings.date, bookings.start)}
+        ))`),
       })
       .from(resources)
       .where(eq(resources.organizationId, organizationId))
@@ -245,7 +261,7 @@ export async function listAdminResources({
   };
 
   return {
-    ...dates,
+    today: now,
     kinds: [...kinds].sort((a, b) => firstIndex(a.id) - firstIndex(b.id)),
     resources: rows.map((resource) => {
       const schedules: AdminResources['resources'][number]['schedules'] = [];
@@ -344,7 +360,7 @@ export async function deleteKind(organizationId: string, id: string) {
 
 // A new resource has no bookings to break, so its schedule starts today.
 export async function createResource(
-  {organizationId, locales}: Organization,
+  {organizationId, timeZone, locales}: Organization,
   body: CreateResourceBody,
 ) {
   const name = assertTranslated(body.name, locales);
@@ -353,7 +369,7 @@ export async function createResource(
   assertValidSlots(body.slots);
 
   const id = randomUUID();
-  const {today} = await changeDates(db, organizationId);
+  const today = await todayIn(db, timeZone);
 
   await db.transaction(async (tx) => {
     const [last] = await tx
@@ -412,31 +428,17 @@ export async function updateResource(
     .where(eq(resources.id, id));
 }
 
-// Replaces any version not yet promised, since nobody can have booked
-// from it yet.
-export async function putSchedule(
-  organizationId: string,
-  id: string,
-  validFrom: string,
-  slots: SlotInput[],
-) {
-  assertValidSlots(slots);
+// A night slot ends on the next day, which may be the first of another
+// version: it must end before that version's first slot.
+async function assertNightsFit(tx: Transaction, id: string, today: string) {
+  const later = await tx
+    .selectDistinct({validFrom: asDateText(resourceSlots.validFrom)})
+    .from(resourceSlots)
+    .where(
+      and(eq(resourceSlots.resourceId, id), gt(resourceSlots.validFrom, today)),
+    );
 
-  await db.transaction(async (tx) => {
-    await lockResource(tx, organizationId, id);
-    const {earliestChange: earliest} = await changeDates(tx, organizationId);
-    assertFrom(validFrom, earliest);
-
-    await tx
-      .delete(resourceSlots)
-      .where(
-        and(
-          eq(resourceSlots.resourceId, id),
-          gte(resourceSlots.validFrom, earliest),
-        ),
-      );
-
-    // The night slot of the day before may run into the new first slot.
+  for (const {validFrom} of later) {
     const [night] = await tx
       .select({end: resourceSlots.end})
       .from(resourceSlots)
@@ -447,7 +449,16 @@ export async function putSchedule(
           slotInEffect(sql`(${validFrom}::date - 1)`),
         ),
       );
-    const first = Math.min(...slots.map((slot) => minutesOf(slot.start)));
+    const starts = await tx
+      .select({start: resourceSlots.start})
+      .from(resourceSlots)
+      .where(
+        and(
+          eq(resourceSlots.resourceId, id),
+          eq(resourceSlots.validFrom, validFrom),
+        ),
+      );
+    const first = Math.min(...starts.map((slot) => minutesOf(slot.start)));
 
     if (night && minutesOf(night.end) > first) {
       throw appError(
@@ -455,51 +466,132 @@ export async function putSchedule(
         'The night slot before the change overlaps its first slot',
       );
     }
-
-    await tx
-      .insert(resourceSlots)
-      .values(slots.map((slot) => ({...slot, resourceId: id, validFrom})));
-  });
+  }
 }
 
-export async function deleteSchedule(
-  organizationId: string,
+// Makes the change in the caller's transaction. New times start tomorrow
+// at the earliest, so a slot under way today never overlaps one of the
+// new; a closing may start today, and its slots that have started stay.
+// New times replace every version from their first day on.
+async function applyChange(
+  tx: Transaction,
   id: string,
-  validFrom: string,
+  change: ResourceChange,
+  today: string,
 ) {
-  await db.transaction(async (tx) => {
-    await lockResource(tx, organizationId, id);
-    const {earliestChange: earliest} = await changeDates(tx, organizationId);
-    assertFrom(validFrom, earliest);
+  switch (change.change) {
+    case 'schedule': {
+      assertValidSlots(change.slots);
+      assertFrom(change.validFrom, addDays(today, 1));
 
-    const removed = await tx
-      .delete(resourceSlots)
-      .where(
-        and(
-          eq(resourceSlots.resourceId, id),
-          eq(resourceSlots.validFrom, validFrom),
-        ),
-      )
-      .returning({start: resourceSlots.start});
-
-    if (removed.length === 0) {
-      throw appError('NOT_FOUND', 'No schedule starts that day');
+      await tx
+        .delete(resourceSlots)
+        .where(
+          and(
+            eq(resourceSlots.resourceId, id),
+            gte(resourceSlots.validFrom, change.validFrom),
+          ),
+        );
+      await tx.insert(resourceSlots).values(
+        change.slots.map((slot) => ({
+          ...slot,
+          resourceId: id,
+          validFrom: change.validFrom,
+        })),
+      );
+      await assertNightsFit(tx, id, today);
+      return;
     }
-  });
+    case 'removeSchedule': {
+      assertFrom(change.validFrom, addDays(today, 1));
+
+      const removed = await tx
+        .delete(resourceSlots)
+        .where(
+          and(
+            eq(resourceSlots.resourceId, id),
+            eq(resourceSlots.validFrom, change.validFrom),
+          ),
+        )
+        .returning({start: resourceSlots.start});
+
+      if (removed.length === 0) {
+        throw appError('NOT_FOUND', 'No schedule starts that day');
+      }
+
+      await assertNightsFit(tx, id, today);
+      return;
+    }
+    case 'closing': {
+      assertFrom(change.closesFrom, today);
+
+      await tx
+        .update(resources)
+        .set({closesFrom: change.closesFrom})
+        .where(eq(resources.id, id));
+    }
+  }
 }
 
-export async function closeResource(
-  organizationId: string,
+// The bookings the change would cancel, found by making it and rolling
+// it back, so the preview and the change itself never disagree.
+export async function previewChange(
+  {organizationId, timeZone}: Organization,
   id: string,
-  closesFrom: string,
-) {
-  await db.transaction(async (tx) => {
-    await lockResource(tx, organizationId, id);
-    const {earliestChange: earliest} = await changeDates(tx, organizationId);
-    assertFrom(closesFrom, earliest);
+  change: ResourceChange,
+): Promise<ChangePreview> {
+  let found: Cancelled[] = [];
 
-    await tx.update(resources).set({closesFrom}).where(eq(resources.id, id));
+  try {
+    await db.transaction(async (tx) => {
+      await lockResource(tx, organizationId, id);
+      await applyChange(tx, id, change, await todayIn(tx, timeZone));
+      found = await orphanedBookings(tx, id, timeZone);
+      tx.rollback();
+    });
+  } catch (error) {
+    if (!(error instanceof TransactionRollbackError)) {
+      throw error;
+    }
+  }
+
+  return {cancels: found.map(({memberId: _, ...booking}) => booking)};
+}
+
+// Makes the change and cancels the bookings it leaves without a slot,
+// which the admin has seen in the preview and agreed to. Their apartments
+// are told once it has committed. Answers what was cancelled, for the
+// event log.
+export async function changeResource(
+  organization: Organization,
+  id: string,
+  change: ResourceChange,
+  {cancels, reason}: Cancelling,
+  notifier: Notifier,
+): Promise<Cancelled[]> {
+  const {organizationId, timeZone, locales} = organization;
+  const note = assertTranslated(reason, locales, {optional: true});
+  const {name, cancelled} = await db.transaction(async (tx) => {
+    const resource = await lockResource(tx, organizationId, id);
+    await applyChange(tx, id, change, await todayIn(tx, timeZone));
+
+    // The closed resource says why, to everyone who looks at it.
+    if (change.change === 'closing') {
+      await tx
+        .update(resources)
+        .set({closingNote: note})
+        .where(eq(resources.id, id));
+    }
+
+    return {
+      name: resource.name,
+      cancelled: await cancelOrphaned(tx, id, timeZone, cancels),
+    };
   });
+
+  announceCancelled(notifier, organization, name, cancelled, note);
+
+  return cancelled;
 }
 
 // Opening adds days to book and takes none away, so it applies at once.
@@ -509,8 +601,35 @@ export async function reopenResource(organizationId: string, id: string) {
 
     await tx
       .update(resources)
-      .set({closesFrom: null})
+      .set({closesFrom: null, closingNote: {}})
       .where(eq(resources.id, id));
+  });
+}
+
+// A resource closed since today or before goes for good, with its times
+// and what was booked or queued on it: the closing has cancelled what lay
+// ahead, and nothing reads a booking that has ended. The event log keeps
+// its name.
+export async function removeResource(
+  {organizationId, timeZone}: Organization,
+  id: string,
+) {
+  await db.transaction(async (tx) => {
+    await lockResource(tx, organizationId, id);
+    const today = await todayIn(tx, timeZone);
+    const [resource] = await tx
+      .select({closesFrom: asDateText(resources.closesFrom)})
+      .from(resources)
+      .where(eq(resources.id, id));
+
+    if (!resource?.closesFrom || resource.closesFrom > today) {
+      throw appError('RESOURCE_OPEN');
+    }
+
+    await tx.delete(subscriptions).where(eq(subscriptions.resourceId, id));
+    await tx.delete(bookings).where(eq(bookings.resourceId, id));
+    await tx.delete(resourceSlots).where(eq(resourceSlots.resourceId, id));
+    await tx.delete(resources).where(eq(resources.id, id));
   });
 }
 

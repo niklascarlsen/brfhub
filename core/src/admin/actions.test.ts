@@ -7,6 +7,7 @@ import {sv} from '../i18n/sv';
 import {formatLongDate} from '../lib/dates';
 import type {Dialog, DialogAction} from '../lib/dialog';
 import {adminActions, adminLoads} from './actions';
+import {cancelsMessage} from './change';
 
 const t = sv;
 
@@ -16,11 +17,16 @@ type Shown =
 
 type Sent = {method: string; path: string; body: unknown};
 
-// What the fake server answers the next request with.
-let answer: {status: number; code?: string; body?: unknown} = {status: 200};
+type Answer = {status: number; code?: string; body?: unknown};
+
+// What the fake server answers the next requests with, in turn, and then
+// every request after them.
+let answers: Answer[] = [];
+let answer: Answer = {status: 200};
 let sent: Sent[] = [];
 
 beforeEach(() => {
+  answers = [];
   answer = {status: 200};
   sent = [];
 
@@ -32,9 +38,18 @@ beforeEach(() => {
       body: text ? JSON.parse(text) : null,
     });
 
-    return answer.code
-      ? Response.json({code: answer.code, message: ''}, {status: answer.status})
-      : Response.json(answer.body ?? {}, {status: answer.status});
+    const next = answers.shift() ?? answer;
+
+    if (next.code) {
+      return Response.json(
+        {code: next.code, message: ''},
+        {status: next.status},
+      );
+    }
+
+    return next.status === 204
+      ? new Response(null, {status: 204})
+      : Response.json(next.body ?? {}, {status: next.status});
   });
 });
 
@@ -71,6 +86,15 @@ function setup() {
     first.action.onPress();
   }
 
+  // Closes the one confirmation shown so far without acting.
+  function dismiss() {
+    const [first] = shown;
+    if (first?.kind !== 'confirm') {
+      throw new Error('No confirmation shown');
+    }
+    first.action.onDismiss?.();
+  }
+
   // Waits until a request a button sent has been answered and handled.
   async function settled() {
     await vi.waitFor(() => {
@@ -78,7 +102,7 @@ function setup() {
     });
   }
 
-  return {actions, client, shown, onChange, onBusy, press, settled};
+  return {actions, client, shown, onChange, onBusy, press, dismiss, settled};
 }
 
 const APARTMENT: Apartment = {
@@ -97,9 +121,19 @@ function resource(id: string, kindId: string): AdminResource {
     kindId,
     tags: {},
     closesFrom: null,
+    closingNote: {},
+    freeFrom: '2030-01-01',
     schedules: [],
   };
 }
+
+const CANCELLED = {
+  id: 'booking-1',
+  apartment: '12',
+  date: '2030-02-01',
+  start: '07:00',
+  end: '10:00',
+};
 
 describe('a button asks first, then sends', () => {
   test('removing an apartment says what goes with it', async () => {
@@ -184,37 +218,32 @@ describe('a button asks first, then sends', () => {
     expect(onRemoved).toHaveBeenCalledOnce();
   });
 
-  test('closing a resource says from which day', async () => {
-    const {actions, shown, onChange, press, settled} = setup();
+  test('removing a closed resource says it is for good', async () => {
+    const {actions, shown, press, settled} = setup();
+    const onRemoved = vi.fn();
 
-    actions.resources.confirmClose('sauna', 'Bastu', '2030-02-01');
+    actions.resources.confirmRemove('sauna', 'Bastu', onRemoved);
 
     expect(shown[0]).toMatchObject({
-      title: t.admin.resource.close,
-      message: t.admin.resource.closeQuestion(
-        'Bastu',
-        formatLongDate('2030-02-01', t),
-      ),
-      action: {label: t.admin.resource.closeAction, destructive: true},
+      title: t.admin.resource.remove,
+      message: t.admin.resource.removeQuestion('Bastu'),
+      action: {label: t.admin.remove, destructive: true},
     });
 
     press();
     await settled();
 
     expect(sent).toEqual([
-      {
-        method: 'PUT',
-        path: '/admin/resources/sauna/closing',
-        body: {closesFrom: '2030-02-01'},
-      },
+      {method: 'DELETE', path: '/admin/resources/sauna', body: null},
     ]);
-    expect(onChange).toHaveBeenCalledOnce();
+    expect(onRemoved).toHaveBeenCalledOnce();
   });
 
   test('removing a change of times says from which day', async () => {
     const {actions, shown, press, settled} = setup();
+    answers = [{status: 200, body: {cancels: []}}];
 
-    actions.resources.confirmRemoveChange('sauna', '2030-02-01');
+    await actions.resources.confirmRemoveChange('sauna', '2030-02-01');
 
     expect(shown[0]).toMatchObject({
       title: t.admin.resource.removeChange,
@@ -229,11 +258,127 @@ describe('a button asks first, then sends', () => {
 
     expect(sent).toEqual([
       {
+        method: 'POST',
+        path: '/admin/resources/sauna/preview',
+        body: {change: 'removeSchedule', validFrom: '2030-02-01'},
+      },
+      {
         method: 'DELETE',
         path: '/admin/resources/sauna/schedule/2030-02-01',
-        body: null,
+        body: {cancels: []},
       },
     ]);
+  });
+
+  test('removing a change that cancels bookings names them', async () => {
+    const {actions, shown, press, settled} = setup();
+    answers = [{status: 200, body: {cancels: [CANCELLED]}}];
+
+    await actions.resources.confirmRemoveChange('sauna', '2030-02-01');
+
+    expect(shown[0]).toMatchObject({
+      title: t.admin.change.cancelTitle(1),
+      message: `${t.admin.resource.removeChangeQuestion(
+        formatLongDate('2030-02-01', t),
+      )}\n\n${cancelsMessage([CANCELLED], t)}`,
+      action: {label: t.admin.change.cancelAndRemove, destructive: true},
+    });
+
+    press();
+    await settled();
+
+    expect(sent[1]?.body).toEqual({cancels: ['booking-1']});
+  });
+});
+
+describe('a change that can cancel bookings asks first', () => {
+  const slots = [{start: '08:00', end: '11:00', endOffsetDays: 0 as const}];
+
+  test('saves at once when it cancels nothing', async () => {
+    const {actions, shown, onChange} = setup();
+    answers = [{status: 200, body: {cancels: []}}, {status: 204}];
+
+    await expect(
+      actions.resources.saveSchedule('sauna', '2030-02-01', slots, {}),
+    ).resolves.toBe(true);
+
+    expect(shown).toEqual([]);
+    expect(sent).toEqual([
+      {
+        method: 'POST',
+        path: '/admin/resources/sauna/preview',
+        body: {change: 'schedule', validFrom: '2030-02-01', slots},
+      },
+      {
+        method: 'PUT',
+        path: '/admin/resources/sauna/schedule',
+        body: {validFrom: '2030-02-01', slots, cancels: [], reason: {}},
+      },
+    ]);
+    expect(onChange).toHaveBeenCalledOnce();
+  });
+
+  test('names the bookings and sends the ones agreed to, with the reason', async () => {
+    const {actions, shown, press} = setup();
+    answers = [{status: 200, body: {cancels: [CANCELLED]}}, {status: 204}];
+
+    const closing = actions.resources.close('sauna', '2030-02-01', {
+      sv: 'Maskinen är trasig',
+    });
+    await vi.waitFor(() => {
+      expect(shown).toHaveLength(1);
+    });
+
+    expect(shown[0]).toMatchObject({
+      title: t.admin.change.cancelTitle(1),
+      message: cancelsMessage([CANCELLED], t),
+      action: {label: t.admin.change.cancelAndClose, destructive: true},
+    });
+
+    press();
+    await expect(closing).resolves.toBe(true);
+    expect(sent[1]).toEqual({
+      method: 'PUT',
+      path: '/admin/resources/sauna/closing',
+      body: {
+        closesFrom: '2030-02-01',
+        cancels: ['booking-1'],
+        reason: {sv: 'Maskinen är trasig'},
+      },
+    });
+  });
+
+  test('keeping the bookings changes nothing', async () => {
+    const {actions, shown, dismiss, onChange} = setup();
+    answers = [{status: 200, body: {cancels: [CANCELLED]}}];
+
+    const saving = actions.resources.saveSchedule(
+      'sauna',
+      '2030-02-01',
+      slots,
+      {},
+    );
+    await vi.waitFor(() => {
+      expect(shown).toHaveLength(1);
+    });
+
+    dismiss();
+    await expect(saving).resolves.toBe(false);
+    expect(sent).toHaveLength(1);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  test('a booking made meanwhile reloads and leaves the failure to the form', async () => {
+    const {actions, onChange} = setup();
+    answers = [
+      {status: 200, body: {cancels: []}},
+      {status: 409, code: 'CHANGE_CANCELS_BOOKINGS'},
+    ];
+
+    await expect(
+      actions.resources.close('sauna', '2030-02-01', {}),
+    ).rejects.toMatchObject({code: 'CHANGE_CANCELS_BOOKINGS'});
+    expect(onChange).toHaveBeenCalledOnce();
   });
 });
 
@@ -329,27 +474,29 @@ describe('a failure is told', () => {
     expect(onRemoved).not.toHaveBeenCalled();
   });
 
-  test.each(['NOT_FOUND', 'KIND_IN_USE', 'CHANGE_INSIDE_WINDOW'])(
-    '%s reloads what is shown',
-    async (code) => {
-      const {actions, shown, onChange, settled} = setup();
-      const onRemoved = vi.fn();
-      answer = {status: 409, code};
+  test.each([
+    'NOT_FOUND',
+    'KIND_IN_USE',
+    'CHANGE_TOO_EARLY',
+    'CHANGE_CANCELS_BOOKINGS',
+  ])('%s reloads what is shown', async (code) => {
+    const {actions, shown, onChange, settled} = setup();
+    const onRemoved = vi.fn();
+    answer = {status: 409, code};
 
-      void actions.kinds.remove('laundry', onRemoved);
-      await settled();
+    void actions.kinds.remove('laundry', onRemoved);
+    await settled();
 
-      expect(shown).toEqual([
-        {
-          kind: 'alert',
-          title: t.admin.resources.removeKindFailed,
-          message: t.errors[code as keyof typeof t.errors],
-        },
-      ]);
-      expect(onChange).toHaveBeenCalledOnce();
-      expect(onRemoved).not.toHaveBeenCalled();
-    },
-  );
+    expect(shown).toEqual([
+      {
+        kind: 'alert',
+        title: t.admin.resources.removeKindFailed,
+        message: t.errors[code as keyof typeof t.errors],
+      },
+    ]);
+    expect(onChange).toHaveBeenCalledOnce();
+    expect(onRemoved).not.toHaveBeenCalled();
+  });
 });
 
 describe('a form saves through the actions', () => {

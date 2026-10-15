@@ -3,8 +3,15 @@ import {eq} from 'drizzle-orm';
 import {db} from '../db/index.js';
 import {organizations, user} from '../db/schema.js';
 import {WEB_ORIGIN} from '../lib/env.js';
-import {requestedLocales, resolveLocale, type Locale} from '../lib/locale.js';
+import {
+  localize,
+  requestedLocales,
+  resolveLocale,
+  type Locale,
+  type LocalizedText,
+} from '../lib/locale.js';
 import type {Mail, SendMail} from '../lib/mail.js';
+import {formatWhen} from '../lib/time.js';
 
 const APP_NAME = 'Boka';
 
@@ -164,6 +171,42 @@ export async function sendSignInCode(
   await sendMail({...mail, to: email});
 }
 
+const BOOKINGS_CANCELLED: Record<
+  Locale,
+  (organization: string, times: string[], reason: string, where: string) => Mail
+> = {
+  sv: (organization, times, reason, where) => ({
+    to: '',
+    subject:
+      times.length === 1
+        ? `Din bokning i ${organization} har avbokats`
+        : `Dina bokningar i ${organization} har avbokats`,
+    text: [
+      times.length === 1
+        ? 'Föreningen har avbokat din bokning:'
+        : 'Föreningen har avbokat dina bokningar:',
+      times.join('\n'),
+      ...(reason ? [`Anledning: ${reason}`] : []),
+      `Öppna ${where} för att boka en annan tid.`,
+    ].join('\n\n'),
+  }),
+  en: (organization, times, reason, where) => ({
+    to: '',
+    subject:
+      times.length === 1
+        ? `Your booking in ${organization} was cancelled`
+        : `Your bookings in ${organization} were cancelled`,
+    text: [
+      times.length === 1
+        ? 'The association cancelled your booking:'
+        : 'The association cancelled your bookings:',
+      times.join('\n'),
+      ...(reason ? [`Reason: ${reason}`] : []),
+      `Open ${where} to book another time.`,
+    ].join('\n\n'),
+  }),
+};
+
 async function organizationOf(organizationId: string) {
   const [organization] = await db
     .select({name: organizations.name, locales: organizations.locales})
@@ -221,4 +264,36 @@ export async function sendWelcome(
   const mail = WELCOME[locale](organization.name, whereToSignIn(locale));
 
   await sendMail({...mail, to: email});
+}
+
+// Every resident of an apartment is told of its bookings a change by the
+// admin cancelled, in the organization's first language, like the other
+// mail the organization sends: a resident may have no device to ask.
+export async function sendBookingsCancelled(
+  organizationId: string,
+  memberId: string,
+  resourceName: LocalizedText,
+  cancelled: {date: string; start: string; end: string}[],
+  reason: LocalizedText,
+): Promise<void> {
+  const organization = await organizationOf(organizationId);
+  const locale = organization.locales[0] ?? 'sv';
+  const resource = localize(resourceName, locale) ?? '';
+  const residents = await db
+    .select({email: user.email})
+    .from(user)
+    .where(eq(user.memberId, memberId));
+  const mail = BOOKINGS_CANCELLED[locale](
+    organization.name,
+    cancelled.map(
+      (booking) =>
+        `${resource}, ${formatWhen(locale, booking.date, booking.start, booking.end)}`,
+    ),
+    localize(reason, locale) ?? '',
+    whereToSignIn(locale),
+  );
+
+  for (const {email} of residents) {
+    await sendMail({...mail, to: email});
+  }
 }

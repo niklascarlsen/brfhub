@@ -14,6 +14,8 @@ export type AdminKind = components['schemas']['AdminKind'];
 export type LocalizedText = components['schemas']['LocalizedText'];
 export type LocalizedTags = components['schemas']['LocalizedTags'];
 export type SlotInput = components['schemas']['ScheduleSlot'];
+// A booking a change by the admin would cancel, named by its apartment.
+export type CancelledBooking = components['schemas']['CancelledBooking'];
 export type Announcement = components['schemas']['Announcement'];
 export type AdminAnnouncement = components['schemas']['AdminAnnouncement'];
 export type Subscription = components['schemas']['Subscription'];

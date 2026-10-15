@@ -72,6 +72,13 @@ export function DialogProvider({children}: {children: ReactNode}) {
     dialogRef.current?.close();
   };
 
+  // Closing without the action, by its button, Escape or the backdrop.
+  const dismiss = () => {
+    const onDismiss = request?.action?.onDismiss;
+    close();
+    onDismiss?.();
+  };
+
   // The action has to run inside the click, or Safari drops the user gesture.
   const press = (onPress?: () => void) => {
     close();
@@ -83,14 +90,14 @@ export function DialogProvider({children}: {children: ReactNode}) {
       {children}
       <dialog
         ref={dialogRef}
-        onCancel={close}
+        onCancel={dismiss}
         onMouseDown={(event) => {
           pressedBackdrop.current = event.target === dialogRef.current;
         }}
         onClick={(event) => {
           // Both mousedown and click must land on the backdrop.
           if (pressedBackdrop.current && event.target === dialogRef.current) {
-            close();
+            dismiss();
           }
         }}
         aria-labelledby={titleId}
@@ -107,7 +114,7 @@ export function DialogProvider({children}: {children: ReactNode}) {
             </p>
             <p
               id={messageId}
-              className='mt-1.5 text-sm leading-5 text-theme-muted'
+              className='mt-1.5 text-sm leading-5 whitespace-pre-line text-theme-muted'
             >
               {request.message}
             </p>
@@ -136,7 +143,7 @@ export function DialogProvider({children}: {children: ReactNode}) {
                 {request.action ? (
                   <button
                     type='button'
-                    onClick={close}
+                    onClick={dismiss}
                     className={`${BUTTON} border border-theme-edge bg-theme-surface text-theme-ink transition-colors hover:bg-theme-sunk`}
                   >
                     {dismissLabel(request.action, t)}

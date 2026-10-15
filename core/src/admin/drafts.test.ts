@@ -14,6 +14,7 @@ import {
   checkPassword,
   checkResource,
   checkRules,
+  checkClosing,
   checkSchedule,
   failureMessage,
   hasProblems,
@@ -260,12 +261,43 @@ describe('a schedule', () => {
   test('is changed by its times, and checked like a new resource', () => {
     const saved = [slot('08:00', '11:00')];
 
-    expect(checkSchedule([slot('08:00', '11:00')], saved, t).changed).toBe(
-      false,
-    );
-    expect(checkSchedule([slot('11:00', '08:00')], saved, t)).toMatchObject({
+    const change = (slots: SlotInput[]) => ({slots, reason: {}});
+
+    expect(
+      checkSchedule(change([slot('08:00', '11:00')]), saved, ['sv'], t).changed,
+    ).toBe(false);
+    expect(
+      checkSchedule(change([slot('11:00', '08:00')]), saved, ['sv'], t),
+    ).toMatchObject({
       changed: true,
       problems: {slots: {missing: true}},
+    });
+  });
+
+  test('sends the message to the apartments trimmed, in every language or none', () => {
+    const {maxLength} = limits.ClosingBody.reason;
+    const saved = [slot('08:00', '11:00')];
+    const slots = [slot('09:00', '11:00')];
+    const both = ['sv', 'en'] as const;
+
+    expect(
+      checkSchedule({slots, reason: {sv: '  Ny maskin  '}}, saved, ['sv'], t)
+        .value.reason,
+    ).toEqual({sv: 'Ny maskin'});
+    expect(
+      checkSchedule(
+        {slots, reason: {sv: 'x'.repeat(maxLength + 1)}},
+        saved,
+        ['sv'],
+        t,
+      ).problems['reason.sv'],
+    ).toMatchObject({missing: false});
+    expect(checkClosing({reason: {sv: 'Trasig'}}, both, t).problems).toEqual({
+      'reason.en': {message: t.admin.localized.reasonInEvery, missing: true},
+    });
+    expect(checkClosing({reason: {}}, both, t)).toMatchObject({
+      changed: true,
+      problems: {},
     });
   });
 
