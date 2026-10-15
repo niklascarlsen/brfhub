@@ -19,3 +19,24 @@ export function slotInEffect(day: Day): SQL {
 export function resourceOpenOn(day: Day): SQL {
   return sql`(${resources.closesFrom} is null or ${day}::date < ${resources.closesFrom})`;
 }
+
+// A booked or queued slot the resource no longer offers: the resource is
+// closed that day, or the schedule then in effect has no slot of the same
+// times. Read in a query of the row's own table, not joined to resources.
+export function slotGone(row: {
+  resourceId: PgColumn;
+  date: PgColumn;
+  start: PgColumn;
+  end: PgColumn;
+}): SQL {
+  return sql`(not exists (
+      select 1 from ${resources}
+      where ${resources.id} = ${row.resourceId} and ${resourceOpenOn(row.date)}
+    ) or not exists (
+      select 1 from ${resourceSlots}
+      where ${resourceSlots.resourceId} = ${row.resourceId}
+        and ${resourceSlots.start} = ${row.start}
+        and ${resourceSlots.end} = ${row.end}
+        and ${slotInEffect(row.date)}
+    ))`;
+}

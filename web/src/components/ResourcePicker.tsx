@@ -55,11 +55,18 @@ export function ResourcePicker({
               key={resource.id}
               onClick={() => onSelect(resource.id)}
               aria-pressed={isSelected}
+              aria-label={
+                resource.closed
+                  ? `${resource.name}, ${t.booking.closedTitle}`
+                  : undefined
+              }
               {...roving.itemProps(index)}
               className={`h-11 shrink-0 rounded-full border px-5 text-sm whitespace-nowrap ${
                 isSelected
                   ? 'border-theme-ink bg-theme-ink font-semibold text-theme-surface'
-                  : 'border-theme-line bg-theme-surface font-medium text-theme-ink hover:bg-theme-sunk active:opacity-50'
+                  : resource.closed
+                    ? 'border-theme-line bg-theme-sunk font-medium text-theme-faint hover:text-theme-muted active:opacity-50'
+                    : 'border-theme-line bg-theme-surface font-medium text-theme-ink hover:bg-theme-sunk active:opacity-50'
               }`}
             >
               {resource.name}

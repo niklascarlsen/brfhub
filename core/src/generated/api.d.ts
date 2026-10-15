@@ -1838,7 +1838,89 @@ export interface paths {
     get?: never;
     put?: never;
     post?: never;
-    delete?: never;
+    delete: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Default Response */
+        204: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content?: never;
+        };
+        /** @description Default Response */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+      };
+    };
     options?: never;
     head?: never;
     patch: {
@@ -1928,6 +2010,110 @@ export interface paths {
         };
       };
     };
+    trace?: never;
+  };
+  '/admin/resources/{id}/preview': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json': components['schemas']['ChangePreviewBodyInput'];
+        };
+      };
+      responses: {
+        /** @description Default Response */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['ChangePreview'];
+          };
+        };
+        /** @description Default Response */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+        /** @description Default Response */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['Error'];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
     trace?: never;
   };
   '/admin/resources/{id}/schedule': {
@@ -2052,7 +2238,11 @@ export interface paths {
         };
         cookie?: never;
       };
-      requestBody?: never;
+      requestBody: {
+        content: {
+          'application/json': components['schemas']['RemoveScheduleBodyInput'];
+        };
+      };
       responses: {
         /** @description Default Response */
         204: {
@@ -4230,10 +4420,12 @@ export interface components {
         | 'SLOT_AVAILABLE'
         | 'APARTMENT_TAKEN'
         | 'EMAIL_TAKEN'
-        | 'CHANGE_INSIDE_WINDOW'
+        | 'CHANGE_TOO_EARLY'
+        | 'CHANGE_CANCELS_BOOKINGS'
         | 'ENDS_IN_PAST'
         | 'INVALID_SCHEDULE'
         | 'KIND_IN_USE'
+        | 'RESOURCE_OPEN'
         | 'LANGUAGES_CHANGED'
         | 'TWO_FACTOR_REQUIRED'
         | 'LAST_ADMIN'
@@ -4306,8 +4498,10 @@ export interface components {
       | 'resource.order'
       | 'resource.close'
       | 'resource.reopen'
+      | 'resource.remove'
       | 'schedule.put'
       | 'schedule.remove'
+      | 'booking.cancel'
       | 'announcement.create'
       | 'announcement.update'
       | 'announcement.remove'
@@ -4397,6 +4591,8 @@ export interface components {
       name: string;
       kind: string;
       tags: string[];
+      closed: boolean;
+      closingNote: string;
     };
     BookingRulesInput: {
       text: string;
@@ -4421,6 +4617,8 @@ export interface components {
             }[];
           }[];
           closesFrom: string | null;
+          closed: boolean;
+          closingNote: string;
         }[];
       }[];
     };
@@ -4521,6 +4719,9 @@ export interface components {
       kindId: string;
       tags: components['schemas']['LocalizedTagsInput'];
       closesFrom: string | null;
+      closingNote: components['schemas']['LocalizedTextInput'];
+      /** Format: date */
+      freeFrom: string;
       schedules: components['schemas']['ScheduleInput'][];
     };
     AdminResourcesInput: {
@@ -4528,8 +4729,6 @@ export interface components {
       resources: components['schemas']['AdminResourceInput'][];
       /** Format: date */
       today: string;
-      /** Format: date */
-      earliestChange: string;
     };
     CreateKindBodyInput: {
       name: {
@@ -4572,10 +4771,60 @@ export interface components {
       /** Format: date */
       validFrom: string;
       slots: components['schemas']['ScheduleSlotInput'][];
+      /** @default [] */
+      cancels: string[];
+      /** @default {} */
+      reason: {
+        sv?: string;
+        en?: string;
+      };
     };
     ClosingBodyInput: {
       /** Format: date */
       closesFrom: string;
+      /** @default [] */
+      cancels: string[];
+      /** @default {} */
+      reason: {
+        sv?: string;
+        en?: string;
+      };
+    };
+    RemoveScheduleBodyInput: {
+      /** @default [] */
+      cancels: string[];
+    } | null;
+    ChangePreviewBodyInput:
+      | {
+          /** Format: date */
+          validFrom: string;
+          slots: components['schemas']['ScheduleSlotInput'][];
+          /** @constant */
+          change: 'schedule';
+        }
+      | {
+          /** Format: date */
+          closesFrom: string;
+          /** @constant */
+          change: 'closing';
+        }
+      | {
+          /** @constant */
+          change: 'removeSchedule';
+          /** Format: date */
+          validFrom: string;
+        };
+    CancelledBookingInput: {
+      /** Format: uuid */
+      id: string;
+      apartment: string;
+      /** Format: date */
+      date: string;
+      start: string;
+      end: string;
+    };
+    ChangePreviewInput: {
+      cancels: components['schemas']['CancelledBookingInput'][];
     };
     ResourceOrderBodyInput: {
       ids: string[];
@@ -4671,10 +4920,12 @@ export interface components {
         | 'SLOT_AVAILABLE'
         | 'APARTMENT_TAKEN'
         | 'EMAIL_TAKEN'
-        | 'CHANGE_INSIDE_WINDOW'
+        | 'CHANGE_TOO_EARLY'
+        | 'CHANGE_CANCELS_BOOKINGS'
         | 'ENDS_IN_PAST'
         | 'INVALID_SCHEDULE'
         | 'KIND_IN_USE'
+        | 'RESOURCE_OPEN'
         | 'LANGUAGES_CHANGED'
         | 'TWO_FACTOR_REQUIRED'
         | 'LAST_ADMIN'
@@ -4748,8 +4999,10 @@ export interface components {
       | 'resource.order'
       | 'resource.close'
       | 'resource.reopen'
+      | 'resource.remove'
       | 'schedule.put'
       | 'schedule.remove'
+      | 'booking.cancel'
       | 'announcement.create'
       | 'announcement.update'
       | 'announcement.remove'
@@ -4843,6 +5096,8 @@ export interface components {
       name: string;
       kind: string;
       tags: string[];
+      closed: boolean;
+      closingNote: string;
     };
     BookingRules: {
       text: string;
@@ -4867,6 +5122,8 @@ export interface components {
             }[];
           }[];
           closesFrom: string | null;
+          closed: boolean;
+          closingNote: string;
         }[];
       }[];
     };
@@ -4967,6 +5224,9 @@ export interface components {
       kindId: string;
       tags: components['schemas']['LocalizedTags'];
       closesFrom: string | null;
+      closingNote: components['schemas']['LocalizedText'];
+      /** Format: date */
+      freeFrom: string;
       schedules: components['schemas']['Schedule'][];
     };
     AdminResources: {
@@ -4974,8 +5234,6 @@ export interface components {
       resources: components['schemas']['AdminResource'][];
       /** Format: date */
       today: string;
-      /** Format: date */
-      earliestChange: string;
     };
     CreateKindBody: {
       name: {
@@ -5018,10 +5276,60 @@ export interface components {
       /** Format: date */
       validFrom: string;
       slots: components['schemas']['ScheduleSlot'][];
+      /** @default [] */
+      cancels: string[];
+      /** @default {} */
+      reason: {
+        sv?: string;
+        en?: string;
+      };
     };
     ClosingBody: {
       /** Format: date */
       closesFrom: string;
+      /** @default [] */
+      cancels: string[];
+      /** @default {} */
+      reason: {
+        sv?: string;
+        en?: string;
+      };
+    };
+    RemoveScheduleBody: {
+      /** @default [] */
+      cancels: string[];
+    } | null;
+    ChangePreviewBody:
+      | {
+          /** Format: date */
+          validFrom: string;
+          slots: components['schemas']['ScheduleSlot'][];
+          /** @constant */
+          change: 'schedule';
+        }
+      | {
+          /** Format: date */
+          closesFrom: string;
+          /** @constant */
+          change: 'closing';
+        }
+      | {
+          /** @constant */
+          change: 'removeSchedule';
+          /** Format: date */
+          validFrom: string;
+        };
+    CancelledBooking: {
+      /** Format: uuid */
+      id: string;
+      apartment: string;
+      /** Format: date */
+      date: string;
+      start: string;
+      end: string;
+    };
+    ChangePreview: {
+      cancels: components['schemas']['CancelledBooking'][];
     };
     ResourceOrderBody: {
       ids: string[];

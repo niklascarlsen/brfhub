@@ -1,3 +1,4 @@
+import {changeDays} from '@booking/core/admin/change';
 import {limitText, slotsText} from '@booking/core/admin/schedule';
 import type {AdminResource, AdminResources} from '@booking/core/api/types';
 import {localize} from '@booking/core/i18n/catalog';
@@ -17,6 +18,9 @@ type ResourceDetailProps = {
   onChanged: () => void;
   onEdit: () => void;
   onSchedule: () => void;
+  onClose: () => void;
+  // After the resource is removed, which leaves nothing to show.
+  onRemoved: () => void;
 };
 
 export function ResourceDetail({
@@ -25,11 +29,14 @@ export function ResourceDetail({
   onChanged,
   onEdit,
   onSchedule,
+  onClose,
+  onRemoved,
 }: ResourceDetailProps) {
   const t = useMessages();
   const {locale} = useLocale();
   const tags = localize(resource.tags, locale) ?? [];
-  const {kinds, earliestChange, today} = data;
+  const note = localize(resource.closingNote, locale);
+  const {kinds, today} = data;
   const kind = kinds.find((item) => item.id === resource.kindId);
   const [current, ...later] = resource.schedules;
   const closed = resource.closesFrom !== null && resource.closesFrom <= today;
@@ -72,11 +79,11 @@ export function ResourceDetail({
                   {slotsText(schedule.slots)}
                 </span>
               </span>
-              {schedule.validFrom >= earliestChange ? (
+              {schedule.validFrom > today ? (
                 <button
                   type='button'
                   onClick={() =>
-                    actions.resources.confirmRemoveChange(
+                    void actions.resources.confirmRemoveChange(
                       resource.id,
                       schedule.validFrom,
                     )
@@ -97,6 +104,9 @@ export function ResourceDetail({
                     )
                   : t.rules.closes(formatDayMonth(resource.closesFrom, t))}
               </span>
+              {note ? (
+                <span className='text-sm text-theme-ink'>{note}</span>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -132,7 +142,10 @@ export function ResourceDetail({
           <ActionRow
             label={t.admin.resource.editTimes}
             description={t.admin.resource.editTimesHint(
-              formatDayMonth(earliestChange, t),
+              formatDayMonth(
+                changeDays('schedule', today, resource.freeFrom).free,
+                t,
+              ),
             )}
             onPress={onSchedule}
           />
@@ -141,6 +154,13 @@ export function ResourceDetail({
             description={t.admin.resource.editDetailsHint}
             onPress={onEdit}
           />
+          {resource.closesFrom ? null : (
+            <ActionRow
+              label={t.admin.resource.close}
+              description={t.admin.resource.closeHint}
+              onPress={onClose}
+            />
+          )}
         </div>
       </section>
       <div className='flex flex-wrap gap-2.5'>
@@ -177,23 +197,31 @@ export function ResourceDetail({
           >
             {closed ? t.admin.resource.reopen : t.admin.resource.undoClose}
           </button>
-        ) : (
+        ) : null}
+        {closed ? (
           <button
             type='button'
             onClick={() =>
-              actions.resources.confirmClose(
+              actions.resources.confirmRemove(
                 resource.id,
                 localize(resource.name, locale) ?? '',
-                earliestChange,
+                onRemoved,
               )
             }
             disabled={busy}
             className={SECONDARY_BUTTON}
           >
-            {t.admin.resource.close}
+            {t.admin.resource.remove}
           </button>
-        )}
+        ) : null}
       </div>
+      {resource.closesFrom && !closed ? (
+        <p className='-mt-4 text-[13px] leading-5 text-theme-muted'>
+          {t.admin.resource.removableFrom(
+            formatDayMonth(resource.closesFrom, t),
+          )}
+        </p>
+      ) : null}
     </div>
   );
 }

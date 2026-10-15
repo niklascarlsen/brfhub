@@ -28,10 +28,12 @@
               "SLOT_AVAILABLE",
               "APARTMENT_TAKEN",
               "EMAIL_TAKEN",
-              "CHANGE_INSIDE_WINDOW",
+              "CHANGE_TOO_EARLY",
+              "CHANGE_CANCELS_BOOKINGS",
               "ENDS_IN_PAST",
               "INVALID_SCHEDULE",
               "KIND_IN_USE",
+              "RESOURCE_OPEN",
               "LANGUAGES_CHANGED",
               "TWO_FACTOR_REQUIRED",
               "LAST_ADMIN",
@@ -278,8 +280,10 @@
           "resource.order",
           "resource.close",
           "resource.reopen",
+          "resource.remove",
           "schedule.put",
           "schedule.remove",
+          "booking.cancel",
           "announcement.create",
           "announcement.update",
           "announcement.remove",
@@ -643,13 +647,21 @@
             "items": {
               "type": "string"
             }
+          },
+          "closed": {
+            "type": "boolean"
+          },
+          "closingNote": {
+            "type": "string"
           }
         },
         "required": [
           "id",
           "name",
           "kind",
-          "tags"
+          "tags",
+          "closed",
+          "closingNote"
         ]
       },
       "BookingRulesInput": {
@@ -755,6 +767,12 @@
                             "type": "null"
                           }
                         ]
+                      },
+                      "closed": {
+                        "type": "boolean"
+                      },
+                      "closingNote": {
+                        "type": "string"
                       }
                     },
                     "required": [
@@ -763,7 +781,9 @@
                       "tags",
                       "slots",
                       "changes",
-                      "closesFrom"
+                      "closesFrom",
+                      "closed",
+                      "closingNote"
                     ]
                   }
                 }
@@ -1177,6 +1197,14 @@
               }
             ]
           },
+          "closingNote": {
+            "$ref": "#/components/schemas/LocalizedTextInput"
+          },
+          "freeFrom": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
           "schedules": {
             "type": "array",
             "items": {
@@ -1190,6 +1218,8 @@
           "kindId",
           "tags",
           "closesFrom",
+          "closingNote",
+          "freeFrom",
           "schedules"
         ]
       },
@@ -1212,18 +1242,12 @@
             "type": "string",
             "format": "date",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
-          },
-          "earliestChange": {
-            "type": "string",
-            "format": "date",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
           }
         },
         "required": [
           "kinds",
           "resources",
-          "today",
-          "earliestChange"
+          "today"
         ]
       },
       "CreateKindBodyInput": {
@@ -1403,6 +1427,30 @@
             "items": {
               "$ref": "#/components/schemas/ScheduleSlotInput"
             }
+          },
+          "cancels": {
+            "default": [],
+            "maxItems": 2000,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "reason": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "sv": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "en": {
+                "type": "string",
+                "maxLength": 300
+              }
+            }
           }
         },
         "required": [
@@ -1417,10 +1465,168 @@
             "type": "string",
             "format": "date",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "cancels": {
+            "default": [],
+            "maxItems": 2000,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "reason": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "sv": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "en": {
+                "type": "string",
+                "maxLength": 300
+              }
+            }
           }
         },
         "required": [
           "closesFrom"
+        ]
+      },
+      "RemoveScheduleBodyInput": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "cancels": {
+                "default": [],
+                "maxItems": 2000,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                }
+              }
+            }
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "ChangePreviewBodyInput": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "validFrom": {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              },
+              "slots": {
+                "minItems": 1,
+                "maxItems": 24,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ScheduleSlotInput"
+                }
+              },
+              "change": {
+                "type": "string",
+                "const": "schedule"
+              }
+            },
+            "required": [
+              "validFrom",
+              "slots",
+              "change"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "closesFrom": {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              },
+              "change": {
+                "type": "string",
+                "const": "closing"
+              }
+            },
+            "required": [
+              "closesFrom",
+              "change"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "change": {
+                "type": "string",
+                "const": "removeSchedule"
+              },
+              "validFrom": {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              }
+            },
+            "required": [
+              "change",
+              "validFrom"
+            ]
+          }
+        ]
+      },
+      "CancelledBookingInput": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "apartment": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "start": {
+            "type": "string"
+          },
+          "end": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "apartment",
+          "date",
+          "start",
+          "end"
+        ]
+      },
+      "ChangePreviewInput": {
+        "type": "object",
+        "properties": {
+          "cancels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CancelledBookingInput"
+            }
+          }
+        },
+        "required": [
+          "cancels"
         ]
       },
       "ResourceOrderBodyInput": {
@@ -1754,10 +1960,12 @@
               "SLOT_AVAILABLE",
               "APARTMENT_TAKEN",
               "EMAIL_TAKEN",
-              "CHANGE_INSIDE_WINDOW",
+              "CHANGE_TOO_EARLY",
+              "CHANGE_CANCELS_BOOKINGS",
               "ENDS_IN_PAST",
               "INVALID_SCHEDULE",
               "KIND_IN_USE",
+              "RESOURCE_OPEN",
               "LANGUAGES_CHANGED",
               "TWO_FACTOR_REQUIRED",
               "LAST_ADMIN",
@@ -2015,8 +2223,10 @@
           "resource.order",
           "resource.close",
           "resource.reopen",
+          "resource.remove",
           "schedule.put",
           "schedule.remove",
+          "booking.cancel",
           "announcement.create",
           "announcement.update",
           "announcement.remove",
@@ -2401,13 +2611,21 @@
             "items": {
               "type": "string"
             }
+          },
+          "closed": {
+            "type": "boolean"
+          },
+          "closingNote": {
+            "type": "string"
           }
         },
         "required": [
           "id",
           "name",
           "kind",
-          "tags"
+          "tags",
+          "closed",
+          "closingNote"
         ],
         "additionalProperties": false
       },
@@ -2517,6 +2735,12 @@
                             "type": "null"
                           }
                         ]
+                      },
+                      "closed": {
+                        "type": "boolean"
+                      },
+                      "closingNote": {
+                        "type": "string"
                       }
                     },
                     "required": [
@@ -2525,7 +2749,9 @@
                       "tags",
                       "slots",
                       "changes",
-                      "closesFrom"
+                      "closesFrom",
+                      "closed",
+                      "closingNote"
                     ],
                     "additionalProperties": false
                   }
@@ -2949,6 +3175,14 @@
               }
             ]
           },
+          "closingNote": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "freeFrom": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
           "schedules": {
             "type": "array",
             "items": {
@@ -2962,6 +3196,8 @@
           "kindId",
           "tags",
           "closesFrom",
+          "closingNote",
+          "freeFrom",
           "schedules"
         ],
         "additionalProperties": false
@@ -2985,18 +3221,12 @@
             "type": "string",
             "format": "date",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
-          },
-          "earliestChange": {
-            "type": "string",
-            "format": "date",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
           }
         },
         "required": [
           "kinds",
           "resources",
-          "today",
-          "earliestChange"
+          "today"
         ],
         "additionalProperties": false
       },
@@ -3187,11 +3417,38 @@
             "items": {
               "$ref": "#/components/schemas/ScheduleSlot"
             }
+          },
+          "cancels": {
+            "default": [],
+            "maxItems": 2000,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "reason": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "sv": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "en": {
+                "type": "string",
+                "maxLength": 300
+              }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
           "validFrom",
-          "slots"
+          "slots",
+          "cancels",
+          "reason"
         ],
         "additionalProperties": false
       },
@@ -3202,10 +3459,180 @@
             "type": "string",
             "format": "date",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "cancels": {
+            "default": [],
+            "maxItems": 2000,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "reason": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "sv": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "en": {
+                "type": "string",
+                "maxLength": 300
+              }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
-          "closesFrom"
+          "closesFrom",
+          "cancels",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "RemoveScheduleBody": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "cancels": {
+                "default": [],
+                "maxItems": 2000,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                }
+              }
+            },
+            "required": [
+              "cancels"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "ChangePreviewBody": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "validFrom": {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              },
+              "slots": {
+                "minItems": 1,
+                "maxItems": 24,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ScheduleSlot"
+                }
+              },
+              "change": {
+                "type": "string",
+                "const": "schedule"
+              }
+            },
+            "required": [
+              "validFrom",
+              "slots",
+              "change"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "closesFrom": {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              },
+              "change": {
+                "type": "string",
+                "const": "closing"
+              }
+            },
+            "required": [
+              "closesFrom",
+              "change"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "change": {
+                "type": "string",
+                "const": "removeSchedule"
+              },
+              "validFrom": {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              }
+            },
+            "required": [
+              "change",
+              "validFrom"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "CancelledBooking": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "apartment": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "start": {
+            "type": "string"
+          },
+          "end": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "apartment",
+          "date",
+          "start",
+          "end"
+        ],
+        "additionalProperties": false
+      },
+      "ChangePreview": {
+        "type": "object",
+        "properties": {
+          "cancels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CancelledBooking"
+            }
+          }
+        },
+        "required": [
+          "cancels"
         ],
         "additionalProperties": false
       },
@@ -5413,6 +5840,201 @@
             }
           }
         }
+      },
+      "delete": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/resources/{id}/preview": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePreviewBodyInput"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangePreview"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/admin/resources/{id}/schedule": {
@@ -5517,6 +6139,16 @@
     },
     "/admin/resources/{id}/schedule/{validFrom}": {
       "delete": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveScheduleBodyInput"
+              }
+            }
+          }
+        },
         "parameters": [
           {
             "schema": {

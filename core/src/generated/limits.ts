@@ -18,6 +18,14 @@ export const limits = {
       maxLength: 2000,
     },
   },
+  ClosingBody: {
+    cancels: {
+      maxItems: 2000,
+    },
+    reason: {
+      maxLength: 300,
+    },
+  },
   CreateApartmentBody: {
     label: {
       minLength: 1,
@@ -94,6 +102,12 @@ export const limits = {
     slots: {
       minItems: 1,
       maxItems: 24,
+    },
+    cancels: {
+      maxItems: 2000,
+    },
+    reason: {
+      maxLength: 300,
     },
   },
   ResourceOrderBody: {

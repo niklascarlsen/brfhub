@@ -6,7 +6,7 @@ import type {
 } from '@booking/core/api/types';
 import {slotOffer, type BookingAction} from '@booking/core/booking/offer';
 import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
-import {timeRange} from '@booking/core/lib/dates';
+import {addDays, timeRange} from '@booking/core/lib/dates';
 import {useRef} from 'react';
 
 import {
@@ -14,10 +14,11 @@ import {
   ChevronForwardIcon,
   LockClosedIcon,
 } from '@/components/icons';
+import {ClosedNotice} from '@/components/ClosedNotice';
 import {Notice, NoticeBar} from '@/components/Notice';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
 import {Tag} from '@/components/Tag';
-import {addDays, formatHeadingDate, relativeDay} from '@/desktop/weeks';
+import {formatHeadingDate, relativeDay} from '@/desktop/weeks';
 import {useMessages} from '@/i18n/LocaleProvider';
 import {slotAppearance} from '@/lib/slots';
 
@@ -230,14 +231,22 @@ export function DayPanel({
               className='flex flex-col gap-3 rounded-[18px] border border-theme-line bg-theme-surface px-4.5 py-4'
             >
               <div className='flex flex-wrap items-center gap-2.5'>
-                <h3 className='text-base font-semibold tracking-tight text-theme-ink'>
+                <h3
+                  className={`text-base font-semibold tracking-tight ${
+                    entry.resource.closed
+                      ? 'text-theme-muted'
+                      : 'text-theme-ink'
+                  }`}
+                >
                   {entry.resource.name}
                 </h3>
                 {entry.resource.tags.map((tag) => (
                   <Tag key={tag} label={tag} />
                 ))}
               </div>
-              {entry.slots.length === 0 ? (
+              {entry.resource.closed ? (
+                <ClosedNotice resource={entry.resource} />
+              ) : entry.slots.length === 0 ? (
                 <p className='text-[13px] text-theme-muted'>
                   {t.booking.noSlotsLeft}
                 </p>

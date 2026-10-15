@@ -7,6 +7,8 @@ export type DialogAction = {
   // What the button that closes without acting says, when the default
   // below does not fit the question.
   cancelLabel?: string;
+  // Runs when the dialog closes without the action.
+  onDismiss?: () => void;
 };
 
 export type DialogChoice = {

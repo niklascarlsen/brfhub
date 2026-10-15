@@ -14,6 +14,9 @@ type FormActionsProps = {
   // leaving one that is asks first. A save of a form with problems shows
   // them instead of sending.
   dirty: boolean;
+  // Can be sent though nothing has changed, such as a closing, which is
+  // new each time.
+  ready?: boolean;
   submitting: boolean;
   onCancel?: () => void;
   // Further buttons, such as one that removes what the form edits.
@@ -26,6 +29,7 @@ type FormActionsProps = {
 export function FormActions({
   submitLabel,
   dirty,
+  ready = false,
   submitting,
   onCancel,
   children,
@@ -46,8 +50,8 @@ export function FormActions({
       <div className='flex flex-wrap gap-2.5'>
         <button
           type='submit'
-          disabled={!dirty || submitting}
-          className={dirty ? PRIMARY_BUTTON : INACTIVE_BUTTON}
+          disabled={!(dirty || ready) || submitting}
+          className={dirty || ready ? PRIMARY_BUTTON : INACTIVE_BUTTON}
         >
           {submitLabel}
         </button>

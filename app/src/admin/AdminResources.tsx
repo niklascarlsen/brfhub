@@ -9,6 +9,7 @@ import {Icon} from '@/components/Icon';
 import {Pressable, Text, View} from 'react-native';
 
 import {AdminPage} from '@/admin/AdminPage';
+import {CloseForm} from '@/admin/CloseForm';
 import {Gone} from '@/admin/Gone';
 import {KindForm} from '@/admin/KindForm';
 import {useAdminLocation} from '@/admin/location';
@@ -237,15 +238,40 @@ export function AdminResources() {
       content = (
         <ScheduleForm
           initial={opened.schedules.at(-1)?.slots ?? []}
-          validFrom={data.earliestChange}
+          today={data.today}
+          freeFrom={opened.freeFrom}
           onCancel={up}
-          onSubmit={async (slots) => {
-            await actions.resources.saveSchedule(
+          onSubmit={async (validFrom, {slots, reason}) => {
+            const saved = await actions.resources.saveSchedule(
               opened.id,
-              data.earliestChange,
+              validFrom,
               slots,
+              reason,
             );
-            up();
+            if (saved) {
+              up();
+            }
+            return saved;
+          }}
+        />
+      );
+    } else if (data && opened && location.step === 'close') {
+      content = (
+        <CloseForm
+          name={name}
+          today={data.today}
+          freeFrom={opened.freeFrom}
+          onCancel={up}
+          onSubmit={async (closesFrom, reason) => {
+            const closed = await actions.resources.close(
+              opened.id,
+              closesFrom,
+              reason,
+            );
+            if (closed) {
+              up();
+            }
+            return closed;
           }}
         />
       );
@@ -258,6 +284,8 @@ export function AdminResources() {
           onChanged={changed}
           onEdit={() => open({tab: 'resources', step: 'edit', id})}
           onSchedule={() => open({tab: 'resources', step: 'schedule', id})}
+          onClose={() => open({tab: 'resources', step: 'close', id})}
+          onRemoved={up}
         />
       );
     }
@@ -272,7 +300,9 @@ export function AdminResources() {
               ? t.admin.editDetails
               : location.step === 'schedule'
                 ? t.admin.resource.editTimes
-                : name
+                : location.step === 'close'
+                  ? t.admin.resource.close
+                  : name
         }
         subtitle={organizationName}
         back={

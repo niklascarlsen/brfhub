@@ -10,10 +10,12 @@ export const errorCodeSchema = z.enum([
   'SLOT_AVAILABLE',
   'APARTMENT_TAKEN',
   'EMAIL_TAKEN',
-  'CHANGE_INSIDE_WINDOW',
+  'CHANGE_TOO_EARLY',
+  'CHANGE_CANCELS_BOOKINGS',
   'ENDS_IN_PAST',
   'INVALID_SCHEDULE',
   'KIND_IN_USE',
+  'RESOURCE_OPEN',
   'LANGUAGES_CHANGED',
   'TWO_FACTOR_REQUIRED',
   'LAST_ADMIN',
@@ -61,9 +63,15 @@ const ERRORS: Record<ErrorCode, {status: number; message: string}> = {
     status: 409,
     message: 'Another account already uses that email',
   },
-  CHANGE_INSIDE_WINDOW: {
+  CHANGE_TOO_EARLY: {
     status: 400,
-    message: 'The change would start inside the booking window',
+    message: 'The change would start on a day that has begun',
+  },
+  // Someone booked meanwhile: the change would cancel a booking the admin
+  // has not seen.
+  CHANGE_CANCELS_BOOKINGS: {
+    status: 409,
+    message: 'The change would cancel bookings not agreed to',
   },
   ENDS_IN_PAST: {
     status: 400,
@@ -72,6 +80,12 @@ const ERRORS: Record<ErrorCode, {status: number; message: string}> = {
   INVALID_SCHEDULE: {
     status: 400,
     message: 'The slots overlap or end before they start',
+  },
+  // A resource is closed before it is removed, which has cancelled what was
+  // booked on it with word to the apartments.
+  RESOURCE_OPEN: {
+    status: 409,
+    message: 'Close the resource before removing it',
   },
   KIND_IN_USE: {
     status: 409,

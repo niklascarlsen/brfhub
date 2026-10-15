@@ -20,6 +20,12 @@ export function isWithinBookingWindow(
   return isoDate >= window.from && isoDate <= window.to;
 }
 
+export function addDays(isoDate: string, days: number): string {
+  const date = fromIsoDate(isoDate);
+  date.setDate(date.getDate() + days);
+  return toIsoDate(date);
+}
+
 export function daysBetween(from: string, to: string): Date[] {
   const days: Date[] = [];
 

@@ -103,6 +103,9 @@ export const resources = pgTable(
     sortOrder: integer('sort_order').notNull(),
     // Bookable up to the day before. Null while the resource stays open.
     closesFrom: date('closes_from', {mode: 'string'}),
+    // What the admin says about the closing, shown with the closed resource
+    // and sent with the bookings it cancelled. Empty while open.
+    closingNote: localizedText('closing_note').notNull().default({}),
   },
   (table) => [
     unique('resources_organization_id_unique').on(

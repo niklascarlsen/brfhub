@@ -4,11 +4,13 @@ import type {
   AdminResource,
   AdminUser,
   Apartment,
+  CancelledBooking,
   LocalizedText,
 } from '../api/types';
 import type {Locale, Messages} from '../i18n/catalog';
 import {formatLongDate} from '../lib/dates';
 import type {Dialog} from '../lib/dialog';
+import {cancelsMessage} from './change';
 import type {
   AdminFields,
   AnnouncementFields,
@@ -18,12 +20,15 @@ import type {
 } from './drafts';
 
 // A failure that means what the screen shows is out of date: the thing is
-// gone, a resource took the kind meanwhile, or the day moved on.
+// gone, a resource took the kind meanwhile, the day moved on, or an
+// apartment booked meanwhile.
 function shouldReload(code: ClientErrorCode) {
   switch (code) {
     case 'NOT_FOUND':
     case 'KIND_IN_USE':
-    case 'CHANGE_INSIDE_WINDOW':
+    case 'CHANGE_TOO_EARLY':
+    case 'CHANGE_CANCELS_BOOKINGS':
+    case 'RESOURCE_OPEN':
       return true;
     default:
       return false;
@@ -75,10 +80,31 @@ export function adminActions({
   onChange,
   onBusy,
 }: AdminActionsOptions) {
+  // Reloads what is shown when a failure says it is out of date, and
+  // passes the failure on.
+  async function reloadingIfStale<T>(request: () => Promise<T>): Promise<T> {
+    try {
+      return await request();
+    } catch (error) {
+      if (shouldReload(codeOf(error))) {
+        onChange?.();
+      }
+      throw error;
+    }
+  }
+
   async function save<T>(request: () => Promise<T>): Promise<T> {
-    const data = await request();
+    const data = await reloadingIfStale(request);
     onChange?.();
     return data;
+  }
+
+  function fail(failTitle: string, error: unknown) {
+    const code = codeOf(error);
+    if (shouldReload(code)) {
+      onChange?.();
+    }
+    dialog.alert(failTitle, errorMessage(code, t));
   }
 
   async function mutate<T>(
@@ -93,17 +119,55 @@ export function adminActions({
       data = await request();
     } catch (error) {
       onBusy?.(false);
-      const code = codeOf(error);
-      if (shouldReload(code)) {
-        onChange?.();
-      }
-      dialog.alert(failTitle, errorMessage(code, t));
+      fail(failTitle, error);
       return;
     }
 
     onBusy?.(false);
     onChange?.();
     then?.(data);
+  }
+
+  type Change =
+    | {change: 'schedule'; validFrom: string; slots: ResourceFields['slots']}
+    | {change: 'closing'; closesFrom: string}
+    | {change: 'removeSchedule'; validFrom: string};
+
+  // The bookings a change would cancel, as the server would make it now.
+  async function cancelsOf(id: string, change: Change) {
+    const {cancels} = await reloadingIfStale(() =>
+      unwrap(
+        api.POST('/admin/resources/{id}/preview', {
+          params: {path: {id}},
+          body: change,
+        }),
+      ),
+    );
+    return cancels;
+  }
+
+  // Asks before a change that cancels bookings, naming each. Resolves the
+  // ones agreed to, or null when the admin keeps them.
+  function agreeToCancel(
+    cancels: CancelledBooking[],
+    label: string,
+  ): Promise<string[] | null> {
+    if (cancels.length === 0) {
+      return Promise.resolve([]);
+    }
+
+    return new Promise((resolve) => {
+      dialog.confirm(
+        t.admin.change.cancelTitle(cancels.length),
+        cancelsMessage(cancels, t),
+        {
+          label,
+          destructive: true,
+          onPress: () => resolve(cancels.map((booking) => booking.id)),
+          onDismiss: () => resolve(null),
+        },
+      );
+    });
   }
 
   const apartments = {
@@ -298,19 +362,56 @@ export function adminActions({
         ),
       ),
 
-    saveSchedule: (
+    // New times from a day the admin picks. The bookings they cancel are
+    // agreed to first; resolves false when the admin keeps them.
+    saveSchedule: async (
       id: string,
       validFrom: string,
       slots: ResourceFields['slots'],
-    ) =>
-      save(() =>
+      reason: LocalizedText,
+    ) => {
+      const cancels = await agreeToCancel(
+        await cancelsOf(id, {change: 'schedule', validFrom, slots}),
+        t.admin.change.cancelAndSave,
+      );
+
+      if (cancels === null) {
+        return false;
+      }
+
+      await save(() =>
         unwrap(
           api.PUT('/admin/resources/{id}/schedule', {
             params: {path: {id}},
-            body: {validFrom, slots},
+            body: {validFrom, slots, cancels, reason},
           }),
         ),
-      ),
+      );
+      return true;
+    },
+
+    // Closes from a day the admin picks, today at the earliest, the same
+    // way.
+    close: async (id: string, closesFrom: string, reason: LocalizedText) => {
+      const cancels = await agreeToCancel(
+        await cancelsOf(id, {change: 'closing', closesFrom}),
+        t.admin.change.cancelAndClose,
+      );
+
+      if (cancels === null) {
+        return false;
+      }
+
+      await save(() =>
+        unwrap(
+          api.PUT('/admin/resources/{id}/closing', {
+            params: {path: {id}},
+            body: {closesFrom, cancels, reason},
+          }),
+        ),
+      );
+      return true;
+    },
 
     // Members see the resources grouped by kind, so a move swaps places
     // with the neighbour of the same kind, and past the end does nothing.
@@ -336,42 +437,72 @@ export function adminActions({
       );
     },
 
-    confirmRemoveChange: (id: string, validFrom: string) =>
+    // The times before the change apply again, which can cancel what was
+    // booked on its own; the question then names those bookings.
+    confirmRemoveChange: async (id: string, validFrom: string) => {
+      let cancels: CancelledBooking[];
+
+      onBusy?.(true);
+      try {
+        cancels = await cancelsOf(id, {change: 'removeSchedule', validFrom});
+      } catch (error) {
+        onBusy?.(false);
+        dialog.alert(
+          t.admin.resource.removeChangeFailed,
+          errorMessage(codeOf(error), t),
+        );
+        return;
+      }
+      onBusy?.(false);
+
+      const question = t.admin.resource.removeChangeQuestion(
+        formatLongDate(validFrom, t),
+      );
+
       dialog.confirm(
-        t.admin.resource.removeChange,
-        t.admin.resource.removeChangeQuestion(formatLongDate(validFrom, t)),
+        cancels.length === 0
+          ? t.admin.resource.removeChange
+          : t.admin.change.cancelTitle(cancels.length),
+        cancels.length === 0
+          ? question
+          : `${question}\n\n${cancelsMessage(cancels, t)}`,
         {
-          label: t.admin.remove,
+          label:
+            cancels.length === 0
+              ? t.admin.remove
+              : t.admin.change.cancelAndRemove,
           destructive: true,
           onPress: () => {
             void mutate(t.admin.resource.removeChangeFailed, () =>
               unwrap(
                 api.DELETE('/admin/resources/{id}/schedule/{validFrom}', {
                   params: {path: {id, validFrom}},
+                  body: {cancels: cancels.map((booking) => booking.id)},
                 }),
               ),
             );
           },
         },
-      ),
+      );
+    },
 
-    // Closes from the first day a change may start on. The name is the one
-    // shown, in the admin's language.
-    confirmClose: (id: string, name: string, closesFrom: string) =>
+    // A closed resource goes for good, with what was booked on it. The
+    // name is the one shown, in the admin's language.
+    confirmRemove: (id: string, name: string, onRemoved: () => void) =>
       dialog.confirm(
-        t.admin.resource.close,
-        t.admin.resource.closeQuestion(name, formatLongDate(closesFrom, t)),
+        t.admin.resource.remove,
+        t.admin.resource.removeQuestion(name),
         {
-          label: t.admin.resource.closeAction,
+          label: t.admin.remove,
           destructive: true,
           onPress: () => {
-            void mutate(t.admin.resource.closeFailed, () =>
-              unwrap(
-                api.PUT('/admin/resources/{id}/closing', {
-                  params: {path: {id}},
-                  body: {closesFrom},
-                }),
-              ),
+            void mutate(
+              t.admin.resource.removeFailed,
+              () =>
+                unwrap(
+                  api.DELETE('/admin/resources/{id}', {params: {path: {id}}}),
+                ),
+              onRemoved,
             );
           },
         },

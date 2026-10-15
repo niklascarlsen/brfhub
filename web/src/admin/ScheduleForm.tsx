@@ -1,9 +1,16 @@
-import {checkSchedule, failureMessage} from '@booking/core/admin/drafts';
+import {asksReason, changeDays} from '@booking/core/admin/change';
+import {
+  checkSchedule,
+  failureMessage,
+  type ScheduleChange,
+} from '@booking/core/admin/drafts';
+import {useAdminAccount} from '@booking/core/admin/account';
+import type {Draft} from '@booking/core/admin/localized';
 import {useProblems} from '@booking/core/admin/useProblems';
 import type {SlotInput} from '@booking/core/api/types';
-import {formatLongDate} from '@booking/core/lib/dates';
 import {useState, type SubmitEvent} from 'react';
 
+import {ChangeDay} from '@/admin/ChangeDay';
 import {FormActions} from '@/admin/FormActions';
 import {SlotsEditor} from '@/admin/SlotsEditor';
 import {FieldProblem} from '@/components/FieldProblem';
@@ -11,23 +18,37 @@ import {useMessages} from '@/i18n/LocaleProvider';
 
 type ScheduleFormProps = {
   initial: SlotInput[];
-  validFrom: string;
-  onSubmit: (slots: SlotInput[]) => Promise<void>;
+  today: string;
+  freeFrom: string;
+  // Resolves false when the admin keeps the bookings the change would
+  // cancel, and the form stays.
+  onSubmit: (validFrom: string, change: ScheduleChange) => Promise<boolean>;
   onCancel: () => void;
 };
 
 export function ScheduleForm({
   initial,
-  validFrom,
+  today,
+  freeFrom,
   onSubmit,
   onCancel,
 }: ScheduleFormProps) {
   const t = useMessages();
   const [slots, setSlots] = useState(initial);
+  const {free, chosen} = changeDays('schedule', today, freeFrom);
+  const [validFrom, setValidFrom] = useState(chosen);
+  const {locales} = useAdminAccount();
+  const [reason, setReason] = useState<Draft>({});
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const checked = checkSchedule(slots, initial, t);
-  const {problem, ready} = useProblems(checked);
+  // A message is checked and sent only while the fields for it show.
+  const checked = checkSchedule(
+    {slots, reason: asksReason('schedule', validFrom, free) ? reason : {}},
+    initial,
+    locales,
+    t,
+  );
+  const {problem, leave, ready} = useProblems(checked);
   const slotsProblem = problem('slots');
 
   async function submit(event: SubmitEvent<HTMLFormElement>) {
@@ -40,7 +61,9 @@ export function ScheduleForm({
     setError(null);
 
     try {
-      await onSubmit(checked.value);
+      if (!(await onSubmit(validFrom, checked.value))) {
+        setSubmitting(false);
+      }
     } catch (caught) {
       setError(failureMessage(caught, t));
       setSubmitting(false);
@@ -53,9 +76,18 @@ export function ScheduleForm({
       onSubmit={(event) => void submit(event)}
       className='flex flex-col gap-4'
     >
-      <p className='text-sm leading-5 text-theme-ink'>
-        {t.admin.scheduleForm.note(formatLongDate(validFrom, t))}
-      </p>
+      <ChangeDay
+        kind='schedule'
+        label={t.admin.scheduleForm.from}
+        today={today}
+        freeFrom={freeFrom}
+        day={validFrom}
+        onDay={setValidFrom}
+        reason={reason}
+        onReason={setReason}
+        onReasonBlur={(language) => leave(`reason.${language}`)}
+        reasonProblem={(language) => problem(`reason.${language}`)}
+      />
       <div>
         <SlotsEditor slots={slots} onChange={setSlots} />
         {slotsProblem ? <FieldProblem message={slotsProblem} /> : null}

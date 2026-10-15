@@ -467,6 +467,10 @@ function Loaded<T>({
   return state.data ? children(state.data) : null;
 }
 
+// A group of the menu, heading its pages like a page heads its content.
+const MENU_HEADING =
+  'mb-2 ml-3 text-base font-semibold tracking-tight text-theme-ink';
+
 // The desktop's menu of the organization's pages, beside the one shown.
 function PageMenu({
   shown,
@@ -500,9 +504,9 @@ function PageMenu({
 
   return (
     <nav aria-label={t.admin.organization.pages} className='flex flex-col'>
-      <p className={`${SECTION_LABEL} ml-3`}>{t.tabs.organization}</p>
+      <h2 className={MENU_HEADING}>{t.tabs.organization}</h2>
       {ORGANIZATION_PAGES.map(link)}
-      <p className={`${SECTION_LABEL} mt-6 ml-3`}>{t.account.heading}</p>
+      <h2 className={`${MENU_HEADING} mt-7`}>{t.account.heading}</h2>
       {ACCOUNT_PAGES.map(link)}
     </nav>
   );

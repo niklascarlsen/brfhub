@@ -1,9 +1,10 @@
-import {and, eq, isNull, sql} from 'drizzle-orm';
+import {and, asc, eq, inArray, isNull, not, sql} from 'drizzle-orm';
 
 import {isUniqueViolation} from '../db/errors.js';
 import {db, type Transaction} from '../db/index.js';
 import {
   bookings,
+  members,
   resourceSlots,
   resources,
   subscriptions,
@@ -11,6 +12,7 @@ import {
 } from '../db/schema.js';
 import {appError} from '../lib/errors.js';
 import {
+  asDateText,
   asIsoText,
   currentTime,
   slotEndsAt,
@@ -26,7 +28,12 @@ import {
   getResource,
   type BookableResource,
 } from '../resource/resource.service.js';
-import {resourceOpenOn, slotInEffect} from '../resource/schedule.query.js';
+import type {CancelledBooking} from '../resourceAdmin/resourceAdmin.dto.js';
+import {
+  resourceOpenOn,
+  slotGone,
+  slotInEffect,
+} from '../resource/schedule.query.js';
 import {getBookingWindow, isWithinBookingWindow} from '../slot/slot.service.js';
 import type {Subscription} from '../subscription/subscription.dto.js';
 import type {CreatedBooking} from './booking.dto.js';
@@ -35,17 +42,17 @@ import {stillActive} from './booking.query.js';
 import {heldBookingsByKind, heldOf} from './held.js';
 
 // How a booking begins and ends: booking a slot, queueing for one another
-// apartment holds, letting one go, and an apartment letting all of its go.
-// Each decides in one transaction under the apartment's lock, judging the
-// clock after it, and tells the queue of a freed slot once that has
-// committed.
+// apartment holds, letting one go, an apartment letting all of its go, and
+// the admin cancelling the ones a change leaves without a slot. Each
+// decides in one transaction under the apartment's lock, judging the clock
+// after it, and tells whom it concerns once that has committed.
 
 const BOOKING_LOCK_NAMESPACE = 881001;
 
 // Held for the rest of the transaction by whatever changes an apartment's
 // bookings or residents, so they never interleave. Taken before anything
-// else: a booking's insert then locks the apartment's row, and a
-// transaction that took the row first would deadlock with it.
+// but the resource's lock: a booking's insert then locks the apartment's
+// row, and a transaction that took the row first would deadlock with it.
 export async function lockApartmentBookings(
   tx: Transaction,
   memberId: string,
@@ -53,6 +60,21 @@ export async function lockApartmentBookings(
   await tx.execute(
     sql`select pg_advisory_xact_lock(${BOOKING_LOCK_NAMESPACE}, hashtext(${memberId}))`,
   );
+}
+
+// Shared by whatever books or queues on the resource, and held alone by an
+// admin changing its times or closing it, so a slot is never booked while
+// it is taken away. Taken before the apartment's lock, in the order the
+// admin's change takes them too.
+async function lockResourceShared(
+  tx: Transaction,
+  resourceId: string,
+): Promise<void> {
+  await tx
+    .select({id: resources.id})
+    .from(resources)
+    .where(eq(resources.id, resourceId))
+    .for('share');
 }
 
 // The residents may have changed while the request waited for the lock:
@@ -248,6 +270,7 @@ export async function book({
 
   const {booking, told} = await db
     .transaction(async (tx) => {
+      await lockResourceShared(tx, resourceId);
       await lockApartmentBookings(tx, member.id);
       const slot = await openSlot(tx, member, resourceId, date, start);
       await assertHolder(tx, member);
@@ -375,6 +398,7 @@ export async function queue({
   const resource = await bookableResource(member, resourceId);
 
   const row = await db.transaction(async (tx) => {
+    await lockResourceShared(tx, resourceId);
     await lockApartmentBookings(tx, member.id);
     const slot = await openSlot(tx, member, resourceId, date, start);
     await assertHolder(tx, member);
@@ -484,4 +508,83 @@ export async function releaseAll(
   }
 
   return toldOf(found);
+}
+
+export type Cancelled = CancelledBooking & {memberId: string};
+
+// The bookings on the resource that a change in the caller's transaction
+// left without a slot, in the order of their day and time. One that has
+// started stays: whoever is there is done with it soon.
+export function orphanedBookings(
+  tx: Transaction,
+  resourceId: string,
+  timeZone: string,
+): Promise<Cancelled[]> {
+  return tx
+    .select({
+      id: bookings.id,
+      memberId: bookings.memberId,
+      apartment: members.label,
+      date: asDateText(bookings.date),
+      start: bookings.start,
+      end: bookings.end,
+    })
+    .from(bookings)
+    .innerJoin(members, eq(members.id, bookings.memberId))
+    .where(
+      and(
+        eq(bookings.resourceId, resourceId),
+        not(slotHasStarted(timeZone, bookings.date, bookings.start)),
+        slotGone(bookings),
+      ),
+    )
+    .orderBy(asc(bookings.date), asc(bookings.start));
+}
+
+// Cancels what a change by the admin, in the caller's transaction under
+// the resource's lock, left without a slot. The apartments' locks are taken
+// in turn and the bookings read again under them. The admin agreed to
+// cancel the ones named; any other means someone booked meanwhile, and
+// then nothing changes. A queue place on a slot that is gone goes too,
+// without a word: nobody lost a booking.
+export async function cancelOrphaned(
+  tx: Transaction,
+  resourceId: string,
+  timeZone: string,
+  agreed: string[],
+): Promise<Cancelled[]> {
+  const first = await orphanedBookings(tx, resourceId, timeZone);
+  const apartments = [...new Set(first.map((booking) => booking.memberId))];
+
+  for (const memberId of apartments.sort()) {
+    await lockApartmentBookings(tx, memberId);
+  }
+
+  const orphaned = await orphanedBookings(tx, resourceId, timeZone);
+  const allowed = new Set(agreed);
+
+  if (orphaned.some((booking) => !allowed.has(booking.id))) {
+    throw appError('CHANGE_CANCELS_BOOKINGS');
+  }
+
+  if (orphaned.length > 0) {
+    await tx.delete(bookings).where(
+      inArray(
+        bookings.id,
+        orphaned.map((booking) => booking.id),
+      ),
+    );
+  }
+
+  await tx
+    .delete(subscriptions)
+    .where(
+      and(
+        eq(subscriptions.resourceId, resourceId),
+        not(slotHasStarted(timeZone, subscriptions.date, subscriptions.start)),
+        slotGone(subscriptions),
+      ),
+    );
+
+  return orphaned;
 }

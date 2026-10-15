@@ -13,12 +13,14 @@ import type {Organization} from '../lib/user.js';
 import type {BookingRules, Resource} from './resource.dto.js';
 import {resourceOpenOn, slotInEffect} from './schedule.query.js';
 
-function resourceFields(locale: Locale) {
+function resourceFields({locale, timeZone}: Organization) {
   return {
     id: resources.id,
     name: localized(resources.name, locale),
     kind: resources.kindId,
     tags: localizedTags(resources.tags, locale),
+    closed: sql<boolean>`not ${resourceOpenOn(todaySql(timeZone))}`,
+    closingNote: localized(resources.closingNote, locale),
   };
 }
 
@@ -34,7 +36,7 @@ export function resourceRefFields(locale: Locale) {
 
 export type BookableResource = Resource & {maxActive: number};
 
-// What members see: the organization's resources that are still open.
+// The resources still open, which have slots to show.
 function bookableIn({organizationId, timeZone}: Organization) {
   return and(
     eq(resources.organizationId, organizationId),
@@ -42,17 +44,22 @@ function bookableIn({organizationId, timeZone}: Organization) {
   );
 }
 
+// What members see: every resource until the admin removes it, a closed
+// one with what the admin says about it.
 export function listResources(organization: Organization): Promise<Resource[]> {
   return db
-    .select(resourceFields(organization.locale))
+    .select(resourceFields(organization))
     .from(resources)
-    .where(bookableIn(organization))
+    .where(eq(resources.organizationId, organization.organizationId))
     .orderBy(asc(resources.sortOrder));
 }
 
-function selectBookable(locale: Locale) {
+function selectBookable(organization: Organization) {
   return db
-    .select({...resourceFields(locale), maxActive: resourceKinds.maxActive})
+    .select({
+      ...resourceFields(organization),
+      maxActive: resourceKinds.maxActive,
+    })
     .from(resources)
     .innerJoin(
       resourceKinds,
@@ -66,17 +73,20 @@ function selectBookable(locale: Locale) {
 export function listBookableResources(
   organization: Organization,
 ): Promise<BookableResource[]> {
-  return selectBookable(organization.locale)
+  return selectBookable(organization)
     .where(bookableIn(organization))
     .orderBy(asc(resources.sortOrder));
 }
 
 export async function getResource(
-  {organizationId, locale}: Organization,
+  organization: Organization,
   id: string,
 ): Promise<BookableResource | undefined> {
-  const [row] = await selectBookable(locale).where(
-    and(eq(resources.organizationId, organizationId), eq(resources.id, id)),
+  const [row] = await selectBookable(organization).where(
+    and(
+      eq(resources.organizationId, organization.organizationId),
+      eq(resources.id, id),
+    ),
   );
 
   return row;
@@ -124,9 +134,12 @@ export async function getBookingRules(
       .from(resourceKinds)
       .where(eq(resourceKinds.organizationId, organizationId)),
     db
-      .select({...resourceFields(locale), closesFrom: resources.closesFrom})
+      .select({
+        ...resourceFields(organization),
+        closesFrom: resources.closesFrom,
+      })
       .from(resources)
-      .where(bookableIn(organization))
+      .where(eq(resources.organizationId, organizationId))
       .orderBy(asc(resources.sortOrder)),
     // The version in effect today and every later one.
     db
@@ -164,7 +177,7 @@ export async function getBookingRules(
           ...kind,
           resources: bookable
             .filter((resource) => resource.kind === kindId)
-            .map(({id, name, tags, closesFrom}) => {
+            .map(({id, name, tags, closesFrom, closed, closingNote}) => {
               const own = open.filter((row) => row.resourceId === id);
 
               return {
@@ -176,6 +189,8 @@ export async function getBookingRules(
                   .map(({start, end}) => ({start, end})),
                 changes: versionsOf(own.filter((row) => !row.current)),
                 closesFrom,
+                closed,
+                closingNote,
               };
             }),
         },

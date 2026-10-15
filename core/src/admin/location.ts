@@ -30,7 +30,11 @@ export type AdminLocation =
   | {tab: 'apartments'; step: 'apartment' | 'edit' | 'new-resident'; id: string}
   | {tab: 'resources'; step: 'list' | 'new' | 'new-kind'}
   | {tab: 'resources'; step: 'kind'; id: string}
-  | {tab: 'resources'; step: 'resource' | 'edit' | 'schedule'; id: string}
+  | {
+      tab: 'resources';
+      step: 'resource' | 'edit' | 'schedule' | 'close';
+      id: string;
+    }
   | {tab: 'announcements'; step: 'list' | 'new'}
   | {tab: 'announcements'; step: 'announcement'; id: string}
   | {tab: 'organization'; step: 'overview' | OrganizationSection}
@@ -72,6 +76,7 @@ export function parentOf(location: AdminLocation): AdminLocation | null {
           return tabRoot('resources');
         case 'edit':
         case 'schedule':
+        case 'close':
           return {tab: 'resources', step: 'resource', id: location.id};
       }
       break;
@@ -125,6 +130,7 @@ export function adminPath(location: AdminLocation): string {
           return idPath(base, location.id);
         case 'edit':
         case 'schedule':
+        case 'close':
           return idPath(base, location.id, location.step);
       }
       break;
@@ -204,7 +210,10 @@ export function parseAdminPath(path: string): AdminLocation | null {
       if (second === undefined) {
         return {tab, step: 'resource', id: first};
       }
-      if ((second === 'edit' || second === 'schedule') && !third) {
+      if (
+        (second === 'edit' || second === 'schedule' || second === 'close') &&
+        !third
+      ) {
         return {tab, step: second, id: first};
       }
       return null;

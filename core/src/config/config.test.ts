@@ -23,8 +23,17 @@ const LAUNDRY: Resource = {
   name: 'Tvättstuga',
   kind: 'laundry',
   tags: [],
+  closed: false,
+  closingNote: '',
 };
-const SAUNA: Resource = {id: 'sauna', name: 'Bastu', kind: 'sauna', tags: []};
+const SAUNA: Resource = {
+  id: 'sauna',
+  name: 'Bastu',
+  kind: 'sauna',
+  tags: [],
+  closed: false,
+  closingNote: '',
+};
 
 afterEach(() => {
   vi.unstubAllGlobals();

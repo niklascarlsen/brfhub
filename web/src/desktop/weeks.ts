@@ -1,13 +1,7 @@
 import type {Messages} from '@booking/core/i18n/catalog';
-import {formatLongDate, fromIsoDate, toIsoDate} from '@booking/core/lib/dates';
+import {addDays, formatLongDate, fromIsoDate} from '@booking/core/lib/dates';
 
 const DAYS_PER_WEEK = 7;
-
-export function addDays(isoDate: string, days: number): string {
-  const date = fromIsoDate(isoDate);
-  date.setDate(date.getDate() + days);
-  return toIsoDate(date);
-}
 
 // Monday is 0.
 function weekdayIndex(isoDate: string): number {

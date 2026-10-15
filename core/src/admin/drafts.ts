@@ -335,19 +335,53 @@ export function checkResource(
   };
 }
 
-export function checkSchedule(
-  draft: SlotInput[],
-  saved: SlotInput[],
+// New times, with the message to the apartments whose bookings they
+// cancel, written in every language or in none.
+export type ScheduleChange = {slots: SlotInput[]; reason: Draft};
+
+function reasonProblems(
+  draft: Draft,
+  locales: readonly Locale[],
   t: Messages,
-): Checked<SlotInput[], 'slots'> {
-  const problem = slotsProblem(draft, t);
+): Problems<PerLocale<'reason'>> {
+  return localizedProblems(
+    'reason',
+    draft,
+    locales,
+    (text) => textProblem(text, limits.ClosingBody.reason, t),
+    t.admin.localized.reasonInEvery,
+  );
+}
+
+export function checkSchedule(
+  draft: ScheduleChange,
+  saved: SlotInput[],
+  locales: readonly Locale[],
+  t: Messages,
+): Checked<ScheduleChange, 'slots' | PerLocale<'reason'>> {
+  const problem = slotsProblem(draft.slots, t);
 
   return {
-    value: draft,
-    changed: !isSame(draft, saved),
+    value: {slots: draft.slots, reason: trimmedText(draft.reason, locales)},
+    changed: !isSame(draft.slots, saved),
     problems: {
       slots: problem === null ? undefined : {message: problem, missing: true},
+      ...reasonProblems(draft.reason, locales, t),
     },
+  };
+}
+
+// A closing has nothing saved to compare with: it can always be sent. Its
+// message stays with the closed resource for everyone to read.
+export function checkClosing(
+  draft: {reason: Draft},
+  locales: readonly Locale[],
+  t: Messages,
+): Checked<{reason: Draft}, PerLocale<'reason'>> {
+  return {
+    value: {reason: trimmedText(draft.reason, locales)},
+    changed: true,
+    problems: reasonProblems(draft.reason, locales, t),
   };
 }
 

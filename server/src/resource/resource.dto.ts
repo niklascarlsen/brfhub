@@ -7,6 +7,11 @@ export const resourceSchema = z.object({
   name: z.string(),
   kind: resourceKindSchema,
   tags: z.array(z.string()),
+  // Closed today: still shown, with nothing to book, until the admin
+  // removes it.
+  closed: z.boolean(),
+  // What the admin says about a closing, empty when there is none.
+  closingNote: z.string(),
 });
 
 export const resourceRefSchema = z.object({
@@ -36,6 +41,8 @@ export const bookingRulesSchema = z.object({
             .object({validFrom: z.iso.date(), slots: ruleSlotSchema.array()})
             .array(),
           closesFrom: z.iso.date().nullable(),
+          closed: z.boolean(),
+          closingNote: z.string(),
         })
         .array(),
     })
