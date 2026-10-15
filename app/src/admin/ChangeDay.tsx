@@ -14,7 +14,7 @@ import {
   toIsoDate,
 } from '@booking/core/lib/dates';
 import {useState} from 'react';
-import {Platform, Pressable, Text, View} from 'react-native';
+import {Modal, Platform, Pressable, Text, View} from 'react-native';
 
 import {Icon} from '@/components/Icon';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
@@ -38,8 +38,8 @@ type ChangeDayProps = {
 // bookings already made. A day before the first free one can cancel some,
 // and new times then ask why, for the apartments told; a closing always
 // does, since the closed resource shows it to everyone. Written in each of
-// the organization's languages. The day opens the platform's own calendar:
-// below the field on iOS, as a dialog on Android.
+// the organization's languages. The day opens the platform's own calendar
+// in a dialog: ours around it on iOS, the system's on Android.
 export function ChangeDay({
   kind,
   label,
@@ -95,18 +95,44 @@ export function ChangeDay({
         </Pressable>
         {open ? (
           Platform.OS === 'ios' ? (
-            <View className='mt-2 overflow-hidden rounded-2xl border border-theme-line bg-theme-surface p-2'>
-              <DateTimePicker
-                value={fromIsoDate(day)}
-                mode='date'
-                display='inline'
-                minimumDate={fromIsoDate(first)}
-                onValueChange={(_event, date) => choose(date)}
-                accentColor={theme.ink}
-                locale={t.dates.locale.replace('-', '_')}
-                themeVariant='light'
-              />
-            </View>
+            <Modal
+              visible
+              transparent
+              animationType='fade'
+              statusBarTranslucent
+              onRequestClose={() => setOpen(false)}
+            >
+              <Pressable
+                className='flex-1 items-center justify-center bg-theme-ink/30 px-5'
+                onPress={() => setOpen(false)}
+                accessible={false}
+              >
+                <Pressable
+                  className='w-full max-w-[360px] rounded-2xl border border-theme-line bg-theme-surface p-3'
+                  accessibilityViewIsModal
+                >
+                  <DateTimePicker
+                    value={fromIsoDate(day)}
+                    mode='date'
+                    display='inline'
+                    minimumDate={fromIsoDate(first)}
+                    onValueChange={(_event, date) => choose(date)}
+                    accentColor={theme.ink}
+                    locale={t.dates.locale.replace('-', '_')}
+                    themeVariant='light'
+                  />
+                  <Pressable
+                    accessibilityRole='button'
+                    onPress={() => setOpen(false)}
+                    className='mt-2 h-11 items-center justify-center rounded-full border border-theme-edge bg-theme-surface active:opacity-70'
+                  >
+                    <Text className='text-sm font-semibold tracking-tight text-theme-ink'>
+                      {t.common.cancel}
+                    </Text>
+                  </Pressable>
+                </Pressable>
+              </Pressable>
+            </Modal>
           ) : (
             <DateTimePicker
               value={fromIsoDate(day)}
