@@ -14,3 +14,8 @@ export const SECTION_LABEL =
 
 export const CARD =
   'rounded-2xl border border-theme-line bg-theme-surface px-4.5 py-4';
+
+// A card of rows divided by lines. It clips the rows to its corners, so
+// `list-card` in index.css draws a row's focus ring inside the row.
+export const LIST =
+  'list-card flex flex-col divide-y divide-theme-line overflow-hidden rounded-2xl border border-theme-line bg-theme-surface';

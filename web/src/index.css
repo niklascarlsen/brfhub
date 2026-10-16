@@ -68,6 +68,13 @@
     outline-offset: 0px;
   }
 
+  /* A card of rows clips them to its corners, so a row's ring is drawn
+     inside it, rounded as the card is inside its border. */
+  [data-input='keyboard'] .list-card :focus-visible {
+    outline-offset: -3px;
+    border-radius: calc(var(--radius-2xl) - 1px);
+  }
+
   [data-input='keyboard'] button[type='submit']:focus-visible,
   [data-input='keyboard'] dialog button:last-child:focus-visible {
     outline-offset: 2px;

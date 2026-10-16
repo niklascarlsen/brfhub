@@ -117,7 +117,8 @@ export function FloatingLabelInput({
           accessible={false}
           pointerEvents='none'
           // A long label is cut short rather than wrapped onto a second
-          // line, where it would run into what is typed.
+          // line, where it would run into what is typed. Each line is tall
+          // enough for the descenders of a g or a p, which Android clips.
           numberOfLines={1}
           style={{
             position: 'absolute',
@@ -126,7 +127,7 @@ export function FloatingLabelInput({
             fontFamily: 'Merriweather_500Medium',
             top: progress.interpolate({
               inputRange: [0, 1],
-              outputRange: [17, 7],
+              outputRange: [15.5, 4.5],
             }),
             fontSize: progress.interpolate({
               inputRange: [0, 1],
@@ -134,7 +135,7 @@ export function FloatingLabelInput({
             }),
             lineHeight: progress.interpolate({
               inputRange: [0, 1],
-              outputRange: [17, 13],
+              outputRange: [20, 18],
             }),
             color: progress.interpolate({
               inputRange: [0, 1],

@@ -3,7 +3,7 @@ import {formatLongDate} from '@booking/core/lib/dates';
 import {useState} from 'react';
 
 import {ActionRow, DetailRow} from '@/admin/Rows';
-import {CARD, SECONDARY_BUTTON, SECTION_LABEL} from '@/admin/styles';
+import {CARD, LIST, SECONDARY_BUTTON, SECTION_LABEL} from '@/admin/styles';
 import {useAdminActions} from '@/hooks/useAdminActions';
 import {useMessages} from '@/i18n/LocaleProvider';
 
@@ -54,7 +54,7 @@ export function ApartmentDetail({
       </section>
       <section>
         <h2 className={SECTION_LABEL}>{t.admin.actions}</h2>
-        <div className='flex flex-col divide-y divide-theme-line overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
+        <div className={LIST}>
           <ActionRow
             label={t.admin.editDetails}
             description={t.admin.apartment.editDetailsHint}

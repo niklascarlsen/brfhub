@@ -14,7 +14,7 @@ import {useAdminLocation} from '@/admin/location';
 import {ResourceDetail} from '@/admin/ResourceDetail';
 import {ResourceForm} from '@/admin/ResourceForm';
 import {ScheduleForm} from '@/admin/ScheduleForm';
-import {PRIMARY_BUTTON, SECONDARY_BUTTON} from '@/admin/styles';
+import {LIST, PRIMARY_BUTTON, SECONDARY_BUTTON} from '@/admin/styles';
 import {AddIcon, ChevronForwardIcon} from '@/components/icons';
 import {Notice} from '@/components/Notice';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
@@ -344,7 +344,7 @@ export function AdminResources() {
                   {t.admin.resources.noneOfKind}
                 </p>
               ) : (
-                <div className='flex flex-col divide-y divide-theme-line overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
+                <div className={LIST}>
                   {own.map((resource) => (
                     <ResourceRow
                       key={resource.id}

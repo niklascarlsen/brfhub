@@ -8,7 +8,7 @@ import {ApartmentDetail} from '@/admin/ApartmentDetail';
 import {ApartmentForm} from '@/admin/ApartmentForm';
 import {Gone} from '@/admin/Gone';
 import {useAdminLocation} from '@/admin/location';
-import {PRIMARY_BUTTON} from '@/admin/styles';
+import {LIST, PRIMARY_BUTTON} from '@/admin/styles';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {AddIcon, ChevronForwardIcon} from '@/components/icons';
 import {Notice} from '@/components/Notice';
@@ -196,7 +196,7 @@ export function AdminApartments() {
               {t.admin.apartments.noMatch}
             </p>
           ) : (
-            <div className='flex flex-col divide-y divide-theme-line overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
+            <div className={LIST}>
               {shown.map((apartment) => (
                 <ApartmentRow
                   key={apartment.id}

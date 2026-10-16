@@ -10,7 +10,7 @@ import {
 import type {AdminEvent} from '@booking/core/api/types';
 import {useId, useState} from 'react';
 
-import {SECTION_LABEL} from '@/admin/styles';
+import {LIST, SECTION_LABEL} from '@/admin/styles';
 import {useMessages} from '@/i18n/LocaleProvider';
 
 function AreaChip({
@@ -89,7 +89,7 @@ export function History({events}: {events: AdminEvent[]}) {
         days.map((day) => (
           <section key={day.day} aria-label={day.heading}>
             <h3 className={SECTION_LABEL}>{day.heading}</h3>
-            <ul className='flex flex-col divide-y divide-theme-line overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
+            <ul className={LIST}>
               {day.events.map((event) => (
                 <li
                   key={event.id}

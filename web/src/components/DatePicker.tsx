@@ -53,7 +53,8 @@ export function DatePicker({
       {...drag}
       className='w-full shrink-0 scroll-px-5 fade-x overflow-x-auto select-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
     >
-      <div className='flex items-stretch gap-1 px-5 py-2.5'>
+      {/* As wide as the days, so the scroller reaches its right gutter too. */}
+      <div className='flex w-max items-stretch gap-1 px-5 py-2.5'>
         {months.map((month, monthIndex) => (
           <Fragment key={month.key}>
             {monthIndex > 0 ? (

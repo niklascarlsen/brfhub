@@ -11,7 +11,7 @@ import {AdminPage} from '@/admin/AdminPage';
 import {AnnouncementForm} from '@/admin/AnnouncementForm';
 import {Gone} from '@/admin/Gone';
 import {useAdminLocation} from '@/admin/location';
-import {PRIMARY_BUTTON, SECTION_LABEL} from '@/admin/styles';
+import {LIST, PRIMARY_BUTTON, SECTION_LABEL} from '@/admin/styles';
 import {AddIcon, ChevronForwardIcon} from '@/components/icons';
 import {Notice} from '@/components/Notice';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
@@ -151,7 +151,7 @@ export function AdminAnnouncements() {
             return (
               <section key={status}>
                 <h2 className={SECTION_LABEL}>{label(t)}</h2>
-                <div className='flex flex-col divide-y divide-theme-line overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
+                <div className={LIST}>
                   {listed.map((announcement) => {
                     const missing =
                       missingLanguages(announcement.title, locales, t) ??

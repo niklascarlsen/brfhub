@@ -36,7 +36,7 @@ import {Gone} from '@/admin/Gone';
 import {History} from '@/admin/History';
 import {useAdminLocation} from '@/admin/location';
 import {ActionRow, Badge} from '@/admin/Rows';
-import {SECTION_LABEL} from '@/admin/styles';
+import {LIST, SECTION_LABEL} from '@/admin/styles';
 import {useConfirmLeave} from '@/admin/unsaved';
 import {authClient} from '@/auth/client';
 import {signOut} from '@/auth/signOut';
@@ -522,7 +522,7 @@ function Overview({
     <>
       <section className='mb-6.5'>
         <h2 className={SECTION_LABEL}>{t.tabs.organization}</h2>
-        <div className='flex flex-col divide-y divide-theme-line overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
+        <div className={LIST}>
           {ORGANIZATION_PAGES.map((page) => (
             <ActionRow
               key={page}
@@ -619,7 +619,7 @@ export function AdminOrganization() {
       }
     >
       {isDesktop ? null : (
-        <div className='mt-2.5 overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
+        <div className={`mt-2.5 ${LIST}`}>
           <ActionRow
             label={t.admin.organization.changePassword}
             onPress={() => open('password')}

@@ -8,6 +8,7 @@ import {FormActions} from '@/admin/FormActions';
 import {ActionRow, Badge, DetailRow} from '@/admin/Rows';
 import {
   CARD,
+  LIST,
   PRIMARY_BUTTON,
   SECONDARY_BUTTON,
   SECTION_LABEL,
@@ -169,7 +170,7 @@ export function Admins({admins, onOpen, onChanged}: AdminsProps) {
 
   return (
     <div className='flex flex-col gap-4'>
-      <ul className='flex flex-col divide-y divide-theme-line overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
+      <ul className={LIST}>
         {admins.map((admin) => (
           <AdminRow key={admin.id} admin={admin} onOpen={() => onOpen(admin)} />
         ))}
@@ -245,7 +246,7 @@ export function AdminDetail({admin, onChanged, onRemoved}: AdminDetailProps) {
       {admin.twoFactorEnabled ? (
         <section>
           <h2 className={SECTION_LABEL}>{t.admin.actions}</h2>
-          <div className='flex flex-col overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
+          <div className={LIST}>
             <ActionRow
               label={t.admin.admins.resetTwoFactor}
               description={t.admin.admins.resetHint}

@@ -6,7 +6,7 @@ import {formatDayMonth} from '@booking/core/lib/dates';
 import {useState} from 'react';
 
 import {ActionRow} from '@/admin/Rows';
-import {CARD, SECONDARY_BUTTON, SECTION_LABEL} from '@/admin/styles';
+import {CARD, LIST, SECONDARY_BUTTON, SECTION_LABEL} from '@/admin/styles';
 import {useAdminActions} from '@/hooks/useAdminActions';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
 
@@ -138,7 +138,7 @@ export function ResourceDetail({
       </section>
       <section>
         <h2 className={SECTION_LABEL}>{t.admin.actions}</h2>
-        <div className='flex flex-col divide-y divide-theme-line overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
+        <div className={LIST}>
           <ActionRow
             label={t.admin.resource.editTimes}
             description={t.admin.resource.editTimesHint(
