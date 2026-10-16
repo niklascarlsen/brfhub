@@ -20,10 +20,6 @@ type MonthCalendarProps = {
   summaries: Map<string, DaySummary> | null;
 };
 
-function freeLabel(summary: DaySummary, t: Messages): string {
-  return summary.free === 0 ? t.calendar.full : String(summary.free);
-}
-
 function ariaLabel(
   isoDate: string,
   summary: DaySummary | undefined,
@@ -111,7 +107,7 @@ export function MonthCalendar({
                     key={isoDate}
                     role='gridcell'
                     aria-disabled='true'
-                    className='flex h-14.5 items-center justify-center text-sm text-theme-edge tabular-nums'
+                    className='flex h-11 items-center justify-center text-sm text-theme-edge tabular-nums'
                   >
                     {day}
                   </span>
@@ -126,22 +122,24 @@ export function MonthCalendar({
               const isSelected = isoDate === selected;
               const isToday = isoDate === bookingWindow.today;
 
-              let surface =
-                'border-theme-line bg-theme-surface text-theme-ink hover:border-theme-edge';
-              if (isSelected) {
-                surface = 'border-theme-ink bg-theme-ink text-theme-surface';
-              } else if (summary?.mine) {
-                surface = `border-theme-accent ${isToday ? 'bg-theme-mist' : 'bg-theme-surface'} text-theme-ink`;
+              // The day alone, centred: what it holds is told by its colour
+              // and border. Your time is an accent border and number, kept
+              // as a ring when the day is selected; a full day is greyed.
+              const isFull = summary?.free === 0;
+              let fill = 'bg-theme-surface';
+              if (isFull) {
+                fill = 'bg-theme-track';
               } else if (isToday) {
-                surface =
-                  'border-theme-line bg-theme-mist text-theme-ink hover:border-theme-edge';
+                fill = 'bg-theme-mist';
               }
 
-              let subTone = 'text-theme-accent';
+              let surface = `border-theme-line ${fill} text-theme-ink hover:border-theme-edge`;
               if (isSelected) {
-                subTone = 'text-theme-edge';
-              } else if (summary?.free === 0) {
-                subTone = 'text-theme-faint';
+                surface = `border-theme-ink bg-theme-ink text-theme-surface ${summary?.mine ? 'ring-2 ring-theme-accent ring-offset-2 ring-offset-theme-surface' : ''}`;
+              } else if (summary?.mine) {
+                surface = `border-2 border-theme-accent ${fill} text-theme-accent`;
+              } else if (isFull) {
+                surface = `border-theme-track ${fill} text-theme-faint hover:border-theme-edge`;
               }
 
               return (
@@ -152,16 +150,9 @@ export function MonthCalendar({
                     aria-pressed={isSelected}
                     aria-label={ariaLabel(isoDate, summary, t)}
                     onClick={() => onSelect(isoDate)}
-                    className={`flex h-14.5 w-full flex-col items-center justify-center gap-0.5 rounded-xl border transition-colors ${surface}`}
+                    className={`flex h-11 w-full items-center justify-center rounded-xl border text-sm font-semibold tabular-nums transition-colors ${surface}`}
                   >
-                    <span className='text-sm font-semibold tabular-nums'>
-                      {day}
-                    </span>
-                    <span
-                      className={`h-3.5 text-[11px] font-semibold leading-3.5 tabular-nums ${subTone}`}
-                    >
-                      {summary ? freeLabel(summary, t) : ''}
-                    </span>
+                    {day}
                   </button>
                 </div>
               );
@@ -169,7 +160,19 @@ export function MonthCalendar({
           </div>
         ))}
       </div>
-      <p className='mt-3 text-xs text-theme-muted'>{t.calendar.legend}</p>
+      <div className='mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-theme-muted'>
+        <span className='flex items-center gap-1.5'>
+          <span
+            aria-hidden
+            className='size-3.5 rounded-sm border-2 border-theme-accent'
+          />
+          {t.calendar.legendMine}
+        </span>
+        <span className='flex items-center gap-1.5'>
+          <span aria-hidden className='size-3.5 rounded-sm bg-theme-track' />
+          {t.calendar.legendFull}
+        </span>
+      </div>
     </section>
   );
 }

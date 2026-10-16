@@ -225,10 +225,10 @@ export const sv = {
   },
   calendar: {
     chooseDay: 'Välj dag',
-    full: 'fullt',
     noFreeSlots: 'inga lediga pass',
     yourTime: 'din tid',
-    legend: 'Siffran är lediga pass i alla utrymmen.',
+    legendMine: 'Din tid',
+    legendFull: 'Fullbokat',
   },
   slots: {
     mine: 'Din tid',
@@ -239,8 +239,9 @@ export const sv = {
     taken: 'Upptagen',
   },
   rules: {
-    heading: 'Regler',
-    bookableDaysAhead: (days: number) => `Bokningsbart ${days} dagar framåt`,
+    heading: 'Husregler',
+    timesHeading: 'Bokningsbara tider',
+    bookableDaysAhead: (days: number) => `${days} dagar framåt`,
     // "A, B och C": the names before the last one come already joined.
     joinList: (first: string, last: string) => `${first} och ${last}`,
     oneBooking: 'En bokning åt gången',
@@ -255,6 +256,9 @@ export const sv = {
   announcements: {
     heading: 'Anslag',
     hide: 'Dölj',
+    // The day it went up, and where it is among those not hidden yet.
+    withPosition: (day: string, index: number, count: number) =>
+      `${day} · ${index} av ${count}`,
   },
   push: {
     // What Android lists in the app's notification settings.

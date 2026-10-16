@@ -212,10 +212,10 @@ export const en: Messages = {
   },
   calendar: {
     chooseDay: 'Choose a day',
-    full: 'full',
     noFreeSlots: 'no free slots',
     yourTime: 'your time',
-    legend: 'The number shows free slots across all spaces.',
+    legendMine: 'Your time',
+    legendFull: 'Fully booked',
   },
   slots: {
     mine: 'Your time',
@@ -226,8 +226,9 @@ export const en: Messages = {
     taken: 'Taken',
   },
   rules: {
-    heading: 'Rules',
-    bookableDaysAhead: (days: number) => `Bookable ${days} days ahead`,
+    heading: 'House rules',
+    timesHeading: 'Bookable times',
+    bookableDaysAhead: (days: number) => `${days} days ahead`,
     joinList: (first: string, last: string) => `${first} and ${last}`,
     oneBooking: 'One booking at a time',
     oneBookingShared: 'One booking at a time across all of them',
@@ -240,6 +241,8 @@ export const en: Messages = {
   announcements: {
     heading: 'Notices',
     hide: 'Hide',
+    withPosition: (day: string, index: number, count: number) =>
+      `${day} · ${index} of ${count}`,
   },
   push: {
     channel: 'Available times',

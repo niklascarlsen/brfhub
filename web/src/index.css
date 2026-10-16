@@ -6,6 +6,18 @@
   --animate-skeleton-pulse: skeleton-pulse 1400ms ease-in-out infinite;
 }
 
+/* Fades a horizontally scrolling row over its 20px side gutter: at either
+   end only the empty gutter fades, and once scrolled, what slides under. */
+@utility fade-x {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 20px,
+    black calc(100% - 20px),
+    transparent
+  );
+}
+
 @keyframes skeleton-pulse {
   0%,
   100% {

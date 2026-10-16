@@ -10,5 +10,10 @@
   "ink": "#14130F",
   "accent": "#4E6553",
   "mist": "#ECF0EA",
-  "danger": "#A8452F"
+  "danger": "#A8452F",
+  "notice": "#F4F6F6",
+  "notice-line": "#DDE3E4",
+  "notice-ink": "#55666B",
+  "notice-under": "#EFF2F2",
+  "notice-back": "#EAEEEF"
 }

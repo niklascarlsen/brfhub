@@ -12,7 +12,9 @@ import {
   fromIsoDate,
   getWeekdayLabel,
   groupDaysByMonth,
+  isOvernight,
   isWithinBookingWindow,
+  shortTimeRange,
   timeRange,
   toIsoDate,
   unbrokenRange,
@@ -218,6 +220,18 @@ describe('labels', () => {
     const range = unbrokenRange(SLOT.start, SLOT.end);
     expect(range).toBe('07:00\u2060–\u206010:00');
     expect(range.replace(/\u2060/g, '')).toBe(timeRange(SLOT.start, SLOT.end));
+  });
+
+  test('a short range drops the minutes only when both ends are whole hours', () => {
+    expect(shortTimeRange('07:00', '10:00')).toBe('07–10');
+    expect(shortTimeRange('07:30', '10:00')).toBe('07:30–10:00');
+    expect(shortTimeRange('07:00', '10:45')).toBe('07:00–10:45');
+  });
+
+  test('a slot is overnight when it ends at or before its start', () => {
+    expect(isOvernight('20:00', '08:00')).toBe(true);
+    expect(isOvernight('20:00', '00:00')).toBe(true);
+    expect(isOvernight('07:00', '10:00')).toBe(false);
   });
 
   // These two delegate to toLocaleDateString, so they assert Node's ICU. The

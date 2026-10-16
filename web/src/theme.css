@@ -12,4 +12,9 @@
   --color-theme-accent: #4E6553;
   --color-theme-mist: #ECF0EA;
   --color-theme-danger: #A8452F;
+  --color-theme-notice: #F4F6F6;
+  --color-theme-notice-line: #DDE3E4;
+  --color-theme-notice-ink: #55666B;
+  --color-theme-notice-under: #EFF2F2;
+  --color-theme-notice-back: #EAEEEF;
 }

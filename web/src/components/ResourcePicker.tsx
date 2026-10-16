@@ -1,6 +1,7 @@
 import type {Resource} from '@booking/core/api/types';
 
 import {Tag} from '@/components/Tag';
+import {useDragScroll} from '@/hooks/useDragScroll';
 import {useRevealSelected} from '@/hooks/useRevealSelected';
 import {useRovingList} from '@/hooks/useRovingList';
 import {useMessages} from '@/i18n/LocaleProvider';
@@ -22,6 +23,7 @@ export function ResourcePicker({
 }: ResourcePickerProps) {
   const t = useMessages();
   const scroller = useRevealSelected(selectedId);
+  const drag = useDragScroll();
   const selected = resources.find((resource) => resource.id === selectedId);
   const anyTagged =
     showTags && resources.some((resource) => resource.tags.length > 0);
@@ -44,7 +46,8 @@ export function ResourcePicker({
         aria-label={t.booking.chooseResource}
         aria-orientation={roving.orientation}
         onKeyDown={roving.onKeyDown}
-        className='flex scroll-px-5 gap-2 overflow-x-auto px-5 py-1 [scrollbar-width:none] lg:flex-wrap lg:overflow-visible lg:px-0 [&::-webkit-scrollbar]:hidden'
+        {...drag}
+        className='flex scroll-px-5 gap-2 overflow-x-auto px-5 py-1 select-none [scrollbar-width:none] max-lg:fade-x lg:flex-wrap lg:overflow-visible lg:px-0 [&::-webkit-scrollbar]:hidden'
       >
         {resources.map((resource, index) => {
           const isSelected = resource.id === selectedId;

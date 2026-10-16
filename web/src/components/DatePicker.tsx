@@ -5,6 +5,7 @@ import {
 } from '@booking/core/lib/dates';
 import {Fragment, useMemo} from 'react';
 
+import {useDragScroll} from '@/hooks/useDragScroll';
 import {useRevealSelected} from '@/hooks/useRevealSelected';
 import {useRovingList} from '@/hooks/useRovingList';
 import {useMessages} from '@/i18n/LocaleProvider';
@@ -28,6 +29,7 @@ export function DatePicker({
   const t = useMessages();
   const months = groupDaysByMonth(days, todayIso, t);
   const scroller = useRevealSelected(selectedIso);
+  const drag = useDragScroll();
 
   const positions = useMemo(
     () => new Map(days.map((day, index) => [toIsoDate(day), index])),
@@ -48,7 +50,8 @@ export function DatePicker({
       aria-label={t.calendar.chooseDay}
       aria-orientation={roving.orientation}
       onKeyDown={roving.onKeyDown}
-      className='w-full shrink-0 scroll-px-5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+      {...drag}
+      className='w-full shrink-0 scroll-px-5 fade-x overflow-x-auto select-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
     >
       <div className='flex items-stretch gap-1 px-5 py-2.5'>
         {months.map((month, monthIndex) => (

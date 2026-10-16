@@ -55,7 +55,10 @@ export function DesktopApartment({
           </Account>
           <AnnouncementList />
         </div>
-        <BookingRules listClassName='grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3' />
+        <BookingRules
+          listClassName='grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3'
+          houseRulesClassName='max-w-xl'
+        />
       </div>
     </>
   );

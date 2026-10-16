@@ -118,6 +118,21 @@ export function unbrokenRange(start: string, end: string): string {
   return timeRange(start, end).replace('–', '\u2060–\u2060');
 }
 
+// A slot as short as it reads unambiguously: whole hours drop their
+// minutes, so 07:00–10:00 is 07–10, while 07:30–10:00 stays as it is.
+export function shortTimeRange(start: string, end: string): string {
+  const wholeHours = start.endsWith(':00') && end.endsWith(':00');
+
+  return wholeHours
+    ? timeRange(start.slice(0, -3), end.slice(0, -3))
+    : timeRange(start, end);
+}
+
+// A slot that ends the next day, such as 20:00–08:00.
+export function isOvernight(start: string, end: string): boolean {
+  return end <= start;
+}
+
 export function formatWhen(date: string, time: string, t: Messages): string {
   return `${formatLongDate(date, t)}, ${time}`;
 }

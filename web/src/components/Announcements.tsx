@@ -3,6 +3,7 @@ import {formatDayMonth} from '@booking/core/lib/dates';
 import {useEffect, useState} from 'react';
 
 import {api, unwrap} from '@/api/client';
+import {MegaphoneOutlineIcon} from '@/components/icons';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useMessages} from '@/i18n/LocaleProvider';
 import {readDismissed, saveDismissed} from '@/lib/dismissed';
@@ -24,8 +25,34 @@ function keyOf(announcement: Announcement): string {
   return `${announcement.id}:${announcement.updatedAt}`;
 }
 
-// How far each announcement waiting behind the shown one peeks out.
-const PEEK = {down: 6, inset: 10};
+// How far each announcement waiting behind the shown one peeks out, and
+// its solid tone, a step darker the further back it is.
+const PEEK = {down: 8, inset: 14};
+const PEEK_TONE: Record<number, string> = {
+  1: 'bg-theme-notice-under',
+  2: 'bg-theme-notice-back',
+};
+
+// The megaphone and the day it went up, which sets a notice apart from the
+// rules around it. With more than one waiting, the banner also tells that
+// more are behind.
+function NoticeDate({
+  publishedOn,
+  waiting = 1,
+}: {
+  publishedOn: string;
+  waiting?: number;
+}) {
+  const t = useMessages();
+  const day = formatDayMonth(publishedOn, t);
+
+  return (
+    <span className='flex items-center gap-1.5 text-xs font-semibold text-theme-notice-ink tabular-nums'>
+      <MegaphoneOutlineIcon size={14} />
+      {waiting > 1 ? t.announcements.withPosition(day, 1, waiting) : day}
+    </span>
+  );
+}
 
 // The newest announcement the apartment has not hidden on this device,
 // with up to two edges below it when more are waiting.
@@ -69,21 +96,24 @@ export function AnnouncementBanner({className}: {className?: string}) {
             <div
               key={depth}
               aria-hidden
-              className='absolute rounded-2xl border border-theme-line bg-theme-mist'
+              className={`absolute rounded-2xl border border-theme-notice-line ${PEEK_TONE[depth]}`}
               style={{
                 top: depth * PEEK.down,
                 bottom: (behind - depth) * PEEK.down,
                 left: depth * PEEK.inset,
                 right: depth * PEEK.inset,
-                opacity: 1 - depth * 0.3,
               }}
             />
           ))}
         <section
           aria-label={t.announcements.heading}
-          className='relative flex items-start gap-3 rounded-2xl border border-theme-line bg-theme-mist px-4.5 py-3.5'
+          className='relative flex items-start gap-3 rounded-2xl border border-theme-notice-line bg-theme-notice px-4.5 py-3.5'
         >
           <div className='flex min-w-0 flex-1 flex-col gap-1'>
+            <NoticeDate
+              publishedOn={shown.publishedOn}
+              waiting={waiting.length}
+            />
             <h2 className='text-[15px] font-semibold tracking-tight wrap-break-word text-theme-ink'>
               {shown.title}
             </h2>
@@ -126,11 +156,9 @@ export function AnnouncementList() {
         {announcements.map((announcement) => (
           <article
             key={announcement.id}
-            className='flex flex-col gap-1 rounded-2xl border border-theme-line bg-theme-surface px-4.5 py-4'
+            className='flex flex-col gap-1 rounded-2xl border border-theme-notice-line bg-theme-notice px-4.5 py-4'
           >
-            <span className='text-xs text-theme-muted'>
-              {formatDayMonth(announcement.publishedOn, t)}
-            </span>
+            <NoticeDate publishedOn={announcement.publishedOn} />
             <h3 className='text-[15px] font-semibold tracking-tight wrap-break-word text-theme-ink'>
               {announcement.title}
             </h3>
