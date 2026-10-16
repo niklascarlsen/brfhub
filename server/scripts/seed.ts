@@ -75,7 +75,8 @@ const KINDS = [
     organizationId: ORGANIZATION_ID,
     id: 'hobby',
     name: {sv: 'Hobby', en: 'Hobby'},
-    maxActive: 1,
+    // Two at a time, so a third asks which of the two to swap.
+    maxActive: 2,
   },
 ];
 
@@ -244,6 +245,8 @@ const SEEDED_BOOKINGS = [
   },
   {days: 2, start: '19:00', label: '31', resourceId: 'laundry-2'},
   {days: 1, start: '20:00', label: '23', resourceId: 'drying-room'},
+  {days: 1, start: '10:00', label: CURRENT_APARTMENT, resourceId: 'workshop'},
+  {days: 2, start: '15:00', label: CURRENT_APARTMENT, resourceId: 'workshop'},
 ];
 
 const SEEDED_SUBSCRIPTIONS = [

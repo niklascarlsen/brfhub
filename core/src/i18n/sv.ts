@@ -31,6 +31,8 @@ export const sv = {
     // "Avbryt" would read as the action itself.
     keep: 'Behåll',
     ok: 'OK',
+    // Read by a screen reader as a dialog opens, after what it asks.
+    dialogOptions: (labels: string[]) => `Alternativ: ${labels.join(', ')}`,
     email: 'E-post',
     loading: 'Laddar',
     showPassword: 'Visa lösenord',
@@ -189,11 +191,13 @@ export const sv = {
         ? 'Du har redan en bokning'
         : `Du har redan ${count} bokningar`,
     swap: 'Byt',
-    swapQuestion: (from: string, to: string) =>
-      `Vill du byta ${from} mot ${to}?`,
+    swapQuestion: 'Vill du byta din bokning mot den nya tiden?',
+    swapFrom: 'Din bokning',
+    swapTo: 'Ny tid',
+    swapChoices: 'Dina bokningar',
     chooseSwapTitle: 'Byt ut vilken?',
-    chooseSwapQuestion: (to: string) =>
-      `Vilken av dina bokningar vill du byta mot ${to}?`,
+    chooseSwapQuestion:
+      'Vilken av dina bokningar vill du byta mot den nya tiden?',
     queueTitle: 'Ställ dig i kö',
     queueMe: 'Ställ mig i kö',
     queueQuestion: (when: string) =>

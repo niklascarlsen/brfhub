@@ -77,7 +77,7 @@ Agents may start, restart and stop the `server/` and `web/` dev servers. One may
 - Match the app's result, not its layout mechanism. Anything sized from the viewport in React Native is wrong on web, where one breakpoint spans phone to laptop.
 - Keep the clients symmetric. No hook or helper file in one client unless the other gets the same shape. Short logic stays inline in the component.
 - Data loading is hand-rolled, in `core/src/load/`; a screen loads through its client's `useFocusLoad`. Never add TanStack Query, SWR or another server-state library.
-- Ask and tell through `useDialog`. In the app `Alert.alert` appears only in `src/components/Dialog.tsx`, so the button conventions live in one place.
+- Ask and tell through `useDialog`, never `Alert.alert` or `window.confirm`. Both clients draw every dialog themselves in `src/components/Dialog.tsx`, the app's with a queue and the screen-reader handling an alert would give for free, so the look and the button conventions live in one place.
 - Layout that depends on the mobile viewport (`dvh`/`vh`, fixed bottom bars, safe areas) cannot be verified in desktop Chrome, nor by a script that fakes a width, since the toolbar never collapses there. Prefer designs without viewport units; otherwise report it as unverified and needing a real phone, and do not call it verified.
 - If web push shows as Chrome instead of Boka on macOS, that is Chrome's `AppShimNotificationAttribution` feature flag, not our code. Do not touch `push-sw.js` or the manifest for it.
 

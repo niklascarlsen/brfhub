@@ -5,7 +5,12 @@ import {errorMessage, type ClientErrorCode} from '../api/errors';
 import type {Held, HeldBooking, Resource, Slot} from '../api/types';
 import {sv} from '../i18n/sv';
 import {formatWhen, unbrokenRange} from '../lib/dates';
-import type {Dialog, DialogAction, DialogChoice} from '../lib/dialog';
+import type {
+  Dialog,
+  DialogAction,
+  DialogChoice,
+  DialogTime,
+} from '../lib/dialog';
 import {bookingActions} from './bookingActions';
 import {slotOffer} from './offer';
 
@@ -24,8 +29,20 @@ const TIMES = {date: DATE, start: '17:00', end: '19:00'};
 
 type Shown =
   | {kind: 'alert'; title: string; message: string}
-  | {kind: 'confirm'; title: string; message: string; action: DialogAction}
-  | {kind: 'choose'; title: string; message: string; choices: DialogChoice[]};
+  | {
+      kind: 'confirm';
+      title: string;
+      message: string;
+      action: DialogAction;
+      times?: DialogTime[];
+    }
+  | {
+      kind: 'choose';
+      title: string;
+      message: string;
+      choices: DialogChoice[];
+      options?: {times?: DialogTime[]; choicesLabel?: string};
+    };
 
 type Sent = {method: string; path: string; body: unknown};
 
@@ -59,10 +76,22 @@ function setup() {
   const shown: Shown[] = [];
   const dialog: Dialog = {
     alert: (title, message) => shown.push({kind: 'alert', title, message}),
-    confirm: (title, message, action) =>
-      shown.push({kind: 'confirm', title, message, action}),
-    choose: (title, message, choices) =>
-      shown.push({kind: 'choose', title, message, choices}),
+    confirm: (title, message, action, times) =>
+      shown.push({
+        kind: 'confirm',
+        title,
+        message,
+        action,
+        ...(times ? {times} : {}),
+      }),
+    choose: (title, message, choices, options) =>
+      shown.push({
+        kind: 'choose',
+        title,
+        message,
+        choices,
+        ...(options ? {options} : {}),
+      }),
   };
   const onChange = vi.fn();
   const {api, unwrap} = createApi({
@@ -121,6 +150,17 @@ function whenOf({start, end}: HeldBooking) {
   return `Bastu, ${formatWhen(DATE, unbrokenRange(start, end), t)}`;
 }
 
+function cardOf(
+  {start, end}: {start: string; end: string},
+  label?: {caption: string; tone: 'old' | 'new'},
+) {
+  return {
+    ...label,
+    resource: 'Bastu',
+    when: formatWhen(DATE, unbrokenRange(start, end), t),
+  };
+}
+
 const available: Slot = {...TIMES, status: 'available', subscriptionId: null};
 const booked: Slot = {
   ...TIMES,
@@ -168,8 +208,12 @@ describe('pressing a time asks first', () => {
       {
         kind: 'confirm',
         title: t.booking.alreadyHolding(1),
-        message: t.booking.swapQuestion(whenOf(MORNING), WHEN),
+        message: t.booking.swapQuestion,
         action: {label: t.booking.swap, onPress: expect.any(Function)},
+        times: [
+          cardOf(MORNING, {caption: t.booking.swapFrom, tone: 'old'}),
+          cardOf(TIMES, {caption: t.booking.swapTo, tone: 'new'}),
+        ],
       },
     ]);
 
@@ -192,11 +236,23 @@ describe('pressing a time asks first', () => {
       {
         kind: 'choose',
         title: t.booking.chooseSwapTitle,
-        message: t.booking.chooseSwapQuestion(WHEN),
+        message: t.booking.chooseSwapQuestion,
         choices: [
-          {label: whenOf(MORNING), onPress: expect.any(Function)},
-          {label: whenOf(NOON), onPress: expect.any(Function)},
+          {
+            label: whenOf(MORNING),
+            time: cardOf(MORNING),
+            onPress: expect.any(Function),
+          },
+          {
+            label: whenOf(NOON),
+            time: cardOf(NOON),
+            onPress: expect.any(Function),
+          },
         ],
+        options: {
+          times: [cardOf(TIMES, {caption: t.booking.swapTo, tone: 'new'})],
+          choicesLabel: t.booking.swapChoices,
+        },
       },
     ]);
 
@@ -232,7 +288,11 @@ describe('pressing a time asks first', () => {
     expect(shown[0]).toMatchObject({
       kind: 'confirm',
       title: t.booking.alreadyHolding(2),
-      message: t.booking.swapQuestion(whenOf(NOON), WHEN),
+      message: t.booking.swapQuestion,
+      times: [
+        cardOf(NOON, {caption: t.booking.swapFrom, tone: 'old'}),
+        cardOf(TIMES, {caption: t.booking.swapTo, tone: 'new'}),
+      ],
     });
   });
 

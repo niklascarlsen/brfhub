@@ -3,7 +3,7 @@ import {codeOf, errorMessage, type ClientErrorCode} from '../api/errors';
 import type {HeldBooking} from '../api/types';
 import type {Messages} from '../i18n/catalog';
 import {formatWhen, unbrokenRange} from '../lib/dates';
-import type {Dialog} from '../lib/dialog';
+import type {Dialog, DialogTime} from '../lib/dialog';
 import {exhaustive} from '../lib/exhaustive';
 
 import type {Bookable, BookingAction, Identified} from './offer';
@@ -26,6 +26,18 @@ function shouldReload(code: ClientErrorCode) {
 // The range stays on one line, so a dialog never breaks it at the dash.
 function whenOf({date, start, end, resourceName}: Times, t: Messages) {
   return `${resourceName}, ${formatWhen(date, unbrokenRange(start, end), t)}`;
+}
+
+function cardOf(
+  {date, start, end, resourceName}: Times,
+  t: Messages,
+  label?: Pick<DialogTime, 'caption' | 'tone'>,
+): DialogTime {
+  return {
+    ...label,
+    resource: resourceName,
+    when: formatWhen(date, unbrokenRange(start, end), t),
+  };
 }
 
 type BookingActionsOptions = Api & {
@@ -105,34 +117,39 @@ export function bookingActions({
     );
   }
 
-  // One booking to give up is a yes or no, several a choice of which.
+  // One booking to give up is a yes or no, several a choice of which. The
+  // times are shown on cards, since two in one sentence are hard to tell
+  // apart.
   function confirmSwap(target: Bookable, choices: HeldBooking[], held: number) {
-    const to = whenOf(target, t);
+    const to = cardOf(target, t, {caption: t.booking.swapTo, tone: 'new'});
     const [only] = choices;
 
     if (choices.length === 1 && only) {
       dialog.confirm(
         t.booking.alreadyHolding(held),
-        t.booking.swapQuestion(whenOf(only, t), to),
+        t.booking.swapQuestion,
         {
           label: t.booking.swap,
           onPress: () => {
             void book(target, only);
           },
         },
+        [cardOf(only, t, {caption: t.booking.swapFrom, tone: 'old'}), to],
       );
       return;
     }
 
     dialog.choose(
       t.booking.chooseSwapTitle,
-      t.booking.chooseSwapQuestion(to),
+      t.booking.chooseSwapQuestion,
       choices.map((choice) => ({
         label: whenOf(choice, t),
+        time: cardOf(choice, t),
         onPress: () => {
           void book(target, choice);
         },
       })),
+      {times: [to], choicesLabel: t.booking.swapChoices},
     );
   }
 

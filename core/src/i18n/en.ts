@@ -28,6 +28,7 @@ export const en: Messages = {
     cancel: 'Cancel',
     keep: 'Keep',
     ok: 'OK',
+    dialogOptions: (labels: string[]) => `Options: ${labels.join(', ')}`,
     email: 'Email',
     loading: 'Loading',
     showPassword: 'Show password',
@@ -177,10 +178,13 @@ export const en: Messages = {
         ? 'You already have a booking'
         : `You already have ${count} bookings`,
     swap: 'Switch',
-    swapQuestion: (from: string, to: string) => `Switch ${from} for ${to}?`,
+    swapQuestion: 'Do you want to switch your booking for the new time?',
+    swapFrom: 'Your booking',
+    swapTo: 'New time',
+    swapChoices: 'Your bookings',
     chooseSwapTitle: 'Switch which one?',
-    chooseSwapQuestion: (to: string) =>
-      `Which of your bookings do you want to switch for ${to}?`,
+    chooseSwapQuestion:
+      'Which of your bookings do you want to switch for the new time?',
     queueTitle: 'Join the queue',
     queueMe: 'Join the queue',
     queueQuestion: (when: string) =>
