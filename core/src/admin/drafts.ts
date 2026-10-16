@@ -507,19 +507,3 @@ export function checkPasswordReset(
     },
   };
 }
-
-// Better Auth answers a refused change with its own codes.
-export function passwordFailure(code: string | undefined, t: Messages): string {
-  const {minLength, maxLength} = limits.ChangePasswordBody.newPassword;
-
-  switch (code) {
-    case 'INVALID_PASSWORD':
-      return t.admin.organization.wrongPassword;
-    case 'PASSWORD_TOO_SHORT':
-      return t.admin.organization.passwordTooShort(minLength);
-    case 'PASSWORD_TOO_LONG':
-      return t.admin.organization.passwordTooLong(maxLength);
-    default:
-      return errorMessage('UNKNOWN', t);
-  }
-}
