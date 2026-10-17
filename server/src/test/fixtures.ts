@@ -14,7 +14,7 @@ import {
 } from '../db/schema.js';
 import type {Locale} from '../lib/locale.js';
 import type {Mail, SendMail} from '../lib/mail.js';
-import type {PushFailure, PushMessage, SendPush} from '../lib/push.js';
+import type {PushFailure, PushMessage, PushTransport} from '../lib/push.js';
 
 // The admins' password. Apartments sign in with a code from their mail.
 export const PASSWORD = 'password';
@@ -25,27 +25,48 @@ export const ORIGIN = 'http://localhost:5173';
 type Server = Awaited<ReturnType<typeof buildApp>>;
 
 // Push that stays in memory: keeps what the server would have sent, and
-// answers with the failures a test hands it. A held push does not answer
-// until the test lets it go, like a push service that hangs.
+// answers with the failures a test hands it, at once or in the receipts.
+// A held push does not answer until the test lets it go, like a push
+// service that hangs.
 export function memoryPush() {
   const sent: PushMessage[] = [];
   let failures: PushFailure[] = [];
+  let receiptFailures: PushFailure[] = [];
   let held: Promise<void> | null = null;
   let release = () => {};
 
-  const send: SendPush = async (messages) => {
-    await held;
-    sent.push(...messages);
-    return failures.filter((failure) =>
-      messages.some((message) => message.to === failure.token),
-    );
+  const failuresFor = (all: PushFailure[], tokens: string[]) =>
+    all.filter((failure) => tokens.includes(failure.token));
+
+  const transport: PushTransport = {
+    async send(messages) {
+      await held;
+      sent.push(...messages);
+      const tokens = messages.map((message) => message.to);
+      return {
+        failures: failuresFor(failures, tokens),
+        receipts: tokens.map((token, index) => ({
+          id: `${sent.length + index}`,
+          token,
+        })),
+      };
+    },
+    async checkReceipts(receipts) {
+      return failuresFor(
+        receiptFailures,
+        receipts.map((receipt) => receipt.token),
+      );
+    },
   };
 
   return {
-    send,
+    ...transport,
     sent,
     failWith(next: PushFailure[]) {
       failures = next;
+    },
+    failReceiptsWith(next: PushFailure[]) {
+      receiptFailures = next;
     },
     hold(): () => void {
       if (held) {
@@ -63,6 +84,7 @@ export function memoryPush() {
       release();
       sent.length = 0;
       failures = [];
+      receiptFailures = [];
     },
   };
 }

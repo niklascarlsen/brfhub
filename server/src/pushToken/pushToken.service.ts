@@ -4,6 +4,7 @@ import {
   eq,
   gt,
   inArray,
+  lt,
   not,
   notInArray,
   or,
@@ -87,12 +88,23 @@ export function listPushTokens(
     );
 }
 
-export async function removePushTokens(tokens: string[]): Promise<void> {
+// With registeredBefore, only those not registered again since.
+export async function removePushTokens(
+  tokens: string[],
+  registeredBefore?: Date,
+): Promise<void> {
   if (tokens.length === 0) {
     return;
   }
 
-  await db.delete(pushTokens).where(inArray(pushTokens.token, tokens));
+  await db
+    .delete(pushTokens)
+    .where(
+      and(
+        inArray(pushTokens.token, tokens),
+        registeredBefore && lt(pushTokens.createdAt, registeredBefore),
+      ),
+    );
 }
 
 // Only the apartment a token is bound to may drop it.

@@ -124,23 +124,27 @@ export function slotOffer(
 }
 
 export type CardOffer = {
+  // Over for the apartment: drawn faded, with nothing to press.
+  ended: boolean;
   badge: {label: string; tone: 'accent' | 'muted'} | null;
   primary: {label: string; solid: boolean; action: BookingAction} | null;
   secondary: {label: string; action: BookingAction} | null;
 };
 
-// A booking in My times: open for walk-in once released, released by the
-// apartment once started, otherwise cancelled.
+// A booking in My times: ended once released, which a started booking is
+// when the apartment is done and opens it for drop-in, otherwise cancelled.
 export function bookingCard(booking: Booking, t: Messages): CardOffer {
   if (booking.released) {
     return {
-      badge: {label: t.times.dropIn, tone: 'muted'},
+      ended: true,
+      badge: {label: t.times.ended, tone: 'muted'},
       primary: null,
       secondary: null,
     };
   }
 
   return {
+    ended: false,
     badge: null,
     primary: booking.started
       ? {label: t.times.done, solid: false, action: {kind: 'release', booking}}
@@ -160,6 +164,7 @@ export function queueCard(subscription: Subscription, t: Messages): CardOffer {
 
   if (!subscription.available) {
     return {
+      ended: false,
       badge: {label: t.times.queue, tone: 'muted'},
       primary: {label: t.times.leaveQueue, solid: false, action: leave},
       secondary: null,
@@ -168,6 +173,7 @@ export function queueCard(subscription: Subscription, t: Messages): CardOffer {
 
   if (subscription.started) {
     return {
+      ended: false,
       badge: {label: t.times.dropIn, tone: 'accent'},
       primary: {label: t.times.leaveQueue, solid: false, action: leave},
       secondary: null,
@@ -175,6 +181,7 @@ export function queueCard(subscription: Subscription, t: Messages): CardOffer {
   }
 
   return {
+    ended: false,
     badge: {label: t.times.freeNow, tone: 'accent'},
     primary: {
       label: t.times.book,

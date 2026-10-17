@@ -163,6 +163,7 @@ export const en: Messages = {
     done: "I'm done",
     cancel: 'Cancel booking',
     dropIn: 'Drop-in',
+    ended: 'Ended',
     freeNow: 'Free now',
     book: 'Book',
     leaveQueue: 'Leave queue',

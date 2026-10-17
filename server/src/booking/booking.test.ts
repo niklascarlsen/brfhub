@@ -167,7 +167,7 @@ function signedInAs(label: string) {
 before(async () => {
   await assertTestDatabase();
 
-  server = await buildApp({logger: false, push: push.send, mail: mail.send});
+  server = await buildApp({logger: false, push, mail: mail.send});
   await resetDatabase();
 
   const ids = await seedOrganization({
@@ -1548,6 +1548,32 @@ test('a device the push service no longer knows is dropped', async () => {
 
   await cancel(NEIGHBOUR, theirs.json<CreatedBooking>().id);
   await server.notifier.idle();
+
+  assert.deepEqual(
+    await db.select({token: pushTokens.token}).from(pushTokens),
+    [{token: '12-device'}],
+  );
+});
+
+test('a device its receipt says is gone is dropped, unless it registered again', async () => {
+  const theirs = await book(NEIGHBOUR, {date: bookableDate, start: '07:00'});
+  await subscribe(TENANT, {date: bookableDate, start: '07:00'});
+  await subscribe('13', {date: bookableDate, start: '07:00'});
+  await addDevice(TENANT);
+  await addDevice('13');
+  push.failReceiptsWith([
+    {token: '12-device', message: 'DeviceNotRegistered', unregistered: true},
+    {token: '13-device', message: 'DeviceNotRegistered', unregistered: true},
+  ]);
+
+  await cancel(NEIGHBOUR, theirs.json<CreatedBooking>().id);
+  await server.notifier.idle();
+  // Registered again before the receipt came, as a reinstalled app does.
+  await db
+    .update(pushTokens)
+    .set({createdAt: new Date()})
+    .where(eq(pushTokens.token, '12-device'));
+  await server.notifier.checkReceiptsNow();
 
   assert.deepEqual(
     await db.select({token: pushTokens.token}).from(pushTokens),

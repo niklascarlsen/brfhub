@@ -41,7 +41,7 @@ before(async () => {
   await assertTestDatabase();
   server = await buildApp({
     logger: false,
-    push: memoryPush().send,
+    push: memoryPush(),
     mail: memoryMail().send,
     trustProxy: '10.0.0.0/8',
   });

@@ -153,7 +153,8 @@ describe('cards in my times', () => {
     });
     expect(bookingCard({...booking, started: true, released: true}, t)).toEqual(
       {
-        badge: {label: t.times.dropIn, tone: 'muted'},
+        ended: true,
+        badge: {label: t.times.ended, tone: 'muted'},
         primary: null,
         secondary: null,
       },

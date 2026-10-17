@@ -17,7 +17,7 @@ import Fastify, {type FastifyServerOptions} from 'fastify';
 import {appError, isAppError, sendError} from './lib/errors.js';
 import {production, WEB_ORIGIN} from './lib/env.js';
 import type {SendMail} from './lib/mail.js';
-import type {SendPush} from './lib/push.js';
+import type {PushTransport} from './lib/push.js';
 import {setMailTransport} from './mail/mail.service.js';
 import {createNotifier} from './notification/notification.service.js';
 import {accountRoutes} from './account/account.route.js';
@@ -34,19 +34,19 @@ import {resourceAdminRoutes} from './resourceAdmin/resourceAdmin.route.js';
 import {slotRoutes} from './slot/slot.route.js';
 import {subscriptionRoutes} from './subscription/subscription.route.js';
 
-// The server passes sendPush and smtpMail. The tests pass their own, to see
+// The server passes expoAndWebPush and smtpMail. The tests pass their own, to see
 // who would be told what without sending anything.
 export async function buildApp({
   push,
   mail,
   ...options
-}: FastifyServerOptions & {push: SendPush; mail: SendMail}) {
+}: FastifyServerOptions & {push: PushTransport; mail: SendMail}) {
   const server = Fastify(options).withTypeProvider<ZodTypeProvider>();
 
   setMailTransport(mail);
   server.decorate('notifier', createNotifier(push, server.log));
   // Push that is still on its way when the server stops is sent first.
-  server.addHook('onClose', () => server.notifier.idle());
+  server.addHook('onClose', () => server.notifier.close());
 
   server.setValidatorCompiler(validatorCompiler);
   server.setSerializerCompiler(serializerCompiler);

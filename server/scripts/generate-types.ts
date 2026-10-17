@@ -8,6 +8,7 @@ import {format, resolveConfig} from 'prettier';
 import {buildApp} from '../src/app.js';
 import {PASSWORD_LENGTH} from '../src/auth/auth.js';
 import {pool} from '../src/db/index.js';
+import {expoAndWebPush} from '../src/lib/push.js';
 import {limitsModule, limitsOf} from './limits.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -20,7 +21,7 @@ async function formatted(path: string, source: string): Promise<string> {
   return format(source, {...options, filepath: path});
 }
 // Only reads the routes, so it never sends push or mail.
-const app = await buildApp({push: async () => [], mail: async () => {}});
+const app = await buildApp({push: expoAndWebPush, mail: async () => {}});
 
 try {
   await app.ready();

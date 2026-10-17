@@ -40,10 +40,11 @@ function TimesSection({
 
 // What a card offers, as the props TimeCard takes.
 function cardActions(
-  {badge, primary, secondary}: CardOffer,
+  {ended, badge, primary, secondary}: CardOffer,
   confirm: (action: BookingAction) => void,
 ) {
   return {
+    ended,
     badge,
     actionLabel: primary?.label,
     actionTone: primary?.solid ? ('solid' as const) : ('outline' as const),

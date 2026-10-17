@@ -86,7 +86,7 @@ before(async () => {
   await assertTestDatabase();
   server = await buildApp({
     logger: false,
-    push: memoryPush().send,
+    push: memoryPush(),
     mail: mail.send,
   });
   await resetDatabase();

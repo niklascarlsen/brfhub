@@ -96,7 +96,7 @@ async function insertBooking(
 before(async () => {
   await assertTestDatabase();
 
-  server = await buildApp({logger: false, push: push.send, mail: mail.send});
+  server = await buildApp({logger: false, push, mail: mail.send});
   await resetDatabase();
 
   const north = await seedOrganization({

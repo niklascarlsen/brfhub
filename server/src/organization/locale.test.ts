@@ -68,7 +68,7 @@ before(async () => {
   mail = memoryMail();
   server = await buildApp({
     logger: false,
-    push: memoryPush().send,
+    push: memoryPush(),
     mail: mail.send,
   });
   await resetDatabase();

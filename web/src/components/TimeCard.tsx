@@ -10,6 +10,8 @@ type TimeCardProps = {
   start: string;
   end: string;
   resourceName?: string;
+  // Over for the apartment: no surface of its own, the time muted.
+  ended?: boolean;
   badge: Badge | null;
   actionLabel?: string;
   actionTone?: 'solid' | 'outline';
@@ -18,8 +20,7 @@ type TimeCardProps = {
   onSecondary?: () => void;
 };
 
-const SHELL =
-  'flex items-center rounded-2xl border border-theme-line bg-theme-surface';
+const SHELL = 'flex items-center rounded-2xl border border-theme-line';
 
 function BadgeChip({badge}: {badge: Badge}) {
   return (
@@ -82,13 +83,18 @@ export function TimeCard({
   start,
   end,
   resourceName,
+  ended = false,
   badge,
   ...actions
 }: TimeCardProps) {
   const t = useMessages();
 
   return (
-    <div className={`${SHELL} gap-3.5 px-4.5 py-4`}>
+    <div
+      className={`${SHELL} gap-3.5 px-4.5 py-4 ${
+        ended ? 'bg-theme-bg' : 'bg-theme-surface'
+      }`}
+    >
       <div className='flex min-w-0 flex-1 flex-col gap-1'>
         <div className='flex items-center gap-2'>
           {resourceName ? (
@@ -98,7 +104,11 @@ export function TimeCard({
           ) : null}
           {badge ? <BadgeChip badge={badge} /> : null}
         </div>
-        <span className='text-[22px] font-semibold tracking-tight tabular-nums text-theme-ink'>
+        <span
+          className={`text-[22px] font-semibold tracking-tight tabular-nums ${
+            ended ? 'text-theme-muted' : 'text-theme-ink'
+          }`}
+        >
           {timeRange(start, end)}
         </span>
         <span className='text-[13px] font-medium text-theme-muted'>
@@ -112,7 +122,7 @@ export function TimeCard({
 
 export function TimeCardSkeleton() {
   return (
-    <div className={`${SHELL} gap-3.5 px-4.5 py-4`}>
+    <div className={`${SHELL} gap-3.5 bg-theme-surface px-4.5 py-4`}>
       <div className='flex min-w-0 flex-1 flex-col gap-1'>
         <SkeletonBar className='h-4 w-23' />
         <SkeletonBar className='h-6.5 w-38' />

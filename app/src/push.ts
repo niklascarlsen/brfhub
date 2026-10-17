@@ -144,18 +144,31 @@ export function onPushTokenChange(locale: Locale): () => void {
   return () => subscription.remove();
 }
 
+function targetOf(response: Notifications.NotificationResponse): PushTarget {
+  const data = response.notification.request.content.data ?? {};
+
+  return typeof data.date === 'string' && typeof data.resourceId === 'string'
+    ? {date: data.date, resourceId: data.resourceId}
+    : {};
+}
+
+// A tap that started the app came before the listener, so it is read once
+// at start and cleared, or the next start would take the apartment there
+// again.
 export function onNotificationTap(
   handler: (target: PushTarget) => void,
 ): () => void {
+  const launch = Notifications.getLastNotificationResponse();
+
+  if (launch) {
+    handler(targetOf(launch));
+    void Notifications.clearLastNotificationResponseAsync();
+  }
+
   const subscription = Notifications.addNotificationResponseReceivedListener(
     (response) => {
-      const data = response.notification.request.content.data ?? {};
-
-      handler(
-        typeof data.date === 'string' && typeof data.resourceId === 'string'
-          ? {date: data.date, resourceId: data.resourceId}
-          : {},
-      );
+      handler(targetOf(response));
+      void Notifications.clearLastNotificationResponseAsync();
     },
   );
 

@@ -6,13 +6,13 @@ import {buildApp} from './app.js';
 import {pool} from './db/index.js';
 import {development, MAIL, TRUSTED_PROXIES} from './lib/env.js';
 import {smtpMail} from './lib/mail.js';
-import {PUSH_TIMEOUT_MS, sendPush} from './lib/push.js';
+import {expoAndWebPush, PUSH_TIMEOUT_MS} from './lib/push.js';
 
 const port = Number(process.env.PORT ?? 3000);
 const host = process.env.HOST ?? '0.0.0.0';
 
 const server = await buildApp({
-  push: sendPush,
+  push: expoAndWebPush,
   mail: smtpMail(MAIL.smtpUrl, MAIL.from),
   // request.ip is the client behind these proxies, else the socket's peer.
   trustProxy: TRUSTED_PROXIES.length > 0 ? TRUSTED_PROXIES.join(',') : false,

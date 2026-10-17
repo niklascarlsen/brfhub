@@ -136,7 +136,7 @@ before(async () => {
 
   push = memoryPush();
   mail = memoryMail();
-  server = await buildApp({logger: false, push: push.send, mail: mail.send});
+  server = await buildApp({logger: false, push, mail: mail.send});
   await resetDatabase();
 
   apartmentIds = await seedOrganization({

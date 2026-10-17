@@ -83,7 +83,7 @@ before(async () => {
 
   server = await buildApp({
     logger: false,
-    push: push.send,
+    push,
     mail: mail.send,
   });
   await resetDatabase();

@@ -176,6 +176,7 @@ export const sv = {
     done: 'Jag är klar',
     cancel: 'Avboka',
     dropIn: 'Drop-in',
+    ended: 'Avslutad',
     freeNow: 'Ledig nu',
     book: 'Boka',
     leaveQueue: 'Lämna kön',

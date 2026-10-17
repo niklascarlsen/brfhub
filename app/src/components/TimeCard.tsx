@@ -11,6 +11,8 @@ type TimeCardProps = {
   start: string;
   end: string;
   resourceName?: string;
+  // Over for the apartment: no surface of its own, the time muted.
+  ended?: boolean;
   badge: Badge | null;
   actionLabel?: string;
   actionTone?: 'solid' | 'outline';
@@ -26,6 +28,7 @@ export function TimeCard({
   start,
   end,
   resourceName,
+  ended = false,
   badge,
   actionLabel,
   actionTone = 'outline',
@@ -37,7 +40,11 @@ export function TimeCard({
   const solid = actionTone === 'solid';
 
   return (
-    <View className='flex-row items-center gap-3.5 rounded-2xl border border-theme-line bg-theme-surface px-[18px] py-4'>
+    <View
+      className={`flex-row items-center gap-3.5 rounded-2xl border border-theme-line px-[18px] py-4 ${
+        ended ? 'bg-theme-bg' : 'bg-theme-surface'
+      }`}
+    >
       <View className='min-w-0 flex-1 gap-1'>
         <View className='flex-row items-center gap-2'>
           {resourceName ? (
@@ -65,7 +72,9 @@ export function TimeCard({
         </View>
         <Text
           style={tabularNums}
-          className='text-[22px] font-semibold tracking-tight text-theme-ink'
+          className={`text-[22px] font-semibold tracking-tight ${
+            ended ? 'text-theme-muted' : 'text-theme-ink'
+          }`}
         >
           {timeRange(start, end)}
         </Text>
