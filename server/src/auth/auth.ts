@@ -283,7 +283,7 @@ export const auth = betterAuth({
     // codes are stored encrypted; a trusted device skips the code for a
     // month.
     twoFactor({
-      issuer: 'Boka',
+      issuer: 'BrfHub',
       backupCodeOptions: {storeBackupCodes: 'encrypted'},
     }),
   ],

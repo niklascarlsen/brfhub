@@ -402,7 +402,7 @@ test('a colleague resets a lost authenticator, which is set up again', async () 
     backupCodes: string[];
   }>();
   assert.equal(backupCodes.length, 10);
-  assert.match(totpURI, /^otpauth:\/\/totp\/Boka:/);
+  assert.match(totpURI, /^otpauth:\/\/totp\/BrfHub:/);
   // What the authenticator app that scanned the QR code would answer.
   const secret = (await twoFactorSecret(id)) ?? '';
   const verified = await server.inject({

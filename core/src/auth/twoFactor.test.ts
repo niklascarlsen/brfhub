@@ -3,7 +3,7 @@ import {describe, expect, test} from 'vitest';
 import {qrCodeOf, secretOf} from './twoFactor';
 
 const URI =
-  'otpauth://totp/Boka:admin%40example.com?secret=JBSWY3DPEHPK3PXP&issuer=Boka';
+  'otpauth://totp/BrfHub:admin%40example.com?secret=JBSWY3DPEHPK3PXP&issuer=BrfHub';
 
 describe('qrCodeOf', () => {
   test('gives a square of cells', () => {

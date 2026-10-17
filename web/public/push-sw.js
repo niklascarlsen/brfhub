@@ -5,7 +5,7 @@ self.addEventListener('push', (event) => {
   const payload = event.data ? event.data.json() : {};
 
   event.waitUntil(
-    self.registration.showNotification(payload.title ?? 'Boka', {
+    self.registration.showNotification(payload.title ?? 'BrfHub', {
       body: payload.body ?? '',
       icon: '/icon-192.png',
       data: payload.data ?? {},

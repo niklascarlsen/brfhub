@@ -62,7 +62,7 @@ function readMailSettings(): {smtpUrl: string; from: string} {
 
   return {
     smtpUrl: smtpUrl || 'smtp://localhost:1025',
-    from: from || 'Boka <boka@localhost>',
+    from: from || 'BrfHub <brfhub@localhost>',
   };
 }
 

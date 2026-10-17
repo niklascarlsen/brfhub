@@ -14,7 +14,7 @@ import {
 import type {Mail, SendMail} from '../lib/mail.js';
 import {formatWhen} from '../lib/time.js';
 
-const APP_NAME = 'Boka';
+const APP_NAME = 'BrfHub';
 
 // Better Auth sends the sign-in code from inside its own plugin, which
 // cannot be handed the transport buildApp was given, so the transport is

@@ -31,6 +31,7 @@ export const sv = {
     // "Avbryt" would read as the action itself.
     keep: 'Behåll',
     ok: 'OK',
+    appName: 'BrfHub',
     // Read by a screen reader as a dialog opens, after what it asks.
     dialogOptions: (labels: string[]) => `Alternativ: ${labels.join(', ')}`,
     email: 'E-post',
@@ -81,7 +82,7 @@ export const sv = {
   },
   login: {
     title: 'Logga in',
-    intro: 'Med e-posten för din lägenhet eller ditt adminkonto.',
+    intro: 'Ange din e-post för att fortsätta.',
     continue: 'Fortsätt',
     codeTitle: 'Ange koden',
     codeIntro: (email: string) =>
@@ -196,9 +197,7 @@ export const sv = {
     swapFrom: 'Din bokning',
     swapTo: 'Ny tid',
     swapChoices: 'Dina bokningar',
-    chooseSwapTitle: 'Byt ut vilken?',
-    chooseSwapQuestion:
-      'Vilken av dina bokningar vill du byta mot den nya tiden?',
+    chooseSwapQuestion: 'Välj den du vill byta mot den nya tiden.',
     queueTitle: 'Ställ dig i kö',
     queueMe: 'Ställ mig i kö',
     queueQuestion: (when: string) =>

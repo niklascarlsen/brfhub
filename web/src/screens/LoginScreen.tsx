@@ -290,6 +290,17 @@ export function LoginScreen() {
   return (
     <div className='flex min-h-svh flex-col bg-theme-bg pt-[env(safe-area-inset-top)]'>
       <main className='flex grow flex-col justify-center px-5 pb-16 lg:items-center'>
+        {/* The name stands on the house's floor and its capitals reach the
+            eaves, as in the app's LoginScreen. The web's Merriweather has
+            shorter capitals than the app's, so it takes 52px here, and the
+            negative margin takes back the line box below the baseline.
+            Measured on screen. */}
+        <div className='mb-10 flex items-end gap-4 lg:w-120 lg:px-2'>
+          <img src='/logo.png' alt='' className='h-[62px] w-[58px]' />
+          <span className='-mb-[16px] text-[52px] leading-[68px] font-semibold tracking-tight text-theme-ink'>
+            {t.common.appName}
+          </span>
+        </div>
         <form
           key={step.kind}
           noValidate={step.kind === 'reset'}

@@ -1,6 +1,6 @@
 import {useSignIn} from '@booking/core/auth/useSignIn';
 import {Icon} from '@/components/Icon';
-import {Pressable, Text, View} from 'react-native';
+import {Image, Platform, Pressable, Text, View} from 'react-native';
 import {
   KeyboardAvoidingView,
   KeyboardToolbar,
@@ -20,6 +20,20 @@ const BUTTON_LABEL =
   'text-base font-semibold tracking-tight text-theme-surface';
 const LINK = 'self-start py-2 active:opacity-60';
 const LINK_LABEL = 'text-sm font-semibold text-theme-accent';
+
+// The house and the name on one line: the name stands on the house's floor
+// and its capitals reach the eaves. The house is 58x62 with walls 39px high,
+// which Merriweather's capitals fill at 47px on iOS and 50px on Android,
+// whose renderer draws them shorter. The line box hangs below the baseline,
+// and the negative margin takes that back so the baseline meets the floor.
+// Measured on screen; the web's LoginScreen draws the same.
+const LOGO = {
+  house: {width: 58, height: 62},
+  name: Platform.select({
+    ios: {fontSize: 47, lineHeight: 61, marginBottom: -14},
+    default: {fontSize: 50, lineHeight: 65, marginBottom: -16},
+  }),
+} as const;
 
 // Signing in is two steps: the address, then the code it is mailed or, for
 // an admin, the password. On success useSession updates and the gate
@@ -286,6 +300,20 @@ export function LoginScreen() {
         {/* One view for the keyboard to move. As separate children each
             field got its own layout animation, and the focused field could
             jump ahead of the rest onto the title. */}
+        <View className='mb-10 flex-row items-end gap-4'>
+          <Image
+            source={require('@assets/logo.png')}
+            accessibilityIgnoresInvertColors
+            resizeMode='contain'
+            style={LOGO.house}
+          />
+          <Text
+            style={LOGO.name}
+            className='font-semibold tracking-tight text-theme-ink'
+          >
+            {t.common.appName}
+          </Text>
+        </View>
         <View key={step.kind}>{body}</View>
       </KeyboardAvoidingView>
       <KeyboardToolbar>

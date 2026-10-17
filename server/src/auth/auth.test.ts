@@ -124,17 +124,17 @@ test('refuses an address that is not one', async () => {
 test('mails the code in the language the device asks for', async () => {
   await sendCode(emailOf('1'), 'en-GB,en;q=0.9');
   const english = mail.lastTo(emailOf('1'));
-  assert.match(english?.subject ?? '', /is your Boka code/);
+  assert.match(english?.subject ?? '', /is your BrfHub code/);
   assert.match(english?.text ?? '', /10 minutes/);
 
   await sendCode(emailOf('1'), 'sv');
   const swedish = mail.lastTo(emailOf('1'));
-  assert.match(swedish?.subject ?? '', /är din kod till Boka/);
+  assert.match(swedish?.subject ?? '', /är din kod till BrfHub/);
 
   // A language the organization does not write in falls back to English
   // when it writes in it, like every other answer to that device.
   await sendCode(emailOf('1'), 'de');
-  assert.match(mail.lastTo(emailOf('1'))?.subject ?? '', /is your Boka code/);
+  assert.match(mail.lastTo(emailOf('1'))?.subject ?? '', /is your BrfHub code/);
 });
 
 test('a code signs in once and is then spent', async () => {

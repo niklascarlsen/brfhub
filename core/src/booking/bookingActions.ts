@@ -140,7 +140,7 @@ export function bookingActions({
     }
 
     dialog.choose(
-      t.booking.chooseSwapTitle,
+      t.booking.alreadyHolding(held),
       t.booking.chooseSwapQuestion,
       choices.map((choice) => ({
         label: whenOf(choice, t),

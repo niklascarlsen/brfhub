@@ -8,7 +8,7 @@ import {after, before, test} from 'node:test';
 process.env.NODE_ENV = 'production';
 process.env.WEB_ORIGIN = 'http://localhost:5173';
 process.env.SMTP_URL = 'smtp://localhost:1025';
-process.env.MAIL_FROM = 'Boka <boka@localhost>';
+process.env.MAIL_FROM = 'BrfHub <brfhub@localhost>';
 
 const {buildApp} = await import('./app.js');
 const {pool} = await import('./db/index.js');

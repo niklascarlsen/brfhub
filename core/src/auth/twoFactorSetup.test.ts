@@ -10,7 +10,7 @@ import {
 
 const ADMIN = 'admin@example.com';
 const URI =
-  'otpauth://totp/Boka:admin%40example.com?secret=JBSWY3DPEHPK3PXP&issuer=Boka';
+  'otpauth://totp/BrfHub:admin%40example.com?secret=JBSWY3DPEHPK3PXP&issuer=BrfHub';
 const BACKUP_CODES = ['abcde-fghij', 'klmno-pqrst'];
 
 function start({password = 'password', totp = ''} = {}) {

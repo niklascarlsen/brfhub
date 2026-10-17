@@ -28,6 +28,7 @@ export const en: Messages = {
     cancel: 'Cancel',
     keep: 'Keep',
     ok: 'OK',
+    appName: 'BrfHub',
     dialogOptions: (labels: string[]) => `Options: ${labels.join(', ')}`,
     email: 'Email',
     loading: 'Loading',
@@ -73,7 +74,7 @@ export const en: Messages = {
   },
   login: {
     title: 'Sign in',
-    intro: "With your apartment's email, or your admin account's.",
+    intro: 'Enter your email to continue.',
     continue: 'Continue',
     codeTitle: 'Enter the code',
     codeIntro: (email: string) =>
@@ -183,9 +184,7 @@ export const en: Messages = {
     swapFrom: 'Your booking',
     swapTo: 'New time',
     swapChoices: 'Your bookings',
-    chooseSwapTitle: 'Switch which one?',
-    chooseSwapQuestion:
-      'Which of your bookings do you want to switch for the new time?',
+    chooseSwapQuestion: 'Pick the one to switch for the new time.',
     queueTitle: 'Join the queue',
     queueMe: 'Join the queue',
     queueQuestion: (when: string) =>

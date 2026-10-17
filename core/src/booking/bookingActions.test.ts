@@ -235,7 +235,7 @@ describe('pressing a time asks first', () => {
     expect(shown).toEqual([
       {
         kind: 'choose',
-        title: t.booking.chooseSwapTitle,
+        title: t.booking.alreadyHolding(2),
         message: t.booking.chooseSwapQuestion,
         choices: [
           {
