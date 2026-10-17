@@ -7,7 +7,7 @@ import {Pressable, Switch, Text, View} from 'react-native';
 
 import {SECONDARY_BUTTON, SECONDARY_LABEL} from '@/admin/styles';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
-import theme from '@/theme.json';
+import {theme} from '@/theme';
 import {useMessages} from '@/i18n/LocaleProvider';
 
 type SlotsEditorProps = {
@@ -70,7 +70,7 @@ export function SlotsEditor({slots, onChange}: SlotsEditorProps) {
           // The fields keep what is typed, so they start over when a row
           // is removed and the rows below move up.
           key={`${index}-${slots.length}`}
-          className='gap-3 rounded-2xl border border-theme-line bg-theme-surface px-3.5 py-3'
+          className='gap-3 rounded-card border border-theme-line bg-theme-surface px-3.5 py-3'
         >
           <View className='flex-row gap-2.5'>
             <TimeField

@@ -46,7 +46,7 @@ import {Notice} from '@/components/Notice';
 import {adminLoad, useAdminActions} from '@/hooks/useAdminActions';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
-import theme from '@/theme.json';
+import {theme} from '@/theme';
 
 type Part = 'details' | 'languages' | 'rules';
 
@@ -476,7 +476,7 @@ function Overview({
         <Text accessibilityRole='header' className={SECTION_LABEL}>
           {t.tabs.organization}
         </Text>
-        <View className='overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
+        <View className='overflow-hidden rounded-card border border-theme-line bg-theme-surface'>
           {ORGANIZATION_PAGES.map((page, index) => (
             <ActionRow
               key={page}
@@ -564,7 +564,7 @@ export function AdminOrganization() {
             }
       }
     >
-      <View className='mt-2.5 overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
+      <View className='mt-2.5 overflow-hidden rounded-card border border-theme-line bg-theme-surface'>
         <ActionRow
           label={t.admin.organization.changePassword}
           onPress={() => open('password')}

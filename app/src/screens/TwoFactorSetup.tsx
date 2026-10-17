@@ -20,7 +20,7 @@ import {signOut} from '@/auth/signOut';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {useMessages} from '@/i18n/LocaleProvider';
 import {DEV_PASSWORD, devCode} from '@/lib/devCodes';
-import theme from '@/theme.json';
+import {theme} from '@/theme';
 
 // The focused field stays this far above the keyboard: clear of the
 // toolbar on it (42, which the library does not export) and a little more.
@@ -36,7 +36,7 @@ function QrCode({text, label}: {text: string; label: string}) {
       accessible
       accessibilityRole='image'
       accessibilityLabel={label}
-      className='self-center rounded-xl bg-white p-3'
+      className='self-center rounded-xl bg-theme-surface p-3'
     >
       {cells.map((row, y) => (
         <View key={y} className='flex-row'>
@@ -46,7 +46,7 @@ function QrCode({text, label}: {text: string; label: string}) {
               style={{
                 width: cell,
                 height: cell,
-                backgroundColor: dark ? theme.ink : 'white',
+                backgroundColor: dark ? theme.ink : theme.surface,
               }}
             />
           ))}
@@ -227,7 +227,11 @@ export function TwoFactorSetup({account, onDone}: TwoFactorSetupProps) {
         </Text>
         {body}
       </KeyboardAwareScrollView>
-      <KeyboardToolbar doneText={t.common.ok} />
+      <KeyboardToolbar>
+        <KeyboardToolbar.Prev />
+        <KeyboardToolbar.Next />
+        <KeyboardToolbar.Done text={t.common.ok} />
+      </KeyboardToolbar>
     </SafeAreaView>
   );
 }

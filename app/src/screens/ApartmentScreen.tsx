@@ -8,9 +8,11 @@ import {Account} from '@/components/Account';
 import {AnnouncementList} from '@/components/Announcements';
 import {BookingRules} from '@/components/BookingRules';
 import {PushToggle} from '@/components/PushToggle';
+import {usePageEnd} from '@/components/TabBar';
 import {useMessages} from '@/i18n/LocaleProvider';
 
 export function ApartmentScreen() {
+  const pageEnd = usePageEnd();
   const {apartment, organizationName, admin} = useConfig();
   const switchMode = useSwitchMode();
   const t = useMessages();
@@ -19,7 +21,8 @@ export function ApartmentScreen() {
     <SafeAreaView className='flex-1 bg-theme-bg' edges={['top']}>
       <ScrollView
         className='flex-1'
-        contentContainerClassName='grow px-5 pb-8 pt-2'
+        contentContainerClassName='grow px-5 pt-2'
+        contentContainerStyle={{paddingBottom: pageEnd}}
       >
         <Text className='text-[27px] font-semibold tracking-tight text-theme-ink'>
           {t.apartment.title(apartment)}
@@ -32,7 +35,10 @@ export function ApartmentScreen() {
           onSignOut={signOut}
           switchTo={
             admin
-              ? {label: t.account.openAdmin, onPress: () => switchMode('admin')}
+              ? {
+                  label: t.account.openAdmin,
+                  onPress: () => switchMode('admin'),
+                }
               : null
           }
         >

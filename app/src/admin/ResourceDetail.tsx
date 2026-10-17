@@ -162,7 +162,7 @@ export function ResourceDetail({
       </View>
       <View>
         <Text className={SECTION_LABEL}>{t.admin.actions}</Text>
-        <View className='overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
+        <View className='overflow-hidden rounded-card border border-theme-line bg-theme-surface'>
           <ActionRow
             label={t.admin.resource.editTimes}
             description={t.admin.resource.editTimesHint(

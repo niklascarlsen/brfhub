@@ -2,23 +2,24 @@ import {readFileSync, writeFileSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
+import {radius, theme} from '../../app/src/theme.ts';
+
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
-const theme = JSON.parse(
-  readFileSync(resolve(root, '../app/src/theme.json'), 'utf8'),
-);
-
 if (typeof theme.bg !== 'string') {
-  throw new Error('app/src/theme.json is missing bg');
+  throw new Error('app/src/theme.ts is missing bg');
 }
 
-const tokens = Object.entries(theme)
-  .map(([name, value]) => `  --color-theme-${name}: ${value};`)
-  .join('\n');
+const tokens = [
+  ...Object.entries(theme).map(
+    ([name, value]) => `  --color-theme-${name}: ${value};`,
+  ),
+  ...Object.entries(radius).map(([name, px]) => `  --radius-${name}: ${px}px;`),
+].join('\n');
 
 writeFileSync(
   resolve(root, 'src/theme.css'),
-  `/* Generated from app/src/theme.json by npm run generate. Do not edit by hand. */\n@theme {\n${tokens}\n}\n`,
+  `/* Generated from app/src/theme.ts by npm run generate. Do not edit by hand. */\n@theme {\n${tokens}\n}\n`,
 );
 
 const htmlPath = resolve(root, 'index.html');
@@ -52,5 +53,5 @@ if (
 }
 
 console.log(
-  `theme.css: ${Object.keys(theme).length} colours from app/src/theme.json`,
+  `theme.css: ${Object.keys(theme).length} colours and the radii from app/src/theme.ts`,
 );

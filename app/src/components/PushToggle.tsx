@@ -7,7 +7,7 @@ import {useOnReturn} from '@/hooks/useOnReturn';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
 import {readPushEnabled, savePushEnabled} from '@/lib/pushPreference';
 import {dropPushToken, enablePush, pushPermission} from '@/push';
-import theme from '@/theme.json';
+import {theme} from '@/theme';
 
 async function isOn(): Promise<boolean> {
   const [wanted, permission] = await Promise.all([
@@ -100,7 +100,7 @@ export function PushToggle() {
   };
 
   return (
-    <View className='mt-2.5 flex-row items-center gap-3.5 rounded-2xl border border-theme-line bg-theme-surface px-[18px] py-4'>
+    <View className='mt-2.5 flex-row items-center gap-3.5 rounded-card border border-theme-line bg-theme-surface px-[18px] py-4'>
       <View className='min-w-0 flex-1 gap-1'>
         <Text className='text-sm font-semibold text-theme-ink'>
           {t.push.toggle}

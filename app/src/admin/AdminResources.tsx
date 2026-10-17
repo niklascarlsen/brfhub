@@ -27,7 +27,7 @@ import {Skeleton, SkeletonBar} from '@/components/Skeleton';
 import {adminLoad, useAdminActions} from '@/hooks/useAdminActions';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
-import theme from '@/theme.json';
+import {theme} from '@/theme';
 
 // What a row says besides the current times: a change or closing ahead.
 function statusOf(
@@ -359,7 +359,7 @@ export function AdminResources() {
                   {t.admin.resources.noneOfKind}
                 </Text>
               ) : (
-                <View className='overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
+                <View className='overflow-hidden rounded-card border border-theme-line bg-theme-surface'>
                   {own.map((resource, index) => (
                     <ResourceRow
                       key={resource.id}
@@ -391,7 +391,7 @@ export function AdminResources() {
       <Skeleton>
         <View className='gap-3'>
           {Array.from({length: 3}, (_, index) => (
-            <SkeletonBar key={index} className='h-20 w-full rounded-2xl' />
+            <SkeletonBar key={index} className='h-20 w-full rounded-card' />
           ))}
         </View>
       </Skeleton>

@@ -11,7 +11,7 @@ type FloatingLabelInputProps = ComponentProps<'input'> & {
 };
 
 const FIELD =
-  'peer h-13 w-full rounded-xs border bg-theme-surface pt-6.5 pb-1.5 pl-4 text-base text-theme-ink placeholder:text-transparent [&::-webkit-date-and-time-value]:text-left';
+  'peer h-13 w-full rounded-sm border bg-theme-surface pt-6.5 pb-1.5 pl-4 text-base text-theme-ink placeholder:text-transparent [&::-webkit-date-and-time-value]:text-left';
 
 // A long label is cut short rather than wrapped onto a second line, where
 // it would run into what is typed. Cutting it short clips to the line box,

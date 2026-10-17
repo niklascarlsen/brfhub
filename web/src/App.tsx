@@ -10,7 +10,7 @@ import {AccountGate} from '@/auth/account';
 import {SessionGate} from '@/auth/session';
 import {DialogProvider} from '@/components/Dialog';
 import {TabBar} from '@/components/TabBar';
-import {MEMBER_TABS} from '@/components/tabs';
+import {MEMBER_TABS, TAB_BAR_CLEARANCE} from '@/components/tabs';
 import {ConfigProvider} from '@/config';
 import {DesktopShell} from '@/desktop/DesktopShell';
 import {LocaleProvider} from '@/i18n/LocaleProvider';
@@ -87,7 +87,9 @@ function Shell() {
   }
 
   return (
-    <div className='flex h-dvh flex-col overflow-hidden bg-theme-bg pt-[env(safe-area-inset-top)]'>
+    <div
+      className={`relative flex h-dvh flex-col overflow-hidden bg-theme-bg pt-[env(safe-area-inset-top)] ${TAB_BAR_CLEARANCE}`}
+    >
       <main
         key={route}
         className='flex min-h-0 flex-1 flex-col overflow-hidden'

@@ -97,7 +97,7 @@ function KindRules({kind}: {kind: Kind}) {
   const sharedTimes = times.every((item) => item === times[0]);
 
   return (
-    <div className='flex flex-col gap-2.5 rounded-2xl border border-theme-line bg-theme-surface px-4.5 py-4'>
+    <div className='flex flex-col gap-2.5 rounded-card border border-theme-line bg-theme-surface px-4.5 py-4'>
       <h3 className='text-[15px] font-semibold tracking-tight text-theme-ink'>
         {joinNames(
           kind.resources.map((resource) => resource.name),
@@ -145,7 +145,7 @@ function HouseRules({text, className}: {text: string; className?: string}) {
       >
         {t.rules.heading}
       </h2>
-      <div className='rounded-2xl border border-theme-line bg-theme-surface px-4.5 py-1'>
+      <div className='rounded-card border border-theme-line bg-theme-surface px-4.5 py-1'>
         {rules.length > 1 ? (
           <ol className='divide-y divide-theme-line'>
             {rules.map((rule, index) => (
@@ -206,7 +206,7 @@ export function BookingRules({
           {Array.from({length: 3}, (_, index) => (
             <div
               key={index}
-              className='flex h-24 flex-col gap-3 rounded-2xl border border-theme-line bg-theme-surface px-4.5 py-4'
+              className='flex h-24 flex-col gap-3 rounded-card border border-theme-line bg-theme-surface px-4.5 py-4'
             >
               <SkeletonBar className='h-4 w-32' />
               <SkeletonBar className='h-3 w-48' />

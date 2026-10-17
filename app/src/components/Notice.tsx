@@ -1,7 +1,7 @@
 import {Icon} from '@/components/Icon';
 import {Pressable, Text, View} from 'react-native';
 
-import theme from '@/theme.json';
+import {theme} from '@/theme';
 
 type NoticeProps = {
   title?: string;

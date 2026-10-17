@@ -1,4 +1,4 @@
-const theme = require('./src/theme.json');
+const {radius, theme} = require('./src/theme.ts');
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -9,6 +9,9 @@ module.exports = {
       colors: {
         theme,
       },
+      borderRadius: Object.fromEntries(
+        Object.entries(radius).map(([name, px]) => [name, `${px}px`]),
+      ),
       fontFamily: {
         sans: ['Merriweather_400Regular'],
       },

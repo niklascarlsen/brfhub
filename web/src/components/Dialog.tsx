@@ -39,7 +39,7 @@ const CAPTION = 'text-[11px] font-bold tracking-[1px] uppercase';
 // A time given up is red and one gained green, so the two read apart at a
 // glance.
 const TONES = {
-  old: {card: 'bg-theme-danger/8', caption: 'text-theme-danger'},
+  old: {card: 'bg-theme-danger-tint', caption: 'text-theme-danger'},
   new: {card: 'bg-theme-mist', caption: 'text-theme-accent'},
   none: {card: 'bg-theme-sunk', caption: 'text-theme-muted'},
 };
@@ -154,7 +154,7 @@ export function DialogProvider({children}: {children: ReactNode}) {
         ]
           .filter(Boolean)
           .join(' ')}
-        className='m-auto focus-visible:outline-none w-[calc(100%-40px)] max-w-85 rounded-2xl border border-theme-line bg-theme-surface backdrop:bg-theme-ink/30'
+        className='m-auto focus-visible:outline-none w-[calc(100%-40px)] max-w-85 rounded-card border border-theme-line bg-theme-surface backdrop:bg-theme-scrim'
       >
         {request ? (
           <div className='p-5'>
@@ -198,7 +198,7 @@ export function DialogProvider({children}: {children: ReactNode}) {
                     type='button'
                     onClick={() => press(choice.onPress)}
                     aria-label={choice.time ? choice.label : undefined}
-                    className='flex min-h-12 items-center gap-3 rounded-xl border border-theme-edge bg-theme-surface px-4 py-2.5 text-left text-sm font-medium text-theme-ink transition-colors hover:border-theme-danger/40 hover:bg-theme-danger/5 active:opacity-70'
+                    className='flex min-h-12 items-center gap-3 rounded-xl border border-theme-edge bg-theme-surface px-4 py-2.5 text-left text-sm font-medium text-theme-ink transition-colors hover:border-theme-danger-line hover:bg-theme-danger-wash active:opacity-70'
                   >
                     <span className='min-w-0 flex-1'>
                       {choice.time ? (

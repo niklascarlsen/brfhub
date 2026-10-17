@@ -20,7 +20,7 @@ function QrCode({text, label}: {text: string; label: string}) {
       role='img'
       aria-label={label}
       shapeRendering='crispEdges'
-      className='h-55 w-55 self-center rounded-xl bg-white p-3'
+      className='h-55 w-55 self-center rounded-xl bg-theme-surface p-3'
     >
       {cells.flatMap((row, y) =>
         row.map((dark, x) =>

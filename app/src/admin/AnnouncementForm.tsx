@@ -22,7 +22,7 @@ import {FieldProblem} from '@/components/FieldProblem';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {Icon} from '@/components/Icon';
 import {useMessages} from '@/i18n/LocaleProvider';
-import theme from '@/theme.json';
+import {theme} from '@/theme';
 
 type AnnouncementFormProps = {
   initial: AnnouncementFields & {publishedOn: string};

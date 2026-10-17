@@ -104,7 +104,7 @@ function KindRules({kind}: {kind: Kind}) {
   const sharedTimes = times.every((item) => item === times[0]);
 
   return (
-    <View className='gap-2.5 rounded-2xl border border-theme-line bg-theme-surface px-[18px] py-4'>
+    <View className='gap-2.5 rounded-card border border-theme-line bg-theme-surface px-[18px] py-4'>
       <Text className='text-[15px] font-semibold tracking-tight text-theme-ink'>
         {joinNames(
           kind.resources.map((resource) => resource.name),
@@ -152,7 +152,7 @@ function HouseRules({text}: {text: string}) {
       >
         {t.rules.heading}
       </Text>
-      <View className='rounded-2xl border border-theme-line bg-theme-surface px-[18px] py-1'>
+      <View className='rounded-card border border-theme-line bg-theme-surface px-[18px] py-1'>
         {rules.length > 1 ? (
           rules.map((rule, index) => (
             <View
@@ -207,7 +207,7 @@ export function BookingRules() {
           {Array.from({length: 3}, (_, index) => (
             <View
               key={index}
-              className='h-24 gap-3 rounded-2xl border border-theme-line bg-theme-surface px-[18px] py-4'
+              className='h-24 gap-3 rounded-card border border-theme-line bg-theme-surface px-[18px] py-4'
             >
               <SkeletonBar className='h-4 w-32' />
               <SkeletonBar className='h-3 w-48' />

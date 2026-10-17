@@ -1,4 +1,4 @@
-/* Generated from app/src/theme.json by npm run generate. Do not edit by hand. */
+/* Generated from app/src/theme.ts by npm run generate. Do not edit by hand. */
 @theme {
   --color-theme-bg: #F7F5F1;
   --color-theme-surface: #FFFFFF;
@@ -11,10 +11,22 @@
   --color-theme-ink: #14130F;
   --color-theme-accent: #4E6553;
   --color-theme-mist: #ECF0EA;
+  --color-theme-mist-line: #D9E1D5;
   --color-theme-danger: #A8452F;
-  --color-theme-notice: #F4F6F6;
-  --color-theme-notice-line: #DDE3E4;
-  --color-theme-notice-ink: #55666B;
-  --color-theme-notice-under: #EFF2F2;
-  --color-theme-notice-back: #EAEEEF;
+  --color-theme-danger-tint: #A8452F14;
+  --color-theme-danger-wash: #A8452F0D;
+  --color-theme-danger-line: #A8452F66;
+  --color-theme-danger-badge: #A8452F1A;
+  --color-theme-scrim: #14130F4D;
+  --color-theme-bar-line: #14130F14;
+  --color-theme-bar-shadow: #14130F1F;
+  --color-theme-bar-surface: #FFFFFFFA;
+  --color-theme-bar-veil: #FFFFFF59;
+  --color-theme-bar-glass: #FFFFFFB8;
+  --color-theme-fade-clear: #F7F5F100;
+  --color-theme-fade-veil: #F7F5F166;
+  --color-theme-fade-mid: #F7F5F1D9;
+  --color-theme-fade-deep: #F7F5F1F2;
+  --radius-card: 20px;
+  --radius-card-inner: 14px;
 }

@@ -19,7 +19,7 @@ import {
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {useAdminActions} from '@/hooks/useAdminActions';
 import {useMessages} from '@/i18n/LocaleProvider';
-import theme from '@/theme.json';
+import {theme} from '@/theme';
 
 const EMPTY = {name: '', email: ''};
 
@@ -180,7 +180,7 @@ export function Admins({admins, onOpen, onChanged}: AdminsProps) {
 
   return (
     <View className='gap-4'>
-      <View className='overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
+      <View className='overflow-hidden rounded-card border border-theme-line bg-theme-surface'>
         {admins.map((admin, index) => (
           <AdminRow
             key={admin.id}
@@ -259,7 +259,7 @@ export function AdminDetail({admin, onChanged, onRemoved}: AdminDetailProps) {
       {admin.twoFactorEnabled ? (
         <View>
           <Text className={SECTION_LABEL}>{t.admin.actions}</Text>
-          <View className='overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
+          <View className='overflow-hidden rounded-card border border-theme-line bg-theme-surface'>
             <ActionRow
               label={t.admin.admins.resetTwoFactor}
               description={t.admin.admins.resetHint}

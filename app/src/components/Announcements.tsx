@@ -8,7 +8,7 @@ import {Icon} from '@/components/Icon';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useMessages} from '@/i18n/LocaleProvider';
 import {readDismissed, saveDismissed} from '@/lib/dismissed';
-import theme from '@/theme.json';
+import {theme} from '@/theme';
 
 function fetchAnnouncements() {
   return unwrap(api.GET('/announcements'));
@@ -27,13 +27,9 @@ function keyOf(announcement: Announcement): string {
   return `${announcement.id}:${announcement.updatedAt}`;
 }
 
-// How far each announcement waiting behind the shown one peeks out, and
-// its solid tone, a step darker the further back it is.
+// How far each announcement waiting behind the shown one peeks out. All of
+// them are mist with a mist-line outline, which tells each edge apart.
 const PEEK = {down: 8, inset: 14};
-const PEEK_TONE: Record<number, string> = {
-  1: 'bg-theme-notice-under',
-  2: 'bg-theme-notice-back',
-};
 
 // The megaphone and the day it went up, which sets a notice apart from the
 // rules around it. With more than one waiting, the banner also tells that
@@ -50,8 +46,8 @@ function NoticeDate({
 
   return (
     <View className='flex-row items-center gap-1.5'>
-      <Icon name='megaphone-outline' size={14} color={theme['notice-ink']} />
-      <Text className='text-xs font-semibold text-theme-notice-ink'>
+      <Icon name='megaphone-outline' size={14} color={theme.accent} />
+      <Text className='text-xs font-semibold text-theme-accent'>
         {waiting > 1 ? t.announcements.withPosition(day, 1, waiting) : day}
       </Text>
     </View>
@@ -99,7 +95,7 @@ export function AnnouncementBanner({className}: {className?: string}) {
           .map((depth) => (
             <View
               key={depth}
-              className={`absolute rounded-2xl border border-theme-notice-line ${PEEK_TONE[depth]}`}
+              className='absolute rounded-card border border-theme-mist-line bg-theme-mist'
               style={{
                 top: depth * PEEK.down,
                 bottom: (behind - depth) * PEEK.down,
@@ -110,7 +106,7 @@ export function AnnouncementBanner({className}: {className?: string}) {
           ))}
         <View
           accessibilityLabel={t.announcements.heading}
-          className='flex-row items-start gap-3 rounded-2xl border border-theme-notice-line bg-theme-notice px-[18px] py-3.5'
+          className='flex-row items-start gap-3 rounded-card border border-theme-mist-line bg-theme-mist px-[18px] py-3.5'
         >
           <View className='min-w-0 flex-1 gap-1'>
             <NoticeDate
@@ -161,7 +157,7 @@ export function AnnouncementList() {
         {announcements.map((announcement) => (
           <View
             key={announcement.id}
-            className='gap-1 rounded-2xl border border-theme-notice-line bg-theme-notice px-[18px] py-4'
+            className='gap-1 rounded-card border border-theme-mist-line bg-theme-mist px-[18px] py-4'
           >
             <NoticeDate publishedOn={announcement.publishedOn} />
             <Text className='text-[15px] font-semibold tracking-tight text-theme-ink'>

@@ -18,6 +18,28 @@
   );
 }
 
+/* The floating tab bar: frosted white glass over the page scrolling
+   beneath, outlined and lifted by its shadow so a white card passing under
+   it does not melt into it. The app's TabBar draws the same. */
+@utility glass {
+  background-color: var(--color-theme-bar-glass);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 0.5px solid var(--color-theme-bar-line);
+  box-shadow: 0 6px 24px var(--color-theme-bar-shadow);
+}
+
+/* The page fading into its background behind the tab bar, from its top
+   edge down, so what scrolls under is not read sharp through the glass. */
+@utility tab-bar-fade {
+  background-image: linear-gradient(
+    to bottom,
+    var(--color-theme-fade-clear),
+    var(--color-theme-fade-mid) 55%,
+    var(--color-theme-fade-deep)
+  );
+}
+
 @keyframes skeleton-pulse {
   0%,
   100% {
@@ -29,6 +51,17 @@
 }
 
 @layer base {
+  /* A number is typed, as in the app, without the browser's spin buttons. */
+  input[type='number'] {
+    appearance: textfield;
+  }
+
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    appearance: none;
+    margin: 0;
+  }
+
   html {
     background-color: var(--color-theme-bg);
     -webkit-font-smoothing: antialiased;
@@ -72,7 +105,7 @@
      inside it, rounded as the card is inside its border. */
   [data-input='keyboard'] .list-card :focus-visible {
     outline-offset: -3px;
-    border-radius: calc(var(--radius-2xl) - 1px);
+    border-radius: calc(var(--radius-card) - 1px);
   }
 
   [data-input='keyboard'] button[type='submit']:focus-visible,

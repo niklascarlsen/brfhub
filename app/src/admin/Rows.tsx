@@ -2,7 +2,7 @@ import {Icon} from '@/components/Icon';
 import type {ReactNode} from 'react';
 import {Pressable, Text, View} from 'react-native';
 
-import theme from '@/theme.json';
+import {theme} from '@/theme';
 
 // A fact on a detail page, its name to the left and its value to the right.
 export function DetailRow({
@@ -84,7 +84,7 @@ export function ActionRow({
 // A count of what needs doing, such as admins without two-step.
 export function Badge({children}: {children: string}) {
   return (
-    <View className='shrink-0 rounded-full bg-theme-danger/10 px-2 py-0.5'>
+    <View className='shrink-0 rounded-full bg-theme-danger-badge px-2 py-0.5'>
       <Text className='text-xs font-semibold text-theme-danger'>
         {children}
       </Text>

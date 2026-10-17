@@ -118,7 +118,7 @@ function DayPanelSkeleton() {
         {Array.from({length: 3}, (_, index) => (
           <div
             key={index}
-            className='flex flex-col gap-3 rounded-[18px] border border-theme-line bg-theme-surface px-4.5 py-4'
+            className='flex flex-col gap-3 rounded-card border border-theme-line bg-theme-surface px-4.5 py-4'
           >
             <SkeletonBar className='h-4 w-32' />
             <div className='flex gap-2'>
@@ -228,7 +228,7 @@ export function DayPanel({
             <section
               key={entry.resource.id}
               aria-label={entry.resource.name}
-              className='flex flex-col gap-3 rounded-[18px] border border-theme-line bg-theme-surface px-4.5 py-4'
+              className='flex flex-col gap-3 rounded-card border border-theme-line bg-theme-surface px-4.5 py-4'
             >
               <div className='flex flex-wrap items-center gap-2.5'>
                 <h3

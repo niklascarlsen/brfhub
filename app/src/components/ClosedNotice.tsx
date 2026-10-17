@@ -4,7 +4,7 @@ import {Text, View} from 'react-native';
 
 import {Icon} from '@/components/Icon';
 import {useMessages} from '@/i18n/LocaleProvider';
-import theme from '@/theme.json';
+import {theme} from '@/theme';
 
 // What a closed resource shows in place of its slots: that it cannot be
 // booked, and what the admin says about it.
@@ -13,7 +13,7 @@ export function ClosedNotice({resource}: {resource: Resource}) {
   const {title, message} = closedNotice(resource, t);
 
   return (
-    <View className='flex-row gap-3 rounded-2xl border border-theme-line bg-theme-sunk px-[18px] py-4'>
+    <View className='flex-row gap-3 rounded-card border border-theme-line bg-theme-sunk px-[18px] py-4'>
       <Icon
         name='lock-closed'
         size={16}

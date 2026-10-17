@@ -29,7 +29,7 @@ export function TimeSlotRow({
       onClick={onPress}
       disabled={locked}
       {...itemProps}
-      className={`flex h-16.5 w-full items-center justify-between rounded-2xl px-4.5 ${surface} ${
+      className={`flex h-16.5 w-full items-center justify-between rounded-card px-4.5 ${surface} ${
         locked
           ? ''
           : 'transition-colors hover:border-theme-accent active:opacity-80'
@@ -58,7 +58,7 @@ export function TimeSlotRow({
 
 function TimeSlotRowSkeleton() {
   return (
-    <div className='flex h-16.5 w-full items-center justify-between rounded-2xl border border-theme-line bg-theme-surface px-4.5'>
+    <div className='flex h-16.5 w-full items-center justify-between rounded-card border border-theme-line bg-theme-surface px-4.5'>
       <SkeletonBar className='h-3.5 w-27' />
       <SkeletonBar className='h-3 w-11' />
     </div>

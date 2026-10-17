@@ -11,7 +11,7 @@ export function ClosedNotice({resource}: {resource: Resource}) {
   const {title, message} = closedNotice(resource, t);
 
   return (
-    <div className='flex gap-3 rounded-2xl border border-theme-line bg-theme-sunk px-4.5 py-4'>
+    <div className='flex gap-3 rounded-card border border-theme-line bg-theme-sunk px-4.5 py-4'>
       <LockClosedIcon size={16} className='mt-0.5 shrink-0 text-theme-muted' />
       <div className='flex min-w-0 flex-col gap-1'>
         <p className='text-sm font-semibold text-theme-ink'>{title}</p>

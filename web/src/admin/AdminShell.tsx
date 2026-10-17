@@ -14,7 +14,7 @@ import {
   SettingsOutlineIcon,
 } from '@/components/icons';
 import {TabBar} from '@/components/TabBar';
-import type {Tab} from '@/components/tabs';
+import {TAB_BAR_CLEARANCE, type Tab} from '@/components/tabs';
 import {SHELL} from '@/desktop/layout';
 import {OrganizationMark} from '@/desktop/OrganizationMark';
 import {useMessages} from '@/i18n/LocaleProvider';
@@ -151,10 +151,12 @@ export function AdminShell({account, onRefresh}: AdminShellProps) {
   return (
     <AdminAccountContext.Provider value={{account, refresh: onRefresh}}>
       <UnsavedContext.Provider value={unsaved}>
-        <div className='flex h-dvh flex-col overflow-hidden bg-theme-bg pt-[env(safe-area-inset-top)]'>
+        <div
+          className={`relative flex h-dvh flex-col overflow-hidden bg-theme-bg pt-[env(safe-area-inset-top)] ${TAB_BAR_CLEARANCE}`}
+        >
           <main
             key={route}
-            className='min-h-0 flex-1 overflow-y-auto overscroll-y-contain'
+            className='min-h-0 flex-1 overflow-y-auto overscroll-y-contain pb-[var(--tab-bar-clearance,0px)]'
           >
             {page}
           </main>

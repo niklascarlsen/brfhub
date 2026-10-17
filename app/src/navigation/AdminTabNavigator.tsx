@@ -1,5 +1,6 @@
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {Icon} from '@/components/Icon';
+import {TabBar} from '@/components/TabBar';
 
 import {AdminAnnouncements} from '@/admin/AdminAnnouncements';
 import {AdminApartments} from '@/admin/AdminApartments';
@@ -21,7 +22,10 @@ export default function AdminTabNavigator() {
   const t = useMessages();
 
   return (
-    <Tab.Navigator screenOptions={TAB_SCREEN_OPTIONS}>
+    <Tab.Navigator
+      screenOptions={TAB_SCREEN_OPTIONS}
+      tabBar={(props) => <TabBar {...props} />}
+    >
       <Tab.Screen
         name='Apartments'
         component={AdminApartments}

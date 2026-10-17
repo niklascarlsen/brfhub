@@ -5,7 +5,7 @@ import {Icon} from '@/components/Icon';
 import {Pressable, Text, View} from 'react-native';
 
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
-import theme from '@/theme.json';
+import {theme} from '@/theme';
 
 type TimeSlotRowProps = {
   slot: Slot;
@@ -52,7 +52,7 @@ export function TimeSlotRow({slot, offer, onPress}: TimeSlotRowProps) {
     <Pressable
       onPress={onPress}
       disabled={locked}
-      className={`h-[66px] w-full flex-row items-center justify-between rounded-2xl px-[18px] ${surface} ${
+      className={`h-[66px] w-full flex-row items-center justify-between rounded-card px-[18px] ${surface} ${
         locked ? '' : 'active:opacity-80'
       }`}
     >
@@ -80,7 +80,7 @@ export function TimeSlotRow({slot, offer, onPress}: TimeSlotRowProps) {
 
 function TimeSlotRowSkeleton() {
   return (
-    <View className='h-[66px] w-full flex-row items-center justify-between rounded-2xl border border-theme-line bg-theme-surface px-[18px]'>
+    <View className='h-[66px] w-full flex-row items-center justify-between rounded-card border border-theme-line bg-theme-surface px-[18px]'>
       <SkeletonBar className='h-3.5 w-[108px]' />
       <SkeletonBar className='h-3 w-11' />
     </View>

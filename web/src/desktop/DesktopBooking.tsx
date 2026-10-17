@@ -81,7 +81,7 @@ function NextBooking({
     <button
       type='button'
       onClick={() => onSelectDate(booking.date)}
-      className='flex items-center gap-3.5 rounded-2xl bg-theme-mist py-3 pr-4.5 pl-3.5 text-left transition-opacity hover:opacity-85'
+      className='flex items-center gap-3.5 rounded-card bg-theme-mist py-3 pr-4.5 pl-3.5 text-left transition-opacity hover:opacity-85'
     >
       <span className='flex h-10 w-10 flex-col items-center justify-center rounded-xl bg-theme-surface leading-none'>
         <span className='text-[9px] font-bold text-theme-accent uppercase'>

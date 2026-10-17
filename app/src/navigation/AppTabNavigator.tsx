@@ -1,5 +1,6 @@
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {Icon} from '@/components/Icon';
+import {TabBar} from '@/components/TabBar';
 
 import {useMessages} from '@/i18n/LocaleProvider';
 import {ApartmentScreen} from '@/screens/ApartmentScreen';
@@ -19,7 +20,10 @@ export default function AppTabNavigator() {
   const t = useMessages();
 
   return (
-    <Tab.Navigator screenOptions={TAB_SCREEN_OPTIONS}>
+    <Tab.Navigator
+      screenOptions={TAB_SCREEN_OPTIONS}
+      tabBar={(props) => <TabBar {...props} />}
+    >
       <Tab.Screen
         name='Booking'
         component={BookingScreen}

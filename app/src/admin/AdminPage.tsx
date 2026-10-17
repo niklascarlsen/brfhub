@@ -12,8 +12,9 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 
 import {useConfirmLeave} from '@/admin/unsaved';
 import {NoticeBar} from '@/components/Notice';
+import {usePageEnd} from '@/components/TabBar';
 import {useMessages} from '@/i18n/LocaleProvider';
-import theme from '@/theme.json';
+import {theme} from '@/theme';
 
 // The focused field stays this far above the keyboard: clear of the
 // toolbar on it (42, which the library does not export) and a little more.
@@ -44,6 +45,7 @@ export function AdminPage({
   const {untranslated} = useAdminAccount();
   const confirmLeave = useConfirmLeave();
   const scroll = useRef<KeyboardAwareScrollViewRef>(null);
+  const pageEnd = usePageEnd();
   const missing = untranslatedMessage(untranslated, t);
 
   // A step to another page starts at its top.
@@ -57,7 +59,8 @@ export function AdminPage({
         ref={scroll}
         bottomOffset={KEYBOARD_GAP}
         className='flex-1'
-        contentContainerClassName='grow px-5 pb-8 pt-2'
+        contentContainerClassName='grow px-5 pt-2'
+        contentContainerStyle={{paddingBottom: pageEnd}}
         keyboardShouldPersistTaps='handled'
       >
         {back ? (
@@ -86,7 +89,11 @@ export function AdminPage({
         {action ? <View className='mb-6'>{action}</View> : null}
         {children}
       </KeyboardAwareScrollView>
-      <KeyboardToolbar doneText={t.common.ok} />
+      <KeyboardToolbar>
+        <KeyboardToolbar.Prev />
+        <KeyboardToolbar.Next />
+        <KeyboardToolbar.Done text={t.common.ok} />
+      </KeyboardToolbar>
     </SafeAreaView>
   );
 }

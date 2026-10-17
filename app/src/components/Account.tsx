@@ -6,7 +6,7 @@ import {authClient} from '@/auth/client';
 import {useDialog} from '@/components/Dialog';
 import {LanguagePicker} from '@/components/LanguagePicker';
 import {useMessages} from '@/i18n/LocaleProvider';
-import theme from '@/theme.json';
+import {theme} from '@/theme';
 
 type AccountProps = {
   // Completes the sign-out question, such as "lägenhet 12".
@@ -42,7 +42,7 @@ export function Account({
         <Text className='mb-2.5 ml-0.5 text-[11px] font-bold uppercase tracking-[1px] text-theme-muted'>
           {t.account.heading}
         </Text>
-        <View className='flex-row items-center gap-3.5 rounded-2xl border border-theme-line bg-theme-surface px-[18px] py-4'>
+        <View className='flex-row items-center gap-3.5 rounded-card border border-theme-line bg-theme-surface px-[18px] py-4'>
           <View className='min-w-0 flex-1 gap-1'>
             <Text className='text-sm font-semibold text-theme-muted'>
               {t.account.signedInAs}
@@ -66,7 +66,7 @@ export function Account({
         {switchTo ? (
           <Pressable
             onPress={switchTo.onPress}
-            className='mt-2.5 h-12 flex-row items-center justify-center gap-2 rounded-2xl border border-theme-line bg-theme-surface px-[18px] active:opacity-70'
+            className='mt-2.5 h-12 flex-row items-center justify-center gap-2 rounded-card border border-theme-line bg-theme-surface px-[18px] active:opacity-70'
           >
             <Text className='text-sm font-semibold tracking-tight text-theme-ink'>
               {switchTo.label}

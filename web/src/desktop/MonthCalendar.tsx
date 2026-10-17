@@ -65,7 +65,7 @@ export function MonthCalendar({
   });
 
   return (
-    <section className='rounded-[22px] border border-theme-line bg-theme-surface p-5'>
+    <section className='rounded-card border border-theme-line bg-theme-surface p-5'>
       <div className='mb-3.5 flex items-center justify-between gap-3'>
         <h2 className='text-[17px] font-semibold tracking-tight text-theme-ink'>
           {formatMonthSpan(bookingWindow.from, bookingWindow.to, t)}

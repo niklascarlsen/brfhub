@@ -102,7 +102,7 @@ export function History({events}: {events: AdminEvent[]}) {
             <Text accessibilityRole='header' className={SECTION_LABEL}>
               {day.heading}
             </Text>
-            <View className='overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
+            <View className='overflow-hidden rounded-card border border-theme-line bg-theme-surface'>
               {day.events.map((event, index) => (
                 <View
                   key={event.id}

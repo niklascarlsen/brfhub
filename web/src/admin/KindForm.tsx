@@ -80,7 +80,7 @@ export function KindForm({
           problem={problem(`name.${language}`)}
         />
       ))}
-      <div className='flex items-center justify-between gap-4 rounded-2xl border border-theme-line bg-theme-surface px-4.5 py-3'>
+      <div className='flex items-center justify-between gap-4 rounded-card border border-theme-line bg-theme-surface px-4.5 py-3'>
         <span className='flex flex-col gap-0.5'>
           <span className='text-[15px] font-semibold tracking-tight text-theme-ink'>
             {t.admin.kindForm.limit}

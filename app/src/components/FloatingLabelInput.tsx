@@ -11,7 +11,7 @@ import {
 
 import {FieldProblem} from '@/components/FieldProblem';
 import {useMessages} from '@/i18n/LocaleProvider';
-import theme from '@/theme.json';
+import {theme} from '@/theme';
 
 type FloatingLabelInputProps = TextInputProps & {
   label: string;

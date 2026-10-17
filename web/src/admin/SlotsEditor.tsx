@@ -24,7 +24,7 @@ export function SlotsEditor({slots, onChange}: SlotsEditorProps) {
       {slots.map((slot, index) => (
         <div
           key={index}
-          className='flex flex-col gap-3 rounded-2xl border border-theme-line bg-theme-surface px-3.5 py-3'
+          className='flex flex-col gap-3 rounded-card border border-theme-line bg-theme-surface px-3.5 py-3'
         >
           <div className='grid grid-cols-2 gap-2.5'>
             <FloatingLabelInput

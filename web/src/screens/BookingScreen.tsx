@@ -55,7 +55,15 @@ export function BookingScreen({
           onSelectDate={onSelectDate}
         />
       </div>
-      <div className='min-h-0 flex-1 overflow-y-auto overscroll-y-contain scroll-smooth [-webkit-overflow-scrolling:touch]'>
+      <div className='min-h-0 flex-1 overflow-y-auto overscroll-y-contain scroll-smooth pb-[var(--tab-bar-clearance,0px)] [-webkit-overflow-scrolling:touch]'>
+        {/* Fades the page softly under the fixed pickers, so what scrolls
+            up does not end on a hard edge. It takes no room and is shallower
+            than the page's top padding, so nothing at rest is faded. The
+            app does this with TopFade. */}
+        <div
+          aria-hidden
+          className='pointer-events-none sticky top-0 z-10 -mb-2 h-2 bg-linear-to-b from-theme-fade-veil to-theme-fade-clear'
+        />
         <div className='flex min-h-full w-full flex-col px-5 pb-8 pt-2'>
           <AnnouncementBanner className='mt-2 mb-4' />
           <h1 className='text-[27px] font-semibold tracking-tight text-theme-ink'>

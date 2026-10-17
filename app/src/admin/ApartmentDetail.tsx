@@ -59,7 +59,7 @@ export function ApartmentDetail({
       </View>
       <View>
         <Text className={SECTION_LABEL}>{t.admin.actions}</Text>
-        <View className='overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
+        <View className='overflow-hidden rounded-card border border-theme-line bg-theme-surface'>
           <ActionRow
             label={t.admin.editDetails}
             description={t.admin.apartment.editDetailsHint}

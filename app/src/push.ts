@@ -162,13 +162,13 @@ export function onNotificationTap(
 
   if (launch) {
     handler(targetOf(launch));
-    void Notifications.clearLastNotificationResponseAsync();
+    Notifications.clearLastNotificationResponse();
   }
 
   const subscription = Notifications.addNotificationResponseReceivedListener(
     (response) => {
       handler(targetOf(response));
-      void Notifications.clearLastNotificationResponseAsync();
+      Notifications.clearLastNotificationResponse();
     },
   );
 

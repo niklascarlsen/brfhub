@@ -12,6 +12,8 @@ import {AnnouncementBanner} from '@/components/Announcements';
 import {BookingHeader} from '@/components/BookingHeader';
 import {ClosedNotice} from '@/components/ClosedNotice';
 import {SlotList} from '@/components/SlotList';
+import {usePageEnd} from '@/components/TabBar';
+import {TopFade} from '@/components/TopFade';
 import {useBookingActions} from '@/hooks/useBookingActions';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useMessages} from '@/i18n/LocaleProvider';
@@ -24,6 +26,7 @@ function fetchDay(isoDate: string, resourceId: string) {
 }
 
 export function BookingScreen() {
+  const pageEnd = usePageEnd();
   const {window, resources} = useConfig();
   const t = useMessages();
   const route = useRoute<RouteProp<AppTabParamList, 'Booking'>>();
@@ -63,42 +66,45 @@ export function BookingScreen() {
         isoDate={date}
         onSelectDate={setChosen}
       />
-      <ScrollView
-        className='w-full flex-1'
-        contentContainerClassName='w-full grow px-5 pb-8 pt-4'
-      >
-        <AnnouncementBanner className='mb-4' />
-        <Text className='text-[27px] font-semibold tracking-tight text-theme-ink'>
-          {formatDayHeading(date, t)}
-        </Text>
-        {resource.tags.length > 0 ? (
-          <View className='mt-2 mb-1 flex-row flex-wrap gap-[6px]'>
-            {resource.tags.map((tag) => (
-              <View
-                key={tag}
-                className='self-start rounded-full bg-theme-mist px-[9px] py-1'
-              >
-                <Text className='text-[10px] font-bold uppercase tracking-[0.5px] text-theme-accent'>
-                  {tag}
-                </Text>
-              </View>
-            ))}
+      <TopFade>
+        <ScrollView
+          className='w-full flex-1'
+          contentContainerClassName='w-full grow px-5 pt-4'
+          contentContainerStyle={{paddingBottom: pageEnd}}
+        >
+          <AnnouncementBanner className='mb-4' />
+          <Text className='text-[27px] font-semibold tracking-tight text-theme-ink'>
+            {formatDayHeading(date, t)}
+          </Text>
+          {resource.tags.length > 0 ? (
+            <View className='mt-2 mb-1 flex-row flex-wrap gap-[6px]'>
+              {resource.tags.map((tag) => (
+                <View
+                  key={tag}
+                  className='self-start rounded-full bg-theme-mist px-[9px] py-1'
+                >
+                  <Text className='text-[10px] font-bold uppercase tracking-[0.5px] text-theme-accent'>
+                    {tag}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
+          <View className='mt-5 grow'>
+            {resource.closed ? (
+              <ClosedNotice resource={resource} />
+            ) : (
+              <SlotList
+                day={day}
+                resource={resource}
+                error={error}
+                onRetry={reload}
+                onSelect={confirm}
+              />
+            )}
           </View>
-        ) : null}
-        <View className='mt-5 grow'>
-          {resource.closed ? (
-            <ClosedNotice resource={resource} />
-          ) : (
-            <SlotList
-              day={day}
-              resource={resource}
-              error={error}
-              onRetry={reload}
-              onSelect={confirm}
-            />
-          )}
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </TopFade>
     </SafeAreaView>
   );
 }

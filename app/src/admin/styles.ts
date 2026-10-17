@@ -21,4 +21,4 @@ export const SECTION_LABEL =
   'mb-2.5 ml-0.5 text-[11px] font-bold uppercase tracking-[1px] text-theme-muted';
 
 export const CARD =
-  'rounded-2xl border border-theme-line bg-theme-surface px-[18px] py-4';
+  'rounded-card border border-theme-line bg-theme-surface px-[18px] py-4';

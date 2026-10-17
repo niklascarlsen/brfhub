@@ -12,19 +12,22 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {api, unwrap} from '@/api/client';
 import {Notice, NoticeBar} from '@/components/Notice';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';
+import {usePageEnd} from '@/components/TabBar';
 import {TimeCard, TimeCardSkeleton} from '@/components/TimeCard';
 import {useBookingActions} from '@/hooks/useBookingActions';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useMessages} from '@/i18n/LocaleProvider';
 
 function TimesPage({children}: {children: ReactNode}) {
+  const pageEnd = usePageEnd();
   const t = useMessages();
 
   return (
     <SafeAreaView className='flex-1 bg-theme-bg' edges={['top']}>
       <ScrollView
         className='flex-1'
-        contentContainerClassName='grow px-5 pb-8 pt-2'
+        contentContainerClassName='grow px-5 pt-2'
+        contentContainerStyle={{paddingBottom: pageEnd}}
       >
         <Text className='mb-6 text-[27px] font-semibold tracking-tight text-theme-ink'>
           {t.tabs.myTimes}

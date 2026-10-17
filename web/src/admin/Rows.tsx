@@ -59,7 +59,7 @@ export function ActionRow({
 // A count of what needs doing, such as admins without two-step.
 export function Badge({children}: {children: string}) {
   return (
-    <span className='shrink-0 rounded-full bg-theme-danger/10 px-2 py-0.5 text-xs font-semibold text-theme-danger'>
+    <span className='shrink-0 rounded-full bg-theme-danger-badge px-2 py-0.5 text-xs font-semibold text-theme-danger'>
       {children}
     </span>
   );

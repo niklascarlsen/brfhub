@@ -19,7 +19,7 @@ import {Modal, Platform, Pressable, Text, View} from 'react-native';
 import {Icon} from '@/components/Icon';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {useMessages} from '@/i18n/LocaleProvider';
-import theme from '@/theme.json';
+import {theme} from '@/theme';
 
 type ChangeDayProps = {
   kind: ChangeKind;
@@ -103,12 +103,12 @@ export function ChangeDay({
               onRequestClose={() => setOpen(false)}
             >
               <Pressable
-                className='flex-1 items-center justify-center bg-theme-ink/30 px-5'
+                className='flex-1 items-center justify-center bg-theme-scrim px-5'
                 onPress={() => setOpen(false)}
                 accessible={false}
               >
                 <Pressable
-                  className='w-full max-w-[360px] rounded-2xl border border-theme-line bg-theme-surface p-3'
+                  className='w-full max-w-[360px] rounded-card border border-theme-line bg-theme-surface p-3'
                   accessibilityViewIsModal
                 >
                   <DateTimePicker

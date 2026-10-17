@@ -375,7 +375,7 @@ export function AdminResources() {
       <Skeleton>
         <div className='flex flex-col gap-3'>
           {Array.from({length: 3}, (_, index) => (
-            <SkeletonBar key={index} className='h-20 w-full rounded-2xl' />
+            <SkeletonBar key={index} className='h-20 w-full rounded-card' />
           ))}
         </div>
       </Skeleton>

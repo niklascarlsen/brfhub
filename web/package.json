@@ -9,7 +9,7 @@
     "prebuild": "npm run generate",
     "build": "npm run typecheck && vite build",
     "preview": "vite preview",
-    "generate": "node scripts/generate-theme.mjs && node scripts/generate-icons.mjs",
+    "generate": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/generate-theme.mjs && node scripts/generate-icons.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write .",

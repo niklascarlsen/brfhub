@@ -17,7 +17,7 @@ import {Skeleton, SkeletonBar} from '@/components/Skeleton';
 import {adminLoad, useAdminActions} from '@/hooks/useAdminActions';
 import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useMessages} from '@/i18n/LocaleProvider';
-import theme from '@/theme.json';
+import {theme} from '@/theme';
 
 function matches(apartment: Apartment, query: string): boolean {
   const needle = query.trim().toLowerCase();
@@ -213,7 +213,7 @@ export function AdminApartments() {
               {t.admin.apartments.noMatch}
             </Text>
           ) : (
-            <View className='overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
+            <View className='overflow-hidden rounded-card border border-theme-line bg-theme-surface'>
               {shown.map((apartment, index) => (
                 <ApartmentRow
                   key={apartment.id}
@@ -241,7 +241,7 @@ export function AdminApartments() {
       <Skeleton>
         <View className='gap-3'>
           {Array.from({length: 4}, (_, index) => (
-            <SkeletonBar key={index} className='h-16 w-full rounded-2xl' />
+            <SkeletonBar key={index} className='h-16 w-full rounded-card' />
           ))}
         </View>
       </Skeleton>

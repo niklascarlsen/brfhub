@@ -33,7 +33,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import {Icon} from '@/components/Icon';
 import {useMessages} from '@/i18n/LocaleProvider';
-import theme from '@/theme.json';
+import {theme} from '@/theme';
 
 type DialogRequest = {
   key: number;
@@ -125,7 +125,7 @@ const CAPTION = 'text-[11px] font-bold uppercase tracking-[1px]';
 // A time given up is red and one gained green, so the two read apart at a
 // glance.
 const TONES = {
-  old: {card: 'bg-theme-danger/[0.08]', caption: 'text-theme-danger'},
+  old: {card: 'bg-theme-danger-tint', caption: 'text-theme-danger'},
   new: {card: 'bg-theme-mist', caption: 'text-theme-accent'},
   none: {card: 'bg-theme-sunk', caption: 'text-theme-muted'},
 };
@@ -301,7 +301,7 @@ export function DialogProvider({children}: {children: ReactNode}) {
             importantForAccessibility='no'
           >
             <Animated.View
-              className='flex-1 bg-theme-ink/30'
+              className='flex-1 bg-theme-scrim'
               style={{opacity: progress}}
             />
           </Pressable>
@@ -326,7 +326,7 @@ export function DialogProvider({children}: {children: ReactNode}) {
                     ],
               }}
             >
-              <View className='shrink overflow-hidden rounded-2xl border border-theme-line bg-theme-surface'>
+              <View className='shrink overflow-hidden rounded-card border border-theme-line bg-theme-surface'>
                 <ScrollView bounces={false} contentContainerClassName='p-5'>
                   <View
                     ref={titleRef}
@@ -369,7 +369,7 @@ export function DialogProvider({children}: {children: ReactNode}) {
                           accessibilityRole='button'
                           accessibilityLabel={choice.label}
                           onPress={() => press(choice.onPress)}
-                          className='min-h-12 flex-row items-center gap-3 rounded-xl border border-theme-edge bg-theme-surface px-4 py-2.5 active:bg-theme-danger/5'
+                          className='min-h-12 flex-row items-center gap-3 rounded-xl border border-theme-edge bg-theme-surface px-4 py-2.5 active:bg-theme-danger-wash'
                         >
                           <View className='min-w-0 flex-1'>
                             {choice.time ? (

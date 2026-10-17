@@ -41,7 +41,7 @@ export function Account({
         <p className='mb-2.5 ml-0.5 text-[11px] font-bold uppercase tracking-[1px] text-theme-muted'>
           {t.account.heading}
         </p>
-        <div className='flex items-center gap-3.5 rounded-2xl border border-theme-line bg-theme-surface px-4.5 py-4'>
+        <div className='flex items-center gap-3.5 rounded-card border border-theme-line bg-theme-surface px-4.5 py-4'>
           <div className='flex min-w-0 flex-1 flex-col gap-1'>
             <span className='text-sm font-semibold text-theme-muted'>
               {t.account.signedInAs}
@@ -61,7 +61,7 @@ export function Account({
         {switchTo ? (
           <a
             {...linkProps(switchTo.route, switchTo.onPress)}
-            className='mt-2.5 flex h-12 items-center justify-center gap-2 rounded-2xl border border-theme-line bg-theme-surface px-4.5 text-sm font-semibold tracking-tight text-theme-ink transition-colors hover:bg-theme-sunk active:opacity-70'
+            className='mt-2.5 flex h-12 items-center justify-center gap-2 rounded-card border border-theme-line bg-theme-surface px-4.5 text-sm font-semibold tracking-tight text-theme-ink transition-colors hover:bg-theme-sunk active:opacity-70'
           >
             {switchTo.label}
             <ChevronForwardIcon size={16} className='text-theme-faint' />

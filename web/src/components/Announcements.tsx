@@ -25,13 +25,9 @@ function keyOf(announcement: Announcement): string {
   return `${announcement.id}:${announcement.updatedAt}`;
 }
 
-// How far each announcement waiting behind the shown one peeks out, and
-// its solid tone, a step darker the further back it is.
+// How far each announcement waiting behind the shown one peeks out. All of
+// them are mist with a mist-line outline, which tells each edge apart.
 const PEEK = {down: 8, inset: 14};
-const PEEK_TONE: Record<number, string> = {
-  1: 'bg-theme-notice-under',
-  2: 'bg-theme-notice-back',
-};
 
 // The megaphone and the day it went up, which sets a notice apart from the
 // rules around it. With more than one waiting, the banner also tells that
@@ -47,7 +43,7 @@ function NoticeDate({
   const day = formatDayMonth(publishedOn, t);
 
   return (
-    <span className='flex items-center gap-1.5 text-xs font-semibold text-theme-notice-ink tabular-nums'>
+    <span className='flex items-center gap-1.5 text-xs font-semibold text-theme-accent tabular-nums'>
       <MegaphoneOutlineIcon size={14} />
       {waiting > 1 ? t.announcements.withPosition(day, 1, waiting) : day}
     </span>
@@ -96,7 +92,7 @@ export function AnnouncementBanner({className}: {className?: string}) {
             <div
               key={depth}
               aria-hidden
-              className={`absolute rounded-2xl border border-theme-notice-line ${PEEK_TONE[depth]}`}
+              className='absolute rounded-card border border-theme-mist-line bg-theme-mist'
               style={{
                 top: depth * PEEK.down,
                 bottom: (behind - depth) * PEEK.down,
@@ -107,7 +103,7 @@ export function AnnouncementBanner({className}: {className?: string}) {
           ))}
         <section
           aria-label={t.announcements.heading}
-          className='relative flex items-start gap-3 rounded-2xl border border-theme-notice-line bg-theme-notice px-4.5 py-3.5'
+          className='relative flex items-start gap-3 rounded-card border border-theme-mist-line bg-theme-mist px-4.5 py-3.5'
         >
           <div className='flex min-w-0 flex-1 flex-col gap-1'>
             <NoticeDate
@@ -156,7 +152,7 @@ export function AnnouncementList() {
         {announcements.map((announcement) => (
           <article
             key={announcement.id}
-            className='flex flex-col gap-1 rounded-2xl border border-theme-notice-line bg-theme-notice px-4.5 py-4'
+            className='flex flex-col gap-1 rounded-card border border-theme-mist-line bg-theme-mist px-4.5 py-4'
           >
             <NoticeDate publishedOn={announcement.publishedOn} />
             <h3 className='text-[15px] font-semibold tracking-tight wrap-break-word text-theme-ink'>

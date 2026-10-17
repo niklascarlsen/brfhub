@@ -20,7 +20,7 @@ type TimeCardProps = {
   onSecondary?: () => void;
 };
 
-const SHELL = 'flex items-center rounded-2xl border border-theme-line';
+const SHELL = 'flex items-center rounded-card border border-theme-line';
 
 function BadgeChip({badge}: {badge: Badge}) {
   return (

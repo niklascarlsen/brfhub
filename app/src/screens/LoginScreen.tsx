@@ -12,7 +12,7 @@ import {authClient} from '@/auth/client';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {useMessages} from '@/i18n/LocaleProvider';
 import {DEV_EMAIL, DEV_PASSWORD, devCode} from '@/lib/devCodes';
-import theme from '@/theme.json';
+import {theme} from '@/theme';
 
 const BUTTON =
   'h-14 items-center justify-center rounded-sm bg-theme-ink active:opacity-70 disabled:opacity-50';
@@ -288,7 +288,11 @@ export function LoginScreen() {
             jump ahead of the rest onto the title. */}
         <View key={step.kind}>{body}</View>
       </KeyboardAvoidingView>
-      <KeyboardToolbar doneText={t.common.ok} />
+      <KeyboardToolbar>
+        <KeyboardToolbar.Prev />
+        <KeyboardToolbar.Next />
+        <KeyboardToolbar.Done text={t.common.ok} />
+      </KeyboardToolbar>
     </SafeAreaView>
   );
 }

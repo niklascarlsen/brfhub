@@ -94,7 +94,7 @@ export function KindForm({
           autoCapitalize='sentences'
         />
       ))}
-      <View className='flex-row items-center justify-between gap-4 rounded-2xl border border-theme-line bg-theme-surface px-[18px] py-3'>
+      <View className='flex-row items-center justify-between gap-4 rounded-card border border-theme-line bg-theme-surface px-[18px] py-3'>
         <View className='min-w-0 flex-1 gap-0.5'>
           <Text className='text-[15px] font-semibold tracking-tight text-theme-ink'>
             {t.admin.kindForm.limit}
