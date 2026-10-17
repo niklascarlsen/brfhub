@@ -25,6 +25,7 @@ import {
   codeOf,
   codeSentTo,
   cookieFrom,
+  forgetCodeRequests,
   memoryMail,
   memoryPush,
   ORIGIN,
@@ -266,13 +267,15 @@ test('a resident made admin keeps the apartment and signs in with a password onc
   assert.deepEqual(method.json(), {method: 'set-password'});
 
   // The code no longer signs the apartment in, nor is one mailed.
+  await forgetCodeRequests(emailOf('2'));
   const before = mail.sent.length;
-  await server.inject({
+  const asked = await server.inject({
     method: 'POST',
     url: '/auth/email-otp/send-verification-otp',
     headers: {origin: ORIGIN},
     payload: {email: emailOf('2'), type: 'sign-in'},
   });
+  assert.equal(asked.statusCode, 200);
   assert.equal(mail.sent.length, before);
   const byCode = await server.inject({
     method: 'POST',

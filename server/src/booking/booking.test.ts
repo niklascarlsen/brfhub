@@ -25,6 +25,7 @@ import {listSubscribers} from '../subscription/subscription.query.js';
 import {
   assertTestDatabase,
   codeOf,
+  forgetCodeRequests,
   memoryMail,
   memoryPush,
   ORIGIN,
@@ -1149,12 +1150,14 @@ test('releasing a started laundry booking still blocks the other laundry room', 
 });
 
 test('rejects a wrong code, a wrong password and a forged cookie', async () => {
-  await server.inject({
+  await forgetCodeRequests(emailOf(TENANT));
+  const sent = await server.inject({
     method: 'POST',
     url: '/auth/email-otp/send-verification-otp',
     headers: {origin: ORIGIN},
     payload: {email: emailOf(TENANT), type: 'sign-in'},
   });
+  assert.equal(sent.statusCode, 200);
   const wrongCode = await server.inject({
     method: 'POST',
     url: '/auth/sign-in/email-otp',

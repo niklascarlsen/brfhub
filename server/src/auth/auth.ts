@@ -14,6 +14,7 @@ import {db} from '../db/index.js';
 import * as schema from '../db/schema.js';
 import {devSignIn, production, WEB_ORIGIN} from '../lib/env.js';
 import {sendSignInCode} from '../mail/mail.service.js';
+import {codeWait, countCode} from './codeRequests.js';
 import {
   adminSessionExpired,
   forgetTrustedDevices,
@@ -49,15 +50,19 @@ function trustedOrigins(request?: Request): string[] {
   ];
 }
 
-// Whether the address belongs to an admin, who signs in with a password
-// and never with a code.
-async function isAdmin(email: string): Promise<boolean> {
+// The account the address belongs to, if any, and whether it is an
+// admin's, who signs in with a password and never with a code.
+async function accountOf(email: string) {
   const [account] = await db
     .select({admin: schema.user.admin})
     .from(schema.user)
     .where(eq(schema.user.email, email.toLowerCase()));
 
-  return account?.admin === true;
+  return account;
+}
+
+async function isAdmin(email: string): Promise<boolean> {
+  return (await accountOf(email))?.admin === true;
 }
 
 type HookContext = Parameters<Parameters<typeof createAuthMiddleware>[0]>[0];
@@ -97,6 +102,19 @@ const REFUSED_ROUTES = new Set([
   '/two-factor/generate-backup-codes',
   '/update-user',
 ]);
+
+// The routes that mail a code, to sign in or to set the password, the
+// last Better Auth's older name for the one before.
+const CODE_ROUTES = new Set([
+  '/email-otp/send-verification-otp',
+  '/email-otp/request-password-reset',
+  '/forget-password/email-otp',
+]);
+
+// The client asking, as auth.route.ts hands it over from Fastify.
+function clientOf(ctx?: {headers?: Headers}): string {
+  return ctx?.headers?.get('x-forwarded-for') ?? 'unknown';
+}
 
 // The routes a sign-in goes through, on which a stale session cookie left
 // on the device is not what is being asked about.
@@ -219,6 +237,30 @@ export const auth = betterAuth({
           code: 'INVALID_OTP',
         });
       }
+
+      // Told how long to wait, which the login screen counts down: a
+      // moment after the last code, which still holds, or the client's
+      // hour used up.
+      const wait = CODE_ROUTES.has(ctx.path)
+        ? await codeWait(email, clientOf(ctx))
+        : null;
+      if (wait !== null) {
+        throw new APIError(
+          'TOO_MANY_REQUESTS',
+          wait.reason === 'recent'
+            ? {
+                message: 'A code was sent a moment ago',
+                code: 'CODE_RECENTLY_SENT',
+                retryAfter: wait.seconds,
+              }
+            : {
+                message: 'Too many codes asked for this hour',
+                code: 'TOO_MANY_CODES',
+                retryAfter: wait.seconds,
+              },
+          {'Retry-After': String(wait.seconds)},
+        );
+      }
     }),
     // Signing out also stops trusting the device: whoever signs in on it
     // next gives the authenticator's code, as on a shared computer. A new
@@ -232,6 +274,19 @@ export const auth = betterAuth({
 
       if (ctx.path === '/sign-out') {
         await forgetThisDevice(ctx);
+      }
+
+      // A code is counted once it is mailed, in sendVerificationOTP, or
+      // here once answered for an address with nobody to mail it to. So a
+      // refused request or a failed mail is not, and can be sent again at
+      // once.
+      const email = ctx.body?.email;
+      if (
+        CODE_ROUTES.has(ctx.path) &&
+        typeof email === 'string' &&
+        !(await accountOf(email))
+      ) {
+        await countCode(email, clientOf(ctx));
       }
 
       if (ctx.path === '/change-password') {
@@ -256,7 +311,11 @@ export const auth = betterAuth({
       // account: there is nobody to make one for.
       disableSignUp: true,
       expiresIn: CODE_EXPIRES_IN_SECONDS,
-      storeOTP: 'hashed',
+      // Asked again while it holds, the same code is mailed and holds
+      // anew, so codes asked for someone else never undo the one they
+      // have. It is therefore kept encrypted rather than hashed.
+      storeOTP: 'encrypted',
+      resendStrategy: 'reuse',
       ...(devSignIn ? {generateOTP: () => DEV_CODE} : {}),
       async sendVerificationOTP({email, otp, type}, ctx) {
         if (type !== 'sign-in' && type !== 'forget-password') {
@@ -267,6 +326,7 @@ export const auth = betterAuth({
         // admin. Any other address is answered like them and mailed
         // nothing.
         if ((await isAdmin(email)) !== (type === 'forget-password')) {
+          await countCode(email, clientOf(ctx));
           return;
         }
 
@@ -277,6 +337,7 @@ export const auth = betterAuth({
           ctx?.headers?.get('accept-language') ?? undefined,
           type === 'sign-in' ? 'sign-in' : 'password',
         );
+        await countCode(email, clientOf(ctx));
       },
     }),
     // The admin's second step. The authenticator's secret and the backup

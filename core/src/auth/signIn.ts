@@ -11,12 +11,14 @@ import {
 } from '../admin/useProblems';
 import type {Api} from '../api/createApi';
 import {codeOf, errorMessage} from '../api/errors';
+import {limits} from '../generated/limits';
 import type {Messages} from '../i18n/catalog';
-import {ask, type AuthClient} from './authClient';
+import {ask, type AuthClient, type Outcome} from './authClient';
 import {
   codeFailure,
   credentialsFailure,
   isStaleChallenge,
+  recentlySent,
   resetFailure,
   totpFailure,
 } from './failures';
@@ -56,6 +58,9 @@ export type SignInState = {
   error: string | null;
   notice: string | null;
   submitting: boolean;
+  // When the server mails the code step or the reset step a new code,
+  // in milliseconds since the epoch: the last one went out moments ago.
+  resendAt: number | null;
 };
 
 export type SignInOptions = Api & {
@@ -84,7 +89,15 @@ export function initialSignIn(prefill: {
     error: null,
     notice: null,
     submitting: false,
+    resendAt: null,
   };
+}
+
+// The whole seconds until a new code may be asked for, none once it may.
+export function secondsToResend({resendAt}: SignInState, now: number) {
+  return resendAt === null
+    ? 0
+    : Math.max(0, Math.ceil((resendAt - now) / 1000));
 }
 
 // The reset step always sends, and shows what is wrong instead when
@@ -156,28 +169,65 @@ export function createSignIn(
     set({submitting: false});
   }
 
-  async function sendCode(email: string): Promise<boolean> {
-    const {auth, t} = options();
-    const outcome = await ask(
-      auth.emailOtp.sendVerificationOtp({email, type: 'sign-in'}),
-    );
+  // Asks the server to mail a code: sent now, or waiting because one went
+  // out moments ago and still holds, which is no failure; either way the
+  // countdown to the next starts. False when it failed, and says why; with
+  // the hour's codes used up, the countdown runs to the hour's end.
+  async function mailCode(
+    request: Promise<Outcome<unknown>>,
+  ): Promise<'sent' | 'waiting' | false> {
+    const outcome = await request;
 
-    if (!outcome.ok) {
-      set({error: codeFailure(outcome.failure, t)});
+    if (outcome.ok) {
+      set({resendAt: Date.now() + limits.MailedCode.resendSeconds * 1000});
+      return 'sent';
     }
 
-    return outcome.ok;
+    const wait = recentlySent(outcome.failure);
+    if (wait !== null) {
+      set({resendAt: Date.now() + wait * 1000});
+      return 'waiting';
+    }
+
+    const retryAfter = outcome.failure?.retryAfter;
+    set({
+      error: codeFailure(outcome.failure, options().t),
+      ...(retryAfter === undefined
+        ? {}
+        : {resendAt: Date.now() + retryAfter * 1000}),
+    });
+    return false;
+  }
+
+  function sendCode(email: string) {
+    const {auth} = options();
+    return mailCode(
+      ask(auth.emailOtp.sendVerificationOtp({email, type: 'sign-in'})),
+    );
   }
 
   // An admin sets or resets the password with a code mailed to them. A
   // new admin is sent here from the address, one who forgot the password
-  // from the password step.
+  // from the password step. Asked again from the reset step, only the code
+  // is new: the password typed so far stays.
   async function beginReset(email: string) {
     const {auth, t, devCode} = options();
-    const outcome = await ask(auth.emailOtp.requestPasswordReset({email}));
+    const mailed = await mailCode(
+      ask(auth.emailOtp.requestPasswordReset({email})),
+    );
 
-    if (!outcome.ok) {
-      set({error: codeFailure(outcome.failure, t)});
+    if (!mailed) {
+      return;
+    }
+
+    if (state.step.kind === 'reset') {
+      if (mailed === 'sent') {
+        const code = await devCode(email, 'mailed');
+        set({
+          fields: {...state.fields, reset: {...state.fields.reset, code}},
+          notice: t.login.codeSent,
+        });
+      }
       return;
     }
 
@@ -335,17 +385,23 @@ export function createSignIn(
       }
     },
 
-    // A new code for the mailed step.
+    // A new code for the mailed step, once the last is half a minute old.
+    // Told to wait, the code typed so far stays and the countdown with it.
     async resendCode() {
       const {step} = state;
-      if (step.kind !== 'code' || state.submitting) {
+      if (
+        step.kind !== 'code' ||
+        state.submitting ||
+        secondsToResend(state, Date.now()) > 0
+      ) {
         return;
       }
 
       await run(async () => {
-        if (await sendCode(step.email)) {
-          setFields({code: ''});
-          set({notice: options().t.login.codeSent});
+        if ((await sendCode(step.email)) === 'sent') {
+          const {t, devCode} = options();
+          setFields({code: await devCode(step.email, 'mailed')});
+          set({notice: t.login.codeSent});
         }
       });
     },
@@ -354,7 +410,11 @@ export function createSignIn(
     // again from the reset step for a new code.
     async startReset() {
       const {step} = state;
-      if (step.kind === 'email' || state.submitting) {
+      if (
+        step.kind === 'email' ||
+        state.submitting ||
+        (step.kind === 'reset' && secondsToResend(state, Date.now()) > 0)
+      ) {
         return;
       }
 

@@ -20,6 +20,8 @@ const BUTTON_LABEL =
   'text-base font-semibold tracking-tight text-theme-surface';
 const LINK = 'self-start py-2 active:opacity-60';
 const LINK_LABEL = 'text-sm font-semibold text-theme-accent';
+// A link counting down until it can be pressed.
+const LINK_WAITING = 'text-sm font-semibold text-theme-muted';
 
 // The house and the name on one line, the name's capitals inside the
 // house's wall: about 3px above its floor and below the eaves. The house is
@@ -49,8 +51,21 @@ export function LoginScreen() {
     devCode,
     prefill: {email: DEV_EMAIL, password: DEV_PASSWORD},
   });
-  const {step, fields, error, notice, submitting, canSubmit} = signIn;
+  const {step, fields, error, notice, submitting, canSubmit, resendIn} = signIn;
   const submit = () => void signIn.submit();
+
+  // A new mailed code, counted down from the last.
+  const newCode = (onPress: () => void) => (
+    <Pressable
+      onPress={onPress}
+      disabled={submitting || resendIn > 0}
+      className={LINK}
+    >
+      <Text className={resendIn > 0 ? LINK_WAITING : LINK_LABEL}>
+        {resendIn > 0 ? t.login.sendNewCodeIn(resendIn) : t.login.sendNewCode}
+      </Text>
+    </Pressable>
+  );
 
   const problem = error ? (
     <Text
@@ -118,16 +133,10 @@ export function LoginScreen() {
           <Text className={BUTTON_LABEL}>{t.login.submit}</Text>
         </Pressable>
         <View className='mt-3 flex-row gap-6'>
-          <Pressable
-            onPress={() => void signIn.resendCode()}
-            disabled={submitting}
-            className={LINK}
-          >
-            <Text className={LINK_LABEL}>{t.login.sendNewCode}</Text>
-          </Pressable>
           <Pressable onPress={signIn.backToEmail} className={LINK}>
             <Text className={LINK_LABEL}>{t.login.changeEmail}</Text>
           </Pressable>
+          {newCode(() => void signIn.resendCode())}
         </View>
       </>
     );
@@ -157,15 +166,15 @@ export function LoginScreen() {
           <Text className={BUTTON_LABEL}>{t.login.submit}</Text>
         </Pressable>
         <View className='mt-3 flex-row flex-wrap gap-x-6'>
+          <Pressable onPress={signIn.backToEmail} className={LINK}>
+            <Text className={LINK_LABEL}>{t.login.changeEmail}</Text>
+          </Pressable>
           <Pressable
             onPress={() => void signIn.startReset()}
             disabled={submitting}
             className={LINK}
           >
             <Text className={LINK_LABEL}>{t.login.setPassword}</Text>
-          </Pressable>
-          <Pressable onPress={signIn.backToEmail} className={LINK}>
-            <Text className={LINK_LABEL}>{t.login.changeEmail}</Text>
           </Pressable>
         </View>
       </>
@@ -215,13 +224,13 @@ export function LoginScreen() {
           <Text className={BUTTON_LABEL}>{t.login.submit}</Text>
         </Pressable>
         <View className='mt-3 flex-row flex-wrap gap-x-6'>
+          <Pressable onPress={signIn.backToEmail} className={LINK}>
+            <Text className={LINK_LABEL}>{t.login.startOver}</Text>
+          </Pressable>
           <Pressable onPress={signIn.toggleBackup} className={LINK}>
             <Text className={LINK_LABEL}>
               {backup ? t.login.useTotp : t.login.useBackupCode}
             </Text>
-          </Pressable>
-          <Pressable onPress={signIn.backToEmail} className={LINK}>
-            <Text className={LINK_LABEL}>{t.login.startOver}</Text>
           </Pressable>
         </View>
       </>
@@ -277,16 +286,10 @@ export function LoginScreen() {
           <Text className={BUTTON_LABEL}>{t.login.resetSubmit}</Text>
         </Pressable>
         <View className='mt-3 flex-row flex-wrap gap-x-6'>
-          <Pressable
-            onPress={() => void signIn.startReset()}
-            disabled={submitting}
-            className={LINK}
-          >
-            <Text className={LINK_LABEL}>{t.login.sendNewCode}</Text>
-          </Pressable>
           <Pressable onPress={signIn.backToEmail} className={LINK}>
             <Text className={LINK_LABEL}>{t.login.changeEmail}</Text>
           </Pressable>
+          {newCode(() => void signIn.startReset())}
         </View>
       </>
     );

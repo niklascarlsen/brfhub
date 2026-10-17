@@ -11,6 +11,8 @@ const BUTTON =
   'h-14 rounded-xs bg-theme-ink text-base font-semibold tracking-tight text-theme-surface transition-opacity hover:opacity-90 active:opacity-70 disabled:opacity-50';
 const LINK =
   'py-2 text-sm font-semibold text-theme-accent hover:underline disabled:opacity-50';
+// A link counting down until it can be pressed.
+const LINK_WAITING = 'py-2 text-sm font-semibold text-theme-muted';
 
 // Signing in is two steps: the address, then the code it is mailed or, for
 // an admin, the password. On success useSession updates and the gate
@@ -25,8 +27,20 @@ export function LoginScreen() {
     devCode,
     prefill: {email: DEV_EMAIL, password: DEV_PASSWORD},
   });
-  const {step, fields, error, notice, submitting, canSubmit} = signIn;
+  const {step, fields, error, notice, submitting, canSubmit, resendIn} = signIn;
   const trustId = useId();
+
+  // A new mailed code, counted down from the last.
+  const newCode = (onClick: () => void) => (
+    <button
+      type='button'
+      onClick={onClick}
+      disabled={submitting || resendIn > 0}
+      className={resendIn > 0 ? LINK_WAITING : LINK}
+    >
+      {resendIn > 0 ? t.login.sendNewCodeIn(resendIn) : t.login.sendNewCode}
+    </button>
+  );
 
   // The tab still names the page signed out from until this says otherwise.
   useEffect(() => {
@@ -100,17 +114,10 @@ export function LoginScreen() {
           {t.login.submit}
         </button>
         <div className='mt-3 flex gap-6'>
-          <button
-            type='button'
-            onClick={() => void signIn.resendCode()}
-            disabled={submitting}
-            className={LINK}
-          >
-            {t.login.sendNewCode}
-          </button>
           <button type='button' onClick={signIn.backToEmail} className={LINK}>
             {t.login.changeEmail}
           </button>
+          {newCode(() => void signIn.resendCode())}
         </div>
       </>
     );
@@ -148,6 +155,9 @@ export function LoginScreen() {
           {t.login.submit}
         </button>
         <div className='mt-3 flex flex-wrap gap-x-6'>
+          <button type='button' onClick={signIn.backToEmail} className={LINK}>
+            {t.login.changeEmail}
+          </button>
           <button
             type='button'
             onClick={() => void signIn.startReset()}
@@ -155,9 +165,6 @@ export function LoginScreen() {
             className={LINK}
           >
             {t.login.setPassword}
-          </button>
-          <button type='button' onClick={signIn.backToEmail} className={LINK}>
-            {t.login.changeEmail}
           </button>
         </div>
       </>
@@ -206,11 +213,11 @@ export function LoginScreen() {
           {t.login.submit}
         </button>
         <div className='mt-3 flex flex-wrap gap-x-6'>
-          <button type='button' onClick={signIn.toggleBackup} className={LINK}>
-            {backup ? t.login.useTotp : t.login.useBackupCode}
-          </button>
           <button type='button' onClick={signIn.backToEmail} className={LINK}>
             {t.login.startOver}
+          </button>
+          <button type='button' onClick={signIn.toggleBackup} className={LINK}>
+            {backup ? t.login.useTotp : t.login.useBackupCode}
           </button>
         </div>
       </>
@@ -271,17 +278,10 @@ export function LoginScreen() {
           {t.login.resetSubmit}
         </button>
         <div className='mt-3 flex flex-wrap gap-x-6'>
-          <button
-            type='button'
-            onClick={() => void signIn.startReset()}
-            disabled={submitting}
-            className={LINK}
-          >
-            {t.login.sendNewCode}
-          </button>
           <button type='button' onClick={signIn.backToEmail} className={LINK}>
             {t.login.changeEmail}
           </button>
+          {newCode(() => void signIn.startReset())}
         </div>
       </>
     );

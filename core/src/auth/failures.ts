@@ -46,9 +46,17 @@ function failureOf(
   return named(failure) ?? commonFailure(failure, t);
 }
 
+// A code mailed to sign in or to set the password was asked for too soon
+// after the last, which still holds: the seconds until another may be.
+export function recentlySent(failure: AuthFailure | null): number | null {
+  return failure?.code === 'CODE_RECENTLY_SENT'
+    ? (failure.retryAfter ?? limits.MailedCode.resendSeconds)
+    : null;
+}
+
 // A code mailed to sign in or to set the password.
 export function codeFailure(failure: AuthFailure | null, t: Messages) {
-  return failureOf(failure, t, ({code}) => {
+  return failureOf(failure, t, ({code, retryAfter}) => {
     switch (code) {
       case 'INVALID_OTP':
         return t.login.wrongCode;
@@ -56,6 +64,8 @@ export function codeFailure(failure: AuthFailure | null, t: Messages) {
         return t.login.codeExpired;
       case 'TOO_MANY_ATTEMPTS':
         return t.login.tooManyCodeAttempts;
+      case 'TOO_MANY_CODES':
+        return t.login.tooManyCodes(retryAfter ?? 60 * 60);
       default:
         return null;
     }

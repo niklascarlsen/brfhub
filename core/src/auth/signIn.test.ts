@@ -1,15 +1,36 @@
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
 import {createApi} from '../api/createApi';
+import {limits} from '../generated/limits';
 import {en} from '../i18n/en';
 import {sv} from '../i18n/sv';
 import {fakeAuth} from '../test/fakeAuth';
-import {canSubmit, createSignIn, initialSignIn, resetProblem} from './signIn';
+import {
+  canSubmit,
+  createSignIn,
+  initialSignIn,
+  resetProblem,
+  secondsToResend,
+} from './signIn';
 
 const t = sv;
 const RESIDENT = '12@example.com';
 const ADMIN = 'admin@example.com';
 const NEW_PASSWORD = 'a new password';
+const RESEND = limits.MailedCode.resendSeconds;
+const TOO_SOON = (retryAfter: number) => ({
+  status: 429,
+  code: 'CODE_RECENTLY_SENT',
+  retryAfter,
+});
+
+// The clock alone is faked, so the countdown to a new code can be passed.
+function passes(seconds: number) {
+  vi.setSystemTime(Date.now() + seconds * 1000);
+}
+
+const resendIn = (state: Parameters<typeof secondsToResend>[0]) =>
+  secondsToResend(state, Date.now());
 
 // What the server answers /sign-in/method with next.
 let method: {status: number; body: unknown} = {
@@ -19,6 +40,7 @@ let method: {status: number; body: unknown} = {
 let asked: unknown[] = [];
 
 beforeEach(() => {
+  vi.useFakeTimers({toFake: ['Date']});
   method = {status: 200, body: {method: 'code'}};
   asked = [];
 
@@ -30,6 +52,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 function answersWith(name: 'code' | 'password' | 'set-password') {
@@ -137,6 +160,41 @@ describe('the address', () => {
     expect(unsent.state().error).toBe(t.login.tooManyAttempts);
   });
 
+  test('goes on when a code was sent moments ago, which still holds', async () => {
+    answersWith('code');
+    const resident = start({email: RESIDENT});
+    resident.answer('sendVerificationOtp', TOO_SOON(20));
+    await resident.signIn.submit();
+    expect(resident.state().step).toEqual({kind: 'code', email: RESIDENT});
+    expect(resident.state().error).toBeNull();
+    expect(resendIn(resident.state())).toBe(20);
+
+    answersWith('set-password');
+    const admin = start({email: ADMIN});
+    admin.answer('requestPasswordReset', TOO_SOON(20));
+    await admin.signIn.submit();
+    expect(admin.state().step).toEqual({kind: 'reset', email: ADMIN});
+    expect(admin.state().error).toBeNull();
+  });
+
+  test('stays on the address when its codes for the hour are used up', async () => {
+    answersWith('code');
+    const {signIn, state, answer} = start({email: RESIDENT});
+    answer('sendVerificationOtp', {
+      status: 429,
+      code: 'TOO_MANY_CODES',
+      retryAfter: 1500,
+    });
+
+    await signIn.submit();
+
+    expect(state().step).toEqual({kind: 'email'});
+    expect(state().error).toBe(t.login.tooManyCodes(1500));
+    expect(t.login.tooManyCodes(1500)).toBe(
+      'Du har bett om många koder. Försök igen om 25\u00a0min.',
+    );
+  });
+
   test('stays on the address when the reset code is not sent', async () => {
     answersWith('set-password');
     const {signIn, state, answer} = start({email: ADMIN});
@@ -196,6 +254,7 @@ describe('the mailed code', () => {
   test('a new one empties the field and says it was sent', async () => {
     const {signIn, state, calls} = await atStep('code');
     signIn.edit({code: '111111'});
+    passes(RESEND);
 
     await signIn.resendCode();
 
@@ -206,9 +265,22 @@ describe('the mailed code', () => {
     expect(state().notice).toBe(t.login.codeSent);
   });
 
+  test('a new one is filled in where dev tells it', async () => {
+    const {signIn, state} = await atStep('code', {
+      devCodes: {mailed: '123456'},
+    });
+    signIn.edit({code: '111111'});
+    passes(RESEND);
+
+    await signIn.resendCode();
+
+    expect(state().fields.code).toBe('123456');
+  });
+
   test('a new one that is not sent leaves the code and says why', async () => {
     const {signIn, state, answer} = await atStep('code');
     signIn.edit({code: '111111'});
+    passes(RESEND);
     answer('sendVerificationOtp', {status: 429});
 
     await signIn.resendCode();
@@ -216,6 +288,58 @@ describe('the mailed code', () => {
     expect(state().fields.code).toBe('111111');
     expect(state().notice).toBeNull();
     expect(state().error).toBe(t.login.tooManyAttempts);
+  });
+
+  test('a new one waits half a minute from the last', async () => {
+    const {signIn, state, calls} = await atStep('code');
+    expect(resendIn(state())).toBe(RESEND);
+
+    passes(RESEND - 1);
+    expect(resendIn(state())).toBe(1);
+    await signIn.resendCode();
+    expect(calls).toEqual([]);
+
+    passes(1);
+    expect(resendIn(state())).toBe(0);
+    await signIn.resendCode();
+    expect(calls.map(({name}) => name)).toEqual(['sendVerificationOtp']);
+    expect(resendIn(state())).toBe(RESEND);
+  });
+
+  test('told to wait for a new one, keeps the code and counts down from what the server says', async () => {
+    const {signIn, state, answer} = await atStep('code');
+    signIn.edit({code: '111111'});
+    passes(RESEND);
+    answer('sendVerificationOtp', TOO_SOON(12));
+
+    await signIn.resendCode();
+
+    expect(state().fields.code).toBe('111111');
+    expect(state().error).toBeNull();
+    expect(state().notice).toBeNull();
+    expect(resendIn(state())).toBe(12);
+  });
+
+  test('with the hour used up, says so and counts down to its end', async () => {
+    const {signIn, state, answer} = await atStep('code');
+    signIn.edit({code: '111111'});
+    passes(RESEND);
+    answer('sendVerificationOtp', {
+      status: 429,
+      code: 'TOO_MANY_CODES',
+      retryAfter: 600,
+    });
+
+    await signIn.resendCode();
+
+    expect(state().error).toBe(t.login.tooManyCodes(600));
+    expect(state().fields.code).toBe('111111');
+    expect(resendIn(state())).toBe(600);
+  });
+
+  test('a wait of minutes is told in minutes', () => {
+    expect(t.login.sendNewCodeIn(59)).toBe('Skicka ny kod om 59\u00a0s');
+    expect(t.login.sendNewCodeIn(61)).toBe('Skicka ny kod om 2\u00a0min');
   });
 
   test('is filled in where dev tells it', async () => {
@@ -443,6 +567,45 @@ describe('setting the password with a mailed code', () => {
     ]);
     expect(state().step).toEqual({kind: 'reset', email: ADMIN});
     expect(state().fields.reset.code).toBe('123456');
+  });
+});
+
+describe('a new code to set the password', () => {
+  test('replaces the code alone and says it was sent', async () => {
+    const {signIn, state} = await atStep('set-password', {
+      devCodes: {mailed: '222222'},
+    });
+    signIn.editReset('code', '111111');
+    signIn.editReset('next', NEW_PASSWORD);
+    signIn.editReset('repeat', NEW_PASSWORD);
+    passes(RESEND);
+
+    await signIn.startReset();
+
+    expect(state().fields.reset).toEqual({
+      code: '222222',
+      next: NEW_PASSWORD,
+      repeat: NEW_PASSWORD,
+    });
+    expect(state().notice).toBe(t.login.codeSent);
+  });
+
+  test('waits half a minute, and told to wait keeps what is typed', async () => {
+    const {signIn, state, calls, answer} = await atStep('set-password');
+    signIn.editReset('next', NEW_PASSWORD);
+
+    await signIn.startReset();
+    expect(calls).toEqual([]);
+
+    passes(RESEND);
+    answer('requestPasswordReset', TOO_SOON(5));
+    await signIn.startReset();
+
+    expect(calls.map(({name}) => name)).toEqual(['requestPasswordReset']);
+    expect(state().step.kind).toBe('reset');
+    expect(state().fields.reset.next).toBe(NEW_PASSWORD);
+    expect(state().error).toBeNull();
+    expect(resendIn(state())).toBe(5);
   });
 });
 

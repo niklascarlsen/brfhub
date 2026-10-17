@@ -7,6 +7,7 @@ import {format, resolveConfig} from 'prettier';
 
 import {buildApp} from '../src/app.js';
 import {PASSWORD_LENGTH} from '../src/auth/auth.js';
+import {CODE_RESEND_SECONDS} from '../src/auth/codeRequests.js';
 import {pool} from '../src/db/index.js';
 import {expoAndWebPush} from '../src/lib/push.js';
 import {limitsModule, limitsOf} from './limits.js';
@@ -34,7 +35,8 @@ try {
   mkdirSync(dirname(outPath), {recursive: true});
 
   // Better Auth changes the password outside openapi.json, so its rule is
-  // added as the body it would have.
+  // added as the body it would have, and how soon a code mailed through it
+  // may be asked for again, which the login screen counts down.
   const limitsPath = resolve(dirname(outPath), 'limits.ts');
   writeFileSync(
     limitsPath,
@@ -48,6 +50,7 @@ try {
             maxLength: PASSWORD_LENGTH.max,
           },
         },
+        MailedCode: {resendSeconds: CODE_RESEND_SECONDS},
       }),
     ),
   );

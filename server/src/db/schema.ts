@@ -388,6 +388,27 @@ export const verification = pgTable(
   (table) => [index('verification_identifier_idx').on(table.identifier)],
 );
 
+// The codes mailed for an address this past hour, per client address
+// that asked: when the last went and how many since the client's hour
+// began, by which an address is mailed a code at most every half minute
+// and a client only so many an hour. Ours, beside Better Auth's tables,
+// and kept for any address asked for, known or not, so the answer tells
+// nothing. See auth/codeRequests.ts.
+export const codeRequests = pgTable(
+  'code_requests',
+  {
+    email: text('email').notNull(),
+    client: text('client').notNull(),
+    sentAt: timestamp('sent_at', {withTimezone: true}).notNull(),
+    hourFrom: timestamp('hour_from', {withTimezone: true}).notNull(),
+    count: integer('count').notNull(),
+  },
+  (table) => [
+    primaryKey({columns: [table.email, table.client]}),
+    index('code_requests_sent_at_idx').on(table.sentAt),
+  ],
+);
+
 // Better Auth's two-factor plugin: the admin's TOTP secret and backup codes,
 // both encrypted with the auth secret.
 export const twoFactor = pgTable(

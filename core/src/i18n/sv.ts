@@ -1,6 +1,14 @@
 // Every string the apartment and admin screens show, in Swedish. Both
 // clients read this one file, so a key one client does not use is still
 // fine here.
+// How long until a new mailed code, in seconds or, from a minute, minutes.
+function wait(seconds: number) {
+  // A no-break space, so the number never wraps away from its unit.
+  return seconds < 60
+    ? `${seconds}\u00a0s`
+    : `${Math.ceil(seconds / 60)}\u00a0min`;
+}
+
 export const sv = {
   dates: {
     // The locale toLocaleDateString writes long dates in.
@@ -92,6 +100,12 @@ export const sv = {
     codeExpired: 'Koden har gått ut. Skicka en ny.',
     tooManyCodeAttempts: 'För många försök. Skicka en ny kod.',
     sendNewCode: 'Skicka ny kod',
+    // Counted down from the last code, which goes out at most every half
+    // minute and a few times an hour.
+    sendNewCodeIn: (seconds: number) => `Skicka ny kod om ${wait(seconds)}`,
+    // The hour's codes for the address are used up from this device.
+    tooManyCodes: (seconds: number) =>
+      `Du har bett om många koder. Försök igen om ${wait(seconds)}.`,
     codeSent: 'En ny kod är skickad.',
     changeEmail: 'Byt e-post',
     passwordTitle: 'Ange lösenordet',

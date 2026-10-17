@@ -1,6 +1,13 @@
 import type {Messages} from './catalog';
 
 // The English catalog, shared by both clients like sv.ts.
+function wait(seconds: number) {
+  // A no-break space, so the number never wraps away from its unit.
+  return seconds < 60
+    ? `${seconds}\u00a0s`
+    : `${Math.ceil(seconds / 60)}\u00a0min`;
+}
+
 export const en: Messages = {
   dates: {
     locale: 'en-GB',
@@ -84,6 +91,9 @@ export const en: Messages = {
     codeExpired: 'The code has expired. Send a new one.',
     tooManyCodeAttempts: 'Too many attempts. Send a new code.',
     sendNewCode: 'Send a new code',
+    sendNewCodeIn: (seconds: number) => `Send a new code in ${wait(seconds)}`,
+    tooManyCodes: (seconds: number) =>
+      `You have asked for many codes. Try again in ${wait(seconds)}.`,
     codeSent: 'A new code has been sent.',
     changeEmail: 'Change email',
     passwordTitle: 'Enter the password',

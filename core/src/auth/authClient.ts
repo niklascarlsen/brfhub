@@ -1,6 +1,7 @@
 // What Better Auth answers with when it refuses. The rate limiter answers
-// 429 without a code, so status is what tells that case apart.
-export type AuthFailure = {status: number; code?: string};
+// 429 without a code, so status is what tells that case apart. A code
+// asked for too soon after the last is told in how many seconds it may be.
+export type AuthFailure = {status: number; code?: string; retryAfter?: number};
 
 type Answer<T> = Promise<
   {data: T; error: null} | {data: null; error: AuthFailure}

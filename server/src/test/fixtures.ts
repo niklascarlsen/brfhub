@@ -4,6 +4,7 @@ import type {buildApp} from '../app.js';
 import {createUser, enrollTwoFactor, totpCode} from '../auth/auth.service.js';
 import {db} from '../db/index.js';
 import {
+  codeRequests,
   members,
   organizations,
   resourceKinds,
@@ -142,9 +143,17 @@ export async function assertTestDatabase() {
   }
 }
 
+// Lets the address be mailed a code at once, as if the last were long
+// ago: tests sign the same apartment in again and again.
+export async function forgetCodeRequests(email: string) {
+  await db
+    .delete(codeRequests)
+    .where(eq(codeRequests.email, email.trim().toLowerCase()));
+}
+
 export async function resetDatabase() {
   await db.execute(
-    sql`truncate organizations, announcements, members, resource_kinds, resources, resource_slots, bookings, subscriptions, push_tokens, "user" cascade`,
+    sql`truncate organizations, announcements, members, resource_kinds, resources, resource_slots, bookings, subscriptions, push_tokens, code_requests, "user" cascade`,
   );
 }
 
@@ -270,6 +279,7 @@ export async function signIn(server: Server, email: string, password?: string) {
     return {response, cookie: cookieFrom(response)};
   }
 
+  await forgetCodeRequests(email);
   const before = mailbox?.sent.length ?? 0;
   const sent = await server.inject({
     method: 'POST',

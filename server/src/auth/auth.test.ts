@@ -4,13 +4,15 @@ import {after, before, test} from 'node:test';
 import {eq, sql} from 'drizzle-orm';
 
 import {buildApp} from '../app.js';
+import {CODE_RESEND_SECONDS, CODES_PER_HOUR} from './codeRequests.js';
 import {MEMBER_SESSION_DAYS} from './sessions.js';
 import {db, pool} from '../db/index.js';
-import {session, user} from '../db/schema.js';
+import {codeRequests, session, user} from '../db/schema.js';
 import {
   assertTestDatabase,
   codeOf,
   codeSentTo,
+  forgetCodeRequests,
   memoryMail,
   memoryPush,
   ORIGIN,
@@ -43,13 +45,48 @@ function method(email: string) {
   });
 }
 
-function sendCode(email: string, acceptLanguage?: string) {
+function askForCode(email: string, remoteAddress?: string) {
+  return server.inject({
+    method: 'POST',
+    url: '/auth/email-otp/send-verification-otp',
+    headers: {origin: ORIGIN},
+    remoteAddress,
+    payload: {email, type: 'sign-in'},
+  });
+}
+
+// A code as if none had been asked for lately.
+async function sendCode(email: string, acceptLanguage?: string) {
+  await forgetCodeRequests(email);
   return server.inject({
     method: 'POST',
     url: '/auth/email-otp/send-verification-otp',
     headers: {origin: ORIGIN, 'accept-language': acceptLanguage ?? ''},
     payload: {email, type: 'sign-in'},
   });
+}
+
+// Moves the address's codes the given seconds into the past.
+async function codesAgo(email: string, seconds: number) {
+  const back = sql.raw(`interval '${seconds} seconds'`);
+  await db
+    .update(codeRequests)
+    .set({
+      sentAt: sql`${codeRequests.sentAt} - ${back}`,
+      hourFrom: sql`${codeRequests.hourFrom} - ${back}`,
+    })
+    .where(eq(codeRequests.email, email));
+}
+
+function waitOf(
+  response: Awaited<ReturnType<typeof askForCode>>,
+  code = 'CODE_RECENTLY_SENT',
+) {
+  assert.equal(response.statusCode, 429);
+  const body = response.json<{code: string; retryAfter: number}>();
+  assert.equal(body.code, code);
+  assert.equal(response.headers['retry-after'], String(body.retryAfter));
+  return body.retryAfter;
 }
 
 before(async () => {
@@ -158,6 +195,127 @@ test('a code signs in once and is then spent', async () => {
     payload: {email: emailOf('2'), otp: code},
   });
   assert.equal(again.statusCode, 400);
+});
+
+test('an address is mailed a code at most every half minute, from whatever client', async () => {
+  const email = emailOf('2');
+  await forgetCodeRequests(email);
+  const before = mail.sent.length;
+
+  assert.equal((await askForCode(email, '198.51.100.1')).statusCode, 200);
+  const wait = waitOf(await askForCode(email, '198.51.100.2'));
+  assert.ok(wait > 0 && wait <= CODE_RESEND_SECONDS);
+  assert.equal(mail.sent.length, before + 1);
+
+  // Spelled another way, it is the same address.
+  waitOf(await askForCode(email.toUpperCase()));
+
+  await codesAgo(email, CODE_RESEND_SECONDS);
+  assert.equal((await askForCode(email)).statusCode, 200);
+  assert.equal(mail.sent.length, before + 2);
+});
+
+test('an unknown address waits like a known one, and is still mailed nothing', async () => {
+  const email = 'nobody@north.example.com';
+  await forgetCodeRequests(email);
+  const before = mail.sent.length;
+
+  assert.equal((await askForCode(email)).statusCode, 200);
+  waitOf(await askForCode(email));
+  assert.equal(mail.sent.length, before);
+});
+
+test('a client is mailed only so many codes an hour for an address, and others still are', async () => {
+  const email = emailOf('1');
+  const asking = '198.51.100.7';
+  await forgetCodeRequests(email);
+
+  for (let i = 0; i < CODES_PER_HOUR; i++) {
+    assert.equal((await askForCode(email, asking)).statusCode, 200);
+    await codesAgo(email, CODE_RESEND_SECONDS);
+  }
+
+  // Waits for the hour that began with its first, half a minute per code
+  // ago.
+  const hour = 60 * 60;
+  const wait = waitOf(await askForCode(email, asking), 'TOO_MANY_CODES');
+  const elapsed = CODES_PER_HOUR * CODE_RESEND_SECONDS;
+  assert.ok(wait > hour - elapsed - 5 && wait <= hour - elapsed);
+
+  // The resident, asking from elsewhere, is not held up by it.
+  assert.equal((await askForCode(email, '203.0.113.9')).statusCode, 200);
+
+  await codesAgo(email, wait);
+  assert.equal((await askForCode(email, asking)).statusCode, 200);
+});
+
+test('asked again while it holds, the same code is mailed and still signs in', async () => {
+  const email = emailOf('2');
+  await forgetCodeRequests(email);
+  const before = mail.sent.length;
+
+  await askForCode(email, '198.51.100.1');
+  const first = codeSentTo(email, before);
+  await codesAgo(email, CODE_RESEND_SECONDS);
+  await askForCode(email, '198.51.100.2');
+  assert.equal(mail.sent.length, before + 2);
+  assert.equal(codeSentTo(email, before + 1), first);
+
+  const response = await server.inject({
+    method: 'POST',
+    url: '/auth/sign-in/email-otp',
+    headers: {origin: ORIGIN},
+    payload: {email, otp: first},
+  });
+  assert.equal(response.statusCode, 200);
+});
+
+test('a code whose mail failed, or that was refused, is not counted', async () => {
+  const email = emailOf('2');
+  await forgetCodeRequests(email);
+
+  // Better Auth answers as if it went: the failure is only logged.
+  mail.refuse([email]);
+  try {
+    assert.equal((await askForCode(email)).statusCode, 200);
+  } finally {
+    mail.refuse([]);
+  }
+  assert.equal((await askForCode(email)).statusCode, 200);
+
+  await forgetCodeRequests(email);
+  const refused = await server.inject({
+    method: 'POST',
+    url: '/auth/email-otp/send-verification-otp',
+    headers: {origin: ORIGIN},
+    payload: {email, type: 'not-a-type'},
+  });
+  assert.equal(refused.statusCode, 400);
+  assert.equal((await askForCode(email)).statusCode, 200);
+});
+
+test('the code to set a password waits the same', async () => {
+  const email = 'admin@north.example.com';
+  await forgetCodeRequests(email);
+  const reset = () =>
+    server.inject({
+      method: 'POST',
+      url: '/auth/email-otp/request-password-reset',
+      headers: {origin: ORIGIN},
+      payload: {email},
+    });
+
+  assert.equal((await reset()).statusCode, 200);
+  waitOf(await reset());
+  // Better Auth's older name for the route counts with it.
+  waitOf(
+    await server.inject({
+      method: 'POST',
+      url: '/auth/forget-password/email-otp',
+      headers: {origin: ORIGIN},
+      payload: {email},
+    }),
+  );
 });
 
 test("an admin's session ends a week after sign-in however much it is used, alone", async () => {
