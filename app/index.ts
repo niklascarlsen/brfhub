@@ -1,3 +1,5 @@
+import './src/ignoredLogs';
+
 import {registerRootComponent} from 'expo';
 
 import App from './App';
