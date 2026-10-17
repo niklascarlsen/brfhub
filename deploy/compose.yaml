@@ -1,0 +1,79 @@
+# Production on one host: Postgres, the API, and Caddy serving the web
+# client with the API under /api. See docs/deploy.md.
+name: brfhub
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: brfhub
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/.env}
+      POSTGRES_DB: brfhub
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U brfhub -d brfhub']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [internal]
+
+  server:
+    build:
+      context: ../server
+      dockerfile: ../deploy/server.Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://brfhub:${POSTGRES_PASSWORD}@postgres:5432/brfhub
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in deploy/.env}
+      BETTER_AUTH_URL: ${PUBLIC_URL:?set PUBLIC_URL in deploy/.env}
+      WEB_ORIGIN: ${PUBLIC_URL}
+      # Caddy, whose x-forwarded-for names the client.
+      TRUSTED_PROXIES: 172.30.0.0/24
+      SMTP_URL: ${SMTP_URL:?set SMTP_URL in deploy/.env}
+      MAIL_FROM: ${MAIL_FROM:?set MAIL_FROM in deploy/.env}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:?set VAPID_SUBJECT in deploy/.env}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:?set VAPID_PUBLIC_KEY in deploy/.env}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:?set VAPID_PRIVATE_KEY in deploy/.env}
+    # The server gives push still on its way this long to finish.
+    stop_grace_period: 20s
+    networks: [internal, edge]
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/web.Dockerfile
+      args:
+        VITE_VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
+    restart: unless-stopped
+    depends_on: [server]
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in deploy/.env}
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      edge:
+        ipv4_address: 172.30.0.10
+
+volumes:
+  postgres:
+  caddy_data:
+  caddy_config:
+
+networks:
+  # Postgres is reached by the server alone.
+  internal:
+  edge:
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24

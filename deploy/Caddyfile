@@ -1,0 +1,33 @@
+# One host for the page and the API, as the SameSite session cookie needs.
+# Caddy gets and renews the certificate for DOMAIN itself.
+{$DOMAIN} {
+	encode zstd gzip
+
+	# The API sets its own headers.
+	handle_path /api/* {
+		reverse_proxy server:3000
+	}
+
+	handle {
+		root * /srv
+
+		header {
+			Content-Security-Policy "default-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
+			Strict-Transport-Security "max-age=31536000"
+			X-Content-Type-Options "nosniff"
+			Referrer-Policy "no-referrer"
+		}
+
+		# Vite names the built files after their content, so they never
+		# change. Everything else is asked for again, so a new release and a
+		# new service worker reach the browser.
+		@hashed path /assets/*
+		@unhashed not path /assets/*
+		header @hashed Cache-Control "public, max-age=31536000, immutable"
+		header @unhashed Cache-Control "no-cache"
+
+		# The routes are real paths that only the client knows.
+		try_files {path} /index.html
+		file_server
+	}
+}
