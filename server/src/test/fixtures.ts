@@ -74,13 +74,21 @@ let mailbox: ReturnType<typeof memoryMail> | null = null;
 
 export function memoryMail() {
   const sent: Mail[] = [];
+  // Addresses the SMTP service refuses, as a test sets them.
+  let refused = new Set<string>();
   const send: SendMail = async (mail) => {
+    if (refused.has(mail.to)) {
+      throw new Error(`550 ${mail.to} refused`);
+    }
     sent.push(mail);
   };
 
   const box = {
     send,
     sent,
+    refuse(addresses: string[]) {
+      refused = new Set(addresses);
+    },
     // The newest mail to the address, sent after the given count of mails.
     lastTo(to: string, since = 0): Mail | undefined {
       return sent

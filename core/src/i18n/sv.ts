@@ -467,6 +467,8 @@ export const sv = {
       shownFor: 'Visas',
       shown: (from: string, to: string | null) =>
         to ? `Från ${from} till och med ${to}.` : `Från ${from}.`,
+      mail: 'Skicka även som e-post',
+      mailHint: 'Till alla boende. För viktig information som alla behöver se.',
     },
     // Text the organization writes in each of its languages.
     localized: {
@@ -560,6 +562,8 @@ export const sv = {
           `Avbokade bokningar för lägenheter i ${subject}`,
         'announcement.create': (subject: string) =>
           `Publicerade anslaget ${subject}`,
+        'announcement.mail': (subject: string) =>
+          `Mejlade anslaget ${subject} till alla boende`,
         'announcement.update': (subject: string) =>
           `Ändrade anslaget ${subject}`,
         'announcement.remove': (subject: string) =>

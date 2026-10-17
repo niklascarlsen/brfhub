@@ -445,6 +445,9 @@ export const en: Messages = {
       shownFor: 'Show for',
       shown: (from: string, to: string | null) =>
         to ? `From ${from} up to and including ${to}.` : `From ${from}.`,
+      mail: 'Also send by email',
+      mailHint:
+        'To every resident. For important information everyone needs to see.',
     },
     localized: {
       label: (label: string, language: string) => `${label} (${language})`,
@@ -537,6 +540,8 @@ export const en: Messages = {
           `Removed the schedule of ${subject}`,
         'announcement.create': (subject: string) =>
           `Published the announcement ${subject}`,
+        'announcement.mail': (subject: string) =>
+          `Emailed the announcement ${subject} to every resident`,
         'announcement.update': (subject: string) =>
           `Changed the announcement ${subject}`,
         'announcement.remove': (subject: string) =>

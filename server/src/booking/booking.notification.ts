@@ -24,27 +24,47 @@ export type ReleasedSlot = {
   end: string;
 };
 
+// How the queue hears of its slot: free to book, or open for drop-in
+// once the apartment holding a time under way is done with it.
+export type Opening = 'free' | 'dropIn';
+
 const RELEASED: Record<
-  Locale,
-  {title: string; body: (resource: string, when: string) => string}
+  Opening,
+  Record<
+    Locale,
+    {title: string; body: (resource: string, when: string) => string}
+  >
 > = {
-  sv: {
-    title: 'En tid blev ledig',
-    body: (resource, when) =>
-      `${resource}, ${when} är ledig – först till kvarn.`,
+  free: {
+    sv: {
+      title: 'En tid blev ledig',
+      body: (resource, when) =>
+        `${resource}, ${when} är ledig – först till kvarn.`,
+    },
+    en: {
+      title: 'A slot opened up',
+      body: (resource, when) =>
+        `${resource}, ${when} is free – first come, first served.`,
+    },
   },
-  en: {
-    title: 'A slot opened up',
-    body: (resource, when) =>
-      `${resource}, ${when} is free – first come, first served.`,
+  dropIn: {
+    sv: {
+      title: 'En tid är öppen för drop-in',
+      body: (resource, when) => `${resource}, ${when} är öppen för drop-in nu.`,
+    },
+    en: {
+      title: 'A slot is open for drop-in',
+      body: (resource, when) => `${resource}, ${when} is open for drop-in now.`,
+    },
   },
 };
 
 export function releasedNotification(
   locale: Locale,
   slot: ReleasedSlot,
+  opening: Opening = 'free',
 ): Notification {
-  const words = RELEASED[locale];
+  const words = RELEASED[opening][locale];
 
   return {
     title: words.title,
@@ -64,12 +84,14 @@ export function releasedNotification(
 // The apartment that let the slot go, which is not told about it.
 type ReleasedBy = Pick<Member, 'id' | 'locales'>;
 
-// Who hears of a freed slot: its queue as the freeing transaction sees it.
-// Only a slot that has not started is freed, so its queue can still book.
+// Who hears of a slot let go: its queue as the releasing transaction sees
+// it. A slot that has not started is freed and can be booked; one under
+// way stays booked and opens for drop-in.
 export async function queueOf(
   executor: Executor,
   slot: ReleasedSlot,
   releasedBy: ReleasedBy,
+  opening: Opening = 'free',
 ): Promise<Recipients> {
   const subscribers = await listSubscribers(
     slot.resourceId,
@@ -85,7 +107,11 @@ export async function queueOf(
     // A device keeps its language until it starts again, which can be
     // one the organization has stopped writing in since.
     build: (locale) =>
-      releasedNotification(resolveLocale([locale], releasedBy.locales), slot),
+      releasedNotification(
+        resolveLocale([locale], releasedBy.locales),
+        slot,
+        opening,
+      ),
   };
 }
 

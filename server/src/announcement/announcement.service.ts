@@ -3,6 +3,7 @@ import {and, desc, eq, gte, isNull, lte, or, sql} from 'drizzle-orm';
 import {db} from '../db/index.js';
 import {announcements} from '../db/schema.js';
 import {appError} from '../lib/errors.js';
+import {sendAnnouncement} from '../mail/mail.service.js';
 import {
   assertTranslated,
   localized,
@@ -18,6 +19,7 @@ import type {
   AdminAnnouncements,
   Announcement,
   AnnouncementBody,
+  NewAnnouncementBody,
 } from './announcement.dto.js';
 
 const fields = {
@@ -119,10 +121,11 @@ export async function listAdminAnnouncements({
   return {today: current, announcements: rows};
 }
 
-// Published today, so every apartment is told at once.
+// Published today, so every apartment is told at once, and mailed too
+// when the admin asks.
 export async function createAnnouncement(
   organization: Organization,
-  body: AnnouncementBody,
+  {mail, ...body}: NewAnnouncementBody,
   notifier: Notifier,
 ): Promise<string> {
   const {organizationId, timeZone, locales} = organization;
@@ -140,6 +143,10 @@ export async function createAnnouncement(
   }
 
   await announceToApartments(notifier, organization, text);
+
+  if (mail) {
+    notifier.later(() => sendAnnouncement(organizationId, text));
+  }
 
   return created.id;
 }

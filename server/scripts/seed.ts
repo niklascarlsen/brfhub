@@ -1,7 +1,7 @@
 import 'dotenv/config';
 
 import {generateRandomString} from 'better-auth/crypto';
-import {and, eq, inArray} from 'drizzle-orm';
+import {and, eq, inArray, isNull, notInArray, sql} from 'drizzle-orm';
 
 import {createUser, enrollTwoFactor} from '../src/auth/auth.service.js';
 import {db, pool} from '../src/db/index.js';
@@ -302,6 +302,23 @@ try {
       .where(inArray(resourceKinds.organizationId, seeded));
     // Sessions and credential accounts go with their user.
     await tx.delete(user).where(inArray(user.organizationId, seeded));
+    // An apartment added by hand since loses its resident with the rest, so
+    // it moves out instead of staying on with nobody to sign in for it.
+    for (const [organizationId, labels] of [
+      [ORGANIZATION_ID, APARTMENTS],
+      [OTHER_ORGANIZATION_ID, OTHER_APARTMENTS],
+    ] as const) {
+      await tx
+        .update(members)
+        .set({leftAt: sql`now()`})
+        .where(
+          and(
+            eq(members.organizationId, organizationId),
+            isNull(members.leftAt),
+            notInArray(members.label, [...labels]),
+          ),
+        );
+    }
   });
 
   // The settings start over too, whatever the admin changed.
@@ -333,7 +350,9 @@ try {
   const memberRows = await db
     .select({id: members.id, label: members.label})
     .from(members)
-    .where(eq(members.organizationId, ORGANIZATION_ID));
+    .where(
+      and(eq(members.organizationId, ORGANIZATION_ID), isNull(members.leftAt)),
+    );
 
   const memberIds = new Map(memberRows.map((row) => [row.label, row.id]));
 
@@ -429,6 +448,7 @@ try {
       and(
         eq(members.organizationId, OTHER_ORGANIZATION_ID),
         inArray(members.label, OTHER_APARTMENTS),
+        isNull(members.leftAt),
       ),
     );
 

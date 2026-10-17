@@ -26,13 +26,11 @@ export const organizationLocalesSchema = localeSchema
   .min(1)
   .transform((locales) => LOCALES.filter((locale) => locales.includes(locale)));
 
-// The language a device asks for when the organization writes in it, else
-// English when it does, else the organization's own language. The clients
-// pick their language the same way.
-export function resolveLocale(
+// The language a device asks for, when the organization writes in it.
+export function requestedLocale(
   requested: readonly string[],
   available: readonly Locale[],
-): Locale {
+): Locale | null {
   for (const tag of requested) {
     const [language] = tag.trim().split(/[-;]/);
     const known = available.find((locale) => locale === language);
@@ -42,7 +40,30 @@ export function resolveLocale(
     }
   }
 
-  return available.includes('en') ? 'en' : (available[0] ?? 'en');
+  return null;
+}
+
+// The language a device asks for when the organization writes in it, else
+// English when it does, else the organization's own language. The clients
+// pick their language the same way.
+export function resolveLocale(
+  requested: readonly string[],
+  available: readonly Locale[],
+): Locale {
+  return (
+    requestedLocale(requested, available) ??
+    (available.includes('en') ? 'en' : (available[0] ?? 'en'))
+  );
+}
+
+// The language mail to an account is written in, outside any request: the
+// one its device last showed while the organization still writes in it,
+// else the organization's first.
+export function accountLocale(
+  last: string | null,
+  available: readonly Locale[],
+): Locale {
+  return available.find((locale) => locale === last) ?? available[0] ?? 'sv';
 }
 
 // The Accept-Language header, read in its own order: the clients send one

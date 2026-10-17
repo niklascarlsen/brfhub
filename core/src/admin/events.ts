@@ -36,6 +36,7 @@ const AREA_OF: Record<AdminEvent['action'], EventArea> = {
   'schedule.remove': 'resources',
   'booking.cancel': 'resources',
   'announcement.create': 'announcements',
+  'announcement.mail': 'announcements',
   'announcement.update': 'announcements',
   'announcement.remove': 'announcements',
   'organization.update': 'organization',

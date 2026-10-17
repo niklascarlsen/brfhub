@@ -23,6 +23,7 @@ export const eventActionSchema = z.enum([
   'schedule.remove',
   'booking.cancel',
   'announcement.create',
+  'announcement.mail',
   'announcement.update',
   'announcement.remove',
   'organization.update',

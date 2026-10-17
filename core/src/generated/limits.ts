@@ -87,6 +87,16 @@ export const limits = {
       maxLength: 1000,
     },
   },
+  NewAnnouncementBody: {
+    title: {
+      minLength: 1,
+      maxLength: 100,
+    },
+    body: {
+      minLength: 1,
+      maxLength: 2000,
+    },
+  },
   NewResidentBody: {
     residentName: {
       minLength: 1,

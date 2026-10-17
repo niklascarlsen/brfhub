@@ -3,10 +3,20 @@ import {useEffect, useState} from 'react';
 import {Switch, Text, View} from 'react-native';
 
 import {useDialog} from '@/components/Dialog';
+import {useOnReturn} from '@/hooks/useOnReturn';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
 import {readPushEnabled, savePushEnabled} from '@/lib/pushPreference';
 import {dropPushToken, enablePush, pushPermission} from '@/push';
 import theme from '@/theme.json';
+
+async function isOn(): Promise<boolean> {
+  const [wanted, permission] = await Promise.all([
+    readPushEnabled(),
+    pushPermission(),
+  ]);
+
+  return wanted && permission === 'granted';
+}
 
 // Push on this device, under the account. Off drops the device's token;
 // on registers it again, asking the OS when it has not been asked. Once
@@ -23,18 +33,39 @@ export function PushToggle() {
   useEffect(() => {
     let current = true;
 
-    void Promise.all([readPushEnabled(), pushPermission()]).then(
-      ([wanted, permission]) => {
-        if (current) {
-          setEnabled(wanted && permission === 'granted');
-        }
-      },
-    );
+    void isOn().then((on) => {
+      if (current) {
+        setEnabled(on);
+      }
+    });
 
     return () => {
       current = false;
     };
   }, []);
+
+  // Back from the phone's settings, where the switch sends a device the OS
+  // has been told no on: allowed there, the device registers at once
+  // instead of at the next start.
+  useOnReturn(() => {
+    if (enabled !== false || busy) {
+      return;
+    }
+
+    // Busy until done, so the switch cannot be turned off meanwhile and
+    // then be turned back on when this finishes.
+    setBusy(true);
+    isOn()
+      .then(async (on) => {
+        if (on) {
+          setEnabled(await enablePush(locale));
+        }
+      })
+      .catch((error: unknown) => {
+        console.warn('[push] could not register push token', error);
+      })
+      .finally(() => setBusy(false));
+  });
 
   const change = async (next: boolean) => {
     setBusy(true);
@@ -47,6 +78,9 @@ export function PushToggle() {
         return;
       }
 
+      // The wish is kept, so allowing push in the settings turns it on.
+      await savePushEnabled(true);
+
       if ((await pushPermission()) === 'blocked') {
         dialog.confirm(t.push.blockedTitle, t.push.blockedMessage, {
           label: t.push.openSettings,
@@ -57,7 +91,6 @@ export function PushToggle() {
         return;
       }
 
-      await savePushEnabled(true);
       setEnabled(await enablePush(locale));
     } catch (error) {
       console.warn('[push] could not change push', error);

@@ -23,6 +23,7 @@ import type {AdminAnnouncements, Announcement} from './announcement.dto.js';
 
 let server: Awaited<ReturnType<typeof buildApp>>;
 const push = memoryPush();
+const mail = memoryMail();
 let admin: {cookie: string};
 let southAdmin: {cookie: string};
 let member: {cookie: string};
@@ -83,7 +84,7 @@ before(async () => {
   server = await buildApp({
     logger: false,
     push: push.send,
-    mail: memoryMail().send,
+    mail: mail.send,
   });
   await resetDatabase();
 
@@ -98,7 +99,7 @@ before(async () => {
       kinds: [],
       resources: [],
       slots: [],
-      apartments: ['1'],
+      apartments: ['1', '2'],
       emailOf: (label) => `${label}@${id}.example.com`,
       adminEmail: `admin@${id}.example.com`,
     });
@@ -450,4 +451,79 @@ test('a new announcement is pushed to every apartment in its own language', asyn
   assert.equal(corrected.statusCode, 204);
   await server.notifier.idle();
   assert.deepEqual(push.sent, []);
+});
+
+test('an announcement is mailed to every resident only when the admin asks', async () => {
+  const sent = mail.sent.length;
+
+  const quiet = await post('Städa tvättstugan', null);
+  await server.notifier.idle();
+  assert.equal(mail.sent.length, sent);
+
+  const mailed = await call('POST', '/admin/announcements', admin, {
+    title: {sv: 'Vattnet stängs av'},
+    body: {sv: 'Tisdag 9–12 är vattnet avstängt.'},
+    endsOn: null,
+    mail: true,
+  });
+  assert.equal(mailed.statusCode, 201);
+  await server.notifier.idle();
+
+  const letter = mail.lastTo('1@north.example.com', sent);
+  assert.equal(letter?.subject, 'Brf north: Vattnet stängs av');
+  assert.match(letter?.text ?? '', /Tisdag 9–12 är vattnet avstängt\./);
+  // Only residents, and only of this organization.
+  assert.equal(mail.lastTo('admin@north.example.com', sent), undefined);
+  assert.equal(mail.lastTo('1@south.example.com', sent), undefined);
+
+  // A correction is not mailed again.
+  const before = mail.sent.length;
+  await call(
+    'PUT',
+    `/admin/announcements/${mailed.json<{id: string}>().id}`,
+    admin,
+    {
+      title: {sv: 'Vattnet stängs av'},
+      body: {sv: 'Tisdag 9–13 är vattnet avstängt.'},
+      endsOn: null,
+    },
+  );
+  await server.notifier.idle();
+  assert.equal(mail.sent.length, before);
+
+  await call('DELETE', `/admin/announcements/${quiet}`, admin);
+  await call(
+    'DELETE',
+    `/admin/announcements/${mailed.json<{id: string}>().id}`,
+    admin,
+  );
+});
+
+test('one address the mail service refuses does not stop the rest', async () => {
+  const sent = mail.sent.length;
+  mail.refuse(['1@north.example.com']);
+
+  try {
+    const mailed = await call('POST', '/admin/announcements', admin, {
+      title: {sv: 'Hissen står still'},
+      body: {sv: 'Hissen lagas på torsdag.'},
+      endsOn: null,
+      mail: true,
+    });
+    assert.equal(mailed.statusCode, 201);
+    await server.notifier.idle();
+
+    assert.equal(mail.lastTo('1@north.example.com', sent), undefined);
+    assert.equal(
+      mail.lastTo('2@north.example.com', sent)?.subject,
+      'Brf north: Hissen står still',
+    );
+    await call(
+      'DELETE',
+      `/admin/announcements/${mailed.json<{id: string}>().id}`,
+      admin,
+    );
+  } finally {
+    mail.refuse([]);
+  }
 });

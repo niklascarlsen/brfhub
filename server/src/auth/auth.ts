@@ -180,6 +180,7 @@ export const auth = betterAuth({
       organizationId: {type: 'string', required: true, input: false},
       memberId: {type: 'string', required: false, input: false},
       admin: {type: 'boolean', required: true, input: false},
+      locale: {type: 'string', required: false, input: false},
     },
   },
   trustedOrigins,

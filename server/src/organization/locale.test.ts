@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import {after, before, test} from 'node:test';
 
+import {eq} from 'drizzle-orm';
+
 import {buildApp} from '../app.js';
 import type {Account} from '../account/account.dto.js';
 import type {
@@ -9,8 +11,9 @@ import type {
 } from '../announcement/announcement.dto.js';
 import {releasedNotification} from '../booking/booking.notification.js';
 import {db, pool} from '../db/index.js';
-import {announcements} from '../db/schema.js';
+import {announcements, user} from '../db/schema.js';
 import {resolveLocale} from '../lib/locale.js';
+import {sendBookingsCancelled} from '../mail/mail.service.js';
 import type {BookingRules, Resource} from '../resource/resource.dto.js';
 import type {AdminResources} from '../resourceAdmin/resourceAdmin.dto.js';
 import {
@@ -28,6 +31,7 @@ let server: Awaited<ReturnType<typeof buildApp>>;
 let member: {cookie: string};
 let admin: {cookie: string};
 let swedishMember: {cookie: string};
+let mail: ReturnType<typeof memoryMail>;
 
 const BOTH = {
   id: 'both',
@@ -61,10 +65,11 @@ function call(
 before(async () => {
   await assertTestDatabase();
 
+  mail = memoryMail();
   server = await buildApp({
     logger: false,
     push: memoryPush().send,
-    mail: memoryMail().send,
+    mail: mail.send,
   });
   await resetDatabase();
 
@@ -134,6 +139,66 @@ test('picks the first language asked for that the organization writes in', () =>
   assert.equal(resolveLocale(['de'], ['sv', 'en']), 'en');
   assert.equal(resolveLocale(['en'], ['sv']), 'sv');
   assert.equal(resolveLocale([], ['sv']), 'sv');
+});
+
+async function lastLocaleOf(email: string) {
+  const [account] = await db
+    .select({locale: user.locale, memberId: user.memberId})
+    .from(user)
+    .where(eq(user.email, email));
+  return account;
+}
+
+test('remembers the language the device last showed, for mail', async () => {
+  await call('GET', '/account', member, {language: 'en'});
+  assert.equal((await lastLocaleOf('1@both.example.com'))?.locale, 'en');
+
+  await call('GET', '/account', member, {language: 'sv-SE'});
+  assert.equal((await lastLocaleOf('1@both.example.com'))?.locale, 'sv');
+
+  // Neither a language the organization does not write in nor none at all
+  // says what the device shows.
+  await call('GET', '/account', member, {language: 'de'});
+  await call('GET', '/account', member);
+  assert.equal((await lastLocaleOf('1@both.example.com'))?.locale, 'sv');
+});
+
+test('a cancelled booking is mailed in the language the resident uses', async () => {
+  await call('GET', '/account', member, {language: 'en'});
+  const resident = await lastLocaleOf('1@both.example.com');
+  const sent = mail.sent.length;
+
+  await sendBookingsCancelled(
+    BOTH.id,
+    resident?.memberId ?? '',
+    {sv: 'Tvättstuga', en: 'Laundry room'},
+    [{date: '2026-10-10', start: '08:00', end: '12:00'}],
+    {sv: 'Ny maskin', en: 'A new machine'},
+  );
+
+  const letter = mail.lastTo('1@both.example.com', sent);
+  assert.equal(letter?.subject, 'Your booking in Brf Båda was cancelled');
+  assert.match(letter?.text ?? '', /Laundry room, Saturday 10 October/);
+  assert.match(letter?.text ?? '', /A new machine/);
+
+  // Mail goes out without a request: a language the organization no
+  // longer writes in falls back to its first.
+  await db
+    .update(user)
+    .set({locale: 'en'})
+    .where(eq(user.email, '1@swedish.example.com'));
+  const swedish = await lastLocaleOf('1@swedish.example.com');
+  await sendBookingsCancelled(
+    'swedish',
+    swedish?.memberId ?? '',
+    {sv: 'Tvättstuga'},
+    [{date: '2026-10-10', start: '08:00', end: '12:00'}],
+    {},
+  );
+  assert.equal(
+    mail.lastTo('1@swedish.example.com', sent)?.subject,
+    'Din bokning i Brf Svensk har avbokats',
+  );
 });
 
 test('tells the account which languages its organization writes in', async () => {

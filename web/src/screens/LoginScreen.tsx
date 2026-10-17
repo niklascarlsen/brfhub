@@ -1,5 +1,5 @@
 import {useSignIn} from '@booking/core/auth/useSignIn';
-import {useId, type SubmitEvent} from 'react';
+import {useEffect, useId, type SubmitEvent} from 'react';
 
 import {api, unwrap} from '@/api/client';
 import {authClient} from '@/auth/client';
@@ -27,6 +27,11 @@ export function LoginScreen() {
   });
   const {step, fields, error, notice, submitting, canSubmit} = signIn;
   const trustId = useId();
+
+  // The tab still names the page signed out from until this says otherwise.
+  useEffect(() => {
+    document.title = t.login.title;
+  }, [t]);
 
   function onSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();

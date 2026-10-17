@@ -73,7 +73,9 @@ export const members = pgTable(
     uniqueIndex('members_organization_label_unique')
       .on(table.organizationId, table.label)
       .where(sql`${table.leftAt} is null`),
-    unique('members_organization_id_unique').on(table.organizationId, table.id),
+    // In the table's column order, which is how drizzle-kit reads it back:
+    // the other order makes every push think it changed.
+    unique('members_organization_id_unique').on(table.id, table.organizationId),
   ],
 );
 
@@ -108,9 +110,11 @@ export const resources = pgTable(
     closingNote: localizedText('closing_note').notNull().default({}),
   },
   (table) => [
+    // In the table's column order, which is how drizzle-kit reads it back:
+    // the other order makes every push think it changed.
     unique('resources_organization_id_unique').on(
-      table.organizationId,
       table.id,
+      table.organizationId,
     ),
     foreignKey({
       name: 'resources_kind_fk',
@@ -281,6 +285,9 @@ export const user = pgTable(
     // The apartment the account books for. Cleared when it moves out.
     memberId: uuid('member_id'),
     admin: boolean('admin').notNull().default(false),
+    // The language the account's device last showed, which mail sent later
+    // is written in. Null until it has used the app.
+    locale: locale('locale'),
     // Better Auth's two-factor plugin sets it once the admin has verified
     // an authenticator app. An admin without it may only read the account.
     twoFactorEnabled: boolean('two_factor_enabled').notNull().default(false),

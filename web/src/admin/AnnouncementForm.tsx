@@ -25,7 +25,9 @@ type AnnouncementFormProps = {
   initial: AnnouncementFields & {publishedOn: string};
   today: string;
   submitLabel: string;
-  onSubmit: (fields: AnnouncementFields) => Promise<void>;
+  // A new announcement can be mailed too; an edit never is.
+  offerMail?: boolean;
+  onSubmit: (fields: AnnouncementFields, mail: boolean) => Promise<void>;
   onCancel: () => void;
   onDelete?: () => void;
 };
@@ -34,6 +36,7 @@ export function AnnouncementForm({
   initial,
   today,
   submitLabel,
+  offerMail = false,
   onSubmit,
   onCancel,
   onDelete,
@@ -43,6 +46,7 @@ export function AnnouncementForm({
   const [title, setTitle] = useState<Draft>(initial.title);
   const [body, setBody] = useState<Draft>(initial.body);
   const [endsOn, setEndsOn] = useState(initial.endsOn);
+  const [mail, setMail] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const formId = useId();
@@ -64,7 +68,7 @@ export function AnnouncementForm({
     setError(null);
 
     try {
-      await onSubmit(checked.value);
+      await onSubmit(checked.value, mail);
     } catch (caught) {
       setError(failureMessage(caught, t));
       setSubmitting(false);
@@ -167,6 +171,28 @@ export function AnnouncementForm({
           )}
         </span>
       </fieldset>
+      {offerMail ? (
+        <label className='flex items-start gap-2.5 self-start py-1'>
+          <input
+            type='checkbox'
+            checked={mail}
+            onChange={(event) => setMail(event.target.checked)}
+            aria-describedby={`${formId}-mail`}
+            className='mt-0.5 h-5 w-5 shrink-0 accent-theme-ink'
+          />
+          <span className='flex flex-col gap-0.5'>
+            <span className='text-sm text-theme-ink'>
+              {t.admin.announcementForm.mail}
+            </span>
+            <span
+              id={`${formId}-mail`}
+              className='text-[13px] leading-5 text-theme-muted'
+            >
+              {t.admin.announcementForm.mailHint}
+            </span>
+          </span>
+        </label>
+      ) : null}
       {error ? (
         <p role='alert' className='text-sm text-theme-ink'>
           {error}

@@ -289,8 +289,11 @@ export function adminActions({
   };
 
   const announcements = {
-    create: (fields: AnnouncementFields) =>
-      save(() => unwrap(api.POST('/admin/announcements', {body: fields}))),
+    // Mailed to every resident too when the admin asks, on publishing only.
+    create: (fields: AnnouncementFields, mail: boolean) =>
+      save(() =>
+        unwrap(api.POST('/admin/announcements', {body: {...fields, mail}})),
+      ),
 
     update: (id: string, fields: AnnouncementFields) =>
       save(() =>

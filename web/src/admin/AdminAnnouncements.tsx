@@ -77,9 +77,10 @@ export function AdminAnnouncements() {
             }}
             today={data.today}
             submitLabel={t.admin.announcements.publish}
+            offerMail
             onCancel={up}
-            onSubmit={async (fields) => {
-              await actions.announcements.create(fields);
+            onSubmit={async (fields, mail) => {
+              await actions.announcements.create(fields, mail);
               up();
             }}
           />

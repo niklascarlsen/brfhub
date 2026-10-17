@@ -33,6 +33,13 @@ export const announcementBodySchema = z.object({
   endsOn: z.iso.date().nullable(),
 });
 
+// A new announcement can also be mailed to every resident, for important
+// information everyone needs to see, push or not. Only when it is
+// published: a corrected typo is not mailed again.
+export const newAnnouncementBodySchema = announcementBodySchema.extend({
+  mail: z.boolean().default(false),
+});
+
 export const announcementParamsSchema = z.object({
   id: z.uuid(),
 });
@@ -41,8 +48,10 @@ export type Announcement = z.infer<typeof announcementSchema>;
 export type AdminAnnouncement = z.infer<typeof adminAnnouncementSchema>;
 export type AdminAnnouncements = z.infer<typeof adminAnnouncementsSchema>;
 export type AnnouncementBody = z.infer<typeof announcementBodySchema>;
+export type NewAnnouncementBody = z.infer<typeof newAnnouncementBodySchema>;
 
 z.globalRegistry.add(announcementSchema, {id: 'Announcement'});
 z.globalRegistry.add(adminAnnouncementSchema, {id: 'AdminAnnouncement'});
 z.globalRegistry.add(adminAnnouncementsSchema, {id: 'AdminAnnouncements'});
 z.globalRegistry.add(announcementBodySchema, {id: 'AnnouncementBody'});
+z.globalRegistry.add(newAnnouncementBodySchema, {id: 'NewAnnouncementBody'});

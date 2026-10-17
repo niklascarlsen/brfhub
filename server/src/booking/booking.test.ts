@@ -1559,6 +1559,36 @@ test('a device the push service no longer knows is dropped', async () => {
 // once the request they fired waits on it, so the request meets the other
 // side of the race at the same point every run.
 
+test('a time under way opened for walk-in is announced to its queue', async () => {
+  const {id} = await insertStartedBooking(TENANT);
+  await db.insert(subscriptions).values({
+    organizationId: ORGANIZATION_ID,
+    memberId: memberId(NEIGHBOUR),
+    date: today,
+    start: ALL_DAY.start,
+    end: ALL_DAY.end,
+    resourceId: LAUNDRY_1,
+    endsAt: slotEndsAt(
+      ORGANIZATION.timeZone,
+      today,
+      ALL_DAY.end,
+      ALL_DAY.endOffsetDays,
+    ),
+  });
+  await addDevice(NEIGHBOUR);
+  await addDevice(TENANT);
+
+  await cancel(TENANT, id);
+
+  assert.deepEqual(await pushed(), [
+    {
+      to: `${NEIGHBOUR}-device`,
+      title: 'En tid är öppen för drop-in',
+      start: ALL_DAY.start,
+    },
+  ]);
+});
+
 test('a cancel that waited while its slot started opens it for walk-in', async () => {
   const created = await book(TENANT, {date: bookableDate, start: '07:00'});
   const {id} = created.json<CreatedBooking>();

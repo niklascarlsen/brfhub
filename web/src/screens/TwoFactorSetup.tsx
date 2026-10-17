@@ -1,7 +1,7 @@
 import type {AdminAccount} from '@booking/core/auth/account';
 import {qrCodeOf, secretOf} from '@booking/core/auth/twoFactor';
 import {useTwoFactorSetup} from '@booking/core/auth/useTwoFactorSetup';
-import {useState, type SubmitEvent} from 'react';
+import {useEffect, useState, type SubmitEvent} from 'react';
 
 import {CARD, PRIMARY_BUTTON, SECONDARY_BUTTON} from '@/admin/styles';
 import {authClient} from '@/auth/client';
@@ -63,6 +63,10 @@ export function TwoFactorSetup({account, onDone}: TwoFactorSetupProps) {
   });
   const {step, password, code, error, canSubmit} = setup;
   const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    document.title = t.twoFactor.title;
+  }, [t]);
 
   const copy = (backupCodes: string[]) => {
     navigator.clipboard

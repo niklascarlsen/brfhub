@@ -20,6 +20,7 @@ import {FormActions} from '@/admin/FormActions';
 import {SECONDARY_BUTTON, SECONDARY_LABEL} from '@/admin/styles';
 import {FieldProblem} from '@/components/FieldProblem';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
+import {Icon} from '@/components/Icon';
 import {useMessages} from '@/i18n/LocaleProvider';
 import theme from '@/theme.json';
 
@@ -27,7 +28,9 @@ type AnnouncementFormProps = {
   initial: AnnouncementFields & {publishedOn: string};
   today: string;
   submitLabel: string;
-  onSubmit: (fields: AnnouncementFields) => Promise<void>;
+  // A new announcement can be mailed too; an edit never is.
+  offerMail?: boolean;
+  onSubmit: (fields: AnnouncementFields, mail: boolean) => Promise<void>;
   onCancel: () => void;
   onDelete?: () => void;
 };
@@ -36,6 +39,7 @@ export function AnnouncementForm({
   initial,
   today,
   submitLabel,
+  offerMail = false,
   onSubmit,
   onCancel,
   onDelete,
@@ -45,6 +49,7 @@ export function AnnouncementForm({
   const [title, setTitle] = useState<Draft>(initial.title);
   const [body, setBody] = useState<Draft>(initial.body);
   const [endsOn, setEndsOn] = useState(initial.endsOn);
+  const [mail, setMail] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   // A new duration counts from today, also when an older announcement is
@@ -63,7 +68,7 @@ export function AnnouncementForm({
     setError(null);
 
     try {
-      await onSubmit(checked.value);
+      await onSubmit(checked.value, mail);
     } catch (caught) {
       setError(failureMessage(caught, t));
       setSubmitting(false);
@@ -164,6 +169,29 @@ export function AnnouncementForm({
           )}
         </Text>
       </View>
+      {offerMail ? (
+        <Pressable
+          onPress={() => setMail(!mail)}
+          accessibilityRole='checkbox'
+          accessibilityState={{checked: mail}}
+          accessibilityHint={t.admin.announcementForm.mailHint}
+          className='flex-row items-start gap-2.5 self-start py-1'
+        >
+          <Icon
+            name={mail ? 'checkbox' : 'square-outline'}
+            size={22}
+            color={mail ? theme.ink : theme.muted}
+          />
+          <View className='min-w-0 flex-1 gap-0.5'>
+            <Text className='font-sans text-sm text-theme-ink'>
+              {t.admin.announcementForm.mail}
+            </Text>
+            <Text className='font-sans text-[13px] leading-5 text-theme-muted'>
+              {t.admin.announcementForm.mailHint}
+            </Text>
+          </View>
+        </Pressable>
+      ) : null}
       {error ? (
         <Text
           accessibilityRole='alert'

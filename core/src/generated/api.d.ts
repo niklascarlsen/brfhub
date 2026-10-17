@@ -2887,7 +2887,7 @@ export interface paths {
       };
       requestBody: {
         content: {
-          'application/json': components['schemas']['AnnouncementBodyInput'];
+          'application/json': components['schemas']['NewAnnouncementBodyInput'];
         };
       };
       responses: {
@@ -4503,6 +4503,7 @@ export interface components {
       | 'schedule.remove'
       | 'booking.cancel'
       | 'announcement.create'
+      | 'announcement.mail'
       | 'announcement.update'
       | 'announcement.remove'
       | 'organization.update';
@@ -4555,6 +4556,19 @@ export interface components {
         en?: string;
       };
       endsOn: string | null;
+    };
+    NewAnnouncementBodyInput: {
+      title: {
+        sv?: string;
+        en?: string;
+      };
+      body: {
+        sv?: string;
+        en?: string;
+      };
+      endsOn: string | null;
+      /** @default false */
+      mail: boolean;
     };
     ApartmentInput: {
       /** Format: uuid */
@@ -5004,6 +5018,7 @@ export interface components {
       | 'schedule.remove'
       | 'booking.cancel'
       | 'announcement.create'
+      | 'announcement.mail'
       | 'announcement.update'
       | 'announcement.remove'
       | 'organization.update';
@@ -5056,6 +5071,19 @@ export interface components {
         en?: string;
       };
       endsOn: string | null;
+    };
+    NewAnnouncementBody: {
+      title: {
+        sv?: string;
+        en?: string;
+      };
+      body: {
+        sv?: string;
+        en?: string;
+      };
+      endsOn: string | null;
+      /** @default false */
+      mail: boolean;
     };
     Apartment: {
       /** Format: uuid */

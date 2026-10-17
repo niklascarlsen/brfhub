@@ -4,7 +4,7 @@ import closeWithGrace from 'close-with-grace';
 
 import {buildApp} from './app.js';
 import {pool} from './db/index.js';
-import {MAIL, TRUSTED_PROXIES} from './lib/env.js';
+import {development, MAIL, TRUSTED_PROXIES} from './lib/env.js';
 import {smtpMail} from './lib/mail.js';
 import {PUSH_TIMEOUT_MS, sendPush} from './lib/push.js';
 
@@ -40,4 +40,6 @@ closeWithGrace({delay: PUSH_TIMEOUT_MS + 5000}, async ({signal, err}) => {
 });
 
 await server.listen({port, host});
-server.log.info(`Docs http://localhost:${port}/docs`);
+if (development) {
+  server.log.info(`Docs http://localhost:${port}/docs`);
+}

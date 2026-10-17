@@ -5,9 +5,19 @@ import type {FastifyRequest} from 'fastify';
 import {auth} from '../auth/auth.js';
 import {adminSessionExpired} from '../auth/sessions.js';
 import {db} from '../db/index.js';
-import {members, organizations, session as sessions} from '../db/schema.js';
+import {
+  members,
+  organizations,
+  session as sessions,
+  user as users,
+} from '../db/schema.js';
 import {appError} from './errors.js';
-import {requestedLocales, resolveLocale, type Locale} from './locale.js';
+import {
+  requestedLocale,
+  requestedLocales,
+  resolveLocale,
+  type Locale,
+} from './locale.js';
 
 // What every request in an organization needs to know about it.
 export type Organization = {
@@ -76,6 +86,14 @@ export async function getSignedIn(request: FastifyRequest): Promise<SignedIn> {
   }
 
   const requested = requestedLocales(request.headers['accept-language']);
+
+  // Remembered for the mail the account is sent later, outside any
+  // request. A request that asks for no language the organization writes
+  // in, such as a script's, leaves it as it was.
+  const shown = requestedLocale(requested, organization.locales);
+  if (shown !== null && shown !== user.locale) {
+    await db.update(users).set({locale: shown}).where(eq(users.id, user.id));
+  }
   const common: Organization = {
     organizationId: user.organizationId,
     ...organization,

@@ -198,7 +198,7 @@ async function free(
 
 // Ends a booking the way cancelling does: one that has started stays,
 // open for walk-in and counting against the apartment until it ends, and
-// any other is freed.
+// its queue hears it can walk in; any other is freed.
 async function letGo(
   tx: Transaction,
   booking: Held,
@@ -213,7 +213,7 @@ async function letGo(
       .update(bookings)
       .set({releasedAt: currentTime()})
       .where(eq(bookings.id, booking.id));
-    return null;
+    return queueOf(tx, booking, releasedBy, 'dropIn');
   }
 
   return free(tx, booking, releasedBy);

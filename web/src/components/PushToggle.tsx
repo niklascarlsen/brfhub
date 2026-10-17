@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 
 import {useDialog} from '@/components/Dialog';
+import {useOnReturn} from '@/hooks/useOnReturn';
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';
 import {
   dropPushSubscription,
@@ -9,6 +10,10 @@ import {
   pushPermission,
 } from '@/lib/push';
 import {readPushEnabled, savePushEnabled} from '@/lib/pushPreference';
+
+async function isOn(): Promise<boolean> {
+  return (await readPushEnabled()) && pushPermission() === 'granted';
+}
 
 // Push in this browser, under the account. Off drops the subscription; on
 // subscribes again, asking the browser when it has not been asked. Once
@@ -25,9 +30,9 @@ export function PushToggle() {
   useEffect(() => {
     let current = true;
 
-    void readPushEnabled().then((wanted) => {
+    void isOn().then((on) => {
       if (current) {
-        setEnabled(wanted && pushPermission() === 'granted');
+        setEnabled(on);
       }
     });
 
@@ -35,6 +40,30 @@ export function PushToggle() {
       current = false;
     };
   }, []);
+
+  // Back from the browser's settings, where a browser that has been told
+  // no can only be told yes: allowed there, it subscribes at once instead
+  // of at the next load.
+  useOnReturn(() => {
+    if (!isSupported() || enabled !== false || busy) {
+      return;
+    }
+
+    // Busy until done, so the switch cannot be turned off meanwhile and
+    // then be turned back on when this finishes.
+    setBusy(true);
+    isOn()
+      .then(async (on) => {
+        if (on) {
+          await enablePush(locale);
+          setEnabled(true);
+        }
+      })
+      .catch((error: unknown) => {
+        console.warn('[push] could not subscribe', error);
+      })
+      .finally(() => setBusy(false));
+  });
 
   if (!isSupported()) {
     return null;
@@ -51,12 +80,14 @@ export function PushToggle() {
         return;
       }
 
+      // The wish is kept, so allowing push in the settings turns it on.
+      await savePushEnabled(true);
+
       if (pushPermission() === 'blocked') {
         dialog.alert(t.push.blockedTitle, t.push.failedMessage);
         return;
       }
 
-      await savePushEnabled(true);
       await enablePush(locale);
       setEnabled(true);
     } catch {

@@ -1,9 +1,10 @@
-import {eq} from 'drizzle-orm';
+import {and, eq, isNull} from 'drizzle-orm';
 
 import {db} from '../db/index.js';
-import {organizations, user} from '../db/schema.js';
+import {members, organizations, user} from '../db/schema.js';
 import {WEB_ORIGIN} from '../lib/env.js';
 import {
+  accountLocale,
   localize,
   requestedLocales,
   resolveLocale,
@@ -28,6 +29,37 @@ export function setMailTransport(send: SendMail): void {
 
 export function sendMail(mail: Mail): Promise<void> {
   return transport(mail);
+}
+
+// Mail to many goes out a few at a time, and one address the SMTP service
+// refuses or a send that times out does not stop the rest. The failures
+// are thrown together at the end, for the caller's log.
+const SENDS_AT_ONCE = 5;
+
+async function sendToEach(mails: Mail[]): Promise<void> {
+  const failed: unknown[] = [];
+  let next = 0;
+
+  async function worker() {
+    while (next < mails.length) {
+      const mail = mails[next++];
+
+      if (mail) {
+        await sendMail(mail).catch((error: unknown) => {
+          failed.push(error);
+        });
+      }
+    }
+  }
+
+  await Promise.all(Array.from({length: SENDS_AT_ONCE}, worker));
+
+  if (failed.length > 0) {
+    throw new AggregateError(
+      failed,
+      `${failed.length} of ${mails.length} mails could not be sent`,
+    );
+  }
 }
 
 // Where to sign in, when the server knows it. The apps are found by name.
@@ -207,6 +239,22 @@ const BOOKINGS_CANCELLED: Record<
   }),
 };
 
+const ANNOUNCEMENT: Record<
+  Locale,
+  (organization: string, title: string, body: string, where: string) => Mail
+> = {
+  sv: (organization, title, body, where) => ({
+    to: '',
+    subject: `${organization}: ${title}`,
+    text: [body, `Anslaget finns också i ${where}.`].join('\n\n'),
+  }),
+  en: (organization, title, body, where) => ({
+    to: '',
+    subject: `${organization}: ${title}`,
+    text: [body, `The notice is also in ${where}.`].join('\n\n'),
+  }),
+};
+
 async function organizationOf(organizationId: string) {
   const [organization] = await db
     .select({name: organizations.name, locales: organizations.locales})
@@ -220,13 +268,24 @@ async function organizationOf(organizationId: string) {
   return organization;
 }
 
-// A new admin is told what to do, in the organization's first language.
+// The language the account with this address last used, if it has.
+async function lastLocaleOf(email: string): Promise<string | null> {
+  const [account] = await db
+    .select({locale: user.locale})
+    .from(user)
+    .where(eq(user.email, email));
+
+  return account?.locale ?? null;
+}
+
+// A new admin is told what to do, in the language a resident made admin
+// last used, else the organization's first.
 export async function sendAdminInvitation(
   organizationId: string,
   email: string,
 ): Promise<void> {
   const organization = await organizationOf(organizationId);
-  const locale = organization.locales[0] ?? 'sv';
+  const locale = accountLocale(await lastLocaleOf(email), organization.locales);
   const mail = ADMIN_INVITATION[locale](
     organization.name,
     whereToSignIn(locale),
@@ -243,7 +302,7 @@ export async function sendApartmentLinked(
   label: string,
 ): Promise<void> {
   const organization = await organizationOf(organizationId);
-  const locale = organization.locales[0] ?? 'sv';
+  const locale = accountLocale(await lastLocaleOf(email), organization.locales);
   const mail = APARTMENT_LINKED[locale](
     organization.name,
     label,
@@ -267,8 +326,8 @@ export async function sendWelcome(
 }
 
 // Every resident of an apartment is told of its bookings a change by the
-// admin cancelled, in the organization's first language, like the other
-// mail the organization sends: a resident may have no device to ask.
+// admin cancelled, each in the language they last used, else the
+// organization's first: a resident may have no device to ask.
 export async function sendBookingsCancelled(
   organizationId: string,
   memberId: string,
@@ -277,23 +336,56 @@ export async function sendBookingsCancelled(
   reason: LocalizedText,
 ): Promise<void> {
   const organization = await organizationOf(organizationId);
-  const locale = organization.locales[0] ?? 'sv';
-  const resource = localize(resourceName, locale) ?? '';
   const residents = await db
-    .select({email: user.email})
+    .select({email: user.email, locale: user.locale})
     .from(user)
     .where(eq(user.memberId, memberId));
-  const mail = BOOKINGS_CANCELLED[locale](
-    organization.name,
-    cancelled.map(
-      (booking) =>
-        `${resource}, ${formatWhen(locale, booking.date, booking.start, booking.end)}`,
-    ),
-    localize(reason, locale) ?? '',
-    whereToSignIn(locale),
-  );
 
-  for (const {email} of residents) {
-    await sendMail({...mail, to: email});
-  }
+  await sendToEach(
+    residents.map((resident) => {
+      const locale = accountLocale(resident.locale, organization.locales);
+      const resource = localize(resourceName, locale) ?? '';
+      const mail = BOOKINGS_CANCELLED[locale](
+        organization.name,
+        cancelled.map(
+          (booking) =>
+            `${resource}, ${formatWhen(locale, booking.date, booking.start, booking.end)}`,
+        ),
+        localize(reason, locale) ?? '',
+        whereToSignIn(locale),
+      );
+
+      return {...mail, to: resident.email};
+    }),
+  );
+}
+
+// An announcement the admin chose to mail goes to every resident of the
+// organization, each in the language they last used.
+export async function sendAnnouncement(
+  organizationId: string,
+  announcement: {title: LocalizedText; body: LocalizedText},
+): Promise<void> {
+  const organization = await organizationOf(organizationId);
+  const residents = await db
+    .select({email: user.email, locale: user.locale})
+    .from(user)
+    .innerJoin(members, eq(members.id, user.memberId))
+    .where(
+      and(eq(members.organizationId, organizationId), isNull(members.leftAt)),
+    );
+
+  await sendToEach(
+    residents.map((resident) => {
+      const locale = accountLocale(resident.locale, organization.locales);
+      const mail = ANNOUNCEMENT[locale](
+        organization.name,
+        localize(announcement.title, locale) ?? '',
+        localize(announcement.body, locale) ?? '',
+        whereToSignIn(locale),
+      );
+
+      return {...mail, to: resident.email};
+    }),
+  );
 }

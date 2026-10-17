@@ -9,6 +9,7 @@ import {
   adminAnnouncementsSchema,
   announcementBodySchema,
   announcementParamsSchema,
+  newAnnouncementBodySchema,
   announcementSchema,
 } from './announcement.dto.js';
 import {
@@ -46,7 +47,7 @@ export const announcementRoutes: FastifyPluginAsyncZod = async (app) => {
     '/admin/announcements',
     {
       schema: {
-        body: announcementBodySchema,
+        body: newAnnouncementBodySchema,
         response: {201: z.object({id: z.uuid()}), ...errorResponses},
       },
     },
@@ -63,6 +64,14 @@ export const announcementRoutes: FastifyPluginAsyncZod = async (app) => {
         'announcement.create',
         localize(request.body.title, admin.locale) ?? '',
       );
+      if (request.body.mail) {
+        await logEvent(
+          request,
+          admin,
+          'announcement.mail',
+          localize(request.body.title, admin.locale) ?? '',
+        );
+      }
       return reply.code(201).send({id});
     },
   );

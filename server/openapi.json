@@ -285,6 +285,7 @@
           "schedule.remove",
           "booking.cancel",
           "announcement.create",
+          "announcement.mail",
           "announcement.update",
           "announcement.remove",
           "organization.update"
@@ -493,6 +494,62 @@
                 "type": "null"
               }
             ]
+          }
+        },
+        "required": [
+          "title",
+          "body",
+          "endsOn"
+        ]
+      },
+      "NewAnnouncementBodyInput": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "object",
+            "properties": {
+              "sv": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "en": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              }
+            }
+          },
+          "body": {
+            "type": "object",
+            "properties": {
+              "sv": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              "en": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            }
+          },
+          "endsOn": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mail": {
+            "default": false,
+            "type": "boolean"
           }
         },
         "required": [
@@ -2228,6 +2285,7 @@
           "schedule.remove",
           "booking.cancel",
           "announcement.create",
+          "announcement.mail",
           "announcement.update",
           "announcement.remove",
           "organization.update"
@@ -2448,6 +2506,66 @@
           "title",
           "body",
           "endsOn"
+        ],
+        "additionalProperties": false
+      },
+      "NewAnnouncementBody": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "object",
+            "properties": {
+              "sv": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "en": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              }
+            },
+            "additionalProperties": false
+          },
+          "body": {
+            "type": "object",
+            "properties": {
+              "sv": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              "en": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            },
+            "additionalProperties": false
+          },
+          "endsOn": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mail": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "title",
+          "body",
+          "endsOn",
+          "mail"
         ],
         "additionalProperties": false
       },
@@ -6795,7 +6913,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AnnouncementBodyInput"
+                "$ref": "#/components/schemas/NewAnnouncementBodyInput"
               }
             }
           }
