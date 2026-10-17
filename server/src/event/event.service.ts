@@ -1,10 +1,15 @@
-import {and, desc, eq, gt, lt, sql} from 'drizzle-orm';
+import {and, desc, eq, gt, inArray, lt, sql} from 'drizzle-orm';
 import type {FastifyRequest} from 'fastify';
 
 import {db} from '../db/index.js';
 import {adminEvents, user} from '../db/schema.js';
 import type {Admin} from '../lib/user.js';
-import type {AdminEvent, EventAction} from './event.dto.js';
+import {
+  AREA_OF,
+  type EventAction,
+  type EventPage,
+  type ListEventsQuery,
+} from './event.dto.js';
 
 // How long an event is kept: a board's year, so the next board sees what
 // the last one did. Each event names an admin by address, which should not
@@ -41,10 +46,21 @@ export async function logEvent(
   }
 }
 
-// Every event still kept, newest first, with the admin's name while they
-// are one.
-export function listEvents(organizationId: string): Promise<AdminEvent[]> {
-  return db
+// A page of the events still kept, newest first, with the admin's name
+// while they are one: from the newest, or from the one after `after`.
+// Narrowed to an area, the next page is too. An `after` that is gone or
+// another organization's ends the history.
+export async function listEvents(
+  organizationId: string,
+  {area, after, limit}: ListEventsQuery,
+): Promise<EventPage> {
+  const actions = area
+    ? (Object.keys(AREA_OF) as EventAction[]).filter(
+        (action) => AREA_OF[action] === area,
+      )
+    : null;
+
+  const rows = await db
     .select({
       id: adminEvents.id,
       actor: adminEvents.actor,
@@ -66,7 +82,21 @@ export function listEvents(organizationId: string): Promise<AdminEvent[]> {
       and(
         eq(adminEvents.organizationId, organizationId),
         gt(adminEvents.at, sql`now() - ${KEPT}`),
+        actions ? inArray(adminEvents.action, actions) : undefined,
+        // Compared on the stored time, not the milliseconds it is shown
+        // with, and the id where two share it.
+        after
+          ? sql`(${adminEvents.at}, ${adminEvents.id}) < (select ${adminEvents.at}, ${adminEvents.id} from ${adminEvents} where ${adminEvents.id} = ${after} and ${adminEvents.organizationId} = ${organizationId})`
+          : undefined,
       ),
     )
-    .orderBy(desc(adminEvents.at), desc(adminEvents.id));
+    .orderBy(desc(adminEvents.at), desc(adminEvents.id))
+    // One more than asked, to know whether there is a next page.
+    .limit(limit + 1);
+
+  const events = rows.slice(0, limit);
+  return {
+    events,
+    next: rows.length > limit ? (events.at(-1)?.id ?? null) : null,
+  };
 }

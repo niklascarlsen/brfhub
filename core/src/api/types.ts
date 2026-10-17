@@ -26,5 +26,9 @@ export type HeldBooking = components['schemas']['HeldBooking'];
 export type Account = components['schemas']['Account'];
 export type AdminUser = components['schemas']['AdminUser'];
 export type AdminEvent = components['schemas']['AdminEvent'];
+// The part of the admin an event was made in.
+export type EventArea = components['schemas']['EventArea'];
+// A page of the history, and the event the next one comes after.
+export type EventPage = components['schemas']['EventPage'];
 export type OrganizationSettings =
   components['schemas']['OrganizationSettings'];

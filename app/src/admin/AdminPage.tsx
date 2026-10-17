@@ -1,13 +1,27 @@
 import {useAdminAccount} from '@booking/core/admin/account';
 import {untranslatedMessage} from '@booking/core/admin/localized';
 import {Icon} from '@/components/Icon';
-import {useEffect, useRef, type ReactNode} from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  type ReactNode,
+} from 'react';
 import {Pressable, Text, View} from 'react-native';
 import {
   KeyboardAwareScrollView,
   KeyboardToolbar,
   type KeyboardAwareScrollViewRef,
 } from 'react-native-keyboard-controller';
+import Animated, {
+  useAnimatedRef,
+  useAnimatedScrollHandler,
+  useSharedValue,
+  type AnimatedRef,
+  type SharedValue,
+} from 'react-native-reanimated';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
 import {useConfirmLeave} from '@/admin/unsaved';
@@ -19,6 +33,20 @@ import {theme} from '@/theme';
 // The focused field stays this far above the keyboard: clear of the
 // toolbar on it (42, which the library does not export) and a little more.
 const KEYBOARD_GAP = 42 + 24;
+
+// How far the page has scrolled, and a view at the top of what scrolls,
+// which a heading that sticks measures itself from. The web's headings
+// stick with CSS alone.
+type PageScroll = {
+  scrollY: SharedValue<number>;
+  top: AnimatedRef<Animated.View>;
+};
+
+const PageScrollContext = createContext<PageScroll | null>(null);
+
+export function usePageScroll(): PageScroll | null {
+  return useContext(PageScrollContext);
+}
 
 type AdminPageProps = {
   title: string;
@@ -47,6 +75,12 @@ export function AdminPage({
   const scroll = useRef<KeyboardAwareScrollViewRef>(null);
   const pageEnd = usePageEnd();
   const missing = untranslatedMessage(untranslated, t);
+  const scrollY = useSharedValue(0);
+  const top = useAnimatedRef<Animated.View>();
+  const onScroll = useAnimatedScrollHandler((event) => {
+    scrollY.value = event.contentOffset.y;
+  });
+  const pageScroll = useMemo(() => ({scrollY, top}), [scrollY, top]);
 
   // A step to another page starts at its top.
   useEffect(() => {
@@ -59,10 +93,13 @@ export function AdminPage({
         ref={scroll}
         bottomOffset={KEYBOARD_GAP}
         className='flex-1'
-        contentContainerClassName='grow px-5 pt-2'
+        contentContainerClassName='grow px-5'
         contentContainerStyle={{paddingBottom: pageEnd}}
         keyboardShouldPersistTaps='handled'
+        onScroll={onScroll}
       >
+        {/* The page's top padding, at the very top of what scrolls. */}
+        <Animated.View ref={top} collapsable={false} className='h-2' />
         {back ? (
           <Pressable
             onPress={() => confirmLeave(back.onPress)}
@@ -87,7 +124,9 @@ export function AdminPage({
           </View>
         ) : null}
         {action ? <View className='mb-6'>{action}</View> : null}
-        {children}
+        <PageScrollContext.Provider value={pageScroll}>
+          {children}
+        </PageScrollContext.Provider>
       </KeyboardAwareScrollView>
       <KeyboardToolbar>
         <KeyboardToolbar.Prev />

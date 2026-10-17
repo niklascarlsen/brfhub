@@ -2,15 +2,18 @@ import {
   describeEvent,
   EVENT_AREAS,
   eventActor,
-  eventArea,
   formatEventClock,
   groupEventsByDay,
-  type EventArea,
 } from '@booking/core/admin/events';
-import type {AdminEvent} from '@booking/core/api/types';
+import {useEventHistory} from '@booking/core/admin/useEventHistory';
+import {errorMessage} from '@booking/core/api/errors';
+import type {EventArea} from '@booking/core/api/types';
 import {useId, useState} from 'react';
 
-import {LIST, SECTION_LABEL} from '@/admin/styles';
+import {LIST, SECONDARY_BUTTON, SECTION_LABEL_TEXT} from '@/admin/styles';
+import {Notice, NoticeBar} from '@/components/Notice';
+import {adminLoad} from '@/hooks/useAdminActions';
+import {useFocusLoad} from '@/hooks/useFocusLoad';
 import {useMessages} from '@/i18n/LocaleProvider';
 
 function AreaChip({
@@ -39,21 +42,35 @@ function AreaChip({
 }
 
 // What the admins have done in the last year, a day at a time, newest
-// first, narrowed to one part of the admin if asked.
-export function History({events}: {events: AdminEvent[]}) {
+// first, a page at a time, narrowed to one part of the admin if asked.
+export function History() {
   const t = useMessages();
   const [area, setArea] = useState<EventArea | null>(null);
   const filterId = useId();
+  const key = area ?? '';
+  const newest = useFocusLoad(() => adminLoad.events(area), key);
+  // Another area's list stays until this one's comes, so the chips and the
+  // page stay where they are.
+  const history = useEventHistory(newest.data, key, (after) =>
+    adminLoad.events(area, after),
+  );
 
-  if (events.length === 0) {
+  const {events} = history;
+  if (events === null) {
+    return newest.error ? (
+      <Notice
+        message={newest.error}
+        actionLabel={t.common.retry}
+        onAction={newest.reload}
+      />
+    ) : null;
+  }
+
+  if (events.length === 0 && history.shownKey === '') {
     return <p className='text-sm text-theme-muted'>{t.admin.events.none}</p>;
   }
 
-  const shown =
-    area === null
-      ? events
-      : events.filter((event) => eventArea(event) === area);
-  const days = groupEventsByDay(shown, t);
+  const days = groupEventsByDay(events, t);
 
   return (
     <div className='flex flex-col gap-5'>
@@ -83,12 +100,29 @@ export function History({events}: {events: AdminEvent[]}) {
           />
         ))}
       </div>
-      {days.length === 0 ? (
+      {newest.error ? (
+        // The bar's own margin is the list's gap here.
+        <div className='-mb-4'>
+          <NoticeBar
+            message={newest.error}
+            actionLabel={t.common.retry}
+            onAction={newest.reload}
+          />
+        </div>
+      ) : null}
+      {/* Another area's list is not shown as this one's when it failed. */}
+      {history.stale && newest.error ? null : days.length === 0 ? (
         <p className='text-sm text-theme-muted'>{t.admin.events.noneIn}</p>
       ) : (
         days.map((day) => (
           <section key={day.day} aria-label={day.heading}>
-            <h3 className={SECTION_LABEL}>{day.heading}</h3>
+            {/* Sticks to the top while its day scrolls under it, over the
+                rows and across the screen. */}
+            <h3 className='sticky top-0 z-10 -mx-5 -mt-2 bg-theme-bg px-5 pt-2 pb-2.5 lg:mx-0 lg:px-0'>
+              <span className={`block ${SECTION_LABEL_TEXT}`}>
+                {day.heading}
+              </span>
+            </h3>
             <ul className={LIST}>
               {day.events.map((event) => (
                 <li
@@ -110,6 +144,21 @@ export function History({events}: {events: AdminEvent[]}) {
           </section>
         ))
       )}
+      {history.olderError ? (
+        <p role='alert' className='text-sm text-theme-ink'>
+          {errorMessage(history.olderError, t)}
+        </p>
+      ) : null}
+      {history.hasOlder ? (
+        <button
+          type='button'
+          onClick={history.showOlder}
+          disabled={history.loadingOlder}
+          className={`${SECONDARY_BUTTON} self-start`}
+        >
+          {t.admin.events.older}
+        </button>
+      ) : null}
     </div>
   );
 }

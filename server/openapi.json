@@ -197,6 +197,111 @@
           "admin"
         ]
       },
+      "EventActionInput": {
+        "type": "string",
+        "enum": [
+          "apartment.create",
+          "apartment.update",
+          "apartment.newResident",
+          "apartment.signOut",
+          "apartment.remove",
+          "admin.add",
+          "admin.remove",
+          "admin.resetTwoFactor",
+          "kind.create",
+          "kind.update",
+          "kind.remove",
+          "resource.create",
+          "resource.update",
+          "resource.order",
+          "resource.close",
+          "resource.reopen",
+          "resource.remove",
+          "schedule.put",
+          "schedule.remove",
+          "booking.cancel",
+          "announcement.create",
+          "announcement.mail",
+          "announcement.update",
+          "announcement.remove",
+          "organization.update"
+        ]
+      },
+      "EventAreaInput": {
+        "type": "string",
+        "enum": [
+          "apartments",
+          "resources",
+          "announcements",
+          "admins",
+          "organization"
+        ]
+      },
+      "AdminEventInput": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "actorName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "action": {
+            "$ref": "#/components/schemas/EventActionInput"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "actor",
+          "actorName",
+          "action",
+          "subject",
+          "at"
+        ]
+      },
+      "EventPageInput": {
+        "type": "object",
+        "properties": {
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminEventInput"
+            }
+          },
+          "next": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "events",
+          "next"
+        ]
+      },
       "AdminUserInput": {
         "type": "object",
         "properties": {
@@ -259,74 +364,6 @@
         "required": [
           "name",
           "email"
-        ]
-      },
-      "EventActionInput": {
-        "type": "string",
-        "enum": [
-          "apartment.create",
-          "apartment.update",
-          "apartment.newResident",
-          "apartment.signOut",
-          "apartment.remove",
-          "admin.add",
-          "admin.remove",
-          "admin.resetTwoFactor",
-          "kind.create",
-          "kind.update",
-          "kind.remove",
-          "resource.create",
-          "resource.update",
-          "resource.order",
-          "resource.close",
-          "resource.reopen",
-          "resource.remove",
-          "schedule.put",
-          "schedule.remove",
-          "booking.cancel",
-          "announcement.create",
-          "announcement.mail",
-          "announcement.update",
-          "announcement.remove",
-          "organization.update"
-        ]
-      },
-      "AdminEventInput": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-          },
-          "actor": {
-            "type": "string"
-          },
-          "actorName": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "action": {
-            "$ref": "#/components/schemas/EventActionInput"
-          },
-          "subject": {
-            "type": "string"
-          },
-          "at": {
-            "type": "string",
-            "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
-          }
-        },
-        "required": [
-          "id",
-          "actor",
-          "actorName",
-          "action",
-          "subject",
-          "at"
         ]
       },
       "AnnouncementInput": {
@@ -2193,6 +2230,113 @@
         ],
         "additionalProperties": false
       },
+      "EventAction": {
+        "type": "string",
+        "enum": [
+          "apartment.create",
+          "apartment.update",
+          "apartment.newResident",
+          "apartment.signOut",
+          "apartment.remove",
+          "admin.add",
+          "admin.remove",
+          "admin.resetTwoFactor",
+          "kind.create",
+          "kind.update",
+          "kind.remove",
+          "resource.create",
+          "resource.update",
+          "resource.order",
+          "resource.close",
+          "resource.reopen",
+          "resource.remove",
+          "schedule.put",
+          "schedule.remove",
+          "booking.cancel",
+          "announcement.create",
+          "announcement.mail",
+          "announcement.update",
+          "announcement.remove",
+          "organization.update"
+        ]
+      },
+      "EventArea": {
+        "type": "string",
+        "enum": [
+          "apartments",
+          "resources",
+          "announcements",
+          "admins",
+          "organization"
+        ]
+      },
+      "AdminEvent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "actorName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "action": {
+            "$ref": "#/components/schemas/EventAction"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "actor",
+          "actorName",
+          "action",
+          "subject",
+          "at"
+        ],
+        "additionalProperties": false
+      },
+      "EventPage": {
+        "type": "object",
+        "properties": {
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminEvent"
+            }
+          },
+          "next": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "events",
+          "next"
+        ],
+        "additionalProperties": false
+      },
       "AdminUser": {
         "type": "object",
         "properties": {
@@ -2258,75 +2402,6 @@
         "required": [
           "name",
           "email"
-        ],
-        "additionalProperties": false
-      },
-      "EventAction": {
-        "type": "string",
-        "enum": [
-          "apartment.create",
-          "apartment.update",
-          "apartment.newResident",
-          "apartment.signOut",
-          "apartment.remove",
-          "admin.add",
-          "admin.remove",
-          "admin.resetTwoFactor",
-          "kind.create",
-          "kind.update",
-          "kind.remove",
-          "resource.create",
-          "resource.update",
-          "resource.order",
-          "resource.close",
-          "resource.reopen",
-          "resource.remove",
-          "schedule.put",
-          "schedule.remove",
-          "booking.cancel",
-          "announcement.create",
-          "announcement.mail",
-          "announcement.update",
-          "announcement.remove",
-          "organization.update"
-        ]
-      },
-      "AdminEvent": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-          },
-          "actor": {
-            "type": "string"
-          },
-          "actorName": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "action": {
-            "$ref": "#/components/schemas/EventAction"
-          },
-          "subject": {
-            "type": "string"
-          },
-          "at": {
-            "type": "string",
-            "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
-          }
-        },
-        "required": [
-          "id",
-          "actor",
-          "actorName",
-          "action",
-          "subject",
-          "at"
         ],
         "additionalProperties": false
       },
@@ -5202,16 +5277,44 @@
     },
     "/admin/events": {
       "get": {
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/EventAreaInput"
+            },
+            "in": "query",
+            "name": "area",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "query",
+            "name": "after",
+            "required": false
+          },
+          {
+            "schema": {
+              "default": 50,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          }
+        ],
         "responses": {
           "200": {
             "description": "Default Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AdminEvent"
-                  }
+                  "$ref": "#/components/schemas/EventPage"
                 }
               }
             }

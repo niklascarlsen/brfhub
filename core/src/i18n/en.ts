@@ -380,7 +380,7 @@ export const en: Messages = {
       limit: 'Bookings at a time',
       limitHint: 'Per apartment, across all resources of this type',
       limitNote:
-        'A changed limit applies to new bookings. Those already made stay.',
+        'The lower limit applies to new bookings. Apartments already holding more keep them.',
       fewer: 'Fewer',
       more: 'More',
       remove: 'Remove type',
@@ -500,6 +500,7 @@ export const en: Messages = {
       note: 'What the administrators have done, newest first. The history is kept for 12 months.',
       none: 'Nothing has happened in the last year.',
       noneIn: 'Nothing here in the last year.',
+      older: 'Show older',
       filter: 'Show',
       all: 'All',
       areas: {

@@ -1,50 +1,20 @@
-import type {AdminEvent} from '../api/types';
+import type {AdminEvent, EventArea, EventPage} from '../api/types';
 import {CATALOGS, joinNames, type Messages} from '../i18n/catalog';
 import {formatDayHeading, toIsoDate} from '../lib/dates';
 
-// What the history can be narrowed to: the admin tab, or the part of the
-// organization's page, that the change was made on.
-export const EVENT_AREAS = [
-  'apartments',
-  'resources',
-  'announcements',
-  'admins',
-  'organization',
-] as const;
-
-export type EventArea = (typeof EVENT_AREAS)[number];
-
-const AREA_OF: Record<AdminEvent['action'], EventArea> = {
-  'apartment.create': 'apartments',
-  'apartment.update': 'apartments',
-  'apartment.newResident': 'apartments',
-  'apartment.signOut': 'apartments',
-  'apartment.remove': 'apartments',
-  'admin.add': 'admins',
-  'admin.remove': 'admins',
-  'admin.resetTwoFactor': 'admins',
-  'kind.create': 'resources',
-  'kind.update': 'resources',
-  'kind.remove': 'resources',
-  'resource.create': 'resources',
-  'resource.update': 'resources',
-  'resource.order': 'resources',
-  'resource.close': 'resources',
-  'resource.reopen': 'resources',
-  'resource.remove': 'resources',
-  'schedule.put': 'resources',
-  'schedule.remove': 'resources',
-  'booking.cancel': 'resources',
-  'announcement.create': 'announcements',
-  'announcement.mail': 'announcements',
-  'announcement.update': 'announcements',
-  'announcement.remove': 'announcements',
-  'organization.update': 'organization',
+// What the history can be narrowed to, in the order the chips show: the
+// admin tab, or the part of the organization's page, that the change was
+// made on. The server files each event under one; kept as a record so an
+// area it adds fails here until it has its chip.
+const AREAS: Record<EventArea, true> = {
+  apartments: true,
+  resources: true,
+  announcements: true,
+  admins: true,
+  organization: true,
 };
 
-export function eventArea(event: AdminEvent): EventArea {
-  return AREA_OF[event.action];
-}
+export const EVENT_AREAS = Object.keys(AREAS) as EventArea[];
 
 // What an event reads as, in the language shown: "Tog bort lägenhet 12".
 export function describeEvent(event: AdminEvent, t: Messages): string {
@@ -154,4 +124,36 @@ export function groupEventsByDay(
   }
 
   return days;
+}
+
+// The history as far back as it is shown: the pages loaded so far, and the
+// event the next one comes after, while there are older ones.
+export type EventList = {
+  events: AdminEvent[];
+  next: string | null;
+};
+
+// The newest page loaded anew over what is shown. While it reaches the
+// events shown, the older pages stay under it; once more has happened than
+// a page holds, they would leave a gap, so the history starts over from it.
+export function withNewest(list: EventList | null, page: EventPage): EventList {
+  const ids = new Set(page.events.map((event) => event.id));
+
+  if (
+    !list ||
+    page.next === null ||
+    !list.events.some((event) => ids.has(event.id))
+  ) {
+    return page;
+  }
+
+  const older = list.events.filter((event) => !ids.has(event.id));
+  return older.length === 0
+    ? page
+    : {events: [...page.events, ...older], next: list.next};
+}
+
+// An older page under what is shown.
+export function withOlder(list: EventList, page: EventPage): EventList {
+  return {events: [...list.events, ...page.events], next: page.next};
 }

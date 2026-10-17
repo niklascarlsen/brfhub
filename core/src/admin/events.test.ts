@@ -3,7 +3,13 @@ import {describe, expect, test} from 'vitest';
 import type {AdminEvent} from '../api/types';
 import {en} from '../i18n/en';
 import {sv} from '../i18n/sv';
-import {describeEvent, eventActor, eventArea, groupEventsByDay} from './events';
+import {
+  describeEvent,
+  eventActor,
+  groupEventsByDay,
+  withNewest,
+  withOlder,
+} from './events';
 
 function event(at: Date, fields: Partial<AdminEvent> = {}): AdminEvent {
   return {
@@ -72,17 +78,6 @@ describe('groupEventsByDay', () => {
   });
 });
 
-test('an event is filed under the area it was made in', () => {
-  const at = new Date(2026, 9, 14);
-
-  expect(eventArea(event(at, {action: 'schedule.put'}))).toBe('resources');
-  expect(eventArea(event(at, {action: 'kind.remove'}))).toBe('resources');
-  expect(eventArea(event(at, {action: 'admin.add'}))).toBe('admins');
-  expect(eventArea(event(at, {action: 'organization.update'}))).toBe(
-    'organization',
-  );
-});
-
 test('an admin who is gone is named by address', () => {
   const at = new Date(2026, 9, 14);
 
@@ -109,4 +104,46 @@ test('a change to the settings names its parts in the language shown', () => {
   expect(describeEvent({...changed, subject: 'something else'}, sv)).toBe(
     'Ändrade inställningarna: something else',
   );
+});
+
+describe('paging the history', () => {
+  // Events a minute apart, numbered from the newest.
+  const at = (index: number) => event(new Date(2026, 9, 14, 10, 60 - index));
+  const ids = (list: {events: AdminEvent[]}) =>
+    list.events.map((item) => item.id);
+  const page = (from: number, to: number, next: boolean) => {
+    const events = Array.from({length: to - from}, (_, index) =>
+      at(from + index),
+    );
+    return {events, next: next ? (events.at(-1)?.id ?? null) : null};
+  };
+
+  test('an older page goes under what is shown', () => {
+    const list = withOlder(page(0, 3, true), page(3, 5, false));
+
+    expect(ids(list)).toEqual(ids(page(0, 5, false)));
+    expect(list.next).toBeNull();
+  });
+
+  test('the newest page loaded anew keeps the older pages under it', () => {
+    const shown = withOlder(page(1, 4, true), page(4, 7, true));
+    const list = withNewest(shown, page(0, 3, true));
+
+    expect(ids(list)).toEqual(ids(page(0, 7, false)));
+    expect(list.next).toBe(shown.next);
+  });
+
+  test('starts over when more happened than the newest page reaches', () => {
+    const shown = withOlder(page(5, 8, true), page(8, 10, true));
+    const newest = page(0, 3, true);
+
+    expect(withNewest(shown, newest)).toBe(newest);
+  });
+
+  test('the first page, or one with the whole history, is taken as it is', () => {
+    const newest = page(0, 3, false);
+
+    expect(withNewest(null, newest)).toBe(newest);
+    expect(withNewest(page(1, 5, true), newest)).toBe(newest);
+  });
 });

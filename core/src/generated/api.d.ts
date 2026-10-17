@@ -1165,7 +1165,11 @@ export interface paths {
     };
     get: {
       parameters: {
-        query?: never;
+        query?: {
+          area?: components['schemas']['EventAreaInput'];
+          after?: string;
+          limit?: number;
+        };
         header?: never;
         path?: never;
         cookie?: never;
@@ -1178,7 +1182,7 @@ export interface paths {
             [name: string]: unknown;
           };
           content: {
-            'application/json': components['schemas']['AdminEvent'][];
+            'application/json': components['schemas']['EventPage'];
           };
         };
         /** @description Default Response */
@@ -4467,19 +4471,6 @@ export interface components {
       member: components['schemas']['MemberAccountInput'] | null;
       admin: components['schemas']['AdminAccountInput'] | null;
     };
-    AdminUserInput: {
-      id: string;
-      name: string;
-      email: string;
-      apartment: string | null;
-      twoFactorEnabled: boolean;
-      lastSignInOn: string | null;
-      self: boolean;
-    };
-    AddAdminBodyInput: {
-      name: string;
-      email: string;
-    };
     /** @enum {string} */
     EventActionInput:
       | 'apartment.create'
@@ -4507,6 +4498,9 @@ export interface components {
       | 'announcement.update'
       | 'announcement.remove'
       | 'organization.update';
+    /** @enum {string} */
+    EventAreaInput:
+      'apartments' | 'resources' | 'announcements' | 'admins' | 'organization';
     AdminEventInput: {
       /** Format: uuid */
       id: string;
@@ -4516,6 +4510,23 @@ export interface components {
       subject: string;
       /** Format: date-time */
       at: string;
+    };
+    EventPageInput: {
+      events: components['schemas']['AdminEventInput'][];
+      next: string | null;
+    };
+    AdminUserInput: {
+      id: string;
+      name: string;
+      email: string;
+      apartment: string | null;
+      twoFactorEnabled: boolean;
+      lastSignInOn: string | null;
+      self: boolean;
+    };
+    AddAdminBodyInput: {
+      name: string;
+      email: string;
     };
     AnnouncementInput: {
       /** Format: uuid */
@@ -4981,20 +4992,6 @@ export interface components {
       member: components['schemas']['MemberAccount'] | null;
       admin: components['schemas']['AdminAccount'] | null;
     };
-    AdminUser: {
-      id: string;
-      name: string;
-      email: string;
-      apartment: string | null;
-      twoFactorEnabled: boolean;
-      lastSignInOn: string | null;
-      self: boolean;
-    };
-    AddAdminBody: {
-      name: string;
-      /** Format: email */
-      email: string;
-    };
     /** @enum {string} */
     EventAction:
       | 'apartment.create'
@@ -5022,6 +5019,9 @@ export interface components {
       | 'announcement.update'
       | 'announcement.remove'
       | 'organization.update';
+    /** @enum {string} */
+    EventArea:
+      'apartments' | 'resources' | 'announcements' | 'admins' | 'organization';
     AdminEvent: {
       /** Format: uuid */
       id: string;
@@ -5031,6 +5031,24 @@ export interface components {
       subject: string;
       /** Format: date-time */
       at: string;
+    };
+    EventPage: {
+      events: components['schemas']['AdminEvent'][];
+      next: string | null;
+    };
+    AdminUser: {
+      id: string;
+      name: string;
+      email: string;
+      apartment: string | null;
+      twoFactorEnabled: boolean;
+      lastSignInOn: string | null;
+      self: boolean;
+    };
+    AddAdminBody: {
+      name: string;
+      /** Format: email */
+      email: string;
     };
     Announcement: {
       /** Format: uuid */

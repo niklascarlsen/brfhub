@@ -400,7 +400,7 @@ export const sv = {
       limit: 'Bokningar åt gången',
       limitHint: 'Per lägenhet, för alla resurser av typen tillsammans',
       limitNote:
-        'En ändrad gräns gäller nya bokningar. De som redan är gjorda står kvar.',
+        'Den lägre gränsen gäller nya bokningar. Lägenheter som redan har fler behåller dem.',
       fewer: 'Färre',
       more: 'Fler',
       remove: 'Ta bort typen',
@@ -522,6 +522,7 @@ export const sv = {
       note: 'Vad administratörerna har gjort, senaste först. Historiken sparas i 12 månader.',
       none: 'Inget har hänt det senaste året.',
       noneIn: 'Inget här det senaste året.',
+      older: 'Visa äldre',
       filter: 'Visa',
       all: 'Allt',
       areas: {

@@ -17,8 +17,11 @@ export const SECONDARY_BUTTON =
 export const SECONDARY_LABEL =
   'text-[0.875rem] font-semibold tracking-tight text-theme-ink';
 
-export const SECTION_LABEL =
-  'mb-2.5 ml-0.5 text-[11px] font-bold uppercase tracking-[1px] text-theme-muted';
+// A section's label, and its text alone for a label that carries its own
+// spacing.
+export const SECTION_LABEL_TEXT =
+  'ml-0.5 text-[11px] font-bold uppercase tracking-[1px] text-theme-muted';
+export const SECTION_LABEL = `mb-2.5 ${SECTION_LABEL_TEXT}`;
 
 export const CARD =
   'rounded-card border border-theme-line bg-theme-surface px-[18px] py-4';

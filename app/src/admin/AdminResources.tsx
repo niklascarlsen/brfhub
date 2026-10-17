@@ -162,6 +162,7 @@ export function AdminResources() {
         {editedKind ? (
           <KindForm
             initial={editedKind}
+            inUse={inUse}
             submitLabel={t.admin.save}
             onCancel={up}
             onSubmit={async (fields) => {

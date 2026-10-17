@@ -5,6 +5,7 @@ import type {
   AdminUser,
   Apartment,
   CancelledBooking,
+  EventArea,
   LocalizedText,
 } from '../api/types';
 import type {Locale, Messages} from '../i18n/catalog';
@@ -53,7 +54,16 @@ export function adminLoads({api, unwrap}: Api) {
     resources: () => unwrap(api.GET('/admin/resources')),
     organization: () => unwrap(api.GET('/admin/organization')),
     admins: () => unwrap(api.GET('/admin/admins')),
-    events: () => unwrap(api.GET('/admin/events')),
+    // A page of the history, from the newest or after an event.
+    events: (area: EventArea | null, after?: string) =>
+      unwrap(
+        api.GET('/admin/events', {
+          params: {query: {area: area ?? undefined, after}},
+        }),
+      ),
+    // The newest event alone, for the line that says what happened last.
+    newestEvent: () =>
+      unwrap(api.GET('/admin/events', {params: {query: {limit: 1}}})),
   };
 }
 

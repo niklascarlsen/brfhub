@@ -110,10 +110,10 @@ async function bookingIds() {
 }
 
 async function lastEvent() {
-  const events = (await call('GET', '/admin/events', admin)).json<
-    AdminEvent[]
-  >();
-  return events[0];
+  const page = (await call('GET', '/admin/events?limit=1', admin)).json<{
+    events: AdminEvent[];
+  }>();
+  return page.events[0];
 }
 
 async function startsOn(date: string, resourceId = LAUNDRY) {

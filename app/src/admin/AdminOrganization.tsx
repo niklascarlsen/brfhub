@@ -13,8 +13,8 @@ import {useChangePassword} from '@booking/core/auth/useChangePassword';
 import {describeEvent, formatEventTime} from '@booking/core/admin/events';
 import type {OrganizationSection} from '@booking/core/admin/location';
 import type {
-  AdminEvent,
   AdminUser,
+  EventPage,
   LocalizedText,
   OrganizationSettings,
 } from '@booking/core/api/types';
@@ -427,13 +427,14 @@ function Loaded<T>({
 function Overview({
   organization,
   admins,
-  events,
+  latest,
   onOpen,
   account,
 }: {
   organization: OrganizationSettings | null;
   admins: AdminUser[] | null;
-  events: AdminEvent[] | null;
+  // The newest page of the history, a single event.
+  latest: EventPage | null;
   onOpen: (page: Page) => void;
   account: ReactNode;
 }) {
@@ -441,7 +442,7 @@ function Overview({
   const {locale} = useLocale();
   const attention =
     admins?.filter((admin) => !admin.twoFactorEnabled).length ?? 0;
-  const latest = events?.[0];
+  const newest = latest?.events[0];
   const rules = organization
     ? localize(organization.rulesText, locale)?.trim().split('\n')[0]
     : undefined;
@@ -463,10 +464,10 @@ function Overview({
       : '',
     rules: organization ? rules || t.admin.organization.noRules : '',
     admins: admins ? t.admin.admins.count(admins.length) : '',
-    history: !events
+    history: !latest
       ? ''
-      : latest
-        ? `${describeEvent(latest, t)} · ${formatEventTime(latest.at, t)}`
+      : newest
+        ? `${describeEvent(newest, t)} · ${formatEventTime(newest.at, t)}`
         : t.admin.events.none,
   };
 
@@ -505,12 +506,12 @@ export function AdminOrganization() {
   const t = useMessages();
   const organization = useFocusLoad(adminLoad.organization);
   const admins = useFocusLoad(adminLoad.admins);
-  const events = useFocusLoad(adminLoad.events);
+  const newestEvent = useFocusLoad(adminLoad.newestEvent);
   const {location, open: go, up: goUp} = useAdminLocation('organization');
   const [saved, setSaved] = useState<Part | null>(null);
 
   // Every change is in the history the next time it is opened.
-  const reloadEvents = events.reload;
+  const reloadEvents = newestEvent.reload;
   const reloadAdmins = admins.reload;
   const adminsChanged = () => {
     reloadAdmins();
@@ -581,7 +582,7 @@ export function AdminOrganization() {
         <Overview
           organization={organization.data}
           admins={admins.data}
-          events={events.data}
+          latest={newestEvent.data}
           onOpen={open}
           account={accountCard}
         />
@@ -663,9 +664,7 @@ export function AdminOrganization() {
       );
       break;
     case 'history':
-      content = (
-        <Loaded state={events}>{(data) => <History events={data} />}</Loaded>
-      );
+      content = <History />;
       break;
     case 'password':
       content = <ChangePassword />;

@@ -20,6 +20,8 @@ type KindFormProps = {
   onSubmit: (fields: KindFields) => Promise<void>;
   onCancel: () => void;
   onDelete?: () => void;
+  // Whether resources are of the type, so bookings may be held under it.
+  inUse?: boolean;
 };
 
 export function KindForm({
@@ -28,6 +30,7 @@ export function KindForm({
   onSubmit,
   onCancel,
   onDelete,
+  inUse = false,
 }: KindFormProps) {
   const t = useMessages();
   const {locales} = useAdminAccount();
@@ -56,6 +59,10 @@ export function KindForm({
       setSubmitting(false);
     }
   }
+
+  // Only a lower limit on a type in use can leave an apartment holding more
+  // than it allows.
+  const lowered = inUse && maxActive < initial.maxActive;
 
   const step = (by: number) =>
     setMaxActive((previous) => stepMaxActive(previous, by));
@@ -113,9 +120,11 @@ export function KindForm({
           </button>
         </span>
       </div>
-      <p className='text-[13px] leading-5 text-theme-muted'>
-        {t.admin.kindForm.limitNote}
-      </p>
+      {lowered ? (
+        <p className='text-[13px] leading-5 text-theme-muted'>
+          {t.admin.kindForm.limitNote}
+        </p>
+      ) : null}
       {error ? (
         <p role='alert' className='text-sm text-theme-ink'>
           {error}

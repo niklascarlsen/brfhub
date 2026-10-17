@@ -19,7 +19,7 @@ import {
   twoFactor,
   user,
 } from '../db/schema.js';
-import type {AdminEvent} from '../event/event.dto.js';
+import type {EventPage} from '../event/event.dto.js';
 import {
   assertTestDatabase,
   codeOf,
@@ -79,7 +79,7 @@ async function userIdOf(email: string) {
 }
 
 async function eventsOf(headers: {cookie: string}) {
-  return (await call('GET', '/admin/events', headers)).json<AdminEvent[]>();
+  return (await call('GET', '/admin/events', headers)).json<EventPage>().events;
 }
 
 before(async () => {
@@ -868,6 +868,68 @@ test('events are kept for a year, and named by address once the admin is gone', 
   assert.deepEqual(
     left.map((row) => row.subject),
     ['kept'],
+  );
+});
+
+test('the history comes a page at a time, narrowed to an area if asked', async () => {
+  await db.delete(adminEvents).where(eq(adminEvents.organizationId, NORTH.id));
+  // 60 apartment events a minute apart, the last three at the same moment,
+  // and an announcement among them.
+  await db.insert(adminEvents).values(
+    Array.from({length: 60}, (_, index) => ({
+      organizationId: NORTH.id,
+      actor: 'admin@north.example.com',
+      action: index === 30 ? 'announcement.create' : 'apartment.update',
+      subject: String(index),
+      at: sql`now() - make_interval(mins => ${Math.max(index, 2)})`,
+    })),
+  );
+  const page = async (query: string) =>
+    (await call('GET', `/admin/events${query}`, admin)).json<EventPage>();
+
+  const first = await page('');
+  assert.equal(first.events.length, 50);
+  assert.equal(first.next, first.events.at(-1)?.id);
+  const second = await page(`?after=${first.next}`);
+  assert.equal(second.events.length, 10);
+  assert.equal(second.next, null);
+  // Every event once, newest first, the ones sharing a moment too.
+  const all = [...first.events, ...second.events];
+  assert.equal(new Set(all.map((event) => event.id)).size, 60);
+  assert.deepEqual(
+    all.slice(3).map((event) => event.subject),
+    Array.from({length: 57}, (_, index) => String(index + 3)),
+  );
+
+  const small = await page('?limit=20');
+  const rest = await page(`?limit=20&after=${small.next}`);
+  assert.deepEqual(
+    [...small.events, ...rest.events].map((event) => event.id),
+    all.slice(0, 40).map((event) => event.id),
+  );
+
+  const announcements = await page('?area=announcements');
+  assert.deepEqual(
+    announcements.events.map((event) => event.subject),
+    ['30'],
+  );
+  assert.equal(announcements.next, null);
+  const apartments = await page('?area=apartments');
+  assert.equal(apartments.events.length, 50);
+  assert.equal(
+    (await page(`?area=apartments&after=${apartments.next}`)).events.length,
+    9,
+  );
+
+  // Another organization's event ends the history rather than paging it.
+  const south = {
+    cookie: (await signIn(server, 'admin@south.example.com')).cookie,
+  };
+  const foreign = await call('GET', `/admin/events?after=${first.next}`, south);
+  assert.deepEqual(foreign.json<EventPage>(), {events: [], next: null});
+  assert.equal(
+    (await call('GET', '/admin/events?limit=51', admin)).statusCode,
+    400,
   );
 });
 
