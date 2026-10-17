@@ -21,18 +21,19 @@ const BUTTON_LABEL =
 const LINK = 'self-start py-2 active:opacity-60';
 const LINK_LABEL = 'text-sm font-semibold text-theme-accent';
 
-// The house and the name on one line: the name stands on the house's floor
-// and its capitals reach the eaves. The house is 58x62 with walls 39px high,
-// which Merriweather's capitals fill at 47px on iOS and 50px on Android,
-// whose renderer draws them shorter. The line box hangs below the baseline,
-// and the negative margin takes that back so the baseline meets the floor.
-// Measured on screen; the web's LoginScreen draws the same.
+// The house and the name on one line, the name's capitals inside the
+// house's wall: about 3px above its floor and below the eaves. The house is
+// 58x62 with a wall 39px high, and Merriweather's capitals stand 33px tall at
+// 45px on both platforms. The line box hangs below the baseline, which the
+// negative margin takes back; Android's renderer sets the baseline a little
+// lower in it. Measured on screen; the web's LoginScreen draws the same.
 const LOGO = {
   house: {width: 58, height: 62},
-  name: Platform.select({
-    ios: {fontSize: 47, lineHeight: 61, marginBottom: -14},
-    default: {fontSize: 50, lineHeight: 65, marginBottom: -16},
-  }),
+  name: {
+    fontSize: 45,
+    lineHeight: 58,
+    marginBottom: Platform.OS === 'ios' ? -10.8 : -9.8,
+  },
 } as const;
 
 // Signing in is two steps: the address, then the code it is mailed or, for

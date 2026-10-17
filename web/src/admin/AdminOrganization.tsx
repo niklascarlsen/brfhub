@@ -378,10 +378,6 @@ const ORGANIZATION_PAGES = [
   'admins',
   'history',
 ] as const satisfies readonly Page[];
-const ACCOUNT_PAGES = [
-  'account',
-  'password',
-] as const satisfies readonly Page[];
 
 function titleOf(page: Page, t: Messages): string {
   switch (page) {
@@ -465,8 +461,20 @@ function PageMenu({
     <nav aria-label={t.admin.organization.pages} className='flex flex-col'>
       <h2 className={MENU_HEADING}>{t.tabs.organization}</h2>
       {ORGANIZATION_PAGES.map(link)}
-      <h2 className={`${MENU_HEADING} mt-7`}>{t.account.heading}</h2>
-      {ACCOUNT_PAGES.map(link)}
+      {/* The account and its password on one page, apart from the
+          organization's, as a button so signing out is easy to find. */}
+      <button
+        type='button'
+        aria-current={shown === 'account' ? 'page' : undefined}
+        onClick={() => onOpen('account')}
+        className={`mt-7 flex h-10 items-center rounded-full border px-4 text-left text-sm font-semibold tracking-tight text-theme-ink transition-colors ${
+          shown === 'account'
+            ? 'border-theme-ink bg-theme-surface'
+            : 'border-theme-edge bg-theme-surface hover:bg-theme-sunk'
+        }`}
+      >
+        {titleOf('account', t)}
+      </button>
     </nav>
   );
 }
@@ -551,6 +559,7 @@ export function AdminOrganization() {
   const confirmLeave = useConfirmLeave();
   const isDesktop = useIsDesktop();
   const t = useMessages();
+  const passwordId = useId();
   const organization = useFocusLoad(adminLoad.organization);
   const admins = useFocusLoad(adminLoad.admins);
   const newestEvent = useFocusLoad(adminLoad.newestEvent);
@@ -587,8 +596,9 @@ export function AdminOrganization() {
     goUp();
   };
 
-  // The desktop always shows a page beside its menu; the phone starts at
-  // the overview, which holds the account.
+  // The desktop always shows a page beside its menu, and the password on
+  // the account's; the phone starts at the overview, which holds the
+  // account, and opens the password from it.
   const page: Page | null =
     location.step === 'admin'
       ? 'admins'
@@ -596,7 +606,9 @@ export function AdminOrganization() {
         ? isDesktop
           ? 'details'
           : null
-        : location.step;
+        : location.step === 'password' && isDesktop
+          ? 'account'
+          : location.step;
   const adminId = location.step === 'admin' ? location.id : null;
   const openedAdmin =
     adminId === null
@@ -644,7 +656,20 @@ export function AdminOrganization() {
       );
       break;
     case 'account':
-      content = accountCard;
+      // As wide as the password's form under it.
+      content = isDesktop ? (
+        <div className='flex max-w-2xl flex-col'>
+          {accountCard}
+          <section aria-labelledby={passwordId}>
+            <h2 id={passwordId} className={SECTION_LABEL}>
+              {t.admin.organization.changePassword}
+            </h2>
+            <ChangePassword />
+          </section>
+        </div>
+      ) : (
+        accountCard
+      );
       break;
     case 'details':
       // Saved elsewhere since it was opened: a form starts over from what
