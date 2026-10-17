@@ -1,5 +1,5 @@
 import {useEffect, useRef} from 'react';
-import type {LayoutChangeEvent, ScrollView} from 'react-native';
+import type {LayoutChangeEvent, ScrollViewInstance} from 'react-native';
 
 type Span = {x: number; width: number};
 
@@ -10,7 +10,7 @@ const GUTTER = 20;
 // as little as possible. A notification can select an item that is off
 // screen.
 export function useRevealSelected(selectedKey: string) {
-  const scroller = useRef<ScrollView>(null);
+  const scroller = useRef<ScrollViewInstance>(null);
   const items = useRef(new Map<string, Span>());
   const view = useRef({x: 0, width: 0});
 

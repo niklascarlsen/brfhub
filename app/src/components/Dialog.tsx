@@ -27,6 +27,7 @@ import {
   ScrollView,
   Text,
   View,
+  type ViewInstance,
 } from 'react-native';
 import {useReducedMotion} from 'react-native-reanimated';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -187,7 +188,7 @@ export function DialogProvider({children}: {children: ReactNode}) {
   const [state, send] = useReducer(reduce, INITIAL);
   const [progress] = useState(() => new Animated.Value(0));
   const nextKey = useRef(0);
-  const titleRef = useRef<View>(null);
+  const titleRef = useRef<ViewInstance>(null);
   // While the last one animates out it stays drawn and answers nothing, even
   // if the next one is already waiting.
   const current = state.phase === 'open' ? (state.queue[0] ?? null) : null;

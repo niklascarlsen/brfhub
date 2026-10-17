@@ -15,7 +15,7 @@ import {StatusBar} from 'expo-status-bar';
 import type {Mode} from '@booking/core/auth/account';
 import {SwitchModeContext} from '@booking/core/auth/mode';
 import {useCallback, useEffect, useRef, useState} from 'react';
-import {View} from 'react-native';
+import {LogBox, View} from 'react-native';
 import {KeyboardProvider} from 'react-native-keyboard-controller';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 
@@ -30,6 +30,11 @@ import AppTabNavigator, {
   type AppTabParamList,
 } from '@/navigation/AppTabNavigator';
 import {onNotificationTap, onPushTokenChange, registerPushToken} from '@/push';
+
+// NativeWind wraps every React Native component as it loads, ImageBackground
+// too, which React Native 0.88 deprecates and warns about on first touch. We
+// draw none ourselves, so the warning says nothing about this app.
+LogBox.ignoreLogs(['ImageBackground is deprecated']);
 
 const navigationRef = createNavigationContainerRef<AppTabParamList>();
 

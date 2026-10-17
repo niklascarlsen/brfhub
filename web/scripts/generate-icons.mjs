@@ -1,4 +1,5 @@
 import {readFileSync, writeFileSync} from 'node:fs';
+import {createRequire} from 'node:module';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
@@ -33,9 +34,17 @@ const ATTRIBUTES = {
 };
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+// Found the way Node resolves the package, since the workspace may hoist it
+// out of web/node_modules.
+const svgs = resolve(
+  dirname(
+    createRequire(import.meta.url).resolve('ionicons/dist/ionicons.json'),
+  ),
+  'svg',
+);
 
 function bodyOf(name) {
-  const file = resolve(root, `node_modules/ionicons/dist/svg/${name}.svg`);
+  const file = resolve(svgs, `${name}.svg`);
   const source = readFileSync(file, 'utf8');
   const inner = source.replace(/^<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');
 

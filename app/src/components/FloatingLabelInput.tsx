@@ -6,6 +6,7 @@ import {
   Pressable,
   TextInput,
   View,
+  type TextInputInstance,
   type TextInputProps,
 } from 'react-native';
 
@@ -36,7 +37,7 @@ export function FloatingLabelInput({
   ...props
 }: FloatingLabelInputProps) {
   const t = useMessages();
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<TextInputInstance>(null);
   const [focused, setFocused] = useState(false);
   // A password can be shown while it is typed, to check all of it.
   const [revealed, setRevealed] = useState(false);
