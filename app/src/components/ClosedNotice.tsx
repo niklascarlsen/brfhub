@@ -1,5 +1,5 @@
-import type {Resource} from '@booking/core/api/types';
-import {closedNotice} from '@booking/core/booking/closing';
+import type {Resource} from '@brfhub/core/api/types';
+import {closedNotice} from '@brfhub/core/booking/closing';
 import {Text, View} from 'react-native';
 
 import {Icon} from '@/components/Icon';

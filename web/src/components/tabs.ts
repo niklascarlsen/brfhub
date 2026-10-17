@@ -1,4 +1,4 @@
-import type {Messages} from '@booking/core/i18n/catalog';
+import type {Messages} from '@brfhub/core/i18n/catalog';
 import type {ComponentType} from 'react';
 
 import {

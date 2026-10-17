@@ -1,6 +1,6 @@
-import type {Booking, BookingWindow, Resource} from '@booking/core/api/types';
-import {useConfig} from '@booking/core/config/config';
-import {fromIsoDate, getWeekdayLabel, timeRange} from '@booking/core/lib/dates';
+import type {Booking, BookingWindow, Resource} from '@brfhub/core/api/types';
+import {useConfig} from '@brfhub/core/config/config';
+import {fromIsoDate, getWeekdayLabel, timeRange} from '@brfhub/core/lib/dates';
 
 import {api, unwrap} from '@/api/client';
 import {MyTimesList} from '@/components/MyTimes';

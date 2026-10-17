@@ -1,4 +1,4 @@
-import type {Resource} from '@booking/core/api/types';
+import type {Resource} from '@brfhub/core/api/types';
 import {Pressable, ScrollView, Text} from 'react-native';
 
 import {useRevealSelected} from '@/hooks/useRevealSelected';

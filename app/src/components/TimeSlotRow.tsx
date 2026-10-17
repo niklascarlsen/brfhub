@@ -1,6 +1,6 @@
-import type {Slot} from '@booking/core/api/types';
-import type {SlotLook, SlotOffer, SlotTone} from '@booking/core/booking/offer';
-import {timeRange} from '@booking/core/lib/dates';
+import type {Slot} from '@brfhub/core/api/types';
+import type {SlotLook, SlotOffer, SlotTone} from '@brfhub/core/booking/offer';
+import {timeRange} from '@brfhub/core/lib/dates';
 import {Icon} from '@/components/Icon';
 import {Pressable, Text, View} from 'react-native';
 

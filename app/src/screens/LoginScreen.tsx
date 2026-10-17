@@ -1,4 +1,4 @@
-import {useSignIn} from '@booking/core/auth/useSignIn';
+import {useSignIn} from '@brfhub/core/auth/useSignIn';
 import {Icon} from '@/components/Icon';
 import {Image, Platform, Pressable, Text, View} from 'react-native';
 import {

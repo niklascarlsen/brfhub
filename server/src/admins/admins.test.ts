@@ -357,7 +357,7 @@ test('removing a resident admin leaves the apartment, removing another leaves no
   );
 });
 
-test('a colleague resets a lost authenticator, which is set up again', async () => {
+test('another admin resets a lost authenticator, which is set up again', async () => {
   const response = await call('POST', '/admin/admins', admin, {
     name: 'Sekreteraren',
     email: 'sekr@north.example.com',

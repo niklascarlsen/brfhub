@@ -1,13 +1,13 @@
-import {asksReason, changeDays} from '@booking/core/admin/change';
+import {asksReason, changeDays} from '@brfhub/core/admin/change';
 import {
   checkSchedule,
   failureMessage,
   type ScheduleChange,
-} from '@booking/core/admin/drafts';
-import {useAdminAccount} from '@booking/core/admin/account';
-import type {Draft} from '@booking/core/admin/localized';
-import {useProblems} from '@booking/core/admin/useProblems';
-import type {SlotInput} from '@booking/core/api/types';
+} from '@brfhub/core/admin/drafts';
+import {useAdminAccount} from '@brfhub/core/admin/account';
+import type {Draft} from '@brfhub/core/admin/localized';
+import {useProblems} from '@brfhub/core/admin/useProblems';
+import type {SlotInput} from '@brfhub/core/api/types';
 import {useState, type SubmitEvent} from 'react';
 
 import {ChangeDay} from '@/admin/ChangeDay';

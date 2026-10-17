@@ -1,5 +1,5 @@
-import {useAdminAccount} from '@booking/core/admin/account';
-import {untranslatedMessage} from '@booking/core/admin/localized';
+import {useAdminAccount} from '@brfhub/core/admin/account';
+import {untranslatedMessage} from '@brfhub/core/admin/localized';
 import {Icon} from '@/components/Icon';
 import {
   createContext,

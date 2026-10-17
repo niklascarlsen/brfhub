@@ -1,5 +1,5 @@
-import {errorMessage} from '@booking/core/api/errors';
-import {sessionView} from '@booking/core/auth/session';
+import {errorMessage} from '@brfhub/core/api/errors';
+import {sessionView} from '@brfhub/core/auth/session';
 import {useState, type ReactNode} from 'react';
 
 import {authClient} from '@/auth/client';

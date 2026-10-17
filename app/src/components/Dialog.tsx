@@ -1,4 +1,4 @@
-import type {Messages} from '@booking/core/i18n/catalog';
+import type {Messages} from '@brfhub/core/i18n/catalog';
 import {
   dismissLabel,
   optionLabels,
@@ -6,7 +6,7 @@ import {
   type DialogAction,
   type DialogChoice,
   type DialogTime,
-} from '@booking/core/lib/dialog';
+} from '@brfhub/core/lib/dialog';
 import {
   createContext,
   useContext,

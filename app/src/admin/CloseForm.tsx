@@ -1,9 +1,9 @@
-import {changeDays} from '@booking/core/admin/change';
-import {checkClosing, failureMessage} from '@booking/core/admin/drafts';
-import {useAdminAccount} from '@booking/core/admin/account';
-import type {Draft} from '@booking/core/admin/localized';
-import {useProblems} from '@booking/core/admin/useProblems';
-import type {LocalizedText} from '@booking/core/api/types';
+import {changeDays} from '@brfhub/core/admin/change';
+import {checkClosing, failureMessage} from '@brfhub/core/admin/drafts';
+import {useAdminAccount} from '@brfhub/core/admin/account';
+import type {Draft} from '@brfhub/core/admin/localized';
+import {useProblems} from '@brfhub/core/admin/useProblems';
+import type {LocalizedText} from '@brfhub/core/api/types';
 import {useState} from 'react';
 import {Text, View} from 'react-native';
 

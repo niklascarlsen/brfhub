@@ -1,4 +1,4 @@
-import {confirmLeave, createUnsavedForms} from '@booking/core/admin/unsaved';
+import {confirmLeave, createUnsavedForms} from '@brfhub/core/admin/unsaved';
 import {createContext, useContext, useEffect, useMemo, useState} from 'react';
 
 import {useDialog} from '@/components/Dialog';

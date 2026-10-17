@@ -3,7 +3,7 @@ import {
   tabRoot,
   type AdminTab,
   type LocationIn,
-} from '@booking/core/admin/location';
+} from '@brfhub/core/admin/location';
 import {useIsFocused} from '@react-navigation/native';
 import {useCallback, useEffect, useState} from 'react';
 import {BackHandler} from 'react-native';

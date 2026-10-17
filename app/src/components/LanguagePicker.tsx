@@ -1,4 +1,4 @@
-import {CATALOGS, type LocaleChoice} from '@booking/core/i18n/catalog';
+import {CATALOGS, type LocaleChoice} from '@brfhub/core/i18n/catalog';
 import {Pressable, Text, View} from 'react-native';
 
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';

@@ -1,4 +1,4 @@
-import {useChangePassword} from '@booking/core/auth/useChangePassword';
+import {useChangePassword} from '@brfhub/core/auth/useChangePassword';
 import {type SubmitEvent} from 'react';
 
 import {FormActions} from '@/admin/FormActions';

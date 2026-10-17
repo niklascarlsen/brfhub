@@ -59,7 +59,7 @@ export const adminsRoutes: FastifyPluginAsyncZod = async (app) => {
     },
   );
 
-  // The colleague's authenticator is forgotten, for one that was lost.
+  // Another admin's authenticator is forgotten, for one that was lost.
   app.post(
     '/admin/admins/:id/reset-two-factor',
     {

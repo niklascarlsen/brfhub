@@ -1,14 +1,14 @@
-import {useAdminAccount} from '@booking/core/admin/account';
+import {useAdminAccount} from '@brfhub/core/admin/account';
 import {
   checkResource,
   failureMessage,
   tagsText,
   type ResourceFields,
-} from '@booking/core/admin/drafts';
-import {fieldLabel, type Draft} from '@booking/core/admin/localized';
-import {useProblems} from '@booking/core/admin/useProblems';
-import type {AdminKind} from '@booking/core/api/types';
-import {localize} from '@booking/core/i18n/catalog';
+} from '@brfhub/core/admin/drafts';
+import {fieldLabel, type Draft} from '@brfhub/core/admin/localized';
+import {useProblems} from '@brfhub/core/admin/useProblems';
+import type {AdminKind} from '@brfhub/core/api/types';
+import {localize} from '@brfhub/core/i18n/catalog';
 import {useState, type SubmitEvent} from 'react';
 
 import {FormActions} from '@/admin/FormActions';

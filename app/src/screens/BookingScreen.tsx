@@ -1,7 +1,7 @@
-import {firstOpenResource} from '@booking/core/booking/closing';
-import {useConfig} from '@booking/core/config/config';
-import {useResetWhenChanged} from '@booking/core/hooks/useResetWhenChanged';
-import {formatDayHeading, isWithinBookingWindow} from '@booking/core/lib/dates';
+import {firstOpenResource} from '@brfhub/core/booking/closing';
+import {useConfig} from '@brfhub/core/config/config';
+import {useResetWhenChanged} from '@brfhub/core/hooks/useResetWhenChanged';
+import {formatDayHeading, isWithinBookingWindow} from '@brfhub/core/lib/dates';
 import {useRoute, type RouteProp} from '@react-navigation/native';
 import {useState} from 'react';
 import {ScrollView, Text, View} from 'react-native';

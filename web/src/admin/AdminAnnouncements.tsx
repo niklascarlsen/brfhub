@@ -1,10 +1,10 @@
-import {ENDED_SHOWN} from '@booking/core/admin/announcement';
-import {useAdminAccount, useRefreshAccount} from '@booking/core/admin/account';
-import {missingLanguages} from '@booking/core/admin/localized';
-import type {AdminAnnouncement} from '@booking/core/api/types';
-import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
-import {localize, type Messages} from '@booking/core/i18n/catalog';
-import {formatDayMonth} from '@booking/core/lib/dates';
+import {ENDED_SHOWN} from '@brfhub/core/admin/announcement';
+import {useAdminAccount, useRefreshAccount} from '@brfhub/core/admin/account';
+import {missingLanguages} from '@brfhub/core/admin/localized';
+import type {AdminAnnouncement} from '@brfhub/core/api/types';
+import {useSlowLoad} from '@brfhub/core/hooks/useSlowLoad';
+import {localize, type Messages} from '@brfhub/core/i18n/catalog';
+import {formatDayMonth} from '@brfhub/core/lib/dates';
 import {useState} from 'react';
 
 import {AdminPage} from '@/admin/AdminPage';

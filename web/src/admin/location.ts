@@ -5,7 +5,7 @@ import {
   tabRoot,
   type AdminTab,
   type LocationIn,
-} from '@booking/core/admin/location';
+} from '@brfhub/core/admin/location';
 import {useCallback} from 'react';
 
 import {goTo, goUp, usePath, type GoOptions} from '@/lib/route';

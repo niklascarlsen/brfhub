@@ -1,6 +1,6 @@
-import type {Held, Resource, Slot, Slots} from '@booking/core/api/types';
-import {slotOffer, type BookingAction} from '@booking/core/booking/offer';
-import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
+import type {Held, Resource, Slot, Slots} from '@brfhub/core/api/types';
+import {slotOffer, type BookingAction} from '@brfhub/core/booking/offer';
+import {useSlowLoad} from '@brfhub/core/hooks/useSlowLoad';
 
 import {Notice, NoticeBar} from '@/components/Notice';
 import {TimeSlotListSkeleton, TimeSlotRow} from '@/components/TimeSlotRow';

@@ -2,7 +2,7 @@ import {
   isLocaleChoice,
   type Locale,
   type LocaleChoice,
-} from '@booking/core/i18n/catalog';
+} from '@brfhub/core/i18n/catalog';
 import * as SecureStore from 'expo-secure-store';
 
 // The language picked on this device. Read before the first render, so the

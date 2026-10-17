@@ -1,6 +1,6 @@
-import type {AdminAccount} from '@booking/core/auth/account';
-import {qrCodeOf, secretOf} from '@booking/core/auth/twoFactor';
-import {useTwoFactorSetup} from '@booking/core/auth/useTwoFactorSetup';
+import type {AdminAccount} from '@brfhub/core/auth/account';
+import {qrCodeOf, secretOf} from '@brfhub/core/auth/twoFactor';
+import {useTwoFactorSetup} from '@brfhub/core/auth/useTwoFactorSetup';
 import {Pressable, Share, Text, View} from 'react-native';
 import {
   KeyboardAwareScrollView,

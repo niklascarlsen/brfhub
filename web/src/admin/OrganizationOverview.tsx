@@ -1,14 +1,14 @@
-import {describeEvent, formatEventTime} from '@booking/core/admin/events';
+import {describeEvent, formatEventTime} from '@brfhub/core/admin/events';
 import {
   organizationSectionTitle,
   type OrganizationSection,
-} from '@booking/core/admin/location';
+} from '@brfhub/core/admin/location';
 import type {
   AdminUser,
   EventPage,
   OrganizationSettings,
-} from '@booking/core/api/types';
-import {CATALOGS, joinNames, localize} from '@booking/core/i18n/catalog';
+} from '@brfhub/core/api/types';
+import {CATALOGS, joinNames, localize} from '@brfhub/core/i18n/catalog';
 import type {ReactNode} from 'react';
 
 import {ActionRow, Badge} from '@/admin/Rows';

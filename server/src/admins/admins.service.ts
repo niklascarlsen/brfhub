@@ -169,8 +169,8 @@ export async function removeAdmin(
   return removed;
 }
 
-// A colleague who lost their authenticator sets a new one up at the next
-// sign-in.
+// An admin who lost their authenticator sets a new one up at the next
+// sign-in, once another admin has reset it.
 export async function resetAdminTwoFactor(
   admin: Admin,
   id: string,

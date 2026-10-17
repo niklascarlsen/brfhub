@@ -1,6 +1,6 @@
-import {useAdminAccount, useRefreshAccount} from '@booking/core/admin/account';
-import {organizationSectionTitle} from '@booking/core/admin/location';
-import {useSwitchMode} from '@booking/core/auth/mode';
+import {useAdminAccount, useRefreshAccount} from '@brfhub/core/admin/account';
+import {organizationSectionTitle} from '@brfhub/core/admin/location';
+import {useSwitchMode} from '@brfhub/core/auth/mode';
 import {useState, type ReactNode} from 'react';
 import {View} from 'react-native';
 

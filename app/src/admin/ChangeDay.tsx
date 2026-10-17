@@ -1,18 +1,18 @@
 import {DateTimePicker} from '@expo/ui/community/datetime-picker';
-import {useAdminAccount} from '@booking/core/admin/account';
+import {useAdminAccount} from '@brfhub/core/admin/account';
 import {
   asksReason,
   changeDays,
   type ChangeKind,
-} from '@booking/core/admin/change';
-import {fieldLabel, type Draft} from '@booking/core/admin/localized';
-import type {Locale} from '@booking/core/i18n/catalog';
+} from '@brfhub/core/admin/change';
+import {fieldLabel, type Draft} from '@brfhub/core/admin/localized';
+import type {Locale} from '@brfhub/core/i18n/catalog';
 import {
   formatDayHeading,
   formatLongDate,
   fromIsoDate,
   toIsoDate,
-} from '@booking/core/lib/dates';
+} from '@brfhub/core/lib/dates';
 import {useState} from 'react';
 import {Modal, Platform, Pressable, Text, View} from 'react-native';
 

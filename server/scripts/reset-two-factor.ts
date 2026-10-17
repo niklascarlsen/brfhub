@@ -10,7 +10,7 @@ const USAGE = `Usage: npm run admin:reset-2fa -- <email>
 
 Forgets the admin's authenticator and ends every session, so they set a
 new one up at the next sign-in. For the last admin of an organization,
-whom no colleague can do it for.`;
+whom no other admin can do it for.`;
 
 const email = process.argv[2]?.toLowerCase();
 

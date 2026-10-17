@@ -1,5 +1,5 @@
-import type {BookingWindow, Resource} from '@booking/core/api/types';
-import {formatDayHeading} from '@booking/core/lib/dates';
+import type {BookingWindow, Resource} from '@brfhub/core/api/types';
+import {formatDayHeading} from '@brfhub/core/lib/dates';
 
 import {api, unwrap} from '@/api/client';
 import {AnnouncementBanner} from '@/components/Announcements';

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "booking",
+    "name": "BrfHub",
     "slug": "booking",
     "scheme": "bookslot",
     "version": "1.0.0",
@@ -13,25 +13,30 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.bookslot.app",
-      "googleServicesFile": "./google-services.json"
+      "package": "com.bookslot.app"
     },
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
     "plugins": [
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png"
+        }
+      ],
       "expo-font",
       "expo-secure-store",
       "expo-web-browser",
-      "expo-localization"
+      "expo-localization",
+      "expo-system-ui",
+      ["expo-status-bar", {"style": "dark"}]
     ],
     "extra": {
       "eas": {

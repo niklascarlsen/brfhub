@@ -12,8 +12,8 @@ import {
   NavigationContainer,
 } from '@react-navigation/native';
 import {StatusBar} from 'expo-status-bar';
-import type {Mode} from '@booking/core/auth/account';
-import {SwitchModeContext} from '@booking/core/auth/mode';
+import type {Mode} from '@brfhub/core/auth/account';
+import {SwitchModeContext} from '@brfhub/core/auth/mode';
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {View} from 'react-native';
 import {KeyboardProvider} from 'react-native-keyboard-controller';

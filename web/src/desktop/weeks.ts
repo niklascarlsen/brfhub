@@ -1,5 +1,5 @@
-import type {Messages} from '@booking/core/i18n/catalog';
-import {addDays, formatLongDate, fromIsoDate} from '@booking/core/lib/dates';
+import type {Messages} from '@brfhub/core/i18n/catalog';
+import {addDays, formatLongDate, fromIsoDate} from '@brfhub/core/lib/dates';
 
 const DAYS_PER_WEEK = 7;
 

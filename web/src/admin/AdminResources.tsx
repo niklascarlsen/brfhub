@@ -1,10 +1,10 @@
-import {useAdminAccount, useRefreshAccount} from '@booking/core/admin/account';
-import {missingLanguages} from '@booking/core/admin/localized';
-import {limitText, slotsText} from '@booking/core/admin/schedule';
-import type {AdminResource} from '@booking/core/api/types';
-import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
-import {localize, type Messages} from '@booking/core/i18n/catalog';
-import {formatDayMonth} from '@booking/core/lib/dates';
+import {useAdminAccount, useRefreshAccount} from '@brfhub/core/admin/account';
+import {missingLanguages} from '@brfhub/core/admin/localized';
+import {limitText, slotsText} from '@brfhub/core/admin/schedule';
+import type {AdminResource} from '@brfhub/core/api/types';
+import {useSlowLoad} from '@brfhub/core/hooks/useSlowLoad';
+import {localize, type Messages} from '@brfhub/core/i18n/catalog';
+import {formatDayMonth} from '@brfhub/core/lib/dates';
 
 import {AdminPage} from '@/admin/AdminPage';
 import {CloseForm} from '@/admin/CloseForm';

@@ -1,5 +1,5 @@
-import {parseAdminPath} from '@booking/core/admin/location';
-import type {Messages} from '@booking/core/i18n/catalog';
+import {parseAdminPath} from '@brfhub/core/admin/location';
+import type {Messages} from '@brfhub/core/i18n/catalog';
 import {useCallback, useEffect, useSyncExternalStore} from 'react';
 
 import {useMessages} from '@/i18n/LocaleProvider';

@@ -1,5 +1,5 @@
 {
-  "name": "booking-web",
+  "name": "@brfhub/web",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -17,7 +17,7 @@
     "check": "prettier --check . && npm run typecheck && npm run lint"
   },
   "dependencies": {
-    "@booking/core": "*",
+    "@brfhub/core": "*",
     "@fontsource-variable/merriweather": "^5.3.0",
     "better-auth": "^1.7.4",
     "react": "19.3.0",

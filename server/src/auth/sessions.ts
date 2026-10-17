@@ -9,8 +9,8 @@ import {session, verification} from '../db/schema.js';
 // as Better Auth keeps extending a used one. That is apart from the
 // trusted device: an admin who ticks it signs in again on that device with
 // the password alone for Better Auth's 30 days, counted from the last such
-// sign-in, until they sign out, set a new password or a colleague resets
-// their two-step.
+// sign-in, until they sign out, set a new password or another admin
+// resets their two-step.
 export const MEMBER_SESSION_DAYS = 180;
 export const ADMIN_SESSION_DAYS = 7;
 

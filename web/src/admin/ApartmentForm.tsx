@@ -2,8 +2,8 @@ import {
   checkApartment,
   failureMessage,
   type ApartmentFields,
-} from '@booking/core/admin/drafts';
-import {useProblems} from '@booking/core/admin/useProblems';
+} from '@brfhub/core/admin/drafts';
+import {useProblems} from '@brfhub/core/admin/useProblems';
 import {useState, type SubmitEvent} from 'react';
 
 import {FormActions} from '@/admin/FormActions';

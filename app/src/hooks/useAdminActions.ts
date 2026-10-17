@@ -1,4 +1,4 @@
-import {adminActions, adminLoads} from '@booking/core/admin/actions';
+import {adminActions, adminLoads} from '@brfhub/core/admin/actions';
 
 import {api, unwrap} from '@/api/client';
 import {useDialog} from '@/components/Dialog';

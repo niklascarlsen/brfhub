@@ -6,7 +6,7 @@
 // push-tokens table as the Expo tokens, and the server tells them apart by
 // the leading brace. Every app start re-sends it so a rotated subscription
 // reaches the server and a stale VAPID key gets replaced.
-import type {Locale} from '@booking/core/i18n/catalog';
+import type {Locale} from '@brfhub/core/i18n/catalog';
 
 import {api, unwrap} from '@/api/client';
 import {readPushEnabled} from '@/lib/pushPreference';

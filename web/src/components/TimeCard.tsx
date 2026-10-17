@@ -1,4 +1,4 @@
-import {formatDayHeading, timeRange} from '@booking/core/lib/dates';
+import {formatDayHeading, timeRange} from '@brfhub/core/lib/dates';
 
 import {SkeletonBar} from '@/components/Skeleton';
 import {useMessages} from '@/i18n/LocaleProvider';

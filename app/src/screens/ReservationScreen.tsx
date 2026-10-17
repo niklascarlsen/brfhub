@@ -3,8 +3,8 @@ import {
   queueCard,
   type BookingAction,
   type CardOffer,
-} from '@booking/core/booking/offer';
-import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
+} from '@brfhub/core/booking/offer';
+import {useSlowLoad} from '@brfhub/core/hooks/useSlowLoad';
 import {type ReactNode} from 'react';
 import {ScrollView, Text, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';

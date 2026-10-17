@@ -1,12 +1,7 @@
-import type {
-  BookingWindow,
-  Held,
-  Resource,
-  Slot,
-} from '@booking/core/api/types';
-import {slotOffer, type BookingAction} from '@booking/core/booking/offer';
-import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
-import {addDays, timeRange} from '@booking/core/lib/dates';
+import type {BookingWindow, Held, Resource, Slot} from '@brfhub/core/api/types';
+import {slotOffer, type BookingAction} from '@brfhub/core/booking/offer';
+import {useSlowLoad} from '@brfhub/core/hooks/useSlowLoad';
+import {addDays, timeRange} from '@brfhub/core/lib/dates';
 import {useRef} from 'react';
 
 import {

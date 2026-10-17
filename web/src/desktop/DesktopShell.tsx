@@ -1,4 +1,4 @@
-import {useConfig} from '@booking/core/config/config';
+import {useConfig} from '@brfhub/core/config/config';
 
 import {CalendarOutlineIcon} from '@/components/icons';
 import {DesktopApartment} from '@/desktop/DesktopApartment';

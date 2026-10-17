@@ -1,18 +1,18 @@
-import {useAdminAccount} from '@booking/core/admin/account';
+import {useAdminAccount} from '@brfhub/core/admin/account';
 import {
   DURATIONS,
   durationOf,
   endsOnAfter,
   startOf,
-} from '@booking/core/admin/announcement';
+} from '@brfhub/core/admin/announcement';
 import {
   checkAnnouncement,
   failureMessage,
   type AnnouncementFields,
-} from '@booking/core/admin/drafts';
-import {fieldLabel, type Draft} from '@booking/core/admin/localized';
-import {useProblems} from '@booking/core/admin/useProblems';
-import {formatLongDate} from '@booking/core/lib/dates';
+} from '@brfhub/core/admin/drafts';
+import {fieldLabel, type Draft} from '@brfhub/core/admin/localized';
+import {useProblems} from '@brfhub/core/admin/useProblems';
+import {formatLongDate} from '@brfhub/core/lib/dates';
 import {useId, useState, type SubmitEvent} from 'react';
 
 import {FormActions} from '@/admin/FormActions';

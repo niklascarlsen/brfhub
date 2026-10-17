@@ -1,7 +1,7 @@
-import {checkAdmin, failureMessage} from '@booking/core/admin/drafts';
-import {useProblems} from '@booking/core/admin/useProblems';
-import type {AdminUser} from '@booking/core/api/types';
-import {formatLongDate} from '@booking/core/lib/dates';
+import {checkAdmin, failureMessage} from '@brfhub/core/admin/drafts';
+import {useProblems} from '@brfhub/core/admin/useProblems';
+import type {AdminUser} from '@brfhub/core/api/types';
+import {formatLongDate} from '@brfhub/core/lib/dates';
 import {useState, type SubmitEvent} from 'react';
 
 import {FormActions} from '@/admin/FormActions';

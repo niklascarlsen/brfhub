@@ -1,4 +1,4 @@
-import {useResetWhenChanged} from '@booking/core/hooks/useResetWhenChanged';
+import {useResetWhenChanged} from '@brfhub/core/hooks/useResetWhenChanged';
 import {useState} from 'react';
 
 type Orientation = 'horizontal' | 'vertical';

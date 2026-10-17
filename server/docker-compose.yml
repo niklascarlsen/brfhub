@@ -1,34 +1,34 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: booking-postgres
+    container_name: brfhub-postgres
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: booking
+      POSTGRES_DB: brfhub
     ports:
       - '5433:5432'
     volumes:
-      - booking_pg_data:/var/lib/postgresql/data
+      - brfhub_pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres -d booking']
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d brfhub']
       interval: 2s
       timeout: 5s
       retries: 10
 
   postgres-test:
     image: postgres:16-alpine
-    container_name: booking-postgres-test
+    container_name: brfhub-postgres-test
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: booking_test
+      POSTGRES_DB: brfhub_test
     ports:
       - '5434:5432'
     tmpfs:
       - /var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres -d booking_test']
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d brfhub_test']
       interval: 2s
       timeout: 5s
       retries: 10
@@ -36,10 +36,10 @@ services:
   # Catches every mail the server sends in dev, shown at http://localhost:8025.
   mailpit:
     image: axllent/mailpit:latest
-    container_name: booking-mailpit
+    container_name: brfhub-mailpit
     ports:
       - '1025:1025'
       - '8025:8025'
 
 volumes:
-  booking_pg_data:
+  brfhub_pg_data:

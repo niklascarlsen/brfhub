@@ -1,5 +1,5 @@
-import type {Apartment} from '@booking/core/api/types';
-import {formatLongDate} from '@booking/core/lib/dates';
+import type {Apartment} from '@brfhub/core/api/types';
+import {formatLongDate} from '@brfhub/core/lib/dates';
 import {useState} from 'react';
 import {Pressable, Text, View} from 'react-native';
 

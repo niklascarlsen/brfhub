@@ -1,16 +1,16 @@
-import {closingRule} from '@booking/core/booking/closing';
-import {ruleParagraphs} from '@booking/core/booking/rules';
-import {useConfig} from '@booking/core/config/config';
-import type {components} from '@booking/core/generated/api';
-import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
-import {joinNames, type Messages} from '@booking/core/i18n/catalog';
+import {closingRule} from '@brfhub/core/booking/closing';
+import {ruleParagraphs} from '@brfhub/core/booking/rules';
+import {useConfig} from '@brfhub/core/config/config';
+import type {components} from '@brfhub/core/generated/api';
+import {useSlowLoad} from '@brfhub/core/hooks/useSlowLoad';
+import {joinNames, type Messages} from '@brfhub/core/i18n/catalog';
 import {
   daysBetween,
   formatDayMonth,
   isOvernight,
   shortTimeRange,
   unbrokenRange,
-} from '@booking/core/lib/dates';
+} from '@brfhub/core/lib/dates';
 
 import {api, unwrap} from '@/api/client';
 import {Notice} from '@/components/Notice';

@@ -5,7 +5,7 @@ import {
   type Locale,
   type LocaleChoice,
   type Messages,
-} from '@booking/core/i18n/catalog';
+} from '@brfhub/core/i18n/catalog';
 import {useLocales} from 'expo-localization';
 import {
   createContext,

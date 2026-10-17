@@ -1,8 +1,8 @@
-import {firstOpenResource} from '@booking/core/booking/closing';
-import {useConfig} from '@booking/core/config/config';
-import {isWithinBookingWindow} from '@booking/core/lib/dates';
-import type {Mode} from '@booking/core/auth/account';
-import {SwitchModeContext} from '@booking/core/auth/mode';
+import {firstOpenResource} from '@brfhub/core/booking/closing';
+import {useConfig} from '@brfhub/core/config/config';
+import {isWithinBookingWindow} from '@brfhub/core/lib/dates';
+import type {Mode} from '@brfhub/core/auth/account';
+import {SwitchModeContext} from '@brfhub/core/auth/mode';
 import {useCallback, useEffect, useState} from 'react';
 
 import {AdminShell} from '@/admin/AdminShell';

@@ -1,4 +1,4 @@
-import {formatDayHeading, timeRange} from '@booking/core/lib/dates';
+import {formatDayHeading, timeRange} from '@brfhub/core/lib/dates';
 import {Pressable, Text, View} from 'react-native';
 
 import {SkeletonBar} from '@/components/Skeleton';

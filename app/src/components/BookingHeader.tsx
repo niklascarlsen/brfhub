@@ -1,5 +1,5 @@
-import type {BookingWindow, Resource} from '@booking/core/api/types';
-import {daysBetween, toIsoDate} from '@booking/core/lib/dates';
+import type {BookingWindow, Resource} from '@brfhub/core/api/types';
+import {daysBetween, toIsoDate} from '@brfhub/core/lib/dates';
 import {useMemo} from 'react';
 import {View} from 'react-native';
 

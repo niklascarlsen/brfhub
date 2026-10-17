@@ -1,4 +1,4 @@
-import type {Locale} from '@booking/core/i18n/catalog';
+import type {Locale} from '@brfhub/core/i18n/catalog';
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import {Platform} from 'react-native';

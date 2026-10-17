@@ -1,4 +1,4 @@
-import type {SlotLook, SlotOffer, SlotTone} from '@booking/core/booking/offer';
+import type {SlotLook, SlotOffer, SlotTone} from '@brfhub/core/booking/offer';
 
 type Appearance = {
   surface: string;

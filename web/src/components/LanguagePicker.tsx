@@ -1,4 +1,4 @@
-import {CATALOGS, type LocaleChoice} from '@booking/core/i18n/catalog';
+import {CATALOGS, type LocaleChoice} from '@brfhub/core/i18n/catalog';
 import {useId} from 'react';
 
 import {useLocale, useMessages} from '@/i18n/LocaleProvider';

@@ -1,5 +1,5 @@
-import {AdminAccountContext} from '@booking/core/admin/account';
-import type {AdminAccount} from '@booking/core/auth/account';
+import {AdminAccountContext} from '@brfhub/core/admin/account';
+import type {AdminAccount} from '@brfhub/core/auth/account';
 import {useEffect} from 'react';
 
 import {AdminAnnouncements} from '@/admin/AdminAnnouncements';

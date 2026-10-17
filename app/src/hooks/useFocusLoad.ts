@@ -1,6 +1,6 @@
-import {errorMessage} from '@booking/core/api/errors';
-import {screenError} from '@booking/core/load/loader';
-import {useLoad} from '@booking/core/load/useLoad';
+import {errorMessage} from '@brfhub/core/api/errors';
+import {screenError} from '@brfhub/core/load/loader';
+import {useLoad} from '@brfhub/core/load/useLoad';
 import {useFocusEffect} from '@react-navigation/native';
 import {useCallback} from 'react';
 

@@ -5,7 +5,7 @@ import {
   type DialogAction,
   type DialogChoice,
   type DialogTime,
-} from '@booking/core/lib/dialog';
+} from '@brfhub/core/lib/dialog';
 import {
   createContext,
   useContext,

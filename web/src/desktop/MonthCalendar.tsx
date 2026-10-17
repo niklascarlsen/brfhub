@@ -1,10 +1,10 @@
-import type {BookingWindow} from '@booking/core/api/types';
-import type {Messages} from '@booking/core/i18n/catalog';
+import type {BookingWindow} from '@brfhub/core/api/types';
+import type {Messages} from '@brfhub/core/i18n/catalog';
 import {
   formatLongDate,
   fromIsoDate,
   isWithinBookingWindow,
-} from '@booking/core/lib/dates';
+} from '@brfhub/core/lib/dates';
 
 import {calendarWeeks, formatMonthSpan, weekdayHeadings} from '@/desktop/weeks';
 import {useRovingGrid} from '@/hooks/useRovingGrid';

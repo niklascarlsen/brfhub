@@ -1,12 +1,12 @@
-import {errorMessage} from '@booking/core/api/errors';
+import {errorMessage} from '@brfhub/core/api/errors';
 import {
   accountView,
   forgetsAccount,
   type AdminAccount,
   type MemberAccount,
   type Mode,
-} from '@booking/core/auth/account';
-import {useLoad} from '@booking/core/load/useLoad';
+} from '@brfhub/core/auth/account';
+import {useLoad} from '@brfhub/core/load/useLoad';
 import {useEffect, type ReactNode} from 'react';
 
 import {api, unwrap} from '@/api/client';

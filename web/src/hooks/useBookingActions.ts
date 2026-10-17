@@ -1,4 +1,4 @@
-import {bookingActions} from '@booking/core/booking/bookingActions';
+import {bookingActions} from '@brfhub/core/booking/bookingActions';
 
 import {api, unwrap} from '@/api/client';
 import {useDialog} from '@/components/Dialog';

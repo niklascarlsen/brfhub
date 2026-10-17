@@ -1,4 +1,4 @@
-import {useSignIn} from '@booking/core/auth/useSignIn';
+import {useSignIn} from '@brfhub/core/auth/useSignIn';
 import {useEffect, useId, type SubmitEvent} from 'react';
 
 import {api, unwrap} from '@/api/client';

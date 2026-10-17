@@ -4,10 +4,10 @@ import {
   eventActor,
   formatEventClock,
   groupEventsByDay,
-} from '@booking/core/admin/events';
-import {useEventHistory} from '@booking/core/admin/useEventHistory';
-import {errorMessage} from '@booking/core/api/errors';
-import type {EventArea} from '@booking/core/api/types';
+} from '@brfhub/core/admin/events';
+import {useEventHistory} from '@brfhub/core/admin/useEventHistory';
+import {errorMessage} from '@brfhub/core/api/errors';
+import type {EventArea} from '@brfhub/core/api/types';
 import {useId, useState} from 'react';
 
 import {LIST, SECONDARY_BUTTON, SECTION_LABEL_TEXT} from '@/admin/styles';

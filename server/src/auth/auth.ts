@@ -92,7 +92,7 @@ async function forgetThisDevice(ctx: HookContext): Promise<void> {
 // Better Auth's routes the account may not use. The authenticator's:
 // turning it off, its secret for another app, fresh backup codes, with
 // which a stolen trusted device plus the password could pass the second
-// step from anywhere; only a colleague's reset takes it away. And
+// step from anywhere; only another admin's reset takes it away. And
 // update-user: the name is the admin's to set, through the apartment and
 // admin forms whose text is checked, not the account's own. The clients
 // call none of these.
@@ -205,7 +205,7 @@ export const auth = betterAuth({
   // The rules hold on the server too, whatever the login screen shows: a
   // code never signs an admin in, and only an admin has a password to set.
   // Both are refused the way a wrong code is. An admin keeps the
-  // authenticator once it is set up: only a colleague's reset takes it
+  // authenticator once it is set up: only another admin's reset takes it
   // away, so a stolen trusted device cannot turn it off.
   hooks: {
     before: createAuthMiddleware(async (ctx) => {

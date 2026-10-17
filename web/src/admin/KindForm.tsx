@@ -1,12 +1,12 @@
-import {useAdminAccount} from '@booking/core/admin/account';
+import {useAdminAccount} from '@brfhub/core/admin/account';
 import {
   checkKind,
   failureMessage,
   stepMaxActive,
   type KindFields,
-} from '@booking/core/admin/drafts';
-import {fieldLabel, type Draft} from '@booking/core/admin/localized';
-import {useProblems} from '@booking/core/admin/useProblems';
+} from '@brfhub/core/admin/drafts';
+import {fieldLabel, type Draft} from '@brfhub/core/admin/localized';
+import {useProblems} from '@brfhub/core/admin/useProblems';
 import {useState, type SubmitEvent} from 'react';
 
 import {FormActions} from '@/admin/FormActions';

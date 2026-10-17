@@ -1,8 +1,8 @@
-import {changeDays} from '@booking/core/admin/change';
-import {limitText, slotsText} from '@booking/core/admin/schedule';
-import type {AdminResource, AdminResources} from '@booking/core/api/types';
-import {localize} from '@booking/core/i18n/catalog';
-import {formatDayMonth} from '@booking/core/lib/dates';
+import {changeDays} from '@brfhub/core/admin/change';
+import {limitText, slotsText} from '@brfhub/core/admin/schedule';
+import type {AdminResource, AdminResources} from '@brfhub/core/api/types';
+import {localize} from '@brfhub/core/i18n/catalog';
+import {formatDayMonth} from '@brfhub/core/lib/dates';
 import {useState} from 'react';
 
 import {ActionRow} from '@/admin/Rows';

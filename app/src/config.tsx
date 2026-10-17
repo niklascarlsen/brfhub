@@ -1,11 +1,11 @@
-import {errorMessage} from '@booking/core/api/errors';
-import type {MemberAccount} from '@booking/core/auth/account';
+import {errorMessage} from '@brfhub/core/api/errors';
+import type {MemberAccount} from '@brfhub/core/auth/account';
 import {
   ConfigContext,
   configView,
   fetchConfig,
-} from '@booking/core/config/config';
-import {useLoad} from '@booking/core/load/useLoad';
+} from '@brfhub/core/config/config';
+import {useLoad} from '@brfhub/core/load/useLoad';
 import {useEffect, type ReactNode} from 'react';
 
 import {api, unwrap} from '@/api/client';

@@ -1,6 +1,6 @@
-import {useAdminAccount} from '@booking/core/admin/account';
-import type {Apartment} from '@booking/core/api/types';
-import {useSlowLoad} from '@booking/core/hooks/useSlowLoad';
+import {useAdminAccount} from '@brfhub/core/admin/account';
+import type {Apartment} from '@brfhub/core/api/types';
+import {useSlowLoad} from '@brfhub/core/hooks/useSlowLoad';
 import {Icon} from '@/components/Icon';
 import {useState} from 'react';
 import {Pressable, Text, View} from 'react-native';

@@ -1,5 +1,5 @@
-import {useSwitchMode} from '@booking/core/auth/mode';
-import {useConfig} from '@booking/core/config/config';
+import {useSwitchMode} from '@brfhub/core/auth/mode';
+import {useConfig} from '@brfhub/core/config/config';
 
 import {signOut} from '@/auth/signOut';
 import {Account} from '@/components/Account';

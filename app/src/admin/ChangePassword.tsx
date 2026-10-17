@@ -1,4 +1,4 @@
-import {useChangePassword} from '@booking/core/auth/useChangePassword';
+import {useChangePassword} from '@brfhub/core/auth/useChangePassword';
 import {View} from 'react-native';
 
 import {FormActions} from '@/admin/FormActions';

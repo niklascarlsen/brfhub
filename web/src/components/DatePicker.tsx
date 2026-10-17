@@ -2,7 +2,7 @@ import {
   getWeekdayLabel,
   groupDaysByMonth,
   toIsoDate,
-} from '@booking/core/lib/dates';
+} from '@brfhub/core/lib/dates';
 import {Fragment, useMemo} from 'react';
 
 import {useDragScroll} from '@/hooks/useDragScroll';

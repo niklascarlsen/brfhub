@@ -1,12 +1,12 @@
-import {useAdminAccount} from '@booking/core/admin/account';
+import {useAdminAccount} from '@brfhub/core/admin/account';
 import {
   asksReason,
   changeDays,
   type ChangeKind,
-} from '@booking/core/admin/change';
-import {fieldLabel, type Draft} from '@booking/core/admin/localized';
-import type {Locale} from '@booking/core/i18n/catalog';
-import {formatLongDate} from '@booking/core/lib/dates';
+} from '@brfhub/core/admin/change';
+import {fieldLabel, type Draft} from '@brfhub/core/admin/localized';
+import type {Locale} from '@brfhub/core/i18n/catalog';
+import {formatLongDate} from '@brfhub/core/lib/dates';
 
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';
 import {useMessages} from '@/i18n/LocaleProvider';

@@ -1,6 +1,6 @@
-import {canAddSlot} from '@booking/core/admin/drafts';
-import {nextSlot} from '@booking/core/admin/schedule';
-import type {SlotInput} from '@booking/core/api/types';
+import {canAddSlot} from '@brfhub/core/admin/drafts';
+import {nextSlot} from '@brfhub/core/admin/schedule';
+import type {SlotInput} from '@brfhub/core/api/types';
 
 import {SECONDARY_BUTTON} from '@/admin/styles';
 import {FloatingLabelInput} from '@/components/FloatingLabelInput';

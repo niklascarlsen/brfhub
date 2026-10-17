@@ -1,5 +1,5 @@
-import type {Announcement} from '@booking/core/api/types';
-import {formatDayMonth} from '@booking/core/lib/dates';
+import type {Announcement} from '@brfhub/core/api/types';
+import {formatDayMonth} from '@brfhub/core/lib/dates';
 import {useEffect, useState} from 'react';
 import {Pressable, Text, View} from 'react-native';
 

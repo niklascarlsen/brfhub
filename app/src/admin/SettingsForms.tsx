@@ -1,14 +1,14 @@
-import type {SettingsUpdate} from '@booking/core/admin/actions';
+import type {SettingsUpdate} from '@brfhub/core/admin/actions';
 import {
   checkDetails,
   checkRules,
   failureMessage,
   isSame,
-} from '@booking/core/admin/drafts';
-import type {Draft} from '@booking/core/admin/localized';
-import {useProblems} from '@booking/core/admin/useProblems';
-import type {LocalizedText} from '@booking/core/api/types';
-import {CATALOGS, LOCALES, type Locale} from '@booking/core/i18n/catalog';
+} from '@brfhub/core/admin/drafts';
+import type {Draft} from '@brfhub/core/admin/localized';
+import {useProblems} from '@brfhub/core/admin/useProblems';
+import type {LocalizedText} from '@brfhub/core/api/types';
+import {CATALOGS, LOCALES, type Locale} from '@brfhub/core/i18n/catalog';
 import {useState} from 'react';
 import {Pressable, Text, TextInput, View} from 'react-native';
 

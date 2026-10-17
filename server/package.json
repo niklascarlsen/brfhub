@@ -1,5 +1,5 @@
 {
-  "name": "booking-server",
+  "name": "@brfhub/server",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -20,7 +20,7 @@
     "types:gen": "NODE_ENV=development tsx scripts/generate-types.ts",
     "types:check": "NODE_ENV=development tsx scripts/generate-types.ts && git diff --exit-code -- openapi.json ../core/src/generated/api.d.ts ../core/src/generated/limits.ts",
     "format": "prettier --write .",
-    "test": "export NODE_ENV=test DATABASE_URL=postgresql://postgres:postgres@localhost:5434/booking_test; tsx scripts/reset-test-db.ts && drizzle-kit push --force && node --import tsx --test --test-concurrency=1 \"src/**/*.test.ts\"",
+    "test": "export NODE_ENV=test DATABASE_URL=postgresql://postgres:postgres@localhost:5434/brfhub_test; tsx scripts/reset-test-db.ts && drizzle-kit push --force && node --import tsx --test --test-concurrency=1 \"src/**/*.test.ts\"",
     "check": "prettier --check . && npm run typecheck && npm run types:check"
   },
   "dependencies": {

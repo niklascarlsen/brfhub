@@ -1,6 +1,6 @@
-import type {Slot} from '@booking/core/api/types';
-import type {SlotOffer} from '@booking/core/booking/offer';
-import {timeRange} from '@booking/core/lib/dates';
+import type {Slot} from '@brfhub/core/api/types';
+import type {SlotOffer} from '@brfhub/core/booking/offer';
+import {timeRange} from '@brfhub/core/lib/dates';
 
 import {ChevronForwardIcon, LockClosedIcon} from '@/components/icons';
 import {Skeleton, SkeletonBar} from '@/components/Skeleton';

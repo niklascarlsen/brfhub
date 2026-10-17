@@ -1,4 +1,4 @@
-import {createApi} from '@booking/core/api/createApi';
+import {createApi} from '@brfhub/core/api/createApi';
 
 import {API_BASE_URL} from '@/api/baseUrl';
 import {authClient, sessionChanged} from '@/auth/client';
