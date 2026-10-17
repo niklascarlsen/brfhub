@@ -2,11 +2,13 @@
 
 Booking of shared spaces for housing associations: the laundry room, the sauna, the guest flat. Residents book a time from their phone or the web, queue for a taken one and get a push when it frees up. The board manages apartments, resources and notices from the same apps.
 
+![The app: a booking day, switching a booking for a free time, a push when a queued time frees up, and the admin's page for the association](docs/screenshots/app.png)
+
 One server, two clients that can be used together or alone:
 
 - **Web** (`web/`): a responsive web app and installable PWA with web push. Phone layout below 1024px, a calendar view above.
 - **App** (`app/`): iOS and Android with Expo and React Native, with native push.
-- **Server** (`server/`): a Fastify API with Postgres. It owns every booking rule and knows nothing about the clients beyond the API.
+- **Server** (`server/`): a Fastify API with Postgres. It owns the booking rules, the clock in each organization's time zone, sign-in, and the push and mail that go out, and knows nothing about the clients beyond the API.
 
 ## Why
 
