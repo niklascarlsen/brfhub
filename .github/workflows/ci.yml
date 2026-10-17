@@ -45,8 +45,12 @@ jobs:
           --health-interval 2s
           --health-timeout 5s
           --health-retries 10
+    # What server/.env holds locally. types:gen loads the database module,
+    # which wants an address though it never connects; the tests set their
+    # own, the same.
     env:
       BETTER_AUTH_SECRET: ci-only-secret-not-used-anywhere-else
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5434/brfhub_test
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
