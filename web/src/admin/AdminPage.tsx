@@ -55,9 +55,9 @@ export function AdminPage({
     <button
       type='button'
       onClick={() => confirmLeave(back.onPress)}
-      className='-ml-1 flex items-center gap-1 self-start rounded-lg py-1 pr-2 text-sm font-semibold text-theme-muted transition-colors hover:text-theme-ink'
+      className='-ml-1.5 flex items-center gap-0.5 self-start rounded-lg py-1.5 pr-2 text-base font-semibold text-theme-ink transition-opacity hover:opacity-70 active:opacity-60'
     >
-      <ChevronBackIcon size={16} />
+      <ChevronBackIcon size={22} />
       {back.label}
     </button>
   ) : null;

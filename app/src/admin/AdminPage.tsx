@@ -67,10 +67,10 @@ export function AdminPage({
           <Pressable
             onPress={() => confirmLeave(back.onPress)}
             hitSlop={8}
-            className='-ml-1 mb-2 mt-1 flex-row items-center gap-1 self-start py-1 pr-2 active:opacity-60'
+            className='-ml-1.5 mb-4 mt-2 flex-row items-center gap-0.5 self-start py-1.5 pr-2 active:opacity-60'
           >
-            <Icon name='chevron-back' size={16} color={theme.muted} />
-            <Text className='text-sm font-semibold text-theme-muted'>
+            <Icon name='chevron-back' size={22} color={theme.ink} />
+            <Text className='text-base font-semibold text-theme-ink'>
               {back.label}
             </Text>
           </Pressable>

@@ -194,13 +194,8 @@ const styles = StyleSheet.create({
   edge: {
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: theme['bar-line'],
-    // Android draws an elevation's shadow at its own strength and only takes
-    // the hue, so it gets the ink whole.
-    shadowColor: Platform.OS === 'android' ? theme.ink : theme['bar-shadow'],
-    shadowOpacity: 1,
-    // Half the web's 24px blur, as iOS measures it.
-    shadowRadius: 12,
-    shadowOffset: {width: 0, height: 6},
-    elevation: 8,
+    // The web's shadow, drawn outside the bar only so the glass stays clear.
+    // iOS's own shadow on a view without a fill is recomputed every frame.
+    boxShadow: `0 6px 24px ${theme['bar-shadow']}`,
   },
 });
