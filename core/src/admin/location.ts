@@ -1,3 +1,5 @@
+import type {Messages} from '../i18n/catalog';
+
 // Where the admin is: a tab, and the step down within it. The web keeps it
 // in the address, so back, forward and a reload go where they should; the
 // app keeps it in each tab's state.
@@ -24,6 +26,29 @@ export const ORGANIZATION_SECTIONS = [
 ] as const;
 
 export type OrganizationSection = (typeof ORGANIZATION_SECTIONS)[number];
+
+// What each page is called, in its menu and over it.
+export function organizationSectionTitle(
+  page: OrganizationSection,
+  t: Messages,
+): string {
+  switch (page) {
+    case 'details':
+      return t.admin.details;
+    case 'languages':
+      return t.admin.organization.languages;
+    case 'rules':
+      return t.admin.organization.rules;
+    case 'admins':
+      return t.admin.admins.title;
+    case 'history':
+      return t.admin.events.title;
+    case 'password':
+      return t.admin.organization.changePassword;
+    case 'account':
+      return t.account.heading;
+  }
+}
 
 export type AdminLocation =
   | {tab: 'apartments'; step: 'list' | 'new'}
