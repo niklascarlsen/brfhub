@@ -14,7 +14,7 @@ import {db} from '../db/index.js';
 import * as schema from '../db/schema.js';
 import {devSignIn, production, WEB_ORIGIN} from '../lib/env.js';
 import {sendSignInCode} from '../mail/mail.service.js';
-import {codeWait, countCode} from './codeRequests.js';
+import {codeUsed, codeWait, countCode} from './codeRequests.js';
 import {
   adminSessionExpired,
   forgetTrustedDevices,
@@ -274,6 +274,16 @@ export const auth = betterAuth({
 
       if (ctx.path === '/sign-out') {
         await forgetThisDevice(ctx);
+      }
+
+      // A code spent leaves nothing to wait on: signing out and in again
+      // asks for a new one at once.
+      if (
+        (ctx.path === '/sign-in/email-otp' ||
+          ctx.path === '/email-otp/reset-password') &&
+        typeof ctx.body?.email === 'string'
+      ) {
+        await codeUsed(ctx.body.email);
       }
 
       // A code is counted once it is mailed, in sendVerificationOTP, or

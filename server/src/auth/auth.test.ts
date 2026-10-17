@@ -270,6 +270,25 @@ test('asked again while it holds, the same code is mailed and still signs in', a
   assert.equal(response.statusCode, 200);
 });
 
+test('a code spent signing in leaves nothing to wait on', async () => {
+  const email = emailOf('2');
+  await forgetCodeRequests(email);
+  const before = mail.sent.length;
+
+  await askForCode(email);
+  const signedIn = await server.inject({
+    method: 'POST',
+    url: '/auth/sign-in/email-otp',
+    headers: {origin: ORIGIN},
+    payload: {email, otp: codeSentTo(email, before)},
+  });
+  assert.equal(signedIn.statusCode, 200);
+
+  // Signed out on the spot and in again: a new code goes at once.
+  assert.equal((await askForCode(email)).statusCode, 200);
+  assert.equal(mail.sent.length, before + 2);
+});
+
 test('a code whose mail failed, or that was refused, is not counted', async () => {
   const email = emailOf('2');
   await forgetCodeRequests(email);

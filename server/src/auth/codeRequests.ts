@@ -84,3 +84,11 @@ export async function countCode(email: string, client: string) {
       },
     });
 }
+
+// A code spent signing in or setting the password: the next may be asked
+// for at once, as nothing mailed is left to wait on.
+export async function codeUsed(email: string) {
+  await db
+    .delete(codeRequests)
+    .where(eq(codeRequests.email, email.toLowerCase()));
+}
